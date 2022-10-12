@@ -125,7 +125,15 @@ PAS_END_EXTERN_C;
 #else
 #include <os/lock.h>
 
-#define os_unfair_lock_lock_inline os_unfair_lock_lock
+#define OS_UNFAIR_LOCK_DATA_SYNCHRONIZATION 0x00010000
+#define OS_UNFAIR_LOCK_ADAPTIVE_SPIN 0x00040000
+
+PAS_BEGIN_EXTERN_C;
+typedef uint32_t os_unfair_lock_options_t;
+OS_UNFAIR_LOCK_AVAILABILITY OS_EXPORT OS_NOTHROW OS_NONNULL_ALL void os_unfair_lock_lock_with_options(os_unfair_lock_t, os_unfair_lock_options_t);
+PAS_END_EXTERN_C;
+
+#define os_unfair_lock_lock_with_options_inline os_unfair_lock_lock_with_options
 #define os_unfair_lock_trylock_inline os_unfair_lock_trylock
 #define os_unfair_lock_unlock_inline os_unfair_lock_unlock
 #endif
@@ -156,7 +164,8 @@ static inline void pas_lock_lock(pas_lock* lock)
     if (PAS_LOCK_VERBOSE)
         pas_log("Thread %p Locking lock %p\n", pthread_self(), lock);
     pas_race_test_will_lock(lock);
-    os_unfair_lock_lock_inline(&lock->lock);
+    const os_unfair_lock_options_t options = (os_unfair_lock_options_t)(OS_UNFAIR_LOCK_DATA_SYNCHRONIZATION | OS_UNFAIR_LOCK_ADAPTIVE_SPIN);
+    os_unfair_lock_lock_with_options_inline(&lock->lock, options);
     pas_race_test_did_lock(lock);
 }
 
