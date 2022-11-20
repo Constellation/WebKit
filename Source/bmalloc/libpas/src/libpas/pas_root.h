@@ -67,7 +67,7 @@ typedef struct pas_tiny_large_map_hashtable_in_flux_stash pas_tiny_large_map_has
 typedef struct pas_tiny_large_map_second_level_hashtable_in_flux_stash pas_tiny_large_map_second_level_hashtable_in_flux_stash;
 
 struct pas_root {
-    uintptr_t magic;
+    uint64_t magic;
     uintptr_t* compact_heap_reservation_base;
     size_t* compact_heap_reservation_size;
     size_t* compact_heap_reservation_guard_size;

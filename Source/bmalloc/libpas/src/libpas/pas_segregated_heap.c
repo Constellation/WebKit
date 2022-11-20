@@ -2075,7 +2075,7 @@ pas_segregated_heap_ensure_size_directory_for_size(
                         pas_compact_atomic_segregated_size_directory_ptr_load(
                             &next_tuple->directory)->object_size);
             
-                    PAS_ASSERT(next_tuple - medium_directories
+                    PAS_ASSERT((size_t)(next_tuple - medium_directories)
                                < rare_data->num_medium_directories);
             
                     tuple_insertion_index = (size_t)(next_tuple - medium_directories);
