@@ -363,6 +363,8 @@ set(WTF_PUBLIC_HEADERS
     fast_float/parse_number.h
     fast_float/simple_decimal_conversion.h
 
+    simdutf/simdutf.h
+
     persistence/PersistentCoders.h
     persistence/PersistentDecoder.h
     persistence/PersistentEncoder.h
@@ -535,6 +537,8 @@ set(WTF_SOURCES
     persistence/PersistentDecoder.cpp
     persistence/PersistentEncoder.cpp
 
+    simdutf/simdutf.cpp
+
     text/ASCIILiteral.cpp
     text/AtomString.cpp
     text/AtomStringImpl.cpp
@@ -578,6 +582,7 @@ set(WTF_PRIVATE_INCLUDE_DIRECTORIES
     "${WTF_DIR}/wtf/dtoa"
     "${WTF_DIR}/wtf/fast_float"
     "${WTF_DIR}/wtf/persistence"
+    "${WTF_DIR}/wtf/simdutf"
     "${WTF_DIR}/wtf/text"
     "${WTF_DIR}/wtf/text/icu"
     "${WTF_DIR}/wtf/threads"
