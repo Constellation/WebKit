@@ -795,7 +795,10 @@ std::tuple<std::unique_ptr<LinkBuffer>, RefPtr<BaselineJITCode>> JIT::compileAnd
     JumpList stackOverflow;
     if (UNLIKELY(maxFrameSize > Options::reservedZoneSize()))
         stackOverflow.append(branchPtr(Above, regT1, callFrameRegister));
-    stackOverflow.append(branchPtr(Above, AbsoluteAddress(m_vm->addressOfSoftStackLimit()), regT1));
+    if (vm().usingAPI())
+        stackOverflow.append(branchPtr(Above, AbsoluteAddress(m_vm->addressOfSoftStackLimit()), regT1));
+    else
+        stackOverflow.append(branchPtr(BelowOrEqual, regT1, TrustedImmPtr(m_vm->softStackLimit())));
 
     move(regT1, stackPointerRegister);
     checkStackPointerAlignment();
