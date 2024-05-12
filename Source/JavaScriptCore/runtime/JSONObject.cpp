@@ -983,6 +983,104 @@ inline void FastStringifier<CharType>::append(char a, char b, char c, char d, ch
 }
 
 template<typename CharType>
+static ALWAYS_INLINE bool stringCopySameType(std::span<const CharType> span, CharType* cursor)
+{
+#if CPU(ARM64) || CPU(X86_64)
+    constexpr size_t stride = 16 / sizeof(CharType);
+    if (span.size() >= stride) {
+        using UnsignedType = std::make_unsigned_t<CharType>;
+        using BulkType = decltype(SIMD::load(static_cast<const UnsignedType*>(nullptr)));
+        const auto quoteMask = SIMD::splat(static_cast<UnsignedType>('"'));
+        const auto escapeMask = SIMD::splat(static_cast<UnsignedType>('\\'));
+        const auto controlMask = SIMD::splat(static_cast<UnsignedType>(' '));
+        const auto* ptr = span.data();
+        const auto* end = ptr + span.size();
+        auto* cursorEnd = cursor + span.size();
+        BulkType accumulated { };
+        for (; ptr + (stride - 1) < end; ptr += stride, cursor += stride) {
+            auto input = SIMD::load(bitwise_cast<const UnsignedType*>(ptr));
+            SIMD::store(input, bitwise_cast<UnsignedType*>(cursor));
+            auto quotes = SIMD::equal(input, quoteMask);
+            auto escapes = SIMD::equal(input, escapeMask);
+            auto controls = SIMD::lessThan(input, controlMask);
+            accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
+            if constexpr (sizeof(CharType) != 1) {
+                const auto surrogateMask = SIMD::splat(static_cast<UnsignedType>(0xf800));
+                const auto surrogateCheckMask = SIMD::splat(static_cast<UnsignedType>(0xd800));
+                accumulated = SIMD::merge(accumulated, SIMD::equal(simde_vandq_u16(input, surrogateMask), surrogateCheckMask));
+            }
+        }
+        if (ptr < end) {
+            auto input = SIMD::load(bitwise_cast<const UnsignedType*>(end - stride));
+            SIMD::store(input, bitwise_cast<UnsignedType*>(cursorEnd - stride));
+            auto quotes = SIMD::equal(input, quoteMask);
+            auto escapes = SIMD::equal(input, escapeMask);
+            auto controls = SIMD::lessThan(input, controlMask);
+            accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
+            if constexpr (sizeof(CharType) != 1) {
+                const auto surrogateMask = SIMD::splat(static_cast<UnsignedType>(0xf800));
+                const auto surrogateCheckMask = SIMD::splat(static_cast<UnsignedType>(0xd800));
+                accumulated = SIMD::merge(accumulated, SIMD::equal(simde_vandq_u16(input, surrogateMask), surrogateCheckMask));
+            }
+        }
+        return SIMD::isNonZero(accumulated);
+    }
+#endif
+    for (auto character : span) {
+        if constexpr (sizeof(CharType) != 1) {
+            if (UNLIKELY(U16_IS_SURROGATE(character)))
+                return true;
+        }
+        if (UNLIKELY(character <= 0xff && WTF::escapedFormsForJSON[character]))
+            return true;
+        *cursor++ = character;
+    }
+    return false;
+}
+
+static ALWAYS_INLINE bool stringCopyUpconvert(std::span<const LChar> span, UChar* cursor)
+{
+#if CPU(ARM64) || CPU(X86_64)
+    constexpr size_t stride = 16 / sizeof(LChar);
+    if (span.size() >= stride) {
+        using UnsignedType = std::make_unsigned_t<LChar>;
+        using BulkType = decltype(SIMD::load(static_cast<const UnsignedType*>(nullptr)));
+        const auto quoteMask = SIMD::splat(static_cast<UnsignedType>('"'));
+        const auto escapeMask = SIMD::splat(static_cast<UnsignedType>('\\'));
+        const auto controlMask = SIMD::splat(static_cast<UnsignedType>(' '));
+        const auto zeros = SIMD::splat(static_cast<UnsignedType>(0));
+        const auto* ptr = span.data();
+        const auto* end = ptr + span.size();
+        auto* cursorEnd = cursor + span.size();
+        BulkType accumulated { };
+        for (; ptr + (stride - 1) < end; ptr += stride, cursor += stride) {
+            auto input = SIMD::load(bitwise_cast<const UnsignedType*>(ptr));
+            simde_vst2q_u8(bitwise_cast<UnsignedType*>(cursor), (simde_uint8x16x2_t { input, zeros }));
+            auto quotes = SIMD::equal(input, quoteMask);
+            auto escapes = SIMD::equal(input, escapeMask);
+            auto controls = SIMD::lessThan(input, controlMask);
+            accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
+        }
+        if (ptr < end) {
+            auto input = SIMD::load(bitwise_cast<const UnsignedType*>(end - stride));
+            simde_vst2q_u8(bitwise_cast<UnsignedType*>(cursorEnd - stride), (simde_uint8x16x2_t { input, zeros }));
+            auto quotes = SIMD::equal(input, quoteMask);
+            auto escapes = SIMD::equal(input, escapeMask);
+            auto controls = SIMD::lessThan(input, controlMask);
+            accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
+        }
+        return SIMD::isNonZero(accumulated);
+    }
+#endif
+    for (auto character : span) {
+        if (UNLIKELY(WTF::escapedFormsForJSON[character]))
+            return true;
+        *cursor++ = character;
+    }
+    return false;
+}
+
+template<typename CharType>
 void FastStringifier<CharType>::append(JSValue value)
 {
     if (value.isNull()) {
@@ -1061,101 +1159,6 @@ void FastStringifier<CharType>::append(JSValue value)
             return;
         }
 
-        auto charactersCopySameType = [&](auto span, auto* cursor) ALWAYS_INLINE_LAMBDA {
-#if CPU(ARM64) || CPU(X86_64)
-            constexpr size_t stride = 16 / sizeof(CharType);
-            if (span.size() >= stride) {
-                using UnsignedType = std::make_unsigned_t<CharType>;
-                using BulkType = decltype(SIMD::load(static_cast<const UnsignedType*>(nullptr)));
-                const auto quoteMask = SIMD::splat(static_cast<UnsignedType>('"'));
-                const auto escapeMask = SIMD::splat(static_cast<UnsignedType>('\\'));
-                const auto controlMask = SIMD::splat(static_cast<UnsignedType>(' '));
-                const auto* ptr = span.data();
-                const auto* end = ptr + span.size();
-                auto* cursorEnd = cursor + span.size();
-                BulkType accumulated { };
-                for (; ptr + (stride - 1) < end; ptr += stride, cursor += stride) {
-                    auto input = SIMD::load(bitwise_cast<const UnsignedType*>(ptr));
-                    SIMD::store(input, bitwise_cast<UnsignedType*>(cursor));
-                    auto quotes = SIMD::equal(input, quoteMask);
-                    auto escapes = SIMD::equal(input, escapeMask);
-                    auto controls = SIMD::lessThan(input, controlMask);
-                    accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
-                    if constexpr (sizeof(CharType) != 1) {
-                        const auto surrogateMask = SIMD::splat(static_cast<UnsignedType>(0xf800));
-                        const auto surrogateCheckMask = SIMD::splat(static_cast<UnsignedType>(0xd800));
-                        accumulated = SIMD::merge(accumulated, SIMD::equal(simde_vandq_u16(input, surrogateMask), surrogateCheckMask));
-                    }
-                }
-                if (ptr < end) {
-                    auto input = SIMD::load(bitwise_cast<const UnsignedType*>(end - stride));
-                    SIMD::store(input, bitwise_cast<UnsignedType*>(cursorEnd - stride));
-                    auto quotes = SIMD::equal(input, quoteMask);
-                    auto escapes = SIMD::equal(input, escapeMask);
-                    auto controls = SIMD::lessThan(input, controlMask);
-                    accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
-                    if constexpr (sizeof(CharType) != 1) {
-                        const auto surrogateMask = SIMD::splat(static_cast<UnsignedType>(0xf800));
-                        const auto surrogateCheckMask = SIMD::splat(static_cast<UnsignedType>(0xd800));
-                        accumulated = SIMD::merge(accumulated, SIMD::equal(simde_vandq_u16(input, surrogateMask), surrogateCheckMask));
-                    }
-                }
-                return SIMD::isNonZero(accumulated);
-            }
-#endif
-            for (auto character : span) {
-                if constexpr (sizeof(CharType) != 1) {
-                    if (UNLIKELY(U16_IS_SURROGATE(character)))
-                        return true;
-                }
-                if (UNLIKELY(character <= 0xff && WTF::escapedFormsForJSON[character]))
-                    return true;
-                *cursor++ = character;
-            }
-            return false;
-        };
-
-        auto charactersCopyUpconvert = [&](std::span<const LChar> span, UChar* cursor) ALWAYS_INLINE_LAMBDA {
-#if CPU(ARM64) || CPU(X86_64)
-            constexpr size_t stride = 16 / sizeof(LChar);
-            if (span.size() >= stride) {
-                using UnsignedType = std::make_unsigned_t<LChar>;
-                using BulkType = decltype(SIMD::load(static_cast<const UnsignedType*>(nullptr)));
-                const auto quoteMask = SIMD::splat(static_cast<UnsignedType>('"'));
-                const auto escapeMask = SIMD::splat(static_cast<UnsignedType>('\\'));
-                const auto controlMask = SIMD::splat(static_cast<UnsignedType>(' '));
-                const auto zeros = SIMD::splat(static_cast<UnsignedType>(0));
-                const auto* ptr = span.data();
-                const auto* end = ptr + span.size();
-                auto* cursorEnd = cursor + span.size();
-                BulkType accumulated { };
-                for (; ptr + (stride - 1) < end; ptr += stride, cursor += stride) {
-                    auto input = SIMD::load(bitwise_cast<const UnsignedType*>(ptr));
-                    simde_vst2q_u8(bitwise_cast<UnsignedType*>(cursor), (simde_uint8x16x2_t { input, zeros }));
-                    auto quotes = SIMD::equal(input, quoteMask);
-                    auto escapes = SIMD::equal(input, escapeMask);
-                    auto controls = SIMD::lessThan(input, controlMask);
-                    accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
-                }
-                if (ptr < end) {
-                    auto input = SIMD::load(bitwise_cast<const UnsignedType*>(end - stride));
-                    simde_vst2q_u8(bitwise_cast<UnsignedType*>(cursorEnd - stride), (simde_uint8x16x2_t { input, zeros }));
-                    auto quotes = SIMD::equal(input, quoteMask);
-                    auto escapes = SIMD::equal(input, escapeMask);
-                    auto controls = SIMD::lessThan(input, controlMask);
-                    accumulated = SIMD::merge(accumulated, SIMD::merge(quotes, SIMD::merge(escapes, controls)));
-                }
-                return SIMD::isNonZero(accumulated);
-            }
-#endif
-            for (auto character : span) {
-                if (UNLIKELY(WTF::escapedFormsForJSON[character]))
-                    return true;
-                *cursor++ = character;
-            }
-            return false;
-        };
-
         if constexpr (sizeof(CharType) == 1) {
             if (UNLIKELY(!string.is8Bit())) {
                 m_retryWith16BitFastStringifier = m_length < (m_capacity / 2);
@@ -1168,7 +1171,7 @@ void FastStringifier<CharType>::append(JSValue value)
                 return;
             }
             m_buffer[m_length] = '"';
-            if (UNLIKELY(charactersCopySameType(string.span8(), m_buffer + m_length + 1))) {
+            if (UNLIKELY(stringCopySameType(string.span8(), m_buffer + m_length + 1))) {
                 recordFailure("string character needs escaping"_s);
                 return;
             }
@@ -1182,12 +1185,12 @@ void FastStringifier<CharType>::append(JSValue value)
             }
             m_buffer[m_length] = '"';
             if (string.is8Bit()) {
-                if (UNLIKELY(charactersCopyUpconvert(string.span8(), m_buffer + m_length + 1))) {
+                if (UNLIKELY(stringCopyUpconvert(string.span8(), m_buffer + m_length + 1))) {
                     recordFailure("string character needs escaping"_s);
                     return;
                 }
             } else {
-                if (UNLIKELY(charactersCopySameType(string.span16(), m_buffer + m_length + 1))) {
+                if (UNLIKELY(stringCopySameType(string.span16(), m_buffer + m_length + 1))) {
                     recordFailure("string character needs escaping or surrogate pair handling"_s);
                     return;
                 }
@@ -1244,6 +1247,7 @@ void FastStringifier<CharType>::append(JSValue value)
                 recordFailure("16-bit property name"_s);
                 return false;
             }
+            auto span = name.span8();
 
             if (UNLIKELY(object.structure() != &structure)) {
                 ASSERT_NOT_REACHED();
@@ -1255,26 +1259,29 @@ void FastStringifier<CharType>::append(JSValue value)
                 return true;
 
             bool needComma = m_buffer[m_length - 1] != '{';
-            unsigned nameLength = name.length();
-            if (UNLIKELY(!hasRemainingCapacity(needComma + 1 + nameLength + 2))) {
+            if (UNLIKELY(!hasRemainingCapacity(needComma + 1 + span.size() + 2))) {
                 recordBufferFull();
                 return false;
             }
             if (needComma)
                 m_buffer[m_length++] = ',';
             m_buffer[m_length] = '"';
-            auto characters = name.span8();
-            for (unsigned i = 0; i < nameLength; ++i) {
-                auto character = characters[i];
-                if (UNLIKELY(WTF::escapedFormsForJSON[character])) {
+
+            if constexpr (sizeof(CharType) == 2) {
+                if (UNLIKELY(stringCopyUpconvert(span, m_buffer + m_length + 1))) {
                     recordFailure("property name character needs escaping"_s);
                     return false;
                 }
-                m_buffer[m_length + 1 + i] = character;
+            } else {
+                if (UNLIKELY(stringCopySameType(span, m_buffer + m_length + 1))) {
+                    recordFailure("property name character needs escaping"_s);
+                    return false;
+                }
             }
-            m_buffer[m_length + 1 + nameLength] = '"';
-            m_buffer[m_length + 1 + nameLength + 1] = ':';
-            m_length += 1 + nameLength + 2;
+
+            m_buffer[m_length + 1 + span.size()] = '"';
+            m_buffer[m_length + 1 + span.size() + 1] = ':';
+            m_length += 1 + span.size() + 2;
             append(value);
             return !haveFailure();
         });
