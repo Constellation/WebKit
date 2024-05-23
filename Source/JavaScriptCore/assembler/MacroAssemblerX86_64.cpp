@@ -44,10 +44,8 @@ namespace JSC {
 
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(ctiMasmProbeTrampoline, void, ());
 JSC_ANNOTATE_JIT_OPERATION_PROBE(ctiMasmProbeTrampoline);
-#if CPU(X86_64)
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(ctiMasmProbeTrampolineSIMD, void, ());
 JSC_ANNOTATE_JIT_OPERATION_PROBE(ctiMasmProbeTrampolineSIMD);
-#endif
 
 // The following are offsets for Probe::State fields accessed by the ctiMasmProbeTrampoline stub.
 
@@ -151,7 +149,6 @@ static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::edi) == PROBE_CPU_EDI_O
 static_assert(PROBE_OFFSETOF_REG(cpu.sprs, X86Registers::eip) == PROBE_CPU_EIP_OFFSET, "Probe::State::cpu.gprs[eip]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.sprs, X86Registers::eflags) == PROBE_CPU_EFLAGS_OFFSET, "Probe::State::cpu.sprs[eflags]'s offset matches ctiMasmProbeTrampoline");
 
-#if CPU(X86_64)
 static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r8) == PROBE_CPU_R8_OFFSET, "Probe::State::cpu.gprs[r8]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r9) == PROBE_CPU_R9_OFFSET, "Probe::State::cpu.gprs[r9]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r10) == PROBE_CPU_R10_OFFSET, "Probe::State::cpu.gprs[r10]'s offset matches ctiMasmProbeTrampoline");
@@ -160,7 +157,6 @@ static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r12) == PROBE_CPU_R12_O
 static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r13) == PROBE_CPU_R13_OFFSET, "Probe::State::cpu.gprs[r13]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r14) == PROBE_CPU_R14_OFFSET, "Probe::State::cpu.gprs[r14]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.gprs, X86Registers::r15) == PROBE_CPU_R15_OFFSET, "Probe::State::cpu.gprs[r15]'s offset matches ctiMasmProbeTrampoline");
-#endif // CPU(X86_64)
 
 static_assert(!(PROBE_CPU_XMM0_OFFSET & 0x7), "Probe::State::cpu.fprs[xmm0]'s offset should be 8 byte aligned");
 
@@ -173,7 +169,6 @@ static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm5) == PROBE_CPU
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm6) == PROBE_CPU_XMM6_OFFSET, "Probe::State::cpu.fprs[xmm6]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm7) == PROBE_CPU_XMM7_OFFSET, "Probe::State::cpu.fprs[xmm7]'s offset matches ctiMasmProbeTrampoline");
 
-#if CPU(X86_64)
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm8) == PROBE_CPU_XMM8_OFFSET, "Probe::State::cpu.fprs[xmm8]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm9) == PROBE_CPU_XMM9_OFFSET, "Probe::State::cpu.fprs[xmm9]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm10) == PROBE_CPU_XMM10_OFFSET, "Probe::State::cpu.fprs[xmm10]'s offset matches ctiMasmProbeTrampoline");
@@ -182,7 +177,6 @@ static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm12) == PROBE_CP
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm13) == PROBE_CPU_XMM13_OFFSET, "Probe::State::cpu.fprs[xmm13]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm14) == PROBE_CPU_XMM14_OFFSET, "Probe::State::cpu.fprs[xmm14]'s offset matches ctiMasmProbeTrampoline");
 static_assert(PROBE_OFFSETOF_REG(cpu.fprs.fprs, X86Registers::xmm15) == PROBE_CPU_XMM15_OFFSET, "Probe::State::cpu.fprs[xmm15]'s offset matches ctiMasmProbeTrampoline");
-#endif // CPU(X86_64)
 
 static_assert(sizeof(Probe::State) == PROBE_SIZE, "Probe::State::size's matches ctiMasmProbeTrampoline");
 #if COMPILER(MSVC)
@@ -191,7 +185,6 @@ static_assert((PROBE_EXECUTOR_OFFSET + PTR_SIZE) <= (PROBE_SIZE + OUT_SIZE), "Mu
 
 #undef PROBE_OFFSETOF
 
-#if CPU(X86_64)
 asm (
     ".text" "\n"
     ".globl " SYMBOL_STRING(ctiMasmProbeTrampoline) "\n"
@@ -203,7 +196,7 @@ asm (
 
     "pushfq" "\n"
 
-    // MacroAssemblerX86Common::probe() has already generated code to store some values.
+    // MacroAssemblerX86_64::probe() has already generated code to store some values.
     // Together with the rbp and rflags pushed above, the top of stack now looks like this:
     //     rbp[-1 * ptrSize]: rflags
     //     rbp[0 * ptrSize]: rbp / previousCallFrame
@@ -403,7 +396,7 @@ asm (
 
     "pushfq" "\n"
 
-    // MacroAssemblerX86Common::probe() has already generated code to store some values.
+    // MacroAssemblerX86_64::probe() has already generated code to store some values.
     // Together with the rbp and rflags pushed above, the top of stack now looks like this:
     //     rbp[-1 * ptrSize]: rflags
     //     rbp[0 * ptrSize]: rbp / previousCallFrame
@@ -589,7 +582,6 @@ asm (
     ".previous" "\n"
 #endif
 );
-#endif // CPU(X86_64)
 
 // What code is emitted for the probe?
 // ==================================
@@ -632,20 +624,14 @@ asm (
 
 void MacroAssembler::probe(Probe::Function function, void* arg, SavedFPWidth savedFPWidth)
 {
-#if CPU(X86_64)
     // Extra push so that the total number of pushes pad out to 32-bytes, and the
     // stack pointer remains 32 byte aligned as required by the ABI.
     push(RegisterID::eax);
-#endif
     push(RegisterID::eax);
 
-#if CPU(X86_64)
     if (savedFPWidth == SavedFPWidth::SaveVectors)
         move(TrustedImmPtr(reinterpret_cast<void*>(ctiMasmProbeTrampolineSIMD)), RegisterID::eax);
     else
-#else
-    UNUSED_PARAM(savedFPWidth);
-#endif
         move(TrustedImmPtr(reinterpret_cast<void*>(ctiMasmProbeTrampoline)), RegisterID::eax);
 
     push(RegisterID::edx);
@@ -655,12 +641,12 @@ void MacroAssembler::probe(Probe::Function function, void* arg, SavedFPWidth sav
     call(RegisterID::eax, CFunctionPtrTag);
 }
 
-MacroAssemblerX86Common::CPUID MacroAssemblerX86Common::getCPUID(unsigned level)
+MacroAssemblerX86_64::CPUID MacroAssemblerX86_64::getCPUID(unsigned level)
 {
     return getCPUIDEx(level, 0);
 }
 
-MacroAssemblerX86Common::CPUID MacroAssemblerX86Common::getCPUIDEx(unsigned level, unsigned count)
+MacroAssemblerX86_64::CPUID MacroAssemblerX86_64::getCPUIDEx(unsigned level, unsigned count)
 {
     CPUID result { };
     __asm__ (
@@ -671,7 +657,7 @@ MacroAssemblerX86Common::CPUID MacroAssemblerX86Common::getCPUIDEx(unsigned leve
     return result;
 }
 
-void MacroAssemblerX86Common::collectCPUFeatures()
+void MacroAssemblerX86_64::collectCPUFeatures()
 {
     static std::once_flag onceKey;
     std::call_once(onceKey, [] {
@@ -708,15 +694,15 @@ void MacroAssemblerX86Common::collectCPUFeatures()
     });
 }
 
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_sse3CheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_supplementalSSE3CheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_sse4_1CheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_sse4_2CheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_avxCheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_avx2CheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_lzcntCheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_bmi1CheckState = CPUIDCheckState::NotChecked;
-MacroAssemblerX86Common::CPUIDCheckState MacroAssemblerX86Common::s_popcntCheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_sse3CheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_supplementalSSE3CheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_sse4_1CheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_sse4_2CheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_avxCheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_avx2CheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_lzcntCheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_bmi1CheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_popcntCheckState = CPUIDCheckState::NotChecked;
 
 } // namespace JSC
 
