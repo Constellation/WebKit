@@ -61,6 +61,14 @@ void MegamorphicCache::age(CollectionScope collectionScope)
             entry.m_uid = nullptr;
             entry.m_epoch = invalidEpoch;
         }
+        for (auto& entry : m_instanceOfCachePrimaryEntries) {
+            entry.m_uid = nullptr;
+            entry.m_epoch = invalidEpoch;
+        }
+        for (auto& entry : m_instanceOfCacheSecondaryEntries) {
+            entry.m_uid = nullptr;
+            entry.m_epoch = invalidEpoch;
+        }
         if (m_epoch == invalidEpoch)
             m_epoch = 1;
     }
@@ -79,6 +87,10 @@ void MegamorphicCache::clearEntries()
     for (auto& entry : m_hasCachePrimaryEntries)
         entry.m_epoch = invalidEpoch;
     for (auto& entry : m_hasCacheSecondaryEntries)
+        entry.m_epoch = invalidEpoch;
+    for (auto& entry : m_instanceOfCachePrimaryEntries)
+        entry.m_epoch = invalidEpoch;
+    for (auto& entry : m_instanceOfCacheSecondaryEntries)
         entry.m_epoch = invalidEpoch;
     m_epoch = 1;
 }
