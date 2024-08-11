@@ -100,6 +100,7 @@ void resetSetPrivateBrand(CodeBlock*, StructureStubInfo&);
 void repatchGetBySlowPathCall(CodeBlock*, StructureStubInfo&, GetByKind);
 void repatchPutBySlowPathCall(CodeBlock*, StructureStubInfo&, PutByKind);
 void repatchInBySlowPathCall(CodeBlock*, StructureStubInfo&, InByKind);
+void repatchInstanceOfSlowPathCall(CodeBlock*, StructureStubInfo&);
 
 void ftlThunkAwareRepatchCall(CodeBlock*, CodeLocationCall<JSInternalPtrTag>, CodePtr<CFunctionPtrTag> newCalleeFunction);
 CodePtr<JSEntryPtrTag> jsToWasmICCodePtr(CodeSpecializationKind, JSObject* callee);

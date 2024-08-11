@@ -4339,15 +4339,59 @@ JSC_DEFINE_JIT_OPERATION(operationInstanceOfOptimize, EncodedJSValue, (EncodedJS
 
     JSValue value = JSValue::decode(encodedValue);
     JSValue proto = JSValue::decode(encodedProto);
-    
+
     bool result = JSObject::defaultHasInstance(globalObject, value, proto);
-    OPERATION_RETURN_IF_EXCEPTION(scope, JSValue::encode(jsUndefined()));
-    
+    OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
     CodeBlock* codeBlock = callFrame->codeBlock();
     if (stubInfo->considerRepatchingCacheGeneric(vm, codeBlock, value.structureOrNull()))
         repatchInstanceOf(globalObject, codeBlock, value, proto, *stubInfo, result);
-    
+
     OPERATION_RETURN(scope, JSValue::encode(jsBoolean(result)));
+}
+
+JSC_DEFINE_JIT_OPERATION(operationInstanceOfMegamorphic, EncodedJSValue, (EncodedJSValue encodedValue, EncodedJSValue encodedProto, StructureStubInfo* stubInfo))
+{
+    JSGlobalObject* globalObject = stubInfo->globalObject();
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    ICSlowPathCallFrameTracer tracer(vm, callFrame, stubInfo);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue value = JSValue::decode(encodedValue);
+    JSValue prototype = JSValue::decode(encodedProto);
+
+    if (!value.isObject()) {
+        if (stubInfo && stubInfo->considerRepatchingCacheMegamorphic(vm))
+            repatchInstanceOfSlowPathCall(callFrame->codeBlock(), *stubInfo);
+        OPERATION_RETURN(scope, JSValue::encode(jsBoolean(JSObject::defaultHasInstance(globalObject, value, prototype))));
+    }
+    JSObject* baseObject = asObject(value);
+
+    if (!prototype.isObject())
+        OPERATION_RETURN(scope, throwVMTypeError(globalObject, scope, "instanceof called on an object with an invalid prototype property."_s));
+
+    JSObject* object = baseObject;
+    while (true) {
+        Structure* structure = object->structure();
+        if (UNLIKELY(structure->typeInfo().overridesGetPrototype() || structure->hasPolyProto())) {
+            if (stubInfo && stubInfo->considerRepatchingCacheMegamorphic(vm))
+                repatchInstanceOfSlowPathCall(callFrame->codeBlock(), *stubInfo);
+            OPERATION_RETURN(scope, JSValue::encode(jsBoolean(JSObject::defaultHasInstance(globalObject, value, prototype))));
+        }
+
+        JSValue objectValue = object->getPrototypeDirect();
+        if (!objectValue.isObject()) {
+            vm.megamorphicCache()->initAsInstanceOfMiss(baseObject->structureID(), JSValue::encode(prototype));
+            OPERATION_RETURN(scope, JSValue::encode(jsBoolean(false)));
+        }
+        object = asObject(objectValue);
+
+        if (prototype == object) {
+            vm.megamorphicCache()->initAsInstanceOfHit(baseObject->structureID(), JSValue::encode(prototype));
+            OPERATION_RETURN(scope, JSValue::encode(jsBoolean(true)));
+        }
+    }
 }
 
 JSC_DEFINE_JIT_OPERATION(operationSizeFrameForForwardArguments, size_t, (JSGlobalObject* globalObject, EncodedJSValue, int32_t numUsedStackSlots, int32_t))

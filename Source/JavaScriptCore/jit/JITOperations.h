@@ -303,6 +303,7 @@ JSC_DECLARE_JIT_OPERATION(operationDeleteByValStrictGaveUp, size_t, (EncodedJSVa
 JSC_DECLARE_JIT_OPERATION(operationDeleteByValStrictGeneric, size_t, (JSGlobalObject*, EncodedJSValue base, EncodedJSValue target));
 
 JSC_DECLARE_JIT_OPERATION(operationInstanceOfOptimize, EncodedJSValue, (EncodedJSValue value, EncodedJSValue proto, StructureStubInfo*));
+JSC_DECLARE_JIT_OPERATION(operationInstanceOfMegamorphic, EncodedJSValue, (EncodedJSValue value, EncodedJSValue proto, StructureStubInfo*));
 JSC_DECLARE_JIT_OPERATION(operationInstanceOfGaveUp, EncodedJSValue, (EncodedJSValue value, EncodedJSValue proto, StructureStubInfo*));
 JSC_DECLARE_JIT_OPERATION(operationInstanceOfGeneric, EncodedJSValue, (JSGlobalObject*, EncodedJSValue value, EncodedJSValue proto));
 
