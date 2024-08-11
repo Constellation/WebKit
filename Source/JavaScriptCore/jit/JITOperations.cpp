@@ -4350,26 +4350,22 @@ JSC_DEFINE_JIT_OPERATION(operationInstanceOfOptimize, EncodedJSValue, (EncodedJS
     OPERATION_RETURN(scope, JSValue::encode(jsBoolean(result)));
 }
 
-JSC_DEFINE_JIT_OPERATION(operationInstanceOfMegamorphic, EncodedJSValue, (EncodedJSValue encodedValue, EncodedJSValue encodedProto, StructureStubInfo* stubInfo))
+static ALWAYS_INLINE JSValue instanceOfMegamprhic(JSGlobalObject* globalObject, VM& vm, CallFrame* callFrame, StructureStubInfo* stubInfo, JSValue value, JSValue prototype)
 {
-    JSGlobalObject* globalObject = stubInfo->globalObject();
-    VM& vm = globalObject->vm();
-    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
-    ICSlowPathCallFrameTracer tracer(vm, callFrame, stubInfo);
     auto scope = DECLARE_THROW_SCOPE(vm);
-
-    JSValue value = JSValue::decode(encodedValue);
-    JSValue prototype = JSValue::decode(encodedProto);
 
     if (!value.isObject()) {
         if (stubInfo && stubInfo->considerRepatchingCacheMegamorphic(vm))
             repatchInstanceOfSlowPathCall(callFrame->codeBlock(), *stubInfo);
-        OPERATION_RETURN(scope, JSValue::encode(jsBoolean(JSObject::defaultHasInstance(globalObject, value, prototype))));
+        RELEASE_AND_RETURN(scope, jsBoolean(JSObject::defaultHasInstance(globalObject, value, prototype)));
     }
     JSObject* baseObject = asObject(value);
 
-    if (!prototype.isObject())
-        OPERATION_RETURN(scope, throwVMTypeError(globalObject, scope, "instanceof called on an object with an invalid prototype property."_s));
+    if (!prototype.isObject()) {
+        scope.release();
+        throwVMTypeError(globalObject, scope, "instanceof called on an object with an invalid prototype property."_s);
+        return { };
+    }
 
     JSObject* object = baseObject;
     while (true) {
@@ -4377,21 +4373,41 @@ JSC_DEFINE_JIT_OPERATION(operationInstanceOfMegamorphic, EncodedJSValue, (Encode
         if (UNLIKELY(structure->typeInfo().overridesGetPrototype() || structure->hasPolyProto())) {
             if (stubInfo && stubInfo->considerRepatchingCacheMegamorphic(vm))
                 repatchInstanceOfSlowPathCall(callFrame->codeBlock(), *stubInfo);
-            OPERATION_RETURN(scope, JSValue::encode(jsBoolean(JSObject::defaultHasInstance(globalObject, value, prototype))));
+            scope.release();
+            return jsBoolean(JSObject::defaultHasInstance(globalObject, value, prototype));
         }
 
         JSValue objectValue = object->getPrototypeDirect();
         if (!objectValue.isObject()) {
             vm.megamorphicCache()->initAsInstanceOfMiss(baseObject->structureID(), JSValue::encode(prototype));
-            OPERATION_RETURN(scope, JSValue::encode(jsBoolean(false)));
+            return jsBoolean(false);
         }
         object = asObject(objectValue);
 
         if (prototype == object) {
             vm.megamorphicCache()->initAsInstanceOfHit(baseObject->structureID(), JSValue::encode(prototype));
-            OPERATION_RETURN(scope, JSValue::encode(jsBoolean(true)));
+            return jsBoolean(true);
         }
     }
+}
+
+JSC_DEFINE_JIT_OPERATION(operationInstanceOfMegamorphic, EncodedJSValue, (EncodedJSValue encodedValue, EncodedJSValue encodedProto, StructureStubInfo* stubInfo))
+{
+    JSGlobalObject* globalObject = stubInfo->globalObject();
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    ICSlowPathCallFrameTracer tracer(vm, callFrame, stubInfo);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    OPERATION_RETURN(scope, JSValue::encode(instanceOfMegamprhic(globalObject, vm, callFrame, stubInfo, JSValue::decode(encodedValue), JSValue::decode(encodedProto))));
+}
+
+JSC_DEFINE_JIT_OPERATION(operationInstanceOfMegamorphicGeneric, EncodedJSValue, (JSGlobalObject* globalObject, EncodedJSValue encodedValue, EncodedJSValue encodedProto))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    OPERATION_RETURN(scope, JSValue::encode(instanceOfMegamprhic(globalObject, vm, callFrame, nullptr, JSValue::decode(encodedValue), JSValue::decode(encodedProto))));
 }
 
 JSC_DEFINE_JIT_OPERATION(operationSizeFrameForForwardArguments, size_t, (JSGlobalObject* globalObject, EncodedJSValue, int32_t numUsedStackSlots, int32_t))

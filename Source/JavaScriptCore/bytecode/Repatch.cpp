@@ -1877,7 +1877,7 @@ static InlineCacheAction tryCacheInstanceOf(JSGlobalObject* globalObject, CodeBl
     
     fireWatchpointsAndClearStubIfNeeded(vm, stubInfo, codeBlock, result);
     if (result.generatedMegamorphicCode())
-        return GiveUpOnCache; // In this case, we give up since we do not cache the results in the megamorphic table.
+        return PromoteToMegamorphic;
     return result.shouldGiveUpNow() ? GiveUpOnCache : RetryCacheLater;
 }
 
@@ -2035,13 +2035,20 @@ void repatchArrayInByVal(JSGlobalObject* globalObject, CodeBlock* codeBlock, JSV
     }
 }
 
-void repatchInstanceOf(
-    JSGlobalObject* globalObject, CodeBlock* codeBlock, JSValue valueValue, JSValue prototypeValue, StructureStubInfo& stubInfo,
-    bool wasFound)
+void repatchInstanceOf(JSGlobalObject* globalObject, CodeBlock* codeBlock, JSValue valueValue, JSValue prototypeValue, StructureStubInfo& stubInfo, bool wasFound)
 {
     SuperSamplerScope superSamplerScope(false);
-    if (tryCacheInstanceOf(globalObject, codeBlock, valueValue, prototypeValue, stubInfo, wasFound) == GiveUpOnCache)
+    switch (tryCacheInstanceOf(globalObject, codeBlock, valueValue, prototypeValue, stubInfo, wasFound)) {
+    case PromoteToMegamorphic:
+        repatchSlowPathCall(codeBlock, stubInfo, operationInstanceOfMegamorphic);
+        break;
+    case GiveUpOnCache:
         repatchSlowPathCall(codeBlock, stubInfo, operationInstanceOfGaveUp);
+        break;
+    case RetryCacheLater:
+    case AttemptToCache:
+        break;
+    }
 }
 
 void linkDirectCall(DirectCallLinkInfo& callLinkInfo, CodeBlock* calleeCodeBlock, CodePtr<JSEntryPtrTag> codePtr)

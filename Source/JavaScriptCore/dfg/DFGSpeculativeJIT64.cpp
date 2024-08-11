@@ -7826,7 +7826,7 @@ void SpeculativeJIT::compileInstanceOf(Node* node)
     blessedBooleanResult(resultRegs.payloadGPR(), node);
 }
 
-void SpeculativeJIT::compileInstanceOfMegamorphic(Node* node)
+void SpeculativeJIT::compileInstanceOfGeneric(Node* node)
 {
     SpeculateCellOperand value(this, node->child1());
     SpeculateCellOperand prototype(this, node->child2());
@@ -7861,6 +7861,25 @@ void SpeculativeJIT::compileInstanceOfMegamorphic(Node* node)
     addSlowPathGenerator(slowPathCall(slowCases, this, operationInstanceOfGeneric, scratch1GPR, LinkableConstant::globalObject(*this, node), valueGPR, prototypeGPR));
 
     done.link(this);
+    blessedBooleanResult(scratch1GPR, node);
+}
+
+void SpeculativeJIT::compileInstanceOfMegamorphic(Node* node)
+{
+    SpeculateCellOperand value(this, node->child1());
+    SpeculateCellOperand prototype(this, node->child2());
+    GPRTemporary scratch1(this);
+    GPRTemporary scratch2(this);
+    GPRTemporary scratch3(this);
+
+    GPRReg valueGPR = value.gpr();
+    GPRReg prototypeGPR = prototype.gpr();
+    GPRReg scratch1GPR = scratch1.gpr();
+    GPRReg scratch2GPR = scratch2.gpr();
+    GPRReg scratch3GPR = scratch3.gpr();
+
+    JumpList slowCases = instanceOfMegamorphicProperty(vm(), baseGPR, prototypeGPR, scratch1GPR, scratch1GPR, scratch2GPR, scratch3GPR);
+    addSlowPathGenerator(slowPathCall(slowCases, this, operationInstanceOfMegamorphicGeneric, scratch1GPR, LinkableConstant::globalObject(*this, node), valueGPR, prototypeGPR));
     blessedBooleanResult(scratch1GPR, node);
 }
 
