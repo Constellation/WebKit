@@ -2758,54 +2758,34 @@ void InlineCacheCompiler::generateWithGuard(unsigned index, AccessCase& accessCa
         break;
 
     case AccessCase::InstanceOfMegamorphic: {
+#if USE(JSVALUE64)
         // Legend: value = `base instanceof prototypeGPR`.
         ASSERT(!accessCase.viaGlobalProxy());
-        GPRReg prototypeGPR = m_stubInfo.prototypeGPR();
+        CCallHelpers::JumpList failAndRepatch;
 
-        auto allocator = makeDefaultScratchAllocator(scratchGPR);
-#if USE(JSVALUE64)
-        GPRReg scratch2GPR = allocator.allocateScratchGPR();
-        JSValueRegs scratchRegs(scratch2GPR);
-#else
-        GPRReg scratch2GPR = allocator.allocateScratchGPR();
-        GPRReg scratch3GPR = allocator.allocateScratchGPR();
-        JSValueRegs scratchRegs(scratch2GPR, scratch3GPR);
-#endif
+        GPRReg prototypeGPR = m_stubInfo.prototypeGPR();
 
         if (!m_stubInfo.prototypeIsKnownObject)
             m_failAndIgnore.append(jit.branchIfNotObject(prototypeGPR));
 
+        auto allocator = makeDefaultScratchAllocator(scratchGPR);
+        GPRReg scratch2GPR = allocator.allocateScratchGPR();
+        GPRReg scratch3GPR = allocator.allocateScratchGPR();
+
         ScratchRegisterAllocator::PreservedState preservedState = allocator.preserveReusedRegistersByPushing(jit, ScratchRegisterAllocator::ExtraStackSpace::NoExtraSpace);
-        CCallHelpers::JumpList failAndIgnore;
 
-        jit.move(baseGPR, scratchGPR);
-
-        CCallHelpers::Label loop(&jit);
-        jit.emitLoadPrototype(vm, scratchGPR, scratchRegs, failAndIgnore);
-        CCallHelpers::Jump isInstance = jit.branchPtr(CCallHelpers::Equal, scratchRegs.payloadGPR(), prototypeGPR);
-        jit.move(scratchRegs.payloadGPR(), scratchGPR);
-#if USE(JSVALUE64)
-        jit.branchIfCell(JSValueRegs(scratchGPR)).linkTo(loop, &jit);
-#else
-        jit.branchTestPtr(CCallHelpers::NonZero, scratchGPR).linkTo(loop, &jit);
-#endif
-
-        jit.boxBooleanPayload(false, valueRegs.payloadGPR());
-        allocator.restoreReusedRegistersByPopping(jit, preservedState);
-        succeed();
-
-        isInstance.link(&jit);
-        jit.boxBooleanPayload(true, valueRegs.payloadGPR());
+        CCallHelpers::JumpList slowCases;
+        slowCases.append(jit.instanceOfMegamorphicProperty(vm, baseGPR, prototypeGPR, valueRegs.payloadGPR(), scratchGPR, scratch2GPR, scratch3GPR));
         allocator.restoreReusedRegistersByPopping(jit, preservedState);
         succeed();
 
         if (allocator.didReuseRegisters()) {
-            failAndIgnore.link(&jit);
+            slowCases.link(&jit);
             allocator.restoreReusedRegistersByPopping(jit, preservedState);
-            m_failAndIgnore.append(jit.jump());
+            m_failAndRepatch.append(jit.jump());
         } else
-            m_failAndIgnore.append(failAndIgnore);
-        return;
+            m_failAndRepatch.append(slowCases);
+#endif
     }
 
     case AccessCase::CheckPrivateBrand: {
@@ -4563,7 +4543,11 @@ RefPtr<AccessCase> InlineCacheCompiler::tryFoldToMegamorphic(CodeBlock* codeBloc
     if (cases.size() >= Options::maxAccessVariantListSize() || m_stubInfo.canBeMegamorphic) {
         switch (m_stubInfo.accessType) {
         case AccessType::InstanceOf:
+#if USE(JSVALUE32_64)
+            return nullptr;
+#else
             return AccessCase::create(vm(), codeBlock, AccessCase::InstanceOfMegamorphic, nullptr);
+#endif
 
 #if USE(JSVALUE64)
         case AccessType::GetById:
