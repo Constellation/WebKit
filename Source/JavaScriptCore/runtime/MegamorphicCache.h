@@ -57,8 +57,8 @@ public:
     static constexpr uint32_t hasCachePrimaryMask = hasCachePrimarySize - 1;
     static constexpr uint32_t hasCacheSecondaryMask = hasCacheSecondarySize - 1;
 
-    static constexpr uint32_t instanceOfCachePrimarySize = 128;
-    static constexpr uint32_t instanceOfCacheSecondarySize = 32;
+    static constexpr uint32_t instanceOfCachePrimarySize = 512;
+    static constexpr uint32_t instanceOfCacheSecondarySize = 128;
     static_assert(hasOneBitSet(instanceOfCachePrimarySize), "size should be a power of two.");
     static_assert(hasOneBitSet(instanceOfCacheSecondarySize), "size should be a power of two.");
     static constexpr uint32_t instanceOfCachePrimaryMask = instanceOfCachePrimarySize - 1;
@@ -197,8 +197,8 @@ public:
     static constexpr unsigned structureIDHashShift6 = structureIDHashShift1 + 9;
     static constexpr unsigned structureIDHashShift7 = structureIDHashShift1 + 7;
 
-    static constexpr unsigned structureIDHashShift8 = structureIDHashShift1 + 7;
-    static constexpr unsigned structureIDHashShift9 = structureIDHashShift1 + 5;
+    static constexpr unsigned structureIDHashShift8 = structureIDHashShift1 + 9;
+    static constexpr unsigned structureIDHashShift9 = structureIDHashShift1 + 7;
 
     ALWAYS_INLINE static uint32_t loadCachePrimaryHash(StructureID structureID, UniquedStringImpl* uid)
     {

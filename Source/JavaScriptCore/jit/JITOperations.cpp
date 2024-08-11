@@ -4378,16 +4378,15 @@ static ALWAYS_INLINE JSValue instanceOfMegamprhic(JSGlobalObject* globalObject, 
         }
 
         JSValue objectValue = object->getPrototypeDirect();
-        if (!objectValue.isObject()) {
+        if (prototype == objectValue) {
+            vm.megamorphicCache()->initAsInstanceOfHit(baseObject->structureID(), JSValue::encode(prototype));
+            return jsBoolean(true);
+        }
+        if (!objectValue.isCell()) {
             vm.megamorphicCache()->initAsInstanceOfMiss(baseObject->structureID(), JSValue::encode(prototype));
             return jsBoolean(false);
         }
         object = asObject(objectValue);
-
-        if (prototype == object) {
-            vm.megamorphicCache()->initAsInstanceOfHit(baseObject->structureID(), JSValue::encode(prototype));
-            return jsBoolean(true);
-        }
     }
 }
 
