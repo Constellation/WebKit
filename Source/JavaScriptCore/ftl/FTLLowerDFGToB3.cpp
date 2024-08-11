@@ -16368,11 +16368,11 @@ IGNORE_CLANG_WARNINGS_END
     void compileInstanceOfMegamorphic()
     {
         JSGlobalObject* globalObject = m_graph.globalObjectFor(m_origin.semantic);
-        LValue value = lowCell(m_node->child1());
+        LValue base = lowCell(m_node->child1());
         LValue prototype = lowCell(m_node->child2());
 
         PatchpointValue* patchpoint = m_out.patchpoint(Int64);
-        patchpoint->appendSomeRegister(value);
+        patchpoint->appendSomeRegister(base);
         patchpoint->appendSomeRegister(prototype);
         patchpoint->append(m_notCellMask, ValueRep::lateReg(GPRInfo::notCellMaskRegister));
         patchpoint->append(m_numberTag, ValueRep::lateReg(GPRInfo::numberTagRegister));
