@@ -1085,7 +1085,7 @@ static ALWAYS_INLINE std::span<EncodedJSValue> sortStableSort(JSGlobalObject* gl
     if (LIKELY(callData.type == CallData::Type::JS)) {
         CachedCall cachedCall(globalObject, jsCast<JSFunction*>(comparator), 2);
         RETURN_IF_EXCEPTION(scope, sorted);
-        RELEASE_AND_RETURN(scope, arrayStableSort(vm, compacted, sorted, [&](auto left, auto right) ALWAYS_INLINE_LAMBDA {
+        RELEASE_AND_RETURN(scope, arrayMergeSort(vm, compacted, sorted, [&](auto left, auto right) ALWAYS_INLINE_LAMBDA {
             auto scope = DECLARE_THROW_SCOPE(vm);
 
             JSValue jsResult = cachedCall.callWithArguments(globalObject, jsUndefined(), JSValue::decode(left), JSValue::decode(right));
@@ -1096,7 +1096,7 @@ static ALWAYS_INLINE std::span<EncodedJSValue> sortStableSort(JSGlobalObject* gl
     }
 
     MarkedArgumentBuffer args;
-    RELEASE_AND_RETURN(scope, arrayStableSort(vm, compacted, sorted, [&](auto left, auto right) ALWAYS_INLINE_LAMBDA {
+    RELEASE_AND_RETURN(scope, arrayMergeSort(vm, compacted, sorted, [&](auto left, auto right) ALWAYS_INLINE_LAMBDA {
         auto scope = DECLARE_THROW_SCOPE(vm);
 
         args.clear();
