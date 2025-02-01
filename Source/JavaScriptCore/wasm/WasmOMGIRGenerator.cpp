@@ -5460,7 +5460,7 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
 
             jit.addLinkTask([callee = Ref { *m_callee }, unlinkedWasmToWasmCalls, call, functionIndexSpace, isTailCall, calleeMove, callSiteIndex](LinkBuffer& linkBuffer) {
                 unlinkedWasmToWasmCalls->append({ linkBuffer.locationOfNearCall<WasmEntryPtrTag>(call), functionIndexSpace, linkBuffer.locationOf<WasmEntryPtrTag>(calleeMove) });
-                if (isTailCall)
+                if (!isTailCall)
                     callee->addReturnAddress(linkBuffer.locationOf<WasmEntryPtrTag>(call), CallSiteIndex(callSiteIndex));
             });
         });
