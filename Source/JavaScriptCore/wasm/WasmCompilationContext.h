@@ -71,8 +71,6 @@ struct CompilationContext {
     Vector<CCallHelpers::Label> catchEntrypoints;
 };
 
-void computePCToCodeOriginMap(CompilationContext&, LinkBuffer&);
-
 } // namespace Wasm
 
 } // namespace JSC

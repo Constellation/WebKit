@@ -156,8 +156,10 @@ void OMGPlan::work()
     Vector<CodeLocationLabel<ExceptionHandlerPtrTag>> exceptionHandlerLocations;
     computeExceptionHandlerLocations(exceptionHandlerLocations, internalFunction, context, linkBuffer);
 
-    computePCToCodeOriginMap(context, linkBuffer);
-
+    {
+        B3::PCToOriginMap originMap = context.procedure->releasePCToOriginMap();
+        context.pcToCodeOriginMap = Box<PCToCodeOriginMap>::create(PCToCodeOriginMapBuilder(PCToCodeOriginMapBuilder::WasmCodeOriginMap, WTFMove(originMap)), linkBuffer);
+    }
     {
         ScopedPrintStream out;
         dumpDisassembly(context, linkBuffer, m_functionIndex, signature, functionIndexSpace);
