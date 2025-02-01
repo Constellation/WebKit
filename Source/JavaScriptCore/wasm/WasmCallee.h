@@ -262,6 +262,8 @@ public:
     IndexOrName getOrigin(unsigned csi, unsigned depth, bool& isInlined) const;
     std::optional<CallSiteIndex> tryGetCallSiteIndex(const void*) const;
 
+    void addReturnAddress(CodeLocationCall<WasmEntryPtrTag>, CallSiteIndex);
+
 protected:
     OptimizingJITCallee(Wasm::CompilationMode mode, FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name)
         : JITCallee(mode, index, WTFMove(name))

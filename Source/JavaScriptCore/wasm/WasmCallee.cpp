@@ -464,6 +464,11 @@ std::optional<CallSiteIndex> OptimizingJITCallee::tryGetCallSiteIndex(const void
     return iter->value;
 }
 
+void OptimizingJITCallee::addReturnAddress(CodeLocationCall<WasmEntryPtrTag> label, CallSiteIndex callSiteIndex)
+{
+    m_returnPCToCallSiteIndex.add(removeCodePtrTag<const void*>(label.dataLocation<const void*>()), callSiteIndex);
+}
+
 const StackMap& OptimizingJITCallee::stackmap(CallSiteIndex callSiteIndex) const
 {
     auto iter = m_stackmaps.find(callSiteIndex);
