@@ -260,6 +260,7 @@ public:
 
     void addCodeOrigin(unsigned firstInlineCSI, unsigned lastInlineCSI, const Wasm::ModuleInformation&, uint32_t functionIndex);
     IndexOrName getOrigin(unsigned csi, unsigned depth, bool& isInlined) const;
+    std::optional<CallSiteIndex> tryGetCallSiteIndex(const void*) const;
 
 protected:
     OptimizingJITCallee(Wasm::CompilationMode mode, FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name)
@@ -282,6 +283,7 @@ private:
     StackMaps m_stackmaps;
     Vector<WasmCodeOrigin, 0> codeOrigins;
     Vector<Ref<NameSection>, 0> nameSections;
+    HashMap<const void*, CallSiteIndex> m_returnPCToCallSiteIndex;
 };
 
 constexpr int32_t stackCheckUnset = 0;

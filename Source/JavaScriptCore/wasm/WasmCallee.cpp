@@ -455,6 +455,15 @@ IndexOrName OptimizingJITCallee::getOrigin(unsigned csi, unsigned depth, bool& i
     return indexOrName();
 }
 
+std::optional<CallSiteIndex> OptimizingJITCallee::tryGetCallSiteIndex(const void* returnPC) const
+{
+    returnPC = removeCodePtrTag(returnPC);
+    auto iter = m_returnPCToCallSiteIndex.find(returnPC);
+    if (iter == m_returnPCToCallSiteIndex.end())
+        return std::nullopt;
+    return iter->value;
+}
+
 const StackMap& OptimizingJITCallee::stackmap(CallSiteIndex callSiteIndex) const
 {
     auto iter = m_stackmaps.find(callSiteIndex);
