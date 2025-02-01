@@ -169,7 +169,7 @@ void OMGPlan::work()
                 } else
                     builder.appendItem(originRange.label, PCToCodeOriginMapBuilder::defaultCodeOrigin());
             }
-            context.pcToCodeOriginMap = Box<PCToCodeOriginMap>::create(builder, linkBuffer);
+            context.pcToCodeOriginMap = Box<PCToCodeOriginMap>::create(WTFMove(builder), linkBuffer);
         }
     }
     {

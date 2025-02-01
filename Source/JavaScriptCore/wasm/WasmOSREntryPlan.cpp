@@ -30,6 +30,7 @@
 
 #include "JITCompilation.h"
 #include "LinkBuffer.h"
+#include "NativeCalleeRegistry.h"
 #include "WasmCallee.h"
 #include "WasmIRGeneratorHelpers.h"
 #include "WasmMachineThreads.h"
@@ -129,6 +130,23 @@ void OSREntryPlan::work()
     Vector<CodeLocationLabel<ExceptionHandlerPtrTag>> exceptionHandlerLocations;
     computeExceptionHandlerLocations(exceptionHandlerLocations, internalFunction, context, linkBuffer);
 
+    {
+        B3::PCToOriginMap originMap = context.procedure->releasePCToOriginMap();
+        if (Options::useSamplingProfiler()) {
+            PCToCodeOriginMapBuilder builder(/*shouldBuildMapping */ true);
+            for (const B3::PCToOriginMap::OriginRange& originRange : originMap.ranges()) {
+                B3::Origin b3Origin = originRange.origin;
+                if (b3Origin) {
+                    Wasm::OpcodeOrigin wasmOrigin { b3Origin };
+                    // We stash the location into a BytecodeIndex.
+                    builder.appendItem(originRange.label, CodeOrigin(BytecodeIndex(wasmOrigin.location())));
+                } else
+                    builder.appendItem(originRange.label, PCToCodeOriginMapBuilder::defaultCodeOrigin());
+            }
+            context.pcToCodeOriginMap = Box<PCToCodeOriginMap>::create(WTFMove(builder), linkBuffer);
+        }
+    }
+
     dumpDisassembly(context, linkBuffer, m_functionIndex, signature, functionIndexSpace);
     omgEntrypoint.compilation = makeUnique<Compilation>(
         FINALIZE_CODE_IF(context.procedure->shouldDumpIR(), linkBuffer, JITCompilationPtrTag, nullptr, "WebAssembly OMGForOSREntry function[%i] %s name %s", m_functionIndex, signature.toString().ascii().data(), makeString(IndexOrName(functionIndexSpace, m_moduleInformation->nameSection->get(functionIndexSpace))).ascii().data()),
@@ -138,6 +156,10 @@ void OSREntryPlan::work()
 
     ASSERT(m_calleeGroup.ptr() == m_module->calleeGroupFor(mode()));
     callee->setEntrypoint(WTFMove(omgEntrypoint), internalFunction->osrEntryScratchBufferSize, WTFMove(unlinkedCalls), WTFMove(internalFunction->stackmaps), WTFMove(internalFunction->exceptionHandlers), WTFMove(exceptionHandlerLocations));
+
+    if (context.pcToCodeOriginMap)
+        NativeCalleeRegistry::singleton().addPCToCodeOriginMap(callee.ptr(), WTFMove(context.pcToCodeOriginMap));
+
     {
         Locker locker { m_calleeGroup->m_lock };
         m_calleeGroup->recordOMGOSREntryCallee(locker, m_functionIndex, callee.get());

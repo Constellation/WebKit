@@ -6120,7 +6120,6 @@ Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(Compilati
         procedure.setShouldDumpIR();
 
     procedure.setNeedsPCToOriginMap();
-
     procedure.setOriginPrinter([] (PrintStream& out, Origin origin) {
         if (origin.data())
             out.print("Wasm: ", OpcodeOrigin(origin));
