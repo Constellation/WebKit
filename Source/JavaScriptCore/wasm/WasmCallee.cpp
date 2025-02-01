@@ -455,18 +455,13 @@ IndexOrName OptimizingJITCallee::getOrigin(unsigned csi, unsigned depth, bool& i
     return indexOrName();
 }
 
-std::optional<CallSiteIndex> OptimizingJITCallee::tryGetCallSiteIndex(const void* returnPC) const
+std::optional<CallSiteIndex> OptimizingJITCallee::tryGetCallSiteIndex(const void* pc) const
 {
-    returnPC = removeCodePtrTag(returnPC);
-    auto iter = m_returnPCToCallSiteIndex.find(returnPC);
-    if (iter == m_returnPCToCallSiteIndex.end())
-        return std::nullopt;
-    return iter->value;
-}
-
-void OptimizingJITCallee::addReturnAddress(CodeLocationCall<WasmEntryPtrTag> label, CallSiteIndex callSiteIndex)
-{
-    m_returnPCToCallSiteIndex.add(removeCodePtrTag<const void*>(label.dataLocation<const void*>()), callSiteIndex);
+    if (m_callSiteIndexMap) {
+        if (std::optional<CodeOrigin> codeOrigin = m_callSiteIndexMap->findPC(removeCodePtrTag<void*>(pc)))
+            return CallSiteIndex { codeOrigin->bytecodeIndex().asBits() };
+    }
+    return std::nullopt;
 }
 
 const StackMap& OptimizingJITCallee::stackmap(CallSiteIndex callSiteIndex) const

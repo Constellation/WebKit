@@ -1780,7 +1780,7 @@ auto OMGIRGenerator::emitIndirectCall(Value* calleeInstance, Value* calleeCode, 
     patchpoint->append(calleeCode, ValueRep::SomeRegister);
     patchpoint->append(boxedCalleeCallee, ValueRep::SomeRegister);
     patchArgsIndex += m_proc.resultCount(patchpoint->type());
-    patchpoint->setGenerator([this, handle = handle, prepareForCall = prepareForCall, patchArgsIndex, callSiteIndex = this->callSiteIndex()](CCallHelpers& jit, const B3::StackmapGenerationParams& params) {
+    patchpoint->setGenerator([this, handle = handle, prepareForCall = prepareForCall, patchArgsIndex](CCallHelpers& jit, const B3::StackmapGenerationParams& params) {
         AllowMacroScratchRegisterUsage allowScratch(jit);
         if (prepareForCall)
             prepareForCall->run(jit, params);
@@ -1788,12 +1788,9 @@ auto OMGIRGenerator::emitIndirectCall(Value* calleeInstance, Value* calleeCode, 
             handle->generate(jit, params, this);
 
         jit.storeWasmCalleeCallee(params[patchArgsIndex + 1].gpr());
-        auto call = jit.call(params[patchArgsIndex].gpr(), WasmEntryPtrTag);
+        jit.call(params[patchArgsIndex].gpr(), WasmEntryPtrTag);
         // Restore the stack pointer since it may have been lowered if our callee did a tail call.
         jit.addPtr(CCallHelpers::TrustedImm32(-params.code().frameSize()), GPRInfo::callFrameRegister, MacroAssembler::stackPointerRegister);
-        jit.addLinkTask([callee = Ref { *m_callee }, call, callSiteIndex](LinkBuffer& linkBuffer) {
-            callee->addReturnAddress(linkBuffer.locationOf<WasmEntryPtrTag>(call), CallSiteIndex(callSiteIndex));
-        });
     });
     auto callResult = patchpoint;
 
@@ -5385,7 +5382,7 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
     m_proc.requestCallArgAreaSizeInBytes(calleeStackSize);
 
     if (m_info.isImportedFunctionFromFunctionIndexSpace(functionIndexSpace)) {
-        auto emitCallToImport = [&, this](PatchpointValue* patchpoint, Box<PatchpointExceptionHandle> handle, RefPtr<B3::StackmapGenerator> prepareForCall, unsigned callSiteIndex) -> void {
+        auto emitCallToImport = [&, this](PatchpointValue* patchpoint, Box<PatchpointExceptionHandle> handle, RefPtr<B3::StackmapGenerator> prepareForCall) -> void {
             unsigned patchArgsIndex = patchpoint->reps().size();
             patchpoint->append(jumpDestination, ValueRep(GPRInfo::nonPreservedNonArgumentGPR0));
             // We need to clobber all potential pinned registers since we might be leaving the instance.
@@ -5393,7 +5390,7 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
             // FIXME: We shouldn't have to do this: https://bugs.webkit.org/show_bug.cgi?id=172181
             patchpoint->clobberLate(RegisterSetBuilder::wasmPinnedRegisters());
             patchArgsIndex += m_proc.resultCount(patchpoint->type());
-            patchpoint->setGenerator([this, patchArgsIndex, handle, isTailCall, tailCallStackOffsetFromFP, prepareForCall, callSiteIndex](CCallHelpers& jit, const B3::StackmapGenerationParams& params) {
+            patchpoint->setGenerator([this, patchArgsIndex, handle, isTailCall, tailCallStackOffsetFromFP, prepareForCall](CCallHelpers& jit, const B3::StackmapGenerationParams& params) {
                 AllowMacroScratchRegisterUsage allowScratch(jit);
                 if (prepareForCall)
                     prepareForCall->run(jit, params);
@@ -5402,12 +5399,9 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
                 if (isTailCall)
                     jit.farJump(params[patchArgsIndex].gpr(), WasmEntryPtrTag);
                 else {
-                    auto call = jit.call(params[patchArgsIndex].gpr(), WasmEntryPtrTag);
+                    jit.call(params[patchArgsIndex].gpr(), WasmEntryPtrTag);
                     // Restore the stack pointer since it may have been lowered if our callee did a tail call.
                     jit.addPtr(CCallHelpers::TrustedImm32(-params.code().frameSize()), GPRInfo::callFrameRegister, MacroAssembler::stackPointerRegister);
-                    jit.addLinkTask([callee = Ref { *m_callee }, call, callSiteIndex](LinkBuffer& linkBuffer) {
-                        callee->addReturnAddress(linkBuffer.locationOf<WasmEntryPtrTag>(call), CallSiteIndex(callSiteIndex));
-                    });
                 }
             });
         };
@@ -5422,12 +5416,12 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
 
         if (isTailCall) {
             auto [patchpoint, handle, prepareForCall] = createTailCallPatchpoint(m_currentBlock, wasmCallerInfoAsCallee, wasmCalleeInfoAsCallee, args, { });
-            emitCallToImport(patchpoint, handle, prepareForCall, callSiteIndex());
+            emitCallToImport(patchpoint, handle, prepareForCall);
             return { };
         }
 
         auto [patchpoint, handle, prepareForCall] = createCallPatchpoint(m_currentBlock, returnType, wasmCalleeInfo, args);
-        emitCallToImport(patchpoint, handle, prepareForCall, callSiteIndex());
+        emitCallToImport(patchpoint, handle, prepareForCall);
 
         if (returnType != B3::Void)
             fillResults(patchpoint);
@@ -5450,8 +5444,8 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
 
     Vector<UnlinkedWasmToWasmCall>* unlinkedWasmToWasmCalls = &m_unlinkedWasmToWasmCalls;
 
-    auto emitUnlinkedWasmToWasmCall = [&, this](PatchpointValue* patchpoint, Box<PatchpointExceptionHandle> handle, RefPtr<B3::StackmapGenerator> prepareForCall, unsigned callSiteIndex) -> void {
-        patchpoint->setGenerator([this, handle, unlinkedWasmToWasmCalls, functionIndexSpace, isTailCall, tailCallStackOffsetFromFP, prepareForCall, callSiteIndex](CCallHelpers& jit, const B3::StackmapGenerationParams& params) {
+    auto emitUnlinkedWasmToWasmCall = [&, this](PatchpointValue* patchpoint, Box<PatchpointExceptionHandle> handle, RefPtr<B3::StackmapGenerator> prepareForCall) -> void {
+        patchpoint->setGenerator([this, handle, unlinkedWasmToWasmCalls, functionIndexSpace, isTailCall, tailCallStackOffsetFromFP, prepareForCall](CCallHelpers& jit, const B3::StackmapGenerationParams& params) {
             AllowMacroScratchRegisterUsage allowScratch(jit);
             if (prepareForCall)
                 prepareForCall->run(jit, params);
@@ -5461,17 +5455,15 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
             auto calleeMove = jit.storeWasmCalleeCalleePatchable(isTailCall ? sizeof(CallerFrameAndPC) - prologueStackPointerDelta() : 0);
             auto call = isTailCall ? jit.threadSafePatchableNearTailCall() : jit.threadSafePatchableNearCall();
 
-            jit.addLinkTask([callee = Ref { *m_callee }, unlinkedWasmToWasmCalls, call, functionIndexSpace, isTailCall, calleeMove, callSiteIndex](LinkBuffer& linkBuffer) {
+            jit.addLinkTask([unlinkedWasmToWasmCalls, call, functionIndexSpace, calleeMove](LinkBuffer& linkBuffer) {
                 unlinkedWasmToWasmCalls->append({ linkBuffer.locationOfNearCall<WasmEntryPtrTag>(call), functionIndexSpace, linkBuffer.locationOf<WasmEntryPtrTag>(calleeMove) });
-                if (!isTailCall)
-                    callee->addReturnAddress(linkBuffer.locationOf<WasmEntryPtrTag>(call), CallSiteIndex(callSiteIndex));
             });
         });
     };
 
     if (isTailCall) {
         auto [patchpoint, handle, prepareForCall] = createTailCallPatchpoint(m_currentBlock, wasmCallerInfoAsCallee, wasmCalleeInfoAsCallee, args, { });
-        emitUnlinkedWasmToWasmCall(patchpoint, handle, prepareForCall, callSiteIndex());
+        emitUnlinkedWasmToWasmCall(patchpoint, handle, prepareForCall);
         return { };
     }
 
@@ -5487,7 +5479,7 @@ auto OMGIRGenerator::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDe
     // 2. We are not changing instance. Thus, |this| of this function's arguments are the same and OK.
 
     auto [patchpoint, handle, prepareForCall] = createCallPatchpoint(m_currentBlock, returnType, wasmCalleeInfo, args);
-    emitUnlinkedWasmToWasmCall(patchpoint, handle, prepareForCall, callSiteIndex());
+    emitUnlinkedWasmToWasmCall(patchpoint, handle, prepareForCall);
     // We need to clobber the size register since the LLInt always bounds checks
     if (useSignalingMemory() || m_info.memory.isShared())
         patchpoint->clobberLate(RegisterSetBuilder { GPRInfo::wasmBoundsCheckingSizeRegister });

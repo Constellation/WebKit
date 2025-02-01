@@ -158,19 +158,26 @@ void OMGPlan::work()
 
     {
         B3::PCToOriginMap originMap = context.procedure->releasePCToOriginMap();
-        if (Options::useSamplingProfiler()) {
-            PCToCodeOriginMapBuilder builder(/*shouldBuildMapping */ true);
-            for (const B3::PCToOriginMap::OriginRange& originRange : originMap.ranges()) {
-                B3::Origin b3Origin = originRange.origin;
-                if (b3Origin) {
-                    Wasm::OpcodeOrigin wasmOrigin { b3Origin };
-                    // We stash the location into a BytecodeIndex.
-                    builder.appendItem(originRange.label, CodeOrigin(BytecodeIndex(wasmOrigin.location())));
-                } else
-                    builder.appendItem(originRange.label, PCToCodeOriginMapBuilder::defaultCodeOrigin());
+        PCToCodeOriginMapBuilder samplingProfilerBuilder(/*shouldBuildMapping */ true);
+        PCToCodeOriginMapBuilder builder(/*shouldBuildMapping */ true);
+        for (const B3::PCToOriginMap::OriginRange& originRange : originMap.ranges()) {
+            B3::Origin b3Origin = originRange.origin;
+            auto* origin = std::bit_cast<const OMGOrigin*>(b3Origin.data());
+            if (origin) {
+                // We stash the location into a BytecodeIndex.
+                samplingProfilerBuilder.appendItem(originRange.label, CodeOrigin(BytecodeIndex(origin->m_opcodeOrigin.location())));
+                builder.appendItem(originRange.label, CodeOrigin(BytecodeIndex(origin->m_callSiteIndex.bits())));
+            } else {
+                samplingProfilerBuilder.appendItem(originRange.label, PCToCodeOriginMapBuilder::defaultCodeOrigin());
+                builder.appendItem(originRange.label, PCToCodeOriginMapBuilder::defaultCodeOrigin());
             }
-            context.pcToCodeOriginMap = Box<PCToCodeOriginMap>::create(WTFMove(builder), linkBuffer);
         }
+
+        if (Options::useSamplingProfiler())
+            context.pcToCodeOriginMap = Box<PCToCodeOriginMap>::create(WTFMove(samplingProfilerBuilder), linkBuffer);
+        auto map = Box<PCToCodeOriginMap>::create(WTFMove(builder), linkBuffer);
+        WTF::storeStoreFence();
+        callee->setCallSiteIndexMap(WTFMove(map));
     }
     {
         ScopedPrintStream out;
