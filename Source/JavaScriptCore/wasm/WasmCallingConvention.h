@@ -615,4 +615,15 @@ const CCallingConventionArmThumb2& cCallingConventionArmThumb2();
 
 } } // namespace JSC::Wasm
 
+namespace WTF {
+
+template<>
+struct VectorTraits<JSC::Wasm::ArgumentLocation> : VectorTraitsBase<false, JSC::Wasm::ValueLocation> {
+    static constexpr bool canInitializeWithMemset = true;
+    static constexpr bool canMoveWithMemcpy = true;
+    static constexpr bool canCopyWithMemcpy = true;
+};
+
+} // namespace WTF
+
 #endif // ENABLE(WEBASSEMBLY)
