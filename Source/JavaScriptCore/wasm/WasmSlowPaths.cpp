@@ -1355,6 +1355,16 @@ WASM_SLOW_PATH_DECL(i64_trunc_sat_f64_s)
 extern "C" UGPRPair SYSV_ABI slow_path_wasm_throw_exception(CallFrame* callFrame, JSWebAssemblyInstance* instance, Wasm::ExceptionType exceptionType)
 {
     SlowPathFrameTracer tracer(instance->vm(), callFrame);
+    void* pc = instance->faultPC();
+    instance->setFaultPC(nullptr);
+    auto* callee = static_cast<Wasm::LLIntCallee*>(callFrame->callee().asNativeCallee());
+    if (callee->category() == NativeCallee::Category::Wasm) {
+        auto& wasmCallee = static_cast<Wasm::Callee&>(*callee);
+        if (isAnyOMG(wasmCallee.compilationMode())) {
+            if (auto callSiteIndexFromPC = static_cast<Wasm::OptimizingJITCallee&>(wasmCallee).tryGetCallSiteIndex(pc))
+                callFrame->setCallSiteIndex(callSiteIndexFromPC.value());
+        }
+    }
     WASM_RETURN_TWO(Wasm::throwWasmToJSException(callFrame, exceptionType, instance), nullptr);
 }
 
