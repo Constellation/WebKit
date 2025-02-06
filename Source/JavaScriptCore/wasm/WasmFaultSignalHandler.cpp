@@ -30,6 +30,7 @@
 
 #include "ExecutableAllocator.h"
 #include "LLIntData.h"
+#include "JSWebAssemblyInstance.h"
 #include "MachineContext.h"
 #include "NativeCalleeRegistry.h"
 #include "WasmCallee.h"
@@ -107,7 +108,7 @@ static SignalAction trapHandler(Signal signal, SigInfo& sigInfo, PlatformRegiste
 
             auto [isWasm, callee] = didFaultInWasm(faultingInstruction);
             if (isWasm) {
-                auto* instance = jsSecureCast<JSWebAssemblyInstance*>();
+                auto* instance = jsSecureCast<JSWebAssemblyInstance*>(static_cast<JSCell*>(MachineContext::wasmInstancePointer(context)));
                 instance->setFaultPC(faultingInstruction);
 #if CPU(ARM64E) && HAVE(HARDENED_MACH_EXCEPTIONS)
                 if (g_wtfConfig.signalHandlers.useHardenedHandler) {
