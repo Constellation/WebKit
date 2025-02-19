@@ -9496,6 +9496,7 @@ void SpeculativeJIT::compileArrayIndexOf(Node* node)
     else
         move(TrustedImm32(0), indexGPR);
 
+    Edge& baseEdge = m_graph.varArgChild(node, 0);
     Edge& searchElementEdge = m_graph.varArgChild(node, 1);
     switch (searchElementEdge.useKind()) {
     case Int32Use: {
@@ -9594,6 +9595,17 @@ void SpeculativeJIT::compileArrayIndexOf(Node* node)
 
         return;
 #else
+        auto& base = m_state.forNode(baseEdge);
+        if (base.m_structure.isFinite()) {
+            if (auto structure = base.m_structure.onlyStructure()) {
+                JSGlobalObject* globalObject = m_graph.globalObjectFor(node->origin.semantic);
+                if (structure.get() == globalObject->originalArrayStructureForIndexingType(CopyOnWriteArrayWithContiguous)) {
+                    dataLogLn("indexOf");
+                }
+            }
+        }
+
+
         SpeculateCellOperand searchElement(this, searchElementEdge);
         GPRReg searchElementGPR = searchElement.gpr();
         speculateString(searchElementEdge, searchElementGPR);

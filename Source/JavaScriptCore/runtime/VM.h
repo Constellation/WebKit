@@ -527,7 +527,8 @@ public:
     WriteBarrier<Structure> regExpStructure;
     WriteBarrier<Structure> symbolStructure;
     WriteBarrier<Structure> symbolTableStructure;
-    WriteBarrier<Structure> immutableButterflyStructures[NumberOfCopyOnWriteIndexingModes];
+    std::array<WriteBarrier<Structure>, NumberOfCopyOnWriteIndexingModes> immutableButterflyStructures;
+    WriteBarrier<Structure> immutableButterflyAtomStringsStructure;
     WriteBarrier<Structure> sourceCodeStructure;
     WriteBarrier<Structure> scriptFetcherStructure;
     WriteBarrier<Structure> scriptFetchParametersStructure;
