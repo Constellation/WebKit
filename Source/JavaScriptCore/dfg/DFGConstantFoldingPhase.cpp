@@ -436,6 +436,7 @@ private:
                         if (canFold) {
                             if (m_graph.isWatchingArrayBufferDetachWatchpoint(node)) {
                                 node->setOp(GetUndetachedTypeArrayLength);
+                                node->setArrayMode(arrayMode.withAction(Array::Action::Read).withArrayClass(Array::NonArray));
                                 changed = true;
                                 break;
                             }
