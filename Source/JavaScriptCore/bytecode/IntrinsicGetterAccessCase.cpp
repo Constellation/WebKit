@@ -48,6 +48,7 @@ Ref<AccessCase> IntrinsicGetterAccessCase::create(VM& vm, JSCell* owner, Cacheab
 bool IntrinsicGetterAccessCase::doesCalls() const
 {
     switch (intrinsic()) {
+    case DataViewByteLengthIntrinsic:
     case TypedArrayByteOffsetIntrinsic:
     case TypedArrayByteLengthIntrinsic:
     case TypedArrayLengthIntrinsic:

@@ -62,7 +62,6 @@ namespace JSC {
   setBigInt64           dataViewProtoFuncSetBigInt64         DontEnum|Function       2
   setBigUint64          dataViewProtoFuncSetBigUint64        DontEnum|Function       2
   buffer                dataViewProtoGetterBuffer            DontEnum|ReadOnly|CustomAccessor
-  byteLength            dataViewProtoGetterByteLength        DontEnum|ReadOnly|CustomAccessor
   byteOffset            dataViewProtoGetterByteOffset        DontEnum|ReadOnly|CustomAccessor
 @end
 */
@@ -89,8 +88,8 @@ static JSC_DECLARE_HOST_FUNCTION(dataViewProtoFuncSetFloat32);
 static JSC_DECLARE_HOST_FUNCTION(dataViewProtoFuncSetFloat64);
 static JSC_DECLARE_HOST_FUNCTION(dataViewProtoFuncSetBigInt64);
 static JSC_DECLARE_HOST_FUNCTION(dataViewProtoFuncSetBigUint64);
+static JSC_DECLARE_HOST_FUNCTION(dataViewProtoGetterFuncByteLength);
 static JSC_DECLARE_CUSTOM_GETTER(dataViewProtoGetterBuffer);
-static JSC_DECLARE_CUSTOM_GETTER(dataViewProtoGetterByteLength);
 static JSC_DECLARE_CUSTOM_GETTER(dataViewProtoGetterByteOffset);
 
 }
@@ -123,6 +122,8 @@ void JSDataViewPrototype::finishCreation(VM& vm)
     Base::finishCreation(vm);
     ASSERT(inherits(info()));
     JSC_TO_STRING_TAG_WITHOUT_TRANSITION();
+    JSGlobalObject* globalObject = this->globalObject();
+    JSC_NATIVE_INTRINSIC_GETTER_WITHOUT_TRANSITION(vm.propertyNames->byteLength, dataViewProtoGetterFuncByteLength, PropertyAttribute::DontEnum | PropertyAttribute::ReadOnly, DataViewByteLengthIntrinsic);
 }
 
 Structure* JSDataViewPrototype::createStructure(
@@ -139,7 +140,7 @@ EncodedJSValue getData(JSGlobalObject* globalObject, CallFrame* callFrame)
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     JSDataView* dataView = jsDynamicCast<JSDataView*>(callFrame->thisValue());
-    if (!dataView)
+    if (UNLIKELY(!dataView))
         return throwVMTypeError(globalObject, scope, "Receiver of DataView method must be a DataView"_s);
     
     size_t byteOffset = callFrame->argument(0).toIndex(globalObject, "byteOffset"_s);
@@ -183,7 +184,7 @@ EncodedJSValue setData(JSGlobalObject* globalObject, CallFrame* callFrame)
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     JSDataView* dataView = jsDynamicCast<JSDataView*>(callFrame->thisValue());
-    if (!dataView)
+    if (UNLIKELY(!dataView))
         return throwVMTypeError(globalObject, scope, "Receiver of DataView method must be a DataView"_s);
     
     size_t byteOffset = callFrame->argument(0).toIndex(globalObject, "byteOffset"_s);
@@ -222,25 +223,13 @@ EncodedJSValue setData(JSGlobalObject* globalObject, CallFrame* callFrame)
     return JSValue::encode(jsUndefined());
 }
 
-JSC_DEFINE_CUSTOM_GETTER(dataViewProtoGetterBuffer, (JSGlobalObject* globalObject, EncodedJSValue thisValue, PropertyName))
+JSC_DEFINE_HOST_FUNCTION(dataViewProtoGetterFuncByteLength, (JSGlobalObject* globalObject, CallFrame* callFrame))
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    JSDataView* view = jsDynamicCast<JSDataView*>(JSValue::decode(thisValue));
-    if (!view)
-        return throwVMTypeError(globalObject, scope, "DataView.prototype.buffer expects |this| to be a DataView object"_s);
-
-    RELEASE_AND_RETURN(scope, JSValue::encode(view->possiblySharedJSBuffer(globalObject)));
-}
-
-JSC_DEFINE_CUSTOM_GETTER(dataViewProtoGetterByteLength, (JSGlobalObject* globalObject, EncodedJSValue thisValue, PropertyName))
-{
-    VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
-
-    JSDataView* view = jsDynamicCast<JSDataView*>(JSValue::decode(thisValue));
-    if (!view)
+    JSDataView* view = jsDynamicCast<JSDataView*>(callFrame->thisValue());
+    if (UNLIKELY(!view))
         return throwVMTypeError(globalObject, scope, "DataView.prototype.byteLength expects |this| to be a DataView object"_s);
 
     IdempotentArrayBufferByteLengthGetter<std::memory_order_seq_cst> getter;
@@ -251,13 +240,25 @@ JSC_DEFINE_CUSTOM_GETTER(dataViewProtoGetterByteLength, (JSGlobalObject* globalO
     return JSValue::encode(jsNumber(byteLengthValue.value()));
 }
 
+JSC_DEFINE_CUSTOM_GETTER(dataViewProtoGetterBuffer, (JSGlobalObject* globalObject, EncodedJSValue thisValue, PropertyName))
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSDataView* view = jsDynamicCast<JSDataView*>(JSValue::decode(thisValue));
+    if (UNLIKELY(!view))
+        return throwVMTypeError(globalObject, scope, "DataView.prototype.buffer expects |this| to be a DataView object"_s);
+
+    RELEASE_AND_RETURN(scope, JSValue::encode(view->possiblySharedJSBuffer(globalObject)));
+}
+
 JSC_DEFINE_CUSTOM_GETTER(dataViewProtoGetterByteOffset, (JSGlobalObject* globalObject, EncodedJSValue thisValue, PropertyName))
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     JSDataView* view = jsDynamicCast<JSDataView*>(JSValue::decode(thisValue));
-    if (!view)
+    if (UNLIKELY(!view))
         return throwVMTypeError(globalObject, scope, "DataView.prototype.byteOffset expects |this| to be a DataView object"_s);
 
     IdempotentArrayBufferByteLengthGetter<std::memory_order_seq_cst> getter;

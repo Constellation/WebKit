@@ -4364,6 +4364,37 @@ bool ByteCodeParser::handleIntrinsicGetter(Operand result, SpeculatedType predic
         return false;
 
     switch (variant.intrinsic()) {
+    case DataViewByteLengthIntrinsic: {
+        bool mayBeLargeTypedArray = !isInt32Speculation(prediction) || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, Overflow);
+#if !USE(LARGE_TYPED_ARRAYS)
+        if (mayBeLargeTypedArray)
+            return false;
+#endif
+        TypedArrayType type = typedArrayType((*variant.structureSet().begin())->typeInfo().type());
+        bool mayBeResizableOrGrowableSharedTypedArray = m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, UnexpectedResizableArrayBufferView);
+
+        variant.structureSet().forEach([&] (Structure* structure) {
+            mayBeResizableOrGrowableSharedTypedArray |= isResizableOrGrowableSharedTypedArrayIncludingDataView(structure->classInfoForCells());
+        });
+
+#if USE(JSVALUE32_64)
+        if (mayBeResizableOrGrowableSharedTypedArray)
+            return false;
+#endif
+
+        insertChecks();
+        NodeType op = mayBeLargeTypedArray ? DataViewByteLengthAsInt52 : DataViewByteLength;
+
+        DataViewData data { };
+        data.isLittleEndian = TriState::Indeterminate;
+        data.isSigned = false;
+        data.isResizable = mayBeResizableOrGrowableSharedTypedArray;
+        data.byteSize = 1;
+        data.isFloatingPoint = false;
+        set(result, addToGraph(op, OpInfo(data.asQuadWord), Edge(thisNode, DataViewObjectUse)));
+        return true;
+    }
+
     case TypedArrayByteLengthIntrinsic: {
         bool mayBeLargeTypedArray = !isInt32Speculation(prediction) || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, Overflow);
 #if !USE(LARGE_TYPED_ARRAYS)

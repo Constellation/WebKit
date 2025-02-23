@@ -610,7 +610,9 @@ namespace JSC { namespace DFG {
     /* Data view access */ \
     macro(DataViewGetInt, NodeMustGenerate | NodeResultJS) /* The gets are must generate for now because they do bounds checks */ \
     macro(DataViewGetFloat, NodeMustGenerate | NodeResultDouble) \
-    macro(DataViewSet, NodeMustGenerate | NodeMustGenerate | NodeHasVarArgs) \
+    macro(DataViewSet, NodeMustGenerate | NodeHasVarArgs) \
+    macro(DataViewByteLength, NodeMustGenerate | NodeResultInt32) \
+    macro(DataViewByteLengthAsInt52, NodeMustGenerate | NodeResultInt52) \
     /* Date access */ \
     macro(DateGetInt32OrNaN, NodeResultJS) \
     macro(DateGetTime, NodeResultDouble) \

@@ -4251,6 +4251,14 @@ bool InlineCacheCompiler::canEmitIntrinsicGetter(StructureStubInfo& stubInfo, JS
 #endif
         return true;
     }
+    case DataViewByteLengthIntrinsic:
+        if (structure->typeInfo().type() != DataViewType)
+            return false;
+#if USE(JSVALUE32_64)
+        if (isResizableOrGrowableSharedTypedArrayIncludingDataView(structure->classInfoForCells()))
+            return false;
+#endif
+        return true;
     case UnderscoreProtoIntrinsic: {
         TypeInfo info = structure->typeInfo();
         return info.isObject() && !info.overridesGetPrototype();
@@ -4309,6 +4317,7 @@ void InlineCacheCompiler::emitIntrinsicGetter(IntrinsicGetterAccessCase& accessC
         return;
     }
 
+    case DataViewByteLengthIntrinsic:
     case TypedArrayByteLengthIntrinsic: {
         TypedArrayType type = typedArrayType(accessCase.structure()->typeInfo().type());
 
