@@ -1508,6 +1508,7 @@ private:
             case PhantomNewArrayWithSpread:
             case PhantomNewArrayBuffer:
             case PhantomNewRegexp:
+            case PhantomUInt32ToNumber:
             case BottomValue:
                 alreadyHandled = true;
                 break;

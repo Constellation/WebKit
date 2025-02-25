@@ -6485,6 +6485,7 @@ void SpeculativeJIT::compile(Node* node)
     case PhantomNewInternalFieldObject:
     case PhantomCreateActivation:
     case PhantomNewRegexp:
+    case PhantomUInt32ToNumber:
     case GetMyArgumentByVal:
     case GetMyArgumentByValOutOfBounds:
     case GetVectorLength:

@@ -1857,6 +1857,7 @@ private:
         case PhantomNewArrayBuffer:
         case PhantomClonedArguments:
         case PhantomNewRegexp:
+        case PhantomUInt32ToNumber:
         case PutHint:
         case BottomValue:
         case KillStack:

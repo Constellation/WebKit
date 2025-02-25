@@ -3732,6 +3732,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case PhantomNewArrayBuffer:
     case PhantomNewInternalFieldObject:
     case PhantomNewRegexp:
+    case PhantomUInt32ToNumber:
     case BottomValue: {
         clearForNode(node);
         break;

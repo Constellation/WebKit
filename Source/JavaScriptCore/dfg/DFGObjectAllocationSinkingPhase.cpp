@@ -145,7 +145,7 @@ public:
     // once it is escaped if it still has pointers to it in order to
     // replace any use of those pointers by the corresponding
     // materialization
-    enum class Kind { Escaped, Array, Object, Activation, Function, GeneratorFunction, AsyncFunction, AsyncGeneratorFunction, InternalFieldObject, RegExpObject };
+    enum class Kind { Escaped, Array, Object, Activation, Function, GeneratorFunction, AsyncFunction, AsyncGeneratorFunction, InternalFieldObject, RegExpObject, UInt32ToNumber };
 
     using Fields = UncheckedKeyHashMap<PromotedLocationDescriptor, Node*>;
 
@@ -286,6 +286,11 @@ public:
         return m_kind == Kind::RegExpObject;
     }
 
+    bool isUInt32ToNumberAllocation() const
+    {
+        return m_kind == Kind::UInt32ToNumber;
+    }
+
     friend bool operator==(const Allocation&, const Allocation&) = default;
 
     void dump(PrintStream& out) const
@@ -334,6 +339,9 @@ public:
 
         case Kind::RegExpObject:
             out.print("RegExpObject"_s);
+            break;
+        case Kind::UInt32ToNumber:
+            out.print("UInt32ToNumber"_s);
             break;
         }
         out.print("Allocation("_s);
@@ -1145,6 +1153,21 @@ private:
 
             writes.add(RegExpObjectRegExpPLoc, LazyNode(node->cellOperand()));
             writes.add(RegExpObjectLastIndexPLoc, LazyNode(node->child1().node()));
+            break;
+        }
+
+        case UInt32ToNumber: {
+            if (node->arithMode() != Arith::CheckOverflow) {
+                m_heap.escape(node->child1().node());
+                break;
+            }
+
+            if (node->child1().useKind() != Int32Use) {
+                m_heap.escape(node->child1().node());
+                break;
+            }
+            target = &m_heap.newAllocation(node, Allocation::Kind::UInt32ToNumber);
+            writes.add(UInt32ToNumberInputPLoc, LazyNode(node->child1().node()));
             break;
         }
 
@@ -2293,6 +2316,10 @@ escapeChildren:
                         node->convertToPhantomNewRegexp();
                         break;
 
+                    case UInt32ToNumber:
+                        node->convertToPhantomUInt32ToNumber();
+                        break;
+
                     default:
                         node->remove(m_graph);
                         break;
@@ -2656,6 +2683,21 @@ escapeChildren:
                 node->child1() = Edge(m_bottom);
             else
                 node->child1() = Edge(value);
+            break;
+        }
+
+        case UInt32ToNumber: {
+            Vector<PromotedHeapLocation> locations = m_locationsForAllocation.get(escapee);
+            ASSERT(locations.size() == 1);
+
+            PromotedHeapLocation input(UInt32ToNumberInputPLoc, allocation.identifier());
+            ASSERT_UNUSED(input, locations.contains(input));
+
+            Node* value = resolve(block, input);
+            if (m_sinkCandidates.contains(value))
+                node->child1() = Edge(m_bottom);
+            else
+                node->child1() = Edge(value, Int32Use);
             break;
         }
 

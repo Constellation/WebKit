@@ -150,6 +150,10 @@ void printInternal(PrintStream& out, PromotedLocationKind kind)
     case InternalFieldObjectPLoc:
         out.print("InternalFieldObjectPLoc");
         return;
+
+    case UInt32ToNumberInputPLoc:
+        out.print("UInt32ToNumberInputPLoc");
+        return;
     }
     
     RELEASE_ASSERT_NOT_REACHED();

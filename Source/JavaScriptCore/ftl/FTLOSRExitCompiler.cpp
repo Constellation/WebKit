@@ -335,15 +335,15 @@ static void compileStub(VM& vm, unsigned exitID, JITCode* jitCode, OSRExit& exit
                 jit.storePtr(GPRInfo::regT0, materializationArguments + propertyIndex);
             }
             
-            static_assert(FunctionTraits<decltype(operationMaterializeObjectInOSR)>::arity < GPRInfo::numberOfArgumentRegisters, "This call assumes that we don't pass arguments on the stack.");
-            jit.setupArguments<decltype(operationMaterializeObjectInOSR)>(
+            static_assert(FunctionTraits<decltype(operationMaterializeInOSR)>::arity < GPRInfo::numberOfArgumentRegisters, "This call assumes that we don't pass arguments on the stack.");
+            jit.setupArguments<decltype(operationMaterializeInOSR)>(
                 CCallHelpers::TrustedImmPtr(codeBlock->globalObjectFor(materialization->origin())),
                 CCallHelpers::TrustedImmPtr(materialization),
                 CCallHelpers::TrustedImmPtr(materializationArguments));
             jit.prepareCallOperation(vm);
-            jit.move(CCallHelpers::TrustedImmPtr(tagCFunction<OperationPtrTag>(operationMaterializeObjectInOSR)), GPRInfo::nonArgGPR0);
+            jit.move(CCallHelpers::TrustedImmPtr(tagCFunction<OperationPtrTag>(operationMaterializeInOSR)), GPRInfo::nonArgGPR0);
             jit.call(GPRInfo::nonArgGPR0, OperationPtrTag);
-            jit.storePtr(GPRInfo::returnValueGPR, materializationToPointer.get(materialization));
+            jit.store64(GPRInfo::returnValueGPR, materializationToPointer.get(materialization));
 
             // Let everyone know that we're done.
             toMaterialize.remove(materialization);

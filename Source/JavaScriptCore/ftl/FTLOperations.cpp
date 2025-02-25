@@ -136,7 +136,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationPopulateObjectInOSR, void, (JSGlobalO
     case PhantomSpread:
     case PhantomNewArrayWithSpread:
     case PhantomNewArrayBuffer:
-        // Those are completely handled by operationMaterializeObjectInOSR
+        // Those are completely handled by operationMaterializeInOSR
         break;
 
     case PhantomCreateActivation: {
@@ -218,7 +218,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationPopulateObjectInOSR, void, (JSGlobalO
 }
 
 
-JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSGlobalObject* globalObject, ExitTimeObjectMaterialization* materialization, EncodedJSValue* values))
+JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeInOSR, EncodedJSValue,  (JSGlobalObject* globalObject, ExitTimeObjectMaterialization* materialization, EncodedJSValue* values))
 {
     using namespace DFG;
     VM& vm = globalObject->vm();
@@ -242,9 +242,9 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         JSArray* result = JSArray::tryCreate(vm, structure, size);
         if (UNLIKELY(!result)) {
             throwOutOfMemoryError(globalObject, scope);
-            OPERATION_RETURN(scope, nullptr);
+            OPERATION_RETURN(scope, encodedJSValue());
         }
-        return result;
+        return JSValue::encode(result);
     }
 
     case PhantomNewObject: {
@@ -276,7 +276,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         for (const PropertyTableEntry& entry : structure->getPropertiesConcurrently())
             result->putDirectOffset(vm, entry.offset(), jsNumber(19723));
 
-        return result;
+        return JSValue::encode(result);
     }
 
     case PhantomNewFunction:
@@ -302,13 +302,13 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         CodeBlock* codeBlock = baselineCodeBlockForOriginAndBaselineCodeBlock(materialization->origin(), callFrame->codeBlock()->baselineAlternative());
         JSGlobalObject* globalObject = codeBlock->globalObject();
         if (materialization->type() == PhantomNewFunction)
-            return JSFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation);
+            return JSValue::encode(JSFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation));
         else if (materialization->type() == PhantomNewGeneratorFunction)
-            return JSGeneratorFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation);
+            return JSValue::encode(JSGeneratorFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation));
         else if (materialization->type() == PhantomNewAsyncGeneratorFunction)
-            return JSAsyncGeneratorFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation);
+            return JSValue::encode(JSAsyncGeneratorFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation));
         ASSERT(materialization->type() == PhantomNewAsyncFunction);
-        return JSAsyncFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation);
+        return JSValue::encode(JSAsyncFunction::createWithInvalidatedReallocationWatchpoint(vm, globalObject, executable, activation));
     }
 
     case PhantomCreateActivation: {
@@ -376,7 +376,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
             ASSERT_UNUSED(numberOfClosureVarPloc, numberOfClosureVarPloc == table->scopeSize());
         }
 
-        return result;
+        return JSValue::encode(result);
     }
 
     case PhantomNewInternalFieldObject: {
@@ -398,37 +398,37 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         case JSArrayIteratorType: {
             JSArrayIterator* result = JSArrayIterator::createWithInitialValues(vm, structure);
             RELEASE_ASSERT(materialization->properties().size() - 1 == JSArrayIterator::numberOfInternalFields);
-            return result;
+            return JSValue::encode(result);
         }
         case JSMapIteratorType: {
             JSMapIterator* result = JSMapIterator::createWithInitialValues(vm, structure);
             RELEASE_ASSERT(materialization->properties().size() - 1 == JSMapIterator::numberOfInternalFields);
-            return result;
+            return JSValue::encode(result);
         }
         case JSSetIteratorType: {
             JSSetIterator* result = JSSetIterator::createWithInitialValues(vm, structure);
             RELEASE_ASSERT(materialization->properties().size() - 1 == JSSetIterator::numberOfInternalFields);
-            return result;
+            return JSValue::encode(result);
         }
         case JSIteratorHelperType: {
             JSIteratorHelper* result = JSIteratorHelper::createWithInitialValues(vm, structure);
             RELEASE_ASSERT(materialization->properties().size() - 1 == JSIteratorHelper::numberOfInternalFields);
-            return result;
+            return JSValue::encode(result);
         }
         case JSPromiseType: {
             if (structure->classInfoForCells() == JSInternalPromise::info()) {
                 JSInternalPromise* result = JSInternalPromise::createWithInitialValues(vm, structure);
                 RELEASE_ASSERT(materialization->properties().size() - 1 == JSInternalPromise::numberOfInternalFields);
-                return result;
+                return JSValue::encode(result);
             }
             ASSERT(structure->classInfoForCells() == JSPromise::info());
             JSPromise* result = JSPromise::createWithInitialValues(vm, structure);
             RELEASE_ASSERT(materialization->properties().size() - 1 == JSPromise::numberOfInternalFields);
-            return result;
+            return JSValue::encode(result);
         }
         default:
             RELEASE_ASSERT_NOT_REACHED();
-            return nullptr;
+            return { };
         }
     }
 
@@ -438,11 +438,11 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         if (!materialization->origin().inlineCallFrame()) {
             switch (materialization->type()) {
             case PhantomDirectArguments:
-                return DirectArguments::createByCopying(globalObject, callFrame);
+                return JSValue::encode(DirectArguments::createByCopying(globalObject, callFrame));
             case PhantomClonedArguments: {
                 ClonedArguments* result = ClonedArguments::createWithMachineFrame(globalObject, callFrame, ArgumentsMode::Cloned);
                 RELEASE_ASSERT(result);
-                return result;
+                return JSValue::encode(result);
             }
             case PhantomCreateRest: {
                 CodeBlock* codeBlock = baselineCodeBlockForOriginAndBaselineCodeBlock(
@@ -453,11 +453,11 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
                 Structure* structure = globalObject->restParameterStructure();
                 JSValue* argumentsToCopyRegion = callFrame->addressOfArgumentsStart() + numberOfArgumentsToSkip;
                 unsigned arraySize = callFrame->argumentCount() > numberOfArgumentsToSkip ? callFrame->argumentCount() - numberOfArgumentsToSkip : 0;
-                return constructArray(globalObject, structure, argumentsToCopyRegion, arraySize);
+                return JSValue::encode(constructArray(globalObject, structure, argumentsToCopyRegion, arraySize));
             }
             default:
                 RELEASE_ASSERT_NOT_REACHED();
-                return nullptr;
+                return { };
             }
         }
 
@@ -521,7 +521,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
                 result->argument(DirectArgumentsOffset(index)).set(
                     vm, result, JSValue::decode(values[i]));
             }
-            return result;
+            return JSValue::encode(result);
         }
         case PhantomClonedArguments: {
             unsigned length = argumentCount - 1;
@@ -540,7 +540,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
                 result->putDirectIndex(globalObject, index, JSValue::decode(values[i]));
             }
             
-            return result;
+            return JSValue::encode(result);
         }
         case PhantomCreateRest: {
             unsigned numberOfArgumentsToSkip = codeBlock->numberOfArgumentsToSkip();
@@ -592,12 +592,12 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
                 ASSERT(found);
             }
 #endif // ASSERT_ENABLED
-            return array;
+            return JSValue::encode(array);
         }
 
         default:
             RELEASE_ASSERT_NOT_REACHED();
-            return nullptr;
+            return { };
         }
     }
 
@@ -618,7 +618,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         // Any attempts to put a getter on any indices on the rest array will escape the array.
         auto* fixedArray = JSImmutableButterfly::createFromArray(globalObject, vm, array);
         RELEASE_ASSERT(fixedArray);
-        return fixedArray;
+        return JSValue::encode(fixedArray);
     }
 
     case PhantomNewArrayBuffer: {
@@ -640,7 +640,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
             // This case can happen if Object.keys, an OpCall, and others is first converted into a NewArrayBuffer which is then converted into a PhantomNewArrayBuffer.
             // There is no need to update the array allocation profile in that case.
             Structure* structure = globalObject->arrayStructureForIndexingTypeDuringAllocation(immutableButterfly->indexingMode());
-            return CommonSlowPaths::allocateNewArrayBuffer(vm, structure, immutableButterfly);
+            return JSValue::encode(CommonSlowPaths::allocateNewArrayBuffer(vm, structure, immutableButterfly));
         }
         auto newArrayBuffer = currentInstruction->as<OpNewArrayBuffer>();
         ArrayAllocationProfile* profile = &newArrayBuffer.metadata(codeBlock).m_arrayAllocationProfile;
@@ -667,7 +667,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
 
         JSArray* result = CommonSlowPaths::allocateNewArrayBuffer(vm, structure, immutableButterfly);
         ArrayAllocationProfile::updateLastAllocationFor(profile, result);
-        return result;
+        return JSValue::encode(result);
     }
 
     case PhantomNewArrayWithSpread: {
@@ -738,7 +738,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
             }
         }
 
-        return result;
+        return JSValue::encode(result);
     }
 
     case PhantomNewRegexp: {
@@ -754,12 +754,24 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, JSCell*, (JSG
         CodeBlock* codeBlock = baselineCodeBlockForOriginAndBaselineCodeBlock(materialization->origin(), callFrame->codeBlock()->baselineAlternative());
         Structure* structure = codeBlock->globalObject()->regExpStructure();
         static constexpr bool areLegacyFeaturesEnabled = true;
-        return RegExpObject::create(vm, structure, regExp, areLegacyFeaturesEnabled);
+        return JSValue::encode(RegExpObject::create(vm, structure, regExp, areLegacyFeaturesEnabled));
+    }
+
+    case PhantomUInt32ToNumber: {
+        uint32_t value = 0;
+        for (unsigned i = materialization->properties().size(); i--;) {
+            const ExitPropertyValue& property = materialization->properties()[i];
+            if (property.location() == PromotedLocationDescriptor(UInt32ToNumberInputPLoc)) {
+                RELEASE_ASSERT(JSValue::decode(values[i]).isInt32());
+                value = static_cast<uint32_t>(JSValue::decode(values[i]).asInt32());
+            }
+        }
+        return JSValue::encode(jsNumber(value));
     }
 
     default:
         RELEASE_ASSERT_NOT_REACHED();
-        return nullptr;
+        return { };
     }
 }
 

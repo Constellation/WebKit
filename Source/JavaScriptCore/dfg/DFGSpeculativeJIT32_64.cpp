@@ -4362,6 +4362,7 @@ void SpeculativeJIT::compile(Node* node)
     case PhantomCreateActivation:
     case PhantomNewInternalFieldObject:
     case PhantomNewRegexp:
+    case PhantomUInt32ToNumber:
     case PutHint:
     case CheckStructureImmediate:
     case MaterializeCreateActivation:

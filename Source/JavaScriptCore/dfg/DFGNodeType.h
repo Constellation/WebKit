@@ -431,6 +431,7 @@ namespace JSC { namespace DFG {
     macro(PhantomCreateActivation, NodeResultJS | NodeMustGenerate) \
     macro(MaterializeCreateActivation, NodeResultJS | NodeHasVarArgs) \
     macro(PhantomNewRegexp, NodeResultJS | NodeMustGenerate) \
+    macro(PhantomUInt32ToNumber, NodeResultNumber | NodeMustGenerate) \
     \
     /* Nodes for misc operations. */\
     macro(OverridesHasInstance, NodeMustGenerate | NodeResultBoolean) \

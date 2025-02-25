@@ -238,6 +238,7 @@ bool doesGC(Graph& graph, Node* node)
     case PhantomSpread:
     case PhantomClonedArguments:
     case PhantomNewRegexp:
+    case PhantomUInt32ToNumber:
     case GetMyArgumentByVal:
     case GetMyArgumentByValOutOfBounds:
     case ForwardVarargs:

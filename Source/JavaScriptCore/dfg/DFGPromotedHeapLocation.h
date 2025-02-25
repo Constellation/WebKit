@@ -70,6 +70,7 @@ enum PromotedLocationKind {
     NewArrayBufferPLoc,
     RegExpObjectRegExpPLoc,
     RegExpObjectLastIndexPLoc,
+    UInt32ToNumberInputPLoc,
 };
 
 class PromotedLocationDescriptor {

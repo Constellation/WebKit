@@ -2517,6 +2517,7 @@ private:
         case PhantomNewArrayBuffer:
         case PhantomClonedArguments:
         case PhantomNewRegexp:
+        case PhantomUInt32ToNumber:
         case GetMyArgumentByVal:
         case GetMyArgumentByValOutOfBounds:
         case GetVectorLength:

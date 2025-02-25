@@ -722,6 +722,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node, bool igno
     case PhantomNewInternalFieldObject:
     case PhantomCreateActivation:
     case PhantomNewRegexp:
+    case PhantomUInt32ToNumber:
     case PutHint:
     case MaterializeNewObject:
     case MaterializeNewArrayWithConstantSize:

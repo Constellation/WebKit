@@ -344,6 +344,7 @@ inline CapabilityLevel canCompile(Node* node)
     case PhantomNewInternalFieldObject:
     case PhantomCreateActivation:
     case PhantomNewRegexp:
+    case PhantomUInt32ToNumber:
     case PutHint:
     case CheckStructureImmediate:
     case MaterializeNewObject:

@@ -790,6 +790,15 @@ public:
         children = AdjacencyList();
     }
 
+    void convertToPhantomUInt32ToNumber()
+    {
+        ASSERT(m_op == UInt32ToNumber);
+        setOpAndDefaultFlags(PhantomUInt32ToNumber);
+        m_opInfo = OpInfoWrapper();
+        m_opInfo2 = OpInfoWrapper();
+        children = AdjacencyList();
+    }
+
     void convertPhantomToPhantomLocal()
     {
         ASSERT(m_op == Phantom && (child1()->op() == Phi || child1()->op() == SetLocal || child1()->op() == SetArgumentDefinitely));
@@ -2538,6 +2547,7 @@ public:
         case PhantomNewInternalFieldObject:
         case PhantomCreateActivation:
         case PhantomNewRegexp:
+        case PhantomUInt32ToNumber:
             return true;
         default:
             return false;

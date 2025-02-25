@@ -1583,6 +1583,7 @@ private:
         case PhantomNewInternalFieldObject:
         case PhantomClonedArguments:
         case PhantomNewRegexp:
+        case PhantomUInt32ToNumber:
         case GetMyArgumentByVal:
         case GetMyArgumentByValOutOfBounds:
         case PutHint:
