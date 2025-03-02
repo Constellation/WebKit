@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef V8_ASMJS_ASM_NAMES_H_
-#define V8_ASMJS_ASM_NAMES_H_
+#pragma once
 
 // V(stdlib.Math.<name>, constant-value)
 #define STDLIB_MATH_VALUE_LIST(V) \
@@ -107,5 +106,3 @@
   V(kParseError, -2, "{parse error}")     \
   V(kUnsigned, -3, "{unsigned value}")    \
   V(kDouble, -4, "{double value}")
-
-#endif  // V8_ASMJS_ASM_NAMES_H_

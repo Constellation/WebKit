@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef V8_ASMJS_ASM_TYPES_H_
-#define V8_ASMJS_ASM_TYPES_H_
+#pragma once
 
 #include <string>
 
@@ -243,5 +242,3 @@ class V8_EXPORT_PRIVATE AsmType {
 }  // namespace wasm
 }  // namespace internal
 }  // namespace v8
-
-#endif  // V8_ASMJS_ASM_TYPES_H_
