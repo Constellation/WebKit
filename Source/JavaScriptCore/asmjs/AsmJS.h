@@ -22,7 +22,7 @@ class SharedFunctionInfo;
 class UnoptimizedCompilationJob;
 
 // Interface to compile and instantiate for asm.js modules.
-class AsmJs {
+class AsmJS {
  public:
   static std::unique_ptr<UnoptimizedCompilationJob> NewCompilationJob(
       ParseInfo* parse_info, FunctionLiteral* literal,

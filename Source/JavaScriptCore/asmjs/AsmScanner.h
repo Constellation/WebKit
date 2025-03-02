@@ -26,11 +26,11 @@ class Utf16CharacterStream;
 //   included.
 // * Identifiers are accumulated into local + global string tables
 //   (for performance).
-class V8_EXPORT_PRIVATE AsmJsScanner {
+class V8_EXPORT_PRIVATE AsmJSScanner {
  public:
   using token_t = int32_t;
 
-  explicit AsmJsScanner(Utf16CharacterStream* stream);
+  explicit AsmJSScanner(Utf16CharacterStream* stream);
 
   // Get current token.
   token_t Token() const { return token_; }

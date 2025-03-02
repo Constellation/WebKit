@@ -21,7 +21,7 @@ namespace {
 static const int kMaxIdentifierCount = 0xF000000;
 }  // namespace
 
-AsmJsScanner::AsmJsScanner(Utf16CharacterStream* stream)
+AsmJSScanner::AsmJSScanner(Utf16CharacterStream* stream)
     : stream_(stream),
       token_(kUninitialized),
       preceding_token_(kUninitialized),
@@ -51,7 +51,7 @@ AsmJsScanner::AsmJsScanner(Utf16CharacterStream* stream)
   Next();
 }
 
-void AsmJsScanner::Next() {
+void AsmJSScanner::Next() {
   if (rewind_) {
     preceding_token_ = token_;
     preceding_position_ = position_;
@@ -155,7 +155,7 @@ void AsmJsScanner::Next() {
   }
 }
 
-void AsmJsScanner::Rewind() {
+void AsmJSScanner::Rewind() {
   DCHECK_NE(kUninitialized, preceding_token_);
   // TODO(bradnelson): Currently rewinding needs to leave in place the
   // preceding newline state (in case a |0 ends a line).
@@ -171,11 +171,11 @@ void AsmJsScanner::Rewind() {
   identifier_string_.clear();
 }
 
-void AsmJsScanner::ResetLocals() { local_names_.clear(); }
+void AsmJSScanner::ResetLocals() { local_names_.clear(); }
 
 #if DEBUG
 // Only used for debugging.
-std::string AsmJsScanner::Name(token_t token) const {
+std::string AsmJSScanner::Name(token_t token) const {
   if (token >= 32 && token < 127) {
     return std::string(1, static_cast<char>(token));
   }
@@ -212,7 +212,7 @@ std::string AsmJsScanner::Name(token_t token) const {
 }
 #endif
 
-void AsmJsScanner::Seek(size_t pos) {
+void AsmJSScanner::Seek(size_t pos) {
   stream_->Seek(pos);
   preceding_token_ = kUninitialized;
   token_ = kUninitialized;
@@ -224,7 +224,7 @@ void AsmJsScanner::Seek(size_t pos) {
   Next();
 }
 
-void AsmJsScanner::ConsumeIdentifier(base::uc32 ch) {
+void AsmJSScanner::ConsumeIdentifier(base::uc32 ch) {
   // Consume characters while still part of the identifier.
   identifier_string_.clear();
   while (IsIdentifierPart(ch)) {
@@ -279,7 +279,7 @@ bool IsValidImplicitOctal(std::string_view number) {
 }
 }  // namespace
 
-void AsmJsScanner::ConsumeNumber(base::uc32 ch) {
+void AsmJSScanner::ConsumeNumber(base::uc32 ch) {
   std::string number;
   number.assign(1, ch);
   bool has_dot = ch == '.';
@@ -380,7 +380,7 @@ void AsmJsScanner::ConsumeNumber(base::uc32 ch) {
   }
 }
 
-bool AsmJsScanner::ConsumeCComment() {
+bool AsmJSScanner::ConsumeCComment() {
   for (;;) {
     base::uc32 ch = stream_->Advance();
     while (ch == '*') {
@@ -398,7 +398,7 @@ bool AsmJsScanner::ConsumeCComment() {
   }
 }
 
-void AsmJsScanner::ConsumeCPPComment() {
+void AsmJSScanner::ConsumeCPPComment() {
   for (;;) {
     base::uc32 ch = stream_->Advance();
     if (ch == '\n') {
@@ -411,7 +411,7 @@ void AsmJsScanner::ConsumeCPPComment() {
   }
 }
 
-void AsmJsScanner::ConsumeString(base::uc32 quote) {
+void AsmJSScanner::ConsumeString(base::uc32 quote) {
   // Only string allowed is 'use asm' / "use asm".
   const char* expected = "use asm";
   for (; *expected != '\0'; ++expected) {
@@ -427,7 +427,7 @@ void AsmJsScanner::ConsumeString(base::uc32 quote) {
   token_ = kToken_UseAsm;
 }
 
-void AsmJsScanner::ConsumeCompareOrShift(base::uc32 ch) {
+void AsmJSScanner::ConsumeCompareOrShift(base::uc32 ch) {
   base::uc32 next_ch = stream_->Advance();
   if (next_ch == '=') {
     switch (ch) {
@@ -461,16 +461,16 @@ void AsmJsScanner::ConsumeCompareOrShift(base::uc32 ch) {
   }
 }
 
-bool AsmJsScanner::IsIdentifierStart(base::uc32 ch) {
+bool AsmJSScanner::IsIdentifierStart(base::uc32 ch) {
   return base::IsInRange(AsciiAlphaToLower(ch), 'a', 'z') || ch == '_' ||
          ch == '$';
 }
 
-bool AsmJsScanner::IsIdentifierPart(base::uc32 ch) {
+bool AsmJSScanner::IsIdentifierPart(base::uc32 ch) {
   return IsAsciiIdentifier(ch);
 }
 
-bool AsmJsScanner::IsNumberStart(base::uc32 ch) {
+bool AsmJSScanner::IsNumberStart(base::uc32 ch) {
   return ch == '.' || IsDecimalDigit(ch);
 }
 

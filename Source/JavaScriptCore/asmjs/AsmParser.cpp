@@ -68,9 +68,9 @@ namespace wasm {
 #define RECURSE(call) RECURSE_OR_RETURN(, call)
 #define RECURSEn(call) RECURSE_OR_RETURN(nullptr, call)
 
-#define TOK(name) AsmJsScanner::kToken_##name
+#define TOK(name) AsmJSScanner::kToken_##name
 
-AsmJsParser::AsmJsParser(Zone* zone, uintptr_t stack_limit,
+AsmJSParser::AsmJSParser(Zone* zone, uintptr_t stack_limit,
                          Utf16CharacterStream* stream)
     : zone_(zone),
       scanner_(stream),
@@ -82,7 +82,7 @@ AsmJsParser::AsmJsParser(Zone* zone, uintptr_t stack_limit,
   InitializeStdlibTypes();
 }
 
-void AsmJsParser::InitializeStdlibTypes() {
+void AsmJSParser::InitializeStdlibTypes() {
   auto* d = AsmType::Double();
   auto* dq = AsmType::DoubleQ();
   stdlib_dq2d_ = AsmType::Function(zone(), d);
@@ -145,7 +145,7 @@ void AsmJsParser::InitializeStdlibTypes() {
   stdlib_fround_ = AsmType::FroundType(zone());
 }
 
-FunctionSig* AsmJsParser::ConvertSignature(AsmType* return_type,
+FunctionSig* AsmJSParser::ConvertSignature(AsmType* return_type,
                                            const ZoneVector<AsmType*>& params) {
   FunctionSig::Builder sig_builder(
       zone(), !return_type->IsA(AsmType::Void()) ? 1 : 0, params.size());
@@ -174,14 +174,14 @@ FunctionSig* AsmJsParser::ConvertSignature(AsmType* return_type,
   return sig_builder.Get();
 }
 
-bool AsmJsParser::Run() {
+bool AsmJSParser::Run() {
   ValidateModule();
   return !failed_;
 }
 
-class V8_NODISCARD AsmJsParser::TemporaryVariableScope {
+class V8_NODISCARD AsmJSParser::TemporaryVariableScope {
  public:
-  explicit TemporaryVariableScope(AsmJsParser* parser) : parser_(parser) {
+  explicit TemporaryVariableScope(AsmJSParser* parser) : parser_(parser) {
     local_depth_ = parser_->function_temp_locals_depth_;
     parser_->function_temp_locals_depth_++;
   }
@@ -192,19 +192,19 @@ class V8_NODISCARD AsmJsParser::TemporaryVariableScope {
   uint32_t get() const { return parser_->TempVariable(local_depth_); }
 
  private:
-  AsmJsParser* parser_;
+  AsmJSParser* parser_;
   int local_depth_;
 };
 
-wasm::AsmJsParser::VarInfo* AsmJsParser::GetVarInfo(
-    AsmJsScanner::token_t token) {
-  const bool is_global = AsmJsScanner::IsGlobal(token);
-  DCHECK(is_global || AsmJsScanner::IsLocal(token));
+wasm::AsmJSParser::VarInfo* AsmJSParser::GetVarInfo(
+    AsmJSScanner::token_t token) {
+  const bool is_global = AsmJSScanner::IsGlobal(token);
+  DCHECK(is_global || AsmJSScanner::IsLocal(token));
   base::Vector<VarInfo>& var_info =
       is_global ? global_var_info_ : local_var_info_;
   size_t old_capacity = var_info.size();
-  size_t index = is_global ? AsmJsScanner::GlobalIndex(token)
-                           : AsmJsScanner::LocalIndex(token);
+  size_t index = is_global ? AsmJSScanner::GlobalIndex(token)
+                           : AsmJSScanner::LocalIndex(token);
   if (is_global && index + 1 > num_globals_) num_globals_ = index + 1;
   if (index + 1 > old_capacity) {
     size_t new_size = std::max(2 * old_capacity, index + 1);
@@ -215,12 +215,12 @@ wasm::AsmJsParser::VarInfo* AsmJsParser::GetVarInfo(
   return &var_info[index];
 }
 
-uint32_t AsmJsParser::VarIndex(VarInfo* info) {
+uint32_t AsmJSParser::VarIndex(VarInfo* info) {
   DCHECK_EQ(info->kind, VarKind::kGlobal);
   return info->index + static_cast<uint32_t>(global_imports_.size());
 }
 
-void AsmJsParser::AddGlobalImport(base::Vector<const char> name, AsmType* type,
+void AsmJSParser::AddGlobalImport(base::Vector<const char> name, AsmType* type,
                                   ValueType vtype, bool mutable_variable,
                                   VarInfo* info) {
   // Allocate a separate variable for the import.
@@ -233,7 +233,7 @@ void AsmJsParser::AddGlobalImport(base::Vector<const char> name, AsmType* type,
   global_imports_.push_back({name, vtype, info});
 }
 
-void AsmJsParser::DeclareGlobal(VarInfo* info, bool mutable_variable,
+void AsmJSParser::DeclareGlobal(VarInfo* info, bool mutable_variable,
                                 AsmType* type, ValueType vtype,
                                 WasmInitExpr init) {
   info->kind = VarKind::kGlobal;
@@ -242,7 +242,7 @@ void AsmJsParser::DeclareGlobal(VarInfo* info, bool mutable_variable,
   info->mutable_variable = mutable_variable;
 }
 
-void AsmJsParser::DeclareStdlibFunc(VarInfo* info, VarKind kind,
+void AsmJSParser::DeclareStdlibFunc(VarInfo* info, VarKind kind,
                                     AsmType* type) {
   info->kind = kind;
   info->type = type;
@@ -250,18 +250,18 @@ void AsmJsParser::DeclareStdlibFunc(VarInfo* info, VarKind kind,
   info->mutable_variable = false;
 }
 
-uint32_t AsmJsParser::TempVariable(int index) {
+uint32_t AsmJSParser::TempVariable(int index) {
   if (index + 1 > function_temp_locals_used_) {
     function_temp_locals_used_ = index + 1;
   }
   return function_temp_locals_offset_ + index;
 }
 
-base::Vector<const char> AsmJsParser::CopyCurrentIdentifierString() {
+base::Vector<const char> AsmJSParser::CopyCurrentIdentifierString() {
   return zone()->CloneVector(base::VectorOf(scanner_.GetIdentifierString()));
 }
 
-void AsmJsParser::SkipSemicolon() {
+void AsmJSParser::SkipSemicolon() {
   if (Check(';')) {
     // Had a semicolon.
   } else if (!Peek('}') && !scanner_.IsPrecededByNewline()) {
@@ -269,36 +269,36 @@ void AsmJsParser::SkipSemicolon() {
   }
 }
 
-void AsmJsParser::Begin(AsmJsScanner::token_t label) {
+void AsmJSParser::Begin(AsmJSScanner::token_t label) {
   BareBegin(BlockKind::kRegular, label);
   current_function_builder_->EmitWithU8(kExprBlock, kVoidCode);
 }
 
-void AsmJsParser::Loop(AsmJsScanner::token_t label) {
+void AsmJSParser::Loop(AsmJSScanner::token_t label) {
   BareBegin(BlockKind::kLoop, label);
   size_t position = scanner_.Position();
   current_function_builder_->AddAsmWasmOffset(position, position);
   current_function_builder_->EmitWithU8(kExprLoop, kVoidCode);
 }
 
-void AsmJsParser::End() {
+void AsmJSParser::End() {
   BareEnd();
   current_function_builder_->Emit(kExprEnd);
 }
 
-void AsmJsParser::BareBegin(BlockKind kind, AsmJsScanner::token_t label) {
+void AsmJSParser::BareBegin(BlockKind kind, AsmJSScanner::token_t label) {
   BlockInfo info;
   info.kind = kind;
   info.label = label;
   block_stack_.push_back(info);
 }
 
-void AsmJsParser::BareEnd() {
+void AsmJSParser::BareEnd() {
   DCHECK_GT(block_stack_.size(), 0);
   block_stack_.pop_back();
 }
 
-int AsmJsParser::FindContinueLabelDepth(AsmJsScanner::token_t label) {
+int AsmJSParser::FindContinueLabelDepth(AsmJSScanner::token_t label) {
   int count = 0;
   for (auto it = block_stack_.rbegin(); it != block_stack_.rend();
        ++it, ++count) {
@@ -313,7 +313,7 @@ int AsmJsParser::FindContinueLabelDepth(AsmJsScanner::token_t label) {
   return -1;
 }
 
-int AsmJsParser::FindBreakLabelDepth(AsmJsScanner::token_t label) {
+int AsmJSParser::FindBreakLabelDepth(AsmJSScanner::token_t label) {
   int count = 0;
   for (auto it = block_stack_.rbegin(); it != block_stack_.rend();
        ++it, ++count) {
@@ -330,7 +330,7 @@ int AsmJsParser::FindBreakLabelDepth(AsmJsScanner::token_t label) {
 }
 
 // 6.1 ValidateModule
-void AsmJsParser::ValidateModule() {
+void AsmJSParser::ValidateModule() {
   RECURSE(ValidateModuleParameters());
   EXPECT_TOKEN('{');
   EXPECT_TOKEN(TOK(UseAsm));
@@ -378,7 +378,7 @@ void AsmJsParser::ValidateModule() {
 }
 
 // 6.1 ValidateModule - parameters
-void AsmJsParser::ValidateModuleParameters() {
+void AsmJSParser::ValidateModuleParameters() {
   EXPECT_TOKEN('(');
   stdlib_name_ = 0;
   foreign_name_ = 0;
@@ -413,7 +413,7 @@ void AsmJsParser::ValidateModuleParameters() {
 }
 
 // 6.1 ValidateModule - variables
-void AsmJsParser::ValidateModuleVars() {
+void AsmJSParser::ValidateModuleVars() {
   while (Peek(TOK(var)) || Peek(TOK(const))) {
     bool mutable_variable = true;
     if (Check(TOK(var))) {
@@ -434,11 +434,11 @@ void AsmJsParser::ValidateModuleVars() {
 }
 
 // 6.1 ValidateModule - one variable
-void AsmJsParser::ValidateModuleVar(bool mutable_variable) {
+void AsmJSParser::ValidateModuleVar(bool mutable_variable) {
   if (!scanner_.IsGlobal()) {
     FAIL("Expected identifier");
   }
-  AsmJsScanner::token_t identifier = Consume();
+  AsmJSScanner::token_t identifier = Consume();
   if (identifier == stdlib_name_ || identifier == foreign_name_ ||
       identifier == heap_name_) {
     FAIL("Cannot shadow parameters");
@@ -495,7 +495,7 @@ void AsmJsParser::ValidateModuleVar(bool mutable_variable) {
 }
 
 // 6.1 ValidateModule - global float declaration
-void AsmJsParser::ValidateModuleVarFromGlobal(VarInfo* info,
+void AsmJSParser::ValidateModuleVarFromGlobal(VarInfo* info,
                                               bool mutable_variable) {
   VarInfo* src_info = GetVarInfo(Consume());
   if (!src_info->type->IsA(stdlib_fround_)) {
@@ -543,7 +543,7 @@ void AsmJsParser::ValidateModuleVarFromGlobal(VarInfo* info,
 }
 
 // 6.1 ValidateModule - foreign imports
-void AsmJsParser::ValidateModuleVarImport(VarInfo* info,
+void AsmJSParser::ValidateModuleVarImport(VarInfo* info,
                                           bool mutable_variable) {
   if (Check('+')) {
     EXPECT_TOKEN(foreign_name_);
@@ -571,7 +571,7 @@ void AsmJsParser::ValidateModuleVarImport(VarInfo* info,
 
 // 6.1 ValidateModule - one variable
 // 9 - Standard Library - heap types
-void AsmJsParser::ValidateModuleVarNewStdlib(VarInfo* info) {
+void AsmJSParser::ValidateModuleVarNewStdlib(VarInfo* info) {
   EXPECT_TOKEN(stdlib_name_);
   EXPECT_TOKEN('.');
   switch (Consume()) {
@@ -592,7 +592,7 @@ void AsmJsParser::ValidateModuleVarNewStdlib(VarInfo* info) {
 
 // 6.1 ValidateModule - one variable
 // 9 - Standard Library
-void AsmJsParser::ValidateModuleVarStdlib(VarInfo* info) {
+void AsmJSParser::ValidateModuleVarStdlib(VarInfo* info) {
   if (Check(TOK(Math))) {
     EXPECT_TOKEN('.');
     switch (Consume()) {
@@ -628,7 +628,7 @@ void AsmJsParser::ValidateModuleVarStdlib(VarInfo* info) {
 }
 
 // 6.2 ValidateExport
-void AsmJsParser::ValidateExport() {
+void AsmJSParser::ValidateExport() {
   // clang-format off
   EXPECT_TOKEN(TOK(return));
   // clang-format on
@@ -664,13 +664,13 @@ void AsmJsParser::ValidateExport() {
     if (info->kind != VarKind::kFunction) {
       FAIL("Single function export must be a function");
     }
-    module_builder_->AddExport(base::CStrVector(AsmJs::kSingleFunctionName),
+    module_builder_->AddExport(base::CStrVector(AsmJS::kSingleFunctionName),
                                info->function_builder);
   }
 }
 
 // 6.3 ValidateFunctionTable
-void AsmJsParser::ValidateFunctionTable() {
+void AsmJSParser::ValidateFunctionTable() {
   EXPECT_TOKEN(TOK(var));
   if (!scanner_.IsGlobal()) {
     FAIL("Expected table name");
@@ -725,7 +725,7 @@ void AsmJsParser::ValidateFunctionTable() {
 }
 
 // 6.4 ValidateFunction
-void AsmJsParser::ValidateFunction() {
+void AsmJSParser::ValidateFunction() {
   // Remember position of the 'function' token as start position.
   size_t function_start_position = scanner_.Position();
 
@@ -735,7 +735,7 @@ void AsmJsParser::ValidateFunction() {
   }
 
   base::Vector<const char> function_name_str = CopyCurrentIdentifierString();
-  AsmJsScanner::token_t function_name = Consume();
+  AsmJSScanner::token_t function_name = Consume();
   VarInfo* function_info = GetVarInfo(function_name);
   if (function_info->kind == VarKind::kUnused) {
     function_info->kind = VarKind::kFunction;
@@ -840,13 +840,13 @@ void AsmJsParser::ValidateFunction() {
 }
 
 // 6.4 ValidateFunction
-void AsmJsParser::ValidateFunctionParams(ZoneVector<AsmType*>* params) {
+void AsmJSParser::ValidateFunctionParams(ZoneVector<AsmType*>* params) {
   // TODO(bradnelson): Do this differently so that the scanner doesn't need to
   // have a state transition that needs knowledge of how the scanner works
   // inside.
   scanner_.EnterLocalScope();
   EXPECT_TOKEN('(');
-  CachedVector<AsmJsScanner::token_t> function_parameters(
+  CachedVector<AsmJSScanner::token_t> function_parameters(
       &cached_token_t_vectors_);
   while (!failed_ && !Peek(')')) {
     if (!scanner_.IsLocal()) {
@@ -901,7 +901,7 @@ void AsmJsParser::ValidateFunctionParams(ZoneVector<AsmType*>* params) {
 }
 
 // 6.4 ValidateFunction - locals
-void AsmJsParser::ValidateFunctionLocals(size_t param_count,
+void AsmJSParser::ValidateFunctionLocals(size_t param_count,
                                          ZoneVector<ValueType>* locals) {
   DCHECK(locals->empty());
   // Local Variables.
@@ -1033,7 +1033,7 @@ void AsmJsParser::ValidateFunctionLocals(size_t param_count,
 }
 
 // 6.5 ValidateStatement
-void AsmJsParser::ValidateStatement() {
+void AsmJSParser::ValidateStatement() {
   call_coercion_ = nullptr;
   if (Peek('{')) {
     RECURSE(Block());
@@ -1059,7 +1059,7 @@ void AsmJsParser::ValidateStatement() {
 }
 
 // 6.5.1 Block
-void AsmJsParser::Block() {
+void AsmJSParser::Block() {
   bool can_break_to_block = pending_label_ != 0;
   if (can_break_to_block) {
     BareBegin(BlockKind::kNamed, pending_label_);
@@ -1077,7 +1077,7 @@ void AsmJsParser::Block() {
 }
 
 // 6.5.2 ExpressionStatement
-void AsmJsParser::ExpressionStatement() {
+void AsmJSParser::ExpressionStatement() {
   if (scanner_.IsGlobal() || scanner_.IsLocal()) {
     // NOTE: Both global or local identifiers can also be used as labels.
     scanner_.Next();
@@ -1097,10 +1097,10 @@ void AsmJsParser::ExpressionStatement() {
 }
 
 // 6.5.3 EmptyStatement
-void AsmJsParser::EmptyStatement() { EXPECT_TOKEN(';'); }
+void AsmJSParser::EmptyStatement() { EXPECT_TOKEN(';'); }
 
 // 6.5.4 IfStatement
-void AsmJsParser::IfStatement() {
+void AsmJSParser::IfStatement() {
   EXPECT_TOKEN(TOK(if));
   EXPECT_TOKEN('(');
   RECURSE(Expression(AsmType::Int()));
@@ -1117,7 +1117,7 @@ void AsmJsParser::IfStatement() {
 }
 
 // 6.5.5 ReturnStatement
-void AsmJsParser::ReturnStatement() {
+void AsmJSParser::ReturnStatement() {
   // clang-format off
   EXPECT_TOKEN(TOK(return));
   // clang-format on
@@ -1144,7 +1144,7 @@ void AsmJsParser::ReturnStatement() {
 }
 
 // 6.5.6 IterationStatement
-bool AsmJsParser::IterationStatement() {
+bool AsmJSParser::IterationStatement() {
   if (Peek(TOK(while))) {
     WhileStatement();
   } else if (Peek(TOK(do))) {
@@ -1158,7 +1158,7 @@ bool AsmJsParser::IterationStatement() {
 }
 
 // 6.5.6 IterationStatement - while
-void AsmJsParser::WhileStatement() {
+void AsmJSParser::WhileStatement() {
   // a: block {
   Begin(pending_label_);
   //   b: loop {
@@ -1182,7 +1182,7 @@ void AsmJsParser::WhileStatement() {
 }
 
 // 6.5.6 IterationStatement - do
-void AsmJsParser::DoStatement() {
+void AsmJSParser::DoStatement() {
   // a: block {
   Begin(pending_label_);
   //   b: loop {
@@ -1213,7 +1213,7 @@ void AsmJsParser::DoStatement() {
 }
 
 // 6.5.6 IterationStatement - for
-void AsmJsParser::ForStatement() {
+void AsmJSParser::ForStatement() {
   EXPECT_TOKEN(TOK(for));
   EXPECT_TOKEN('(');
   if (!Peek(';')) {
@@ -1264,9 +1264,9 @@ void AsmJsParser::ForStatement() {
 }
 
 // 6.5.7 BreakStatement
-void AsmJsParser::BreakStatement() {
+void AsmJSParser::BreakStatement() {
   EXPECT_TOKEN(TOK(break));
-  AsmJsScanner::token_t label_name = kTokenNone;
+  AsmJSScanner::token_t label_name = kTokenNone;
   if (scanner_.IsGlobal() || scanner_.IsLocal()) {
     // NOTE: Currently using globals/locals for labels too.
     label_name = Consume();
@@ -1280,9 +1280,9 @@ void AsmJsParser::BreakStatement() {
 }
 
 // 6.5.8 ContinueStatement
-void AsmJsParser::ContinueStatement() {
+void AsmJSParser::ContinueStatement() {
   EXPECT_TOKEN(TOK(continue));
-  AsmJsScanner::token_t label_name = kTokenNone;
+  AsmJSScanner::token_t label_name = kTokenNone;
   if (scanner_.IsGlobal() || scanner_.IsLocal()) {
     // NOTE: Currently using globals/locals for labels too.
     label_name = Consume();
@@ -1296,7 +1296,7 @@ void AsmJsParser::ContinueStatement() {
 }
 
 // 6.5.9 LabelledStatement
-void AsmJsParser::LabelledStatement() {
+void AsmJSParser::LabelledStatement() {
   DCHECK(scanner_.IsGlobal() || scanner_.IsLocal());
   // NOTE: Currently using globals/locals for labels too.
   if (pending_label_ != 0) {
@@ -1309,7 +1309,7 @@ void AsmJsParser::LabelledStatement() {
 }
 
 // 6.5.10 SwitchStatement
-void AsmJsParser::SwitchStatement() {
+void AsmJSParser::SwitchStatement() {
   EXPECT_TOKEN(TOK(switch));
   EXPECT_TOKEN('(');
   AsmType* test;
@@ -1354,7 +1354,7 @@ void AsmJsParser::SwitchStatement() {
 }
 
 // 6.6. ValidateCase
-void AsmJsParser::ValidateCase() {
+void AsmJSParser::ValidateCase() {
   EXPECT_TOKEN(TOK(case));
   bool negate = false;
   if (Check('-')) {
@@ -1380,7 +1380,7 @@ void AsmJsParser::ValidateCase() {
 }
 
 // 6.7 ValidateDefault
-void AsmJsParser::ValidateDefault() {
+void AsmJSParser::ValidateDefault() {
   EXPECT_TOKEN(TOK(default));
   EXPECT_TOKEN(':');
   while (!failed_ && !Peek('}')) {
@@ -1389,14 +1389,14 @@ void AsmJsParser::ValidateDefault() {
 }
 
 // 6.8 ValidateExpression
-AsmType* AsmJsParser::ValidateExpression() {
+AsmType* AsmJSParser::ValidateExpression() {
   AsmType* ret;
   RECURSEn(ret = Expression(nullptr));
   return ret;
 }
 
 // 6.8.1 Expression
-AsmType* AsmJsParser::Expression(AsmType* expected) {
+AsmType* AsmJSParser::Expression(AsmType* expected) {
   AsmType* a;
   for (;;) {
     RECURSEn(a = AssignmentExpression());
@@ -1419,7 +1419,7 @@ AsmType* AsmJsParser::Expression(AsmType* expected) {
 }
 
 // 6.8.2 NumericLiteral
-AsmType* AsmJsParser::NumericLiteral() {
+AsmType* AsmJSParser::NumericLiteral() {
   call_coercion_ = nullptr;
   double dvalue = 0.0;
   uint32_t uvalue = 0;
@@ -1440,7 +1440,7 @@ AsmType* AsmJsParser::NumericLiteral() {
 }
 
 // 6.8.3 Identifier
-AsmType* AsmJsParser::Identifier() {
+AsmType* AsmJSParser::Identifier() {
   call_coercion_ = nullptr;
   if (scanner_.IsLocal()) {
     VarInfo* info = GetVarInfo(Consume());
@@ -1461,7 +1461,7 @@ AsmType* AsmJsParser::Identifier() {
 }
 
 // 6.8.4 CallExpression
-AsmType* AsmJsParser::CallExpression() {
+AsmType* AsmJSParser::CallExpression() {
   AsmType* ret;
   if (scanner_.IsGlobal() &&
       GetVarInfo(scanner_.Token())->type->IsA(stdlib_fround_)) {
@@ -1483,7 +1483,7 @@ AsmType* AsmJsParser::CallExpression() {
 }
 
 // 6.8.5 MemberExpression
-AsmType* AsmJsParser::MemberExpression() {
+AsmType* AsmJSParser::MemberExpression() {
   call_coercion_ = nullptr;
   RECURSEn(ValidateHeapAccess());
   DCHECK_NOT_NULL(heap_access_type_);
@@ -1503,7 +1503,7 @@ AsmType* AsmJsParser::MemberExpression() {
 }
 
 // 6.8.6 AssignmentExpression
-AsmType* AsmJsParser::AssignmentExpression() {
+AsmType* AsmJSParser::AssignmentExpression() {
   AsmType* ret;
   if (scanner_.IsGlobal() &&
       GetVarInfo(scanner_.Token())->type->IsA(AsmType::Heap())) {
@@ -1583,7 +1583,7 @@ AsmType* AsmJsParser::AssignmentExpression() {
 }
 
 // 6.8.7 UnaryExpression
-AsmType* AsmJsParser::UnaryExpression() {
+AsmType* AsmJSParser::UnaryExpression() {
   AsmType* ret;
   if (Check('-')) {
     uint32_t uvalue;
@@ -1671,7 +1671,7 @@ AsmType* AsmJsParser::UnaryExpression() {
 }
 
 // 6.8.8 MultiplicativeExpression
-AsmType* AsmJsParser::MultiplicativeExpression() {
+AsmType* AsmJSParser::MultiplicativeExpression() {
   AsmType* a;
   uint32_t uvalue;
   if (CheckForUnsignedBelow(0x100000, &uvalue)) {
@@ -1790,7 +1790,7 @@ AsmType* AsmJsParser::MultiplicativeExpression() {
 }
 
 // 6.8.9 AdditiveExpression
-AsmType* AsmJsParser::AdditiveExpression() {
+AsmType* AsmJSParser::AdditiveExpression() {
   AsmType* a;
   RECURSEn(a = MultiplicativeExpression());
   int n = 0;
@@ -1851,7 +1851,7 @@ AsmType* AsmJsParser::AdditiveExpression() {
 }
 
 // 6.8.10 ShiftExpression
-AsmType* AsmJsParser::ShiftExpression() {
+AsmType* AsmJSParser::ShiftExpression() {
   AsmType* a = nullptr;
   RECURSEn(a = AdditiveExpression());
   heap_access_shift_position_ = kNoHeapAccessShift;
@@ -1911,7 +1911,7 @@ AsmType* AsmJsParser::ShiftExpression() {
 }
 
 // 6.8.11 RelationalExpression
-AsmType* AsmJsParser::RelationalExpression() {
+AsmType* AsmJSParser::RelationalExpression() {
   AsmType* a = nullptr;
   RECURSEn(a = ShiftExpression());
   for (;;) {
@@ -1948,7 +1948,7 @@ AsmType* AsmJsParser::RelationalExpression() {
 }
 
 // 6.8.12 EqualityExpression
-AsmType* AsmJsParser::EqualityExpression() {
+AsmType* AsmJSParser::EqualityExpression() {
   AsmType* a = nullptr;
   RECURSEn(a = RelationalExpression());
   for (;;) {
@@ -1983,7 +1983,7 @@ AsmType* AsmJsParser::EqualityExpression() {
 }
 
 // 6.8.13 BitwiseANDExpression
-AsmType* AsmJsParser::BitwiseANDExpression() {
+AsmType* AsmJSParser::BitwiseANDExpression() {
   AsmType* a = nullptr;
   RECURSEn(a = EqualityExpression());
   while (Check('&')) {
@@ -2000,7 +2000,7 @@ AsmType* AsmJsParser::BitwiseANDExpression() {
 }
 
 // 6.8.14 BitwiseXORExpression
-AsmType* AsmJsParser::BitwiseXORExpression() {
+AsmType* AsmJSParser::BitwiseXORExpression() {
   AsmType* a = nullptr;
   RECURSEn(a = BitwiseANDExpression());
   while (Check('^')) {
@@ -2017,7 +2017,7 @@ AsmType* AsmJsParser::BitwiseXORExpression() {
 }
 
 // 6.8.15 BitwiseORExpression
-AsmType* AsmJsParser::BitwiseORExpression() {
+AsmType* AsmJSParser::BitwiseORExpression() {
   AsmType* a = nullptr;
   call_coercion_deferred_position_ = scanner_.Position();
   RECURSEn(a = BitwiseXORExpression());
@@ -2062,7 +2062,7 @@ AsmType* AsmJsParser::BitwiseORExpression() {
 }
 
 // 6.8.16 ConditionalExpression
-AsmType* AsmJsParser::ConditionalExpression() {
+AsmType* AsmJSParser::ConditionalExpression() {
   AsmType* test = nullptr;
   RECURSEn(test = BitwiseORExpression());
   if (Check('?')) {
@@ -2097,7 +2097,7 @@ AsmType* AsmJsParser::ConditionalExpression() {
 }
 
 // 6.8.17 ParenthesiedExpression
-AsmType* AsmJsParser::ParenthesizedExpression() {
+AsmType* AsmJSParser::ParenthesizedExpression() {
   call_coercion_ = nullptr;
   AsmType* ret;
   EXPECT_TOKENn('(');
@@ -2107,13 +2107,13 @@ AsmType* AsmJsParser::ParenthesizedExpression() {
 }
 
 // 6.9 ValidateCall
-AsmType* AsmJsParser::ValidateCall() {
+AsmType* AsmJSParser::ValidateCall() {
   AsmType* return_type = call_coercion_;
   call_coercion_ = nullptr;
   size_t call_pos = scanner_.Position();
   size_t to_number_pos = call_coercion_position_;
   bool allow_peek = (call_coercion_deferred_position_ == scanner_.Position());
-  AsmJsScanner::token_t function_name = Consume();
+  AsmJSScanner::token_t function_name = Consume();
 
   // Distinguish between ordinary function calls and function table calls. In
   // both cases we might be seeing the {function_name} for the first time and
@@ -2381,7 +2381,7 @@ AsmType* AsmJsParser::ValidateCall() {
         break;
 
       case VarKind::kMathFround:
-        // NOTE: Handled in {AsmJsParser::CallExpression} specially and treated
+        // NOTE: Handled in {AsmJSParser::CallExpression} specially and treated
         // as a coercion to "float" type. Cannot be reached as a call here.
         UNREACHABLE();
 
@@ -2417,7 +2417,7 @@ AsmType* AsmJsParser::ValidateCall() {
 }
 
 // 6.9 ValidateCall - helper
-bool AsmJsParser::PeekCall() {
+bool AsmJSParser::PeekCall() {
   if (!scanner_.IsGlobal()) {
     return false;
   }
@@ -2440,7 +2440,7 @@ bool AsmJsParser::PeekCall() {
 }
 
 // 6.10 ValidateHeapAccess
-void AsmJsParser::ValidateHeapAccess() {
+void AsmJSParser::ValidateHeapAccess() {
   VarInfo* info = GetVarInfo(Consume());
   int32_t size = info->type->ElementSizeInBytes();
   EXPECT_TOKEN('[');
@@ -2494,7 +2494,7 @@ void AsmJsParser::ValidateHeapAccess() {
 }
 
 // 6.11 ValidateFloatCoercion
-void AsmJsParser::ValidateFloatCoercion() {
+void AsmJSParser::ValidateFloatCoercion() {
   if (!scanner_.IsGlobal() ||
       !GetVarInfo(scanner_.Token())->type->IsA(stdlib_fround_)) {
     FAIL("Expected fround");
@@ -2521,7 +2521,7 @@ void AsmJsParser::ValidateFloatCoercion() {
   EXPECT_TOKEN(')');
 }
 
-void AsmJsParser::ScanToClosingParenthesis() {
+void AsmJSParser::ScanToClosingParenthesis() {
   int depth = 0;
   for (;;) {
     if (Peek('(')) {
@@ -2531,14 +2531,14 @@ void AsmJsParser::ScanToClosingParenthesis() {
       if (depth < 0) {
         break;
       }
-    } else if (Peek(AsmJsScanner::kEndOfInput)) {
+    } else if (Peek(AsmJSScanner::kEndOfInput)) {
       break;
     }
     scanner_.Next();
   }
 }
 
-void AsmJsParser::GatherCases(ZoneVector<int32_t>* cases) {
+void AsmJSParser::GatherCases(ZoneVector<int32_t>* cases) {
   size_t start = scanner_.Position();
   int depth = 0;
   for (;;) {
@@ -2563,8 +2563,8 @@ void AsmJsParser::GatherCases(ZoneVector<int32_t>* cases) {
         value = -value;
       }
       cases->push_back(value);
-    } else if (Peek(AsmJsScanner::kEndOfInput) ||
-               Peek(AsmJsScanner::kParseError)) {
+    } else if (Peek(AsmJSScanner::kEndOfInput) ||
+               Peek(AsmJSScanner::kParseError)) {
       break;
     }
     scanner_.Next();

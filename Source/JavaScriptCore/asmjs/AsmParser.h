@@ -29,7 +29,7 @@ namespace wasm {
 // * It assumes strict ordering insofar as permitted by asm.js validation rules.
 // * It relies on a custom scanner that provides de-duped identifiers in two
 //   scopes (local + module wide).
-class AsmJsParser {
+class AsmJSParser {
  public:
   // clang-format off
   enum StandardMember {
@@ -49,7 +49,7 @@ class AsmJsParser {
 
   using StdlibSet = base::EnumSet<StandardMember, uint64_t>;
 
-  explicit AsmJsParser(Zone* zone, uintptr_t stack_limit,
+  explicit AsmJSParser(Zone* zone, uintptr_t stack_limit,
                        Utf16CharacterStream* stream);
   bool Run();
   const char* failure_message() const { return failure_message_; }
@@ -121,7 +121,7 @@ class AsmJsParser {
   // without a label have {kTokenNone} set as their label.
   struct BlockInfo {
     BlockKind kind;
-    AsmJsScanner::token_t label;
+    AsmJSScanner::token_t label;
   };
 
   // Helper class to make {TempVariable} safe for nesting.
@@ -163,7 +163,7 @@ class AsmJsParser {
   };
 
   Zone* zone_;
-  AsmJsScanner scanner_;
+  AsmJSScanner scanner_;
   WasmModuleBuilder* module_builder_;
   WasmFunctionBuilder* current_function_builder_;
   AsmType* return_type_ = nullptr;
@@ -175,7 +175,7 @@ class AsmJsParser {
 
   CachedVectors<ValueType> cached_valuetype_vectors_{zone_};
   CachedVectors<AsmType*> cached_asm_type_p_vectors_{zone_};
-  CachedVectors<AsmJsScanner::token_t> cached_token_t_vectors_{zone_};
+  CachedVectors<AsmJSScanner::token_t> cached_token_t_vectors_{zone_};
   CachedVectors<int32_t> cached_int_vectors_{zone_};
 
   int function_temp_locals_offset_;
@@ -188,11 +188,11 @@ class AsmJsParser {
   int failure_location_ = kNoSourcePosition;
 
   // Module Related.
-  AsmJsScanner::token_t stdlib_name_ = kTokenNone;
-  AsmJsScanner::token_t foreign_name_ = kTokenNone;
-  AsmJsScanner::token_t heap_name_ = kTokenNone;
+  AsmJSScanner::token_t stdlib_name_ = kTokenNone;
+  AsmJSScanner::token_t foreign_name_ = kTokenNone;
+  AsmJSScanner::token_t heap_name_ = kTokenNone;
 
-  static const AsmJsScanner::token_t kTokenNone = 0;
+  static const AsmJSScanner::token_t kTokenNone = 0;
 
   // Track if parsing a heap assignment.
   bool inside_heap_assignment_ = false;
@@ -237,7 +237,7 @@ class AsmJsParser {
 
   // Used to track the last label we've seen so it can be matched to later
   // statements it's attached to.
-  AsmJsScanner::token_t pending_label_ = kTokenNone;
+  AsmJSScanner::token_t pending_label_ = kTokenNone;
 
   // Global imports. The list of imported variables that are copied during
   // module instantiation into a corresponding global variable.
@@ -245,7 +245,7 @@ class AsmJsParser {
 
   Zone* zone() { return zone_; }
 
-  inline bool Peek(AsmJsScanner::token_t token) {
+  inline bool Peek(AsmJSScanner::token_t token) {
     return scanner_.Token() == token;
   }
 
@@ -253,7 +253,7 @@ class AsmJsParser {
     return (scanner_.IsUnsigned() && scanner_.AsUnsigned() == 0);
   }
 
-  inline bool Check(AsmJsScanner::token_t token) {
+  inline bool Check(AsmJSScanner::token_t token) {
     if (scanner_.Token() == token) {
       scanner_.Next();
       return true;
@@ -301,15 +301,15 @@ class AsmJsParser {
     }
   }
 
-  inline AsmJsScanner::token_t Consume() {
-    AsmJsScanner::token_t ret = scanner_.Token();
+  inline AsmJSScanner::token_t Consume() {
+    AsmJSScanner::token_t ret = scanner_.Token();
     scanner_.Next();
     return ret;
   }
 
   void SkipSemicolon();
 
-  VarInfo* GetVarInfo(AsmJsScanner::token_t token);
+  VarInfo* GetVarInfo(AsmJSScanner::token_t token);
   uint32_t VarIndex(VarInfo* info);
   void DeclareGlobal(VarInfo* info, bool mutable_variable, AsmType* type,
                      ValueType vtype, WasmInitExpr init);
@@ -326,14 +326,14 @@ class AsmJsParser {
 
   // Use to set up block stack layers (including synthetic ones for if-else).
   // Begin/Loop/End below are implemented with these plus code generation.
-  void BareBegin(BlockKind kind, AsmJsScanner::token_t label = 0);
+  void BareBegin(BlockKind kind, AsmJSScanner::token_t label = 0);
   void BareEnd();
-  int FindContinueLabelDepth(AsmJsScanner::token_t label);
-  int FindBreakLabelDepth(AsmJsScanner::token_t label);
+  int FindContinueLabelDepth(AsmJSScanner::token_t label);
+  int FindBreakLabelDepth(AsmJSScanner::token_t label);
 
   // Use to set up actual wasm blocks/loops.
-  void Begin(AsmJsScanner::token_t label = 0);
-  void Loop(AsmJsScanner::token_t label = 0);
+  void Begin(AsmJSScanner::token_t label = 0);
+  void Loop(AsmJSScanner::token_t label = 0);
   void End();
 
   void InitializeStdlibTypes();
