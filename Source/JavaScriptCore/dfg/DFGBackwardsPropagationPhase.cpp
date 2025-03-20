@@ -402,8 +402,13 @@ private:
             flags &= ~NodeBytecodeUsesAsOther;
             if (isNotNegZero(node->child1().node()) || isNotNegZero(node->child2().node()))
                 flags &= ~NodeBytecodeNeedsNegZero;
-            if (!isWithinPowerOfTwo<32>(node->child1()) && !isWithinPowerOfTwo<32>(node->child2()))
-                flags |= NodeBytecodeUsesAsNumber;
+            if (!isWithinPowerOfTwo<32>(node->child1()) && !isWithinPowerOfTwo<32>(node->child2())) {
+                if (m_graph.afterFixup()) {
+                    if (!node->isBinaryUseKind(Int32Use))
+                        flags |= NodeBytecodeUsesAsNumber;
+                } else
+                    flags |= NodeBytecodeUsesAsNumber;
+            }
             if (!m_allowNestedOverflowingAdditions)
                 flags |= NodeBytecodeUsesAsNumber;
             flags |= NodeBytecodeNeedsNaNOrInfinity;
@@ -424,8 +429,13 @@ private:
             flags &= ~NodeBytecodeUsesAsOther;
             if (isNotNegZero(node->child1().node()) || isNotPosZero(node->child2().node()))
                 flags &= ~NodeBytecodeNeedsNegZero;
-            if (!isWithinPowerOfTwo<32>(node->child1()) && !isWithinPowerOfTwo<32>(node->child2()))
-                flags |= NodeBytecodeUsesAsNumber;
+            if (!isWithinPowerOfTwo<32>(node->child1()) && !isWithinPowerOfTwo<32>(node->child2())) {
+                if (m_graph.afterFixup()) {
+                    if (!node->isBinaryUseKind(Int32Use))
+                        flags |= NodeBytecodeUsesAsNumber;
+                } else
+                    flags |= NodeBytecodeUsesAsNumber;
+            }
             if (!m_allowNestedOverflowingAdditions)
                 flags |= NodeBytecodeUsesAsNumber;
             flags |= NodeBytecodeNeedsNaNOrInfinity;
@@ -447,8 +457,13 @@ private:
         case Dec: {
             flags &= ~NodeBytecodeNeedsNegZero;
             flags &= ~NodeBytecodeUsesAsOther;
-            if (!isWithinPowerOfTwo<32>(node->child1()))
-                flags |= NodeBytecodeUsesAsNumber;
+            if (!isWithinPowerOfTwo<32>(node->child1())) {
+                if (m_graph.afterFixup()) {
+                    if (node->child1().useKind() != Int32Use)
+                        flags |= NodeBytecodeUsesAsNumber;
+                } else
+                    flags |= NodeBytecodeUsesAsNumber;
+            }
             if (!m_allowNestedOverflowingAdditions)
                 flags |= NodeBytecodeUsesAsNumber;
             flags |= NodeBytecodeNeedsNaNOrInfinity;

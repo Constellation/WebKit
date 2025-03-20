@@ -190,6 +190,16 @@ private:
                 convertToIdentityOverChild1();
                 break;
             }
+
+            if (m_node->isBinaryUseKind(Int32Use)) {
+                if (m_node->arithMode() == Arith::CheckOverflow) {
+                    if (bytecodeCanTruncateInteger(m_node->arithNodeFlags())) {
+                        dataLogLn("REDUCE");
+                        m_node->setArithMode(Arith::Unchecked);
+                        m_changed = true;
+                    }
+                }
+            }
             break;
             
         case ValueMul:
@@ -249,6 +259,16 @@ private:
                             m_nodeIndex, m_node->origin, jsNumber(-value)));
                     m_changed = true;
                     break;
+                }
+            }
+
+            if (m_node->isBinaryUseKind(Int32Use)) {
+                if (m_node->arithMode() == Arith::CheckOverflow) {
+                    if (bytecodeCanTruncateInteger(m_node->arithNodeFlags())) {
+                        dataLogLn("REDUCE");
+                        m_node->setArithMode(Arith::Unchecked);
+                        m_changed = true;
+                    }
                 }
             }
             break;

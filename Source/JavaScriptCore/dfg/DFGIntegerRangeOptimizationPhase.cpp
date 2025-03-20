@@ -41,7 +41,7 @@ namespace JSC { namespace DFG {
 namespace {
 
 namespace DFGIntegerRangeOptimizationPhaseInternal {
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 }
 const unsigned giveUpThreshold = 50;
 
@@ -1639,6 +1639,19 @@ private:
             // Another way to think of it, is that we are maintaining the invariant that relationshipMaps are pruned by liveness.
             kill(shadowNode);
             setEquivalence(node->child1().node(), shadowNode);
+            break;
+        }
+
+        case ArithMod: {
+            if (!node->isBinaryUseKind(Int32Use))
+                break;
+
+            if (!node->child2()->isInt32Constant())
+                break;
+
+            int32_t offset = node->child2()->asInt32();
+            setRelationship(Relationship(node, m_zero, Relationship::GreaterThan, -offset));
+            setRelationship(Relationship(node, m_zero, Relationship::LessThan, offset));
             break;
         }
 
