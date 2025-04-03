@@ -208,6 +208,7 @@ namespace JSC { namespace DFG {
     macro(GetByValMegamorphic, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
     macro(GetByValWithThis, NodeResultJS | NodeMustGenerate) \
     macro(GetByValWithThisMegamorphic, NodeResultJS | NodeMustGenerate) \
+    macro(MultiGetByVal, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
     macro(GetMyArgumentByVal, NodeResultJS | NodeMustGenerate) \
     macro(GetMyArgumentByValOutOfBounds, NodeResultJS | NodeMustGenerate) \
     macro(VarargsLength, NodeMustGenerate | NodeResultInt32) \
@@ -217,6 +218,7 @@ namespace JSC { namespace DFG {
     macro(PutByVal, NodeMustGenerate | NodeHasVarArgs) \
     macro(PutByValAlias, NodeMustGenerate | NodeHasVarArgs) \
     macro(PutByValMegamorphic, NodeMustGenerate | NodeHasVarArgs) \
+    macro(MultiPutByVal, NodeMustGenerate | NodeHasVarArgs) \
     macro(PutPrivateName, NodeMustGenerate) \
     macro(PutPrivateNameById, NodeMustGenerate) \
     macro(CheckPrivateBrand, NodeMustGenerate) \

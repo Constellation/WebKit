@@ -107,6 +107,16 @@ struct MultiDeleteByOffsetData {
     bool allVariantsStoreEmpty() const;
 };
 
+struct MultiGetByValData {
+    ArrayModes m_arrayModes { };
+    DFG::ArrayMode m_arrayMode { };
+};
+
+struct MultiPutByValData {
+    ArrayModes m_arrayModes { };
+    DFG::ArrayMode m_arrayMode { };
+};
+
 struct MatchStructureVariant {
     RegisteredStructure structure;
     bool result;
@@ -695,6 +705,20 @@ public:
         ASSERT(m_op == PutById || m_op == PutByIdDirect || m_op == PutByIdFlush || m_op == PutPrivateNameById || m_op == PutByIdMegamorphic);
         m_opInfo = data;
         m_op = MultiPutByOffset;
+    }
+
+    void convertToMultiGetByVal(MultiGetByValData* data)
+    {
+        ASSERT(m_op == GetByVal);
+        m_opInfo = data;
+        m_op = MultiGetByVal;
+    }
+
+    void convertToMultiPutByVal(MultiPutByValData* data)
+    {
+        ASSERT(m_op == PutByVal);
+        m_opInfo = data;
+        m_op = MultiPutByVal;
     }
 
     void convertToNewRegExp(FrozenValue* regExp, Edge index)
@@ -2041,6 +2065,7 @@ public:
         case GetByValMegamorphic:
         case GetByValWithThis:
         case GetByValWithThisMegamorphic:
+        case MultiGetByVal:
         case GetPrivateName:
         case GetPrivateNameById:
         case Call:
@@ -2450,7 +2475,29 @@ public:
         ASSERT(hasMultiDeleteByOffsetData());
         return *m_opInfo.as<MultiDeleteByOffsetData*>();
     }
-    
+
+    bool hasMultiGetByValData()
+    {
+        return op() == MultiGetByVal;
+    }
+
+    MultiGetByValData& multiGetByValData()
+    {
+        ASSERT(hasMultiGetByValData());
+        return *m_opInfo.as<MultiGetByValData*>();
+    }
+
+    bool hasMultiPutByValData()
+    {
+        return op() == MultiPutByVal;
+    }
+
+    MultiPutByValData& multiPutByValData()
+    {
+        ASSERT(hasMultiPutByValData());
+        return *m_opInfo.as<MultiPutByValData*>();
+    }
+
     bool hasMatchStructureData()
     {
         return op() == MatchStructure;
@@ -2574,7 +2621,31 @@ public:
             return false;
         }
     }
-    
+
+    bool hasArrayModes()
+    {
+        switch (op()) {
+        case MultiGetByVal:
+        case MultiPutByVal:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    ArrayModes arrayModes()
+    {
+        ASSERT(hasArrayModes());
+        switch (op()) {
+        case MultiGetByVal:
+            return multiGetByValData().m_arrayModes;
+        case MultiPutByVal:
+            return multiPutByValData().m_arrayModes;
+        default:
+            return { };
+        }
+    }
+
     bool hasArrayMode()
     {
         switch (op()) {
@@ -2591,9 +2662,11 @@ public:
         case PutByVal:
         case PutByValAlias:
         case PutByValMegamorphic:
+        case MultiPutByVal:
         case EnumeratorPutByVal:
         case GetByVal:
         case GetByValMegamorphic:
+        case MultiGetByVal:
         case EnumeratorNextUpdateIndexAndMode:
         case EnumeratorGetByVal:
         case EnumeratorInByVal:
@@ -2630,26 +2703,46 @@ public:
     ArrayMode arrayMode()
     {
         ASSERT(hasArrayMode());
-        if (op() == ArrayifyToStructure)
+        switch (op()) {
+        case ArrayifyToStructure:
             return ArrayMode::fromWord(m_opInfo2.as<uint32_t>());
-        if (op() == NewArrayWithSpecies)
+        case NewArrayWithSpecies:
             return ArrayMode::fromWord(newArrayWithSpeciesData().arrayMode);
-        return ArrayMode::fromWord(m_opInfo.as<uint32_t>());
+        case MultiGetByVal:
+            return multiGetByValData().m_arrayMode;
+        case MultiPutByVal:
+            return multiPutByValData().m_arrayMode;
+        default:
+            return ArrayMode::fromWord(m_opInfo.as<uint32_t>());
+        }
     }
-    
+
     bool setArrayMode(ArrayMode arrayMode)
     {
         ASSERT(hasArrayMode());
         if (this->arrayMode() == arrayMode)
             return false;
-        if (op() == NewArrayWithSpecies) {
+
+        switch (op()) {
+        case ArrayifyToStructure:
+            m_opInfo2 = arrayMode.asWord();
+            return true;
+        case NewArrayWithSpecies: {
             auto data = newArrayWithSpeciesData();
             data.arrayMode = arrayMode.asWord();
             m_opInfo = data.asQuadWord();
             return true;
         }
-        m_opInfo = arrayMode.asWord();
-        return true;
+        case MultiGetByVal:
+            multiGetByValData().m_arrayMode = arrayMode;
+            return true;
+        case MultiPutByVal:
+            multiPutByValData().m_arrayMode = arrayMode;
+            return true;
+        default:
+            m_opInfo = arrayMode.asWord();
+            return true;
+        }
     }
 
     bool mayBeResizableOrGrowableSharedArrayBuffer()
@@ -2674,6 +2767,7 @@ public:
         case PutByValDirect:
         case PutByValWithThis:
         case EnumeratorPutByVal:
+        case MultiPutByVal:
         case PutDynamicVar:
         case ToThis:
             return true;
@@ -2702,6 +2796,7 @@ public:
         case PutByValDirect:
         case EnumeratorPutByVal:
         case PutDynamicVar:
+        case MultiPutByVal:
             return ECMAMode::fromByte(m_opInfo2.as<uint8_t>());
         default:
             RELEASE_ASSERT_NOT_REACHED();

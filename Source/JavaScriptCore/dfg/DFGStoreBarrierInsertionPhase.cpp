@@ -258,7 +258,11 @@ private:
                 }
                 break;
             }
-                
+
+            case MultiPutByVal:
+                considerBarrier(m_graph.child(m_node, 0));
+                break;
+
             case ArrayPush: {
                 switch (m_node->arrayMode().type()) {
                 case Array::Contiguous:

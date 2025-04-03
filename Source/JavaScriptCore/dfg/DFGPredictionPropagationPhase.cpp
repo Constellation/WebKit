@@ -639,6 +639,11 @@ private:
             break;
         }
 
+        case MultiGetByVal: {
+            changed |= mergePrediction(node->getHeapPrediction());
+            break;
+        }
+
         case StringAt: {
             if (node->arrayMode().isOutOfBounds())
                 changed |= mergePrediction(SpecString | SpecOther);
@@ -1638,6 +1643,7 @@ private:
         case PutByValWithThis:
         case PutByIdWithThis:
         case PutByVal:
+        case MultiPutByVal:
         case PutByValMegamorphic:
         case PutPrivateName:
         case PutPrivateNameById:

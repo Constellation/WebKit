@@ -275,10 +275,12 @@ private:
                 case GetButterfly:
                 case EnumeratorGetByVal:
                 case GetByVal:
+                case MultiGetByVal:
                 case PutByValDirect:
                 case PutByVal:
                 case PutByValAlias:
                 case PutByValMegamorphic:
+                case MultiPutByVal:
                 case EnumeratorPutByVal:
                 case GetArrayLength:
                 case GetUndetachedTypeArrayLength:
@@ -296,7 +298,7 @@ private:
                 case MultiDeleteByOffset:
                     // Don't count these uses.
                     break;
-                    
+
                 case SetLocal: {
                     // Find all uses of the source of the SetLocal. If any of them are a
                     // kind of CheckStructure, then we should notice them to ensure that
@@ -361,6 +363,7 @@ private:
                 case GetButterfly:
                 case EnumeratorGetByVal:
                 case GetByVal:
+                case MultiGetByVal:
                 case PutByValDirect:
                 case PutByVal:
                 case PutByValAlias:
@@ -378,7 +381,7 @@ private:
                 case MultiDeleteByOffset:
                     // Don't count these uses.
                     break;
-                    
+
                 case AllocatePropertyStorage:
                 case ArrayifyToStructure:
                 case Arrayify: {

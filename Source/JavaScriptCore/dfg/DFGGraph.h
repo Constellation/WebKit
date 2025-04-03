@@ -1284,6 +1284,8 @@ public:
     Bag<MultiGetByOffsetData> m_multiGetByOffsetData;
     Bag<MultiPutByOffsetData> m_multiPutByOffsetData;
     Bag<MultiDeleteByOffsetData> m_multiDeleteByOffsetData;
+    Bag<MultiGetByValData> m_multiGetByValData;
+    Bag<MultiPutByValData> m_multiPutByValData;
     Bag<MatchStructureData> m_matchStructureData;
     Bag<ObjectMaterializationData> m_objectMaterializationData;
     Bag<CallVarargsData> m_callVarargsData;

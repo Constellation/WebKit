@@ -506,6 +506,7 @@ private:
             break;
         }
 
+        case MultiGetByVal:
         case EnumeratorGetByVal:
         case GetByVal:
         case GetByValMegamorphic: {
@@ -556,6 +557,7 @@ private:
             break;
         }
 
+        case MultiPutByVal:
         case EnumeratorPutByVal:
         case PutByValDirect:
         case PutByVal:
