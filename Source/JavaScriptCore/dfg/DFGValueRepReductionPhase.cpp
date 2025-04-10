@@ -88,6 +88,44 @@ private:
                     break;
                 }
 
+                case Int52Rep: {
+                    Edge& child1 = node->child1();
+                    switch (child1->op()) {
+                    case MultiGetByVal: {
+                        if (child1->arrayMode().isOutOfBounds())
+                            break;
+
+                        if (child1->arrayMode().isInBoundsSaneChain())
+                            break;
+
+                        constexpr ArrayModes supportedArrays = 0
+                            | asArrayModesIgnoringTypedArrays(ArrayWithInt32)
+                            | asArrayModesIgnoringTypedArrays(ArrayWithDouble)
+                            | Int8ArrayMode
+                            | Int16ArrayMode
+                            | Int32ArrayMode
+                            | Uint8ArrayMode
+                            | Uint8ClampedArrayMode
+                            | Uint16ArrayMode
+                            | Uint32ArrayMode
+                            | 0;
+
+                        if (!(child1->arrayModes() & supportedArrays))
+                            break;
+
+                        if (child1.useKind() == AnyIntUse) {
+                            if (child1->origin.exitOK)
+                                candidates.add(child1.node());
+                            break;
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                    break;
+                }
+
                 default:
                     break;
                 }
@@ -119,6 +157,12 @@ private:
                 case GetByOffset: {
                     if (!isARM64() && !isX86_64_AVX())
                         break;
+                    if (candidates.contains(node))
+                        usersOf.add(node, Vector<Node*>());
+                    break;
+                }
+
+                case MultiGetByVal: {
                     if (candidates.contains(node))
                         usersOf.add(node, Vector<Node*>());
                     break;
@@ -238,6 +282,14 @@ private:
                             break;
                         }
 
+                        case MultiGetByVal: {
+                            if (isEscaped(node)) {
+                                ok = false;
+                                dumpEscape("Phi Incoming Get is escaped: ", node);
+                            }
+                            break;
+                        }
+
                         case ValueRep: {
                             if (node->child1().useKind() != DoubleRepUse) {
                                 ok = false;
@@ -278,6 +330,19 @@ private:
                         default: {
                             ok = false;
                             dumpEscape("DoubleRep escape: ", user);
+                            break;
+                        }
+                        }
+                        break;
+                    }
+
+                    case Int52Rep: {
+                        switch (user->child1().useKind()) {
+                        case AnyIntUse:
+                            break;
+                        default: {
+                            ok = false;
+                            dumpEscape("Int52Rep escape: ", user);
                             break;
                         }
                         }
@@ -376,6 +441,11 @@ private:
                         break;
                     }
 
+                    case MultiGetByVal: {
+                        newChild = incomingValue;
+                        break;
+                    }
+
                     default:
                         RELEASE_ASSERT_NOT_REACHED();
                         break;
@@ -405,6 +475,12 @@ private:
                 break;
             }
 
+            case MultiGetByVal: {
+                candidate->setResult(NodeResultInt52);
+                resultNode = candidate;
+                break;
+            }
+
             default:
                 RELEASE_ASSERT_NOT_REACHED();
                 break;
@@ -420,7 +496,12 @@ private:
                         user->convertToPurifyNaN(resultNode);
                     break;
                 }
-                    
+
+                case Int52Rep: {
+                    user->convertToIdentityOn(resultNode);
+                    break;
+                }
+
                 case PutHint:
                     user->child2() = Edge(resultNode, DoubleRepUse);
                     break;
