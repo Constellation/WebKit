@@ -1984,6 +1984,8 @@ public:
     void checkArray(Node*);
     void arrayify(Node*, GPRReg baseReg, GPRReg propertyReg);
     void arrayify(Node*);
+
+    unsigned appendOSRExit(OSRExit&&);
     
     template<bool strict>
     GPRReg fillSpeculateInt32Internal(Edge, DataFormat& returnFormat);

@@ -16906,6 +16906,16 @@ void SpeculativeJIT::compileToLength(Node* node)
     }
 }
 
+unsigned SpeculativeJIT::appendOSRExit(OSRExit&& exit)
+{
+    if (UNLIKELY(Options::validateDFGMayExit()))
+        DFG_ASSERT(m_graph, m_currentNode, mayExit(m_graph, m_currentNode) != DoesNotExit);
+    unsigned result = m_osrExit.size();
+    m_osrExit.append(WTFMove(exit));
+    return result;
+}
+
+
 } } // namespace JSC::DFG
 
 #endif

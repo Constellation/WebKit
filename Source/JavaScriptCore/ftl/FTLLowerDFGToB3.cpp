@@ -23807,6 +23807,9 @@ IGNORE_CLANG_WARNINGS_END
 
     OSRExitDescriptor* appendOSRExitDescriptor(FormattedValue lowValue, const MethodOfGettingAValueProfile& profile)
     {
+        if (UNLIKELY(Options::validateDFGMayExit()))
+            DFG_ASSERT(m_graph, m_node, mayExit(m_graph, m_node) != DoesNotExit);
+
         return &m_ftlState.jitCode->osrExitDescriptors.alloc(
             lowValue.format(), profile,
             availabilityMap().m_locals.numberOfArguments(),
