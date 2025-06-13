@@ -49,6 +49,7 @@ extern Seconds totalFTLB3CompileTime;
 
 JITPlan::JITPlan(JITCompilationMode mode, CodeBlock* codeBlock)
     : m_mode(mode)
+    , m_isHighCost(codeBlock->isHighCostForCompilation())
     , m_vm(&codeBlock->vm())
     , m_codeBlock(codeBlock)
     , m_signpostMessage(signpostMessage())

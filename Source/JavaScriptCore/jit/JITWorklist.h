@@ -102,14 +102,66 @@ private:
     void dump(const AbstractLocker&, PrintStream&) const;
 
     unsigned m_numberOfActiveThreads { 0 };
-    std::array<unsigned, static_cast<size_t>(JITPlan::Tier::Count)> m_ongoingCompilationsPerTier { 0, 0, 0 };
+
+    struct NormalAndHighCost {
+        unsigned m_normalCost { 0 };
+        unsigned m_highCost { 0 };
+
+        unsigned total() const { return m_normalCost + m_highCost; }
+    };
+
+    class PlanQueue {
+    public:
+        PlanQueue() = default;
+
+        void append(RefPtr<JITPlan>&& plan)
+        {
+            if (plan) {
+                if (plan->isHighCost())
+                    ++m_counts.m_highCost;
+                else
+                    ++m_counts.m_normalCost;
+            }
+            m_queue.append(WTFMove(plan));
+        }
+
+        RefPtr<JITPlan> takeFirst()
+        {
+            auto plan = m_queue.takeFirst();
+            if (plan) {
+                if (plan->isHighCost())
+                    --m_counts.m_highCost;
+                else
+                    --m_counts.m_normalCost;
+            }
+            return plan;
+        }
+
+        void swap(PlanQueue& queue)
+        {
+            m_queue.swap(queue.m_queue);
+            std::swap(m_counts, queue.m_counts);
+        }
+
+        bool isEmpty() const { return m_queue.isEmpty(); }
+        size_t size() const { return m_queue.size(); }
+
+        unsigned normalCostSize() const { return m_counts.m_normalCost; }
+        unsigned highCostSize() const { return m_counts.m_highCost; }
+
+    private:
+        Deque<RefPtr<JITPlan>> m_queue;
+        NormalAndHighCost m_counts { };
+    };
+
+    std::array<NormalAndHighCost, static_cast<size_t>(JITPlan::Tier::Count)> m_ongoingCompilationsPerTier { };
+    std::array<NormalAndHighCost, static_cast<size_t>(JITPlan::Tier::Count)> m_loadWeightsPerTier;
     std::array<unsigned, static_cast<size_t>(JITPlan::Tier::Count)> m_maximumNumberOfConcurrentCompilationsPerTier;
-    std::array<unsigned, static_cast<size_t>(JITPlan::Tier::Count)> m_loadWeightsPerTier;
 
     Vector<Ref<JITWorklistThread>> m_threads;
 
     // Used to inform the thread about what work there is left to do.
-    std::array<Deque<RefPtr<JITPlan>>, static_cast<size_t>(JITPlan::Tier::Count)> m_queues;
+    std::array<PlanQueue, static_cast<size_t>(JITPlan::Tier::Count)> m_queues;
 
     // Used to answer questions about the current state of a code block. This
     // is particularly great for the cti_optimize OSR slow path, which wants

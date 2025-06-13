@@ -39,6 +39,7 @@ public:
     WorkScope(JITWorklistThread& thread)
         : m_thread(thread)
         , m_tier(thread.m_plan->tier())
+        , m_isHighCost(thread.m_plan->isHighCost())
     {
         RELEASE_ASSERT(m_thread.m_plan);
     }
@@ -47,7 +48,11 @@ public:
     {
         Locker locker { *m_thread.m_worklist.m_lock };
         m_thread.m_plan = nullptr;
-        m_thread.m_worklist.m_ongoingCompilationsPerTier[static_cast<unsigned>(m_tier)]--;
+        auto& record = m_thread.m_worklist.m_ongoingCompilationsPerTier[static_cast<unsigned>(m_tier)];
+        if (m_isHighCost)
+            --record.m_highCost;
+        else
+            --record.m_normalCost;
     }
 
 private:
@@ -57,6 +62,7 @@ private:
 #endif
     JITWorklistThread& m_thread;
     JITPlan::Tier m_tier;
+    bool m_isHighCost;
 };
 
 JITWorklistThread::JITWorklistThread(const AbstractLocker& locker, JITWorklist& worklist)
@@ -76,12 +82,13 @@ ASCIILiteral JITWorklistThread::name() const
 
 auto JITWorklistThread::poll(const AbstractLocker& locker) -> PollResult
 {
-    for (unsigned i = 0; i < static_cast<unsigned>(JITPlan::Tier::Count); ++i) {
-        auto& queue = m_worklist.m_queues[i];
+    for (unsigned tier = 0; tier < static_cast<unsigned>(JITPlan::Tier::Count); ++tier) {
+        auto& queue = m_worklist.m_queues[tier];
         if (queue.isEmpty())
             continue;
 
-        if (m_worklist.m_ongoingCompilationsPerTier[i] >= m_worklist.m_maximumNumberOfConcurrentCompilationsPerTier[i])
+        auto& ongoing = m_worklist.m_ongoingCompilationsPerTier[tier];
+        if (ongoing.total() >= m_worklist.m_maximumNumberOfConcurrentCompilationsPerTier[tier])
             continue;
 
         m_plan = queue.takeFirst();
@@ -94,7 +101,10 @@ auto JITWorklistThread::poll(const AbstractLocker& locker) -> PollResult
         }
 
         RELEASE_ASSERT(m_plan->stage() == JITPlanStage::Preparing);
-        m_worklist.m_ongoingCompilationsPerTier[i]++;
+        if (m_plan->isHighCost())
+            ++ongoing.m_highCost;
+        else
+            ++ongoing.m_normalCost;
         return PollResult::Work;
     }
     RELEASE_ASSERT(m_worklist.m_numberOfActiveThreads);

@@ -361,6 +361,8 @@ public:
 
     unsigned instructionsSize() const { return instructions().size(); }
     unsigned bytecodeCost() const;
+    unsigned unadjustedBytecodeCost() const { return m_bytecodeCost; }
+    bool isHighCostForCompilation() const;
 
     // Exactly equivalent to codeBlock->ownerExecutable()->newReplacementCodeBlockFor(codeBlock->specializationKind())
     CodeBlock* newReplacement();

@@ -3606,6 +3606,11 @@ unsigned CodeBlock::bytecodeCost() const
     return m_bytecodeCost;
 }
 
+bool CodeBlock::isHighCostForCompilation() const
+{
+    return unadjustedBytecodeCost() >= Options::highCostBaselineProfilingFunctionBytecodeCost();
+}
+
 bool CodeBlock::hasInstalledVMTrapsBreakpoints() const
 {
 #if ENABLE(SIGNAL_BASED_VM_TRAPS)

@@ -51,9 +51,9 @@ JITWorklist::JITWorklist()
         Options::numberOfFTLCompilerThreads(),
     };
     m_loadWeightsPerTier = {
-        Options::worklistBaselineLoadWeight(),
-        Options::worklistDFGLoadWeight(),
-        Options::worklistFTLLoadWeight(),
+        NormalAndHighCost { Options::worklistBaselineLoadWeight(), Options::worklistHighCostBaselineLoadWeight() },
+        NormalAndHighCost { Options::worklistDFGLoadWeight(), Options::worklistHighCostDFGLoadWeight() },
+        NormalAndHighCost { Options::worklistFTLLoadWeight(), Options::worklistHighCostFTLLoadWeight() },
     };
 
     Locker locker { *m_lock };
@@ -108,18 +108,19 @@ void JITWorklist::wakeThreads(const AbstractLocker& locker, unsigned enqueuedTie
     unsigned targetNumThreads;
 
     if (m_numberOfActiveThreads < Options::minNumberOfWorklistThreads()
-        && m_ongoingCompilationsPerTier[enqueuedTier] < m_maximumNumberOfConcurrentCompilationsPerTier[enqueuedTier]) {
+        && m_ongoingCompilationsPerTier[enqueuedTier].total() < m_maximumNumberOfConcurrentCompilationsPerTier[enqueuedTier]) {
         targetNumThreads = m_numberOfActiveThreads + 1;
     } else {
         unsigned load = 0;
         unsigned maxThreads = 0;
         for (unsigned tier = 0; tier < static_cast<unsigned>(JITPlan::Tier::Count); tier++) {
-            unsigned plansForTier = m_ongoingCompilationsPerTier[tier] + m_queues[tier].size();
+            unsigned normalPlans = m_ongoingCompilationsPerTier[tier].m_normalCost + m_queues[tier].normalCostSize();
+            unsigned highCostPlans = m_ongoingCompilationsPerTier[tier].m_highCost + m_queues[tier].highCostSize();
 
-            unsigned maxThreadsUsedForTier = std::min(plansForTier, m_maximumNumberOfConcurrentCompilationsPerTier[tier]);
+            unsigned maxThreadsUsedForTier = std::min(normalPlans + highCostPlans, m_maximumNumberOfConcurrentCompilationsPerTier[tier]);
             maxThreads += maxThreadsUsedForTier;
 
-            unsigned loadForTier = plansForTier * m_loadWeightsPerTier[tier];
+            unsigned loadForTier = normalPlans * m_loadWeightsPerTier[tier].m_normalCost + highCostPlans * m_loadWeightsPerTier[tier].m_highCost;
             load += loadForTier;
         }
         maxThreads = std::min(maxThreads, Options::maxNumberOfWorklistThreads());
@@ -174,8 +175,8 @@ size_t JITWorklist::queueLength() const
 size_t JITWorklist::queueLength(const AbstractLocker&) const
 {
     size_t queueLength = 0;
-    for (unsigned i = 0; i < static_cast<unsigned>(JITPlan::Tier::Count); ++i)
-        queueLength += m_queues[i].size();
+    for (unsigned tier = 0; tier < static_cast<unsigned>(JITPlan::Tier::Count); ++tier)
+        queueLength += m_queues[tier].size();
     return queueLength;
 }
 
@@ -428,15 +429,18 @@ void JITWorklist::removeMatchingPlansForVM(VM& vm, const MatchFunction& matches)
     bool didCancelPlans = !deadPlanKeys.isEmpty();
     for (JITCompilationKey key : deadPlanKeys)
         m_plans.take(key)->cancel();
-    for (auto& queue : m_queues) {
-        Deque<RefPtr<JITPlan>> newQueue;
+
+    for (unsigned tier = 0; tier < static_cast<unsigned>(JITPlan::Tier::Count); ++tier) {
+        auto& queue = m_queues[tier];
+        PlanQueue newQueue;
         while (!queue.isEmpty()) {
             RefPtr<JITPlan> plan = queue.takeFirst();
             if (plan->stage() != JITPlanStage::Canceled)
-                newQueue.append(plan);
+                newQueue.append(WTFMove(plan));
         }
         queue.swap(newQueue);
     }
+
     for (unsigned i = 0; i < m_readyPlans.size(); ++i) {
         if (m_readyPlans[i]->stage() != JITPlanStage::Canceled)
             continue;

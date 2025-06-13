@@ -55,6 +55,7 @@ public:
     JITWorklistThread* thread() const { return m_thread; }
 
     JITCompilationMode mode() const { return m_mode; }
+    bool isHighCost() const { return m_isHighCost; }
 
     JITPlanStage stage() const { return m_stage; }
     bool isDFG() const { return ::JSC::isDFG(m_mode); }
@@ -135,6 +136,7 @@ protected:
 
     JITPlanStage m_stage { JITPlanStage::Preparing };
     JITCompilationMode m_mode;
+    bool m_isHighCost { false };
     MonotonicTime m_timeBeforeFTL;
     VM* m_vm;
     CodeBlock* m_codeBlock;

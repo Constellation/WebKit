@@ -110,7 +110,7 @@ int32_t maximumExecutionCountsBetweenCheckpoints(CountingVariant countingVariant
             // If the CodeBlock becomes particularly mega sized, then updating profiles become huge cost.
             // We would like to avoid updating profiles repeatedly for that function, so we relax checkpoint period longer.
             // We do not need to make checkpoint period longer for CountingForUpperTiers since they do not update profiles.
-            if (static_cast<int32_t>(codeBlock->bytecodeCost()) >= Options::highCostBaselineProfilingFunctionBytecodeCost()) {
+            if (codeBlock->isHighCostForCompilation()) {
                 double factor = std::max(std::sqrt(codeBlock->optimizationThresholdScalingFactor()), 1.0);
                 return toInt32(threshold * factor);
             }
