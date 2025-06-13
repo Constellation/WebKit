@@ -286,6 +286,9 @@ bool hasCapacityToUseLargeGigacage();
     v(Unsigned, worklistBaselineLoadWeight, 1, Normal, nullptr) \
     v(Unsigned, worklistDFGLoadWeight, 1, Normal, nullptr) \
     v(Unsigned, worklistFTLLoadWeight, 1, Normal, nullptr) \
+    v(Unsigned, worklistHighCostBaselineLoadWeight, 1, Normal, nullptr) \
+    v(Unsigned, worklistHighCostDFGLoadWeight, 1, Normal, nullptr) \
+    v(Unsigned, worklistHighCostFTLLoadWeight, 1, Normal, nullptr) \
     v(Int32, priorityDeltaOfDFGCompilerThreads, computePriorityDeltaOfWorkerThreads(-1, 0), Normal, nullptr) \
     v(Int32, priorityDeltaOfFTLCompilerThreads, computePriorityDeltaOfWorkerThreads(-2, 0), Normal, nullptr) \
     v(Int32, priorityDeltaOfWasmCompilerThreads, computePriorityDeltaOfWorkerThreads(-1, 0), Normal, nullptr) \
