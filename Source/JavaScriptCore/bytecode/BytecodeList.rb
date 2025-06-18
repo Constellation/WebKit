@@ -33,7 +33,6 @@ types [
     :EnumeratorMetadata,
     :GetByIdMode,
     :GetByIdModeMetadata,
-    :GetByValHistory,
     :GetPutInfo,
     :IndexingType,
     :IterationModeMetadata,
@@ -590,7 +589,6 @@ op :get_by_val_with_this,
     },
     metadata: {
         arrayProfile: ArrayProfile,
-        seenIdentifiers: GetByValHistory,
     }
 
 op :get_by_val,
@@ -602,7 +600,6 @@ op :get_by_val,
     },
     metadata: {
         arrayProfile: ArrayProfile,
-        seenIdentifiers: GetByValHistory,
     }
 
 op :put_private_name,

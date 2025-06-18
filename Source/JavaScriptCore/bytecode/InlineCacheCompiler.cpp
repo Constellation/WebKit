@@ -5113,7 +5113,7 @@ AccessGenerationResult InlineCacheCompiler::compile(const GCSafeConcurrentJSLock
 
     dataLogLnIf(InlineCacheCompilerInternal::verbose, FullCodeOrigin(codeBlock, m_stubInfo.codeOrigin), ": Generating polymorphic access stub for ", listDump(keys));
 
-    MacroAssemblerCodeRef<JITStubRoutinePtrTag> code = FINALIZE_CODE_FOR(codeBlock, linkBuffer, JITStubRoutinePtrTag, categoryName(m_stubInfo.accessType), "%s", toCString("Access stub for ", *codeBlock, " ", m_stubInfo.codeOrigin, "with start: ", m_stubInfo.startLocation, " with return point ", successLabel, ": ", listDump(keys)).data());
+    MacroAssemblerCodeRef<JITStubRoutinePtrTag> code = FINALIZE_CODE_FOR(codeBlock, linkBuffer, JITStubRoutinePtrTag, categoryName(m_stubInfo.accessType), "%s", toCString("Access stub for ", *codeBlock, " ", m_stubInfo.codeOrigin, " with start: ", m_stubInfo.startLocation, " with return point ", successLabel, ": ", listDump(keys)).data());
 
     CodeBlock* owner = codeBlock;
     FixedVector<StructureID> weakStructures(WTFMove(m_weakStructures));
@@ -7578,7 +7578,7 @@ AccessGenerationResult InlineCacheCompiler::compileOneAccessCaseHandler(const Ve
     auto keys = FixedVector<Ref<AccessCase>> { Ref { accessCase } };
     dataLogLnIf(InlineCacheCompilerInternal::verbose, FullCodeOrigin(codeBlock, m_stubInfo.codeOrigin), ": Generating polymorphic access stub for ", listDump(keys));
 
-    MacroAssemblerCodeRef<JITStubRoutinePtrTag> code = FINALIZE_CODE_FOR(codeBlock, linkBuffer, JITStubRoutinePtrTag, categoryName(m_stubInfo.accessType), "%s", toCString("Access stub for ", *codeBlock, " ", m_stubInfo.codeOrigin, "with start: ", m_stubInfo.startLocation, ": ", listDump(keys)).data());
+    MacroAssemblerCodeRef<JITStubRoutinePtrTag> code = FINALIZE_CODE_FOR(codeBlock, linkBuffer, JITStubRoutinePtrTag, categoryName(m_stubInfo.accessType), "%s", toCString("Access stub for ", *codeBlock, " ", m_stubInfo.codeOrigin, " with start: ", m_stubInfo.startLocation, ": ", listDump(keys)).data());
 
     if (statelessType) {
         auto stub = createPreCompiledICJITStubRoutine(WTFMove(code), vm, codeBlock);

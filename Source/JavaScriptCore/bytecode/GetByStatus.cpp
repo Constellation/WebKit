@@ -675,6 +675,28 @@ CacheableIdentifier GetByStatus::singleIdentifier() const
     return singleIdentifierForICStatus(m_variants);
 }
 
+bool GetByStatus::filterById(UniquedStringImpl* uid)
+{
+    if (isModuleNamespace())
+        return m_moduleNamespaceData->m_identifier == uid;
+
+    if (m_state != Simple)
+        return false;
+
+    if (m_variants.isEmpty())
+        return false;
+
+    auto filtered = m_variants;
+    filtered.removeAllMatching(
+        [&] (auto& variant) -> bool {
+            return variant.identifier() != uid;
+        });
+    if (filtered.isEmpty())
+        return false;
+    m_variants = WTFMove(filtered);
+    return true;
+}
+
 #if ENABLE(JIT)
 
 CacheType GetByStatus::preferredCacheType() const

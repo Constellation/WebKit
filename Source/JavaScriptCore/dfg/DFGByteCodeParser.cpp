@@ -7660,11 +7660,25 @@ void ByteCodeParser::parseBlock(unsigned limit)
 
             Node* base = get(bytecode.m_base);
             Node* property = get(bytecode.m_property);
-            bool shouldCompileAsGetById = false;
             GetByStatus getByStatus = GetByStatus::computeFor(m_inlineStackTop->m_profiledBlock, m_inlineStackTop->m_baselineMap, m_icContextStack, currentCodeOrigin());
             unsigned identifierNumber = 0;
-
             CacheableIdentifier identifier;
+
+            if (auto* string = property->dynamicCastConstant<JSString*>()) {
+                auto* impl = string->tryGetValueImpl();
+                if (impl && impl->isAtom() && !parseIndex(*const_cast<StringImpl*>(impl))) {
+                    auto* uid = static_cast<UniquedStringImpl*>(impl);
+                    identifierNumber = m_graph.identifiers().ensure(uid);
+                    m_graph.freezeStrong(string);
+                    identifier = CacheableIdentifier::createFromCell(string);
+                    auto cloned = getByStatus;
+                    if (cloned.filterById(uid)) {
+                        handleGetById(bytecode.m_dst, prediction, base, identifier, identifierNumber, cloned, AccessType::GetById, nextOpcodeIndex());
+                        NEXT_OPCODE(op_get_by_val);
+                    }
+                }
+            }
+
             if (!m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadIdent)
                 && !m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadType)
                 && !m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadConstantValue)) {
@@ -7684,31 +7698,28 @@ void ByteCodeParser::parseBlock(unsigned limit)
                             addToGraph(CheckIdent, OpInfo(uid), property);
                     } else
                         addToGraph(CheckIdent, OpInfo(uid), property);
-                    shouldCompileAsGetById = true;
+                    handleGetById(bytecode.m_dst, prediction, base, identifier, identifierNumber, getByStatus, AccessType::GetById, nextOpcodeIndex());
+                    NEXT_OPCODE(op_get_by_val);
                 }
             }
 
-            if (shouldCompileAsGetById)
-                handleGetById(bytecode.m_dst, prediction, base, identifier, identifierNumber, getByStatus, AccessType::GetById, nextOpcodeIndex());
-            else {
-                if (getByStatus.isProxyObject()) {
-                    if (handleIndexedProxyObjectLoad(bytecode.m_dst, prediction, base, property, getByStatus, nextOpcodeIndex())) {
-                        NEXT_OPCODE(op_get_by_val);
-                    }
+            if (getByStatus.isProxyObject()) {
+                if (handleIndexedProxyObjectLoad(bytecode.m_dst, prediction, base, property, getByStatus, nextOpcodeIndex())) {
+                    NEXT_OPCODE(op_get_by_val);
                 }
-                ArrayMode arrayMode = getArrayMode(bytecode.metadata(codeBlock).m_arrayProfile, Array::Read);
-                // FIXME: We could consider making this not vararg, since it only uses three child
-                // slots.
-                // https://bugs.webkit.org/show_bug.cgi?id=184192
-                addVarArgChild(base);
-                addVarArgChild(property);
-                addVarArgChild(nullptr); // Leave room for property storage.
-                Node* getByVal = addToGraph(Node::VarArg, getByStatus.isMegamorphic() ? GetByValMegamorphic : GetByVal, OpInfo(arrayMode.asWord()), OpInfo(prediction));
-                m_exitOK = false; // GetByVal must be treated as if it clobbers exit state, since FixupPhase may make it generic.
-                set(bytecode.m_dst, getByVal);
-                if (!getByStatus.isMegamorphic() && getByStatus.observedStructureStubInfoSlowPath())
-                    m_graph.m_slowGetByVal.add(getByVal);
             }
+            ArrayMode arrayMode = getArrayMode(bytecode.metadata(codeBlock).m_arrayProfile, Array::Read);
+            // FIXME: We could consider making this not vararg, since it only uses three child
+            // slots.
+            // https://bugs.webkit.org/show_bug.cgi?id=184192
+            addVarArgChild(base);
+            addVarArgChild(property);
+            addVarArgChild(nullptr); // Leave room for property storage.
+            Node* getByVal = addToGraph(Node::VarArg, getByStatus.isMegamorphic() ? GetByValMegamorphic : GetByVal, OpInfo(arrayMode.asWord()), OpInfo(prediction));
+            m_exitOK = false; // GetByVal must be treated as if it clobbers exit state, since FixupPhase may make it generic.
+            set(bytecode.m_dst, getByVal);
+            if (!getByStatus.isMegamorphic() && getByStatus.observedStructureStubInfoSlowPath())
+                m_graph.m_slowGetByVal.add(getByVal);
 
             NEXT_OPCODE(op_get_by_val);
         }
