@@ -300,12 +300,9 @@ void MarkedBlock::Handle::specializedSweep(FreeList* freeList, MarkedBlock::Hand
     };
     UNUSED_PARAM(setBits);
 
-    if (Options::useBumpAllocator()
-        && emptyMode == IsEmpty
-        && newlyAllocatedMode == DoesNotHaveNewlyAllocated) {
-
+    auto handleEmptyBlock = [&]() ALWAYS_INLINE_LAMBDA {
         // This is an incredibly powerful assertion that checks the sanity of our block bits.
-        if (marksMode == MarksNotStale && !header.m_marks.isEmpty()) {
+        if (marksMode == MarksNotStale && !header.m_marks.isEmpty()) [[unlikely]] {
             WTF::dataFile().atomically(
                 [&] (PrintStream& out) {
                     out.print("Block ", RawPointer(&block), ": marks not empty!\n");
@@ -336,6 +333,10 @@ void MarkedBlock::Handle::specializedSweep(FreeList* freeList, MarkedBlock::Hand
         }
         if (false)
             dataLog("Quickly swept block ", RawPointer(this), " with cell size ", cellSize, " and attributes ", m_attributes, ": ", pointerDump(freeList), "\n");
+    };
+
+    if (Options::useBumpAllocator() && emptyMode == IsEmpty && newlyAllocatedMode == DoesNotHaveNewlyAllocated) {
+        handleEmptyBlock();
         return;
     }
 
@@ -399,6 +400,87 @@ void MarkedBlock::Handle::specializedSweep(FreeList* freeList, MarkedBlock::Hand
             head = cell;
         }
     };
+
+    if (emptyMode == NotEmpty && destructionMode != BlockHasDestructorsAndCollectorIsRunning) {
+        if (marksMode == MarksNotStale || newlyAllocatedMode == HasNewlyAllocated) {
+            if (sweepMode == SweepToFreeList) {
+                std::optional<WTF::BitSet<atomsPerBlock>> merged;
+                WTF::BitSet<atomsPerBlock>* bitSet;
+                if (marksMode == MarksNotStale && newlyAllocatedMode == HasNewlyAllocated) {
+                    merged.emplace(header.m_marks);
+                    merged.value().merge(header.m_newlyAllocated);
+                    bitSet = &merged.value();
+                } else if (marksMode == MarksNotStale)
+                    bitSet = &header.m_marks;
+                else
+                    bitSet = &header.m_newlyAllocated;
+
+                if (bitSet->isEmpty()) {
+                    handleEmptyBlock();
+                    return;
+                }
+
+                auto sweepBlock = [&]<MarkedBlock::Handle::SweepDestructionMode destructionMode>() ALWAYS_INLINE_LAMBDA {
+                    FreeCell* head = nullptr;
+                    FreeCell* cursor = nullptr;
+                    size_t cursorInterval = 0;
+                    auto pushInterval = [&](FreeCell* cell, size_t interval) {
+                        if (!head)
+                            head = cell;
+
+                        if (cursor) {
+                            freedBytes += cursorInterval * atomSize;
+                            cursor->setNext(cell, cursorInterval * atomSize, secret);
+                        }
+
+                        if constexpr (destructionMode == BlockHasDestructors) {
+                            for (size_t index = 0; index < interval; index += m_atomsPerCell)
+                                destroy(std::bit_cast<HeapCell*>(std::bit_cast<uintptr_t>(cell) + index * atomSize));
+                        }
+
+                        cursor = cell;
+                        cursorInterval = interval;
+                    };
+
+                    unsigned potentiallyFreeCell = m_startAtom;
+                    auto handleLiveCell = [&](unsigned index) {
+                        ASSERT(((index - m_startAtom) % m_atomsPerCell) == 0);
+                        if (potentiallyFreeCell == index) {
+                            // Not free cell, continue finding next.
+                        } else {
+                            FreeCell* cell = reinterpret_cast_ptr<FreeCell*>(&block.atoms()[potentiallyFreeCell]);
+                            pushInterval(cell, index - potentiallyFreeCell);
+                        }
+                        potentiallyFreeCell = index + m_atomsPerCell;
+                    };
+                    bitSet->forEachSetBit([&](unsigned index) {
+                        handleLiveCell(index);
+                    });
+                    handleLiveCell(endAtom);
+
+                    if (cursor) {
+                        freedBytes += cursorInterval * atomSize;
+                        cursor->makeLast(cursorInterval * atomSize, secret);
+                    }
+
+                    if (newlyAllocatedMode == HasNewlyAllocated)
+                        header.m_newlyAllocatedVersion = MarkedSpace::nullVersion;
+
+                    if (space()->isMarking())
+                        header.m_lock.unlock();
+
+                    freeList->initialize(head, secret, freedBytes);
+                    setBits(false);
+                };
+
+                if (destructionMode == BlockHasDestructors)
+                    sweepBlock.template operator()<BlockHasDestructors>();
+                else
+                    sweepBlock.template operator()<BlockHasNoDestructors>();
+                return;
+            }
+        }
+    }
 
     for (int i = endAtom - m_atomsPerCell; i >= static_cast<int>(m_startAtom); i -= m_atomsPerCell) {
         if (emptyMode == NotEmpty
