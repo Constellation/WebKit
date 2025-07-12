@@ -817,7 +817,7 @@ AssemblyHelpers::JumpList AssemblyHelpers::instanceOfMegamorphicProperty(VM& vm,
         lshift32(TrustedImm32(getLSBSet(sizeof(MegamorphicCache::InstanceOfEntry))), scratch3GPR);
     else
         mul32(TrustedImm32(sizeof(MegamorphicCache::InstanceOfEntry)), scratch3GPR, scratch3GPR);
-    addPtr(TrustedImmPtr(bitwise_cast<uint8_t*>(&cache) + MegamorphicCache::offsetOfInstanceOfCacheSecondaryEntries()), scratch3GPR);
+    addPtr(TrustedImmPtr(std::bit_cast<uint8_t*>(&cache) + MegamorphicCache::offsetOfInstanceOfCacheSecondaryEntries()), scratch3GPR);
 
     slowCases.append(branch32(NotEqual, scratch1GPR, Address(scratch3GPR, MegamorphicCache::InstanceOfEntry::offsetOfStructureID())));
     slowCases.append(branch64(NotEqual, prototypeGPR, Address(scratch3GPR, MegamorphicCache::InstanceOfEntry::offsetOfPrototype())));

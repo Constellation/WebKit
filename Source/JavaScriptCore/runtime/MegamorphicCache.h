@@ -238,14 +238,14 @@ public:
 
     ALWAYS_INLINE static uint32_t instanceOfCachePrimaryHash(StructureID structureID, EncodedJSValue prototype)
     {
-        uint32_t sid = bitwise_cast<uint32_t>(structureID);
-        uint32_t pid = static_cast<uint32_t>(bitwise_cast<uint64_t>(prototype) >> 4);
+        uint32_t sid = std::bit_cast<uint32_t>(structureID);
+        uint32_t pid = static_cast<uint32_t>(std::bit_cast<uint64_t>(prototype) >> 4);
         return ((sid >> structureIDHashShift1) ^ (sid >> structureIDHashShift8)) + pid;
     }
 
     ALWAYS_INLINE static uint32_t instanceOfCacheSecondaryHash(StructureID structureID, EncodedJSValue prototype)
     {
-        uint32_t key = bitwise_cast<uint32_t>(structureID) + static_cast<uint32_t>(bitwise_cast<uint64_t>(prototype));
+        uint32_t key = std::bit_cast<uint32_t>(structureID) + static_cast<uint32_t>(std::bit_cast<uint64_t>(prototype));
         return key + (key >> structureIDHashShift9);
     }
 

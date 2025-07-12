@@ -4370,7 +4370,7 @@ static ALWAYS_INLINE JSValue instanceOfMegamprhic(JSGlobalObject* globalObject, 
     JSObject* object = baseObject;
     while (true) {
         Structure* structure = object->structure();
-        if (UNLIKELY(structure->typeInfo().overridesGetPrototype() || structure->hasPolyProto())) {
+        if (structure->typeInfo().overridesGetPrototype() || structure->hasPolyProto()) [[unlikely]] {
             if (stubInfo && stubInfo->considerRepatchingCacheMegamorphic(vm))
                 repatchInstanceOfSlowPathCall(callFrame->codeBlock(), *stubInfo);
             scope.release();
