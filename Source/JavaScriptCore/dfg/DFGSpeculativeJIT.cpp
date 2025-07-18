@@ -7835,19 +7835,6 @@ void SpeculativeJIT::cageTypedArrayStorage(GPRReg baseReg, GPRReg storageReg)
 {
     UNUSED_PARAM(baseReg);
     UNUSED_PARAM(storageReg);
-#if GIGACAGE_ENABLED
-    if (!Gigacage::shouldBeEnabled())
-        return;
-    
-    if (!Gigacage::disablingPrimitiveGigacageIsForbidden()) {
-        VM& vm = this->vm();
-        if (!vm.primitiveGigacageEnabled().isStillValid())
-            return;
-        m_graph.watchpoints().addLazily(vm.primitiveGigacageEnabled());
-    }
-    
-    cage(Gigacage::Primitive, storageReg);
-#endif
 }
 
 void SpeculativeJIT::compileGetIndexedPropertyStorage(Node* node)

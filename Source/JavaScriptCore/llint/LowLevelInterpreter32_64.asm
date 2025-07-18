@@ -198,9 +198,6 @@ macro callSlowPath(slowPath)
     restoreStateAfterCCall()
 end
 
-macro cagedPrimitive(ptr, length, scratch, scratch2)
-end
-
 macro doVMEntry(makeCall)
     functionPrologue()
     pushCalleeSaves()

@@ -5554,7 +5554,7 @@ private:
         ASSERT(m_node->arrayMode().type() != Array::String);
         DFG_ASSERT(m_graph, m_node, isTypedView(m_node->arrayMode().typedArrayType()), m_node->arrayMode().typedArrayType());
         LValue vector = m_out.loadPtr(cell, m_heaps.JSArrayBufferView_vector);
-        setStorage(caged(Gigacage::Primitive, vector, cell));
+        setStorage(vector);
     }
 
     void compileResolveRope()
@@ -6845,8 +6845,7 @@ IGNORE_CLANG_WARNINGS_END
                     speculate(OutOfBounds, noValue(), nullptr, isOutOfBounds);
 
                 LValue vector = m_out.loadPtr(base, m_heaps.JSArrayBufferView_vector);
-                LValue storage = caged(Gigacage::Primitive, vector, base);
-                tryLoadTypedArray(typedArrayType, storage, continuation);
+                tryLoadTypedArray(typedArrayType, vector, continuation);
                 m_out.appendTo(next);
             } else {
                 LBasicBlock checkLength = m_out.newBlock();
@@ -6869,8 +6868,6 @@ IGNORE_CLANG_WARNINGS_END
                     speculate(OutOfBounds, noValue(), nullptr, isOutOfBounds);
 
                 LValue vector = m_out.loadPtr(base, m_heaps.JSArrayBufferView_vector);
-                LValue storage = caged(Gigacage::Primitive, vector, base);
-
                 for (unsigned i = 0; i < sizeof(ArrayModes) * CHAR_BIT; ++i) {
                     ArrayModes oneArrayMode = 1ULL << i;
                     if ((arrayModes & arrayModesForTypedArrays) & oneArrayMode) {
@@ -6881,7 +6878,7 @@ IGNORE_CLANG_WARNINGS_END
                         m_out.branch(m_out.equal(m_out.load8ZeroExt32(base, m_heaps.JSCell_typeInfoType), m_out.constInt32(typeForTypedArrayType(typedArrayType))), unsure(handled), unsure(next));
 
                         m_out.appendTo(handled);
-                        tryLoadTypedArray(typedArrayType, storage, continuation);
+                        tryLoadTypedArray(typedArrayType, vector, continuation);
                         m_out.appendTo(next);
                     }
                 }
@@ -7586,8 +7583,7 @@ IGNORE_CLANG_WARNINGS_END
                     speculate(OutOfBounds, noValue(), nullptr, isOutOfBounds);
 
                 LValue vector = m_out.loadPtr(base, m_heaps.JSArrayBufferView_vector);
-                LValue storage = caged(Gigacage::Primitive, vector, base);
-                tryStoreTypedArray(typedArrayType, storage, continuation);
+                tryStoreTypedArray(typedArrayType, vector, continuation);
                 m_out.appendTo(next);
             } else {
                 LBasicBlock checkLength = m_out.newBlock();
@@ -7609,7 +7605,6 @@ IGNORE_CLANG_WARNINGS_END
                     speculate(OutOfBounds, noValue(), nullptr, isOutOfBounds);
 
                 LValue vector = m_out.loadPtr(base, m_heaps.JSArrayBufferView_vector);
-                LValue storage = caged(Gigacage::Primitive, vector, base);
 
                 for (unsigned i = 0; i < sizeof(ArrayModes) * CHAR_BIT; ++i) {
                     ArrayModes oneArrayMode = 1ULL << i;
@@ -7621,7 +7616,7 @@ IGNORE_CLANG_WARNINGS_END
                         m_out.branch(m_out.equal(m_out.load8ZeroExt32(base, m_heaps.JSCell_typeInfoType), m_out.constInt32(typeForTypedArrayType(typedArrayType))), unsure(handled), unsure(next));
 
                         m_out.appendTo(handled);
-                        tryStoreTypedArray(typedArrayType, storage, continuation);
+                        tryStoreTypedArray(typedArrayType, vector, continuation);
                         m_out.appendTo(next);
                     }
                 }
@@ -13606,13 +13601,13 @@ IGNORE_CLANG_WARNINGS_END
                 // and we should attempt to perform constant-folding etc. And also, we can avoid usign this at all for DFG Int64 value.
                 LValue argument = lowCell(m_graph.varArgChild(node, 2 + i));
                 PatchpointValue* patchpoint = m_out.patchpoint(Int64);
-                patchpoint->numGPScratchRegisters = 2;
+                patchpoint->numGPScratchRegisters = 1;
                 patchpoint->append(ConstrainedValue(argument, ValueRep::SomeLateRegister));
                 patchpoint->clobber(RegisterSetBuilder::macroClobberedGPRs());
                 patchpoint->setGenerator(
                     [=](CCallHelpers& jit, const StackmapGenerationParams& params) {
                         AllowMacroScratchRegisterUsage allowScratch(jit);
-                        jit.toBigInt64(params[1].gpr(), params[0].gpr(), params.gpScratch(0), params.gpScratch(1));
+                        jit.toBigInt64(params[1].gpr(), params[0].gpr(), params.gpScratch(0));
                     });
                 if (isStack)
                     arguments.append(ConstrainedValue(patchpoint, ValueRep::stackArgument(wasmCallInfo.params[i].location.offsetFromSP())));
@@ -13749,7 +13744,6 @@ IGNORE_CLANG_WARNINGS_END
                             else
                                 jit.loadPtr(CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfCachedMemory()), GPRInfo::wasmBaseMemoryPointer);
                         }
-                        jit.cageConditionally(Gigacage::Primitive, GPRInfo::wasmBaseMemoryPointer, GPRInfo::wasmBoundsCheckingSizeRegister, scratchGPR);
                     }
                 }
 
@@ -19399,7 +19393,7 @@ IGNORE_CLANG_WARNINGS_END
             indexToCheck = m_out.add(indexToCheck, m_out.constInt64(data.byteSize - 1));
         speculate(OutOfBounds, noValue(), nullptr, m_out.aboveOrEqual(indexToCheck, length));
 
-        LValue vector = caged(Gigacage::Primitive, m_out.loadPtr(dataView, m_heaps.JSArrayBufferView_vector), dataView);
+        LValue vector = m_out.loadPtr(dataView, m_heaps.JSArrayBufferView_vector);
 
         TypedPointer pointer(m_heaps.typedArrayProperties, m_out.add(vector, m_out.zeroExtPtr(index)));
 
@@ -19591,7 +19585,7 @@ IGNORE_CLANG_WARNINGS_END
             RELEASE_ASSERT_NOT_REACHED();
         }
 
-        LValue vector = caged(Gigacage::Primitive, m_out.loadPtr(dataView, m_heaps.JSArrayBufferView_vector), dataView);
+        LValue vector = m_out.loadPtr(dataView, m_heaps.JSArrayBufferView_vector);
         TypedPointer pointer(m_heaps.typedArrayProperties, m_out.add(vector, m_out.zeroExtPtr(index)));
 
         if (data.isFloatingPoint) {
@@ -21088,44 +21082,6 @@ IGNORE_CLANG_WARNINGS_END
             m_out.jump(performStore);
             m_out.appendTo(performStore, lastNext);
         }
-    }
-
-    LValue caged(Gigacage::Kind kind, LValue ptr, LValue base)
-    {
-#if GIGACAGE_ENABLED
-        if (!Gigacage::isEnabled(kind))
-            return ptr;
-
-        if (kind == Gigacage::Primitive && !Gigacage::disablingPrimitiveGigacageIsForbidden()) {
-            if (vm().primitiveGigacageEnabled().isStillValid())
-                m_graph.watchpoints().addLazily(vm().primitiveGigacageEnabled());
-            else
-                return ptr;
-        }
-
-        LValue basePtr = m_out.constIntPtr(Gigacage::basePtr(kind));
-        LValue mask = m_out.constIntPtr(Gigacage::mask(kind));
-
-        LValue masked = m_out.bitAnd(ptr, mask);
-        LValue result = m_out.add(masked, basePtr);
-
-        // Make sure that B3 doesn't try to do smart reassociation of these pointer bits.
-        // FIXME: In an ideal world, B3 would not do harmful reassociations, and if it did, it would be able
-        // to undo them during constant hoisting and regalloc. As it stands, if you remove this then Octane
-        // gets 1.6% slower and Kraken gets 5% slower. It's all because the basePtr, which is a constant,
-        // gets reassociated out of the add above and into the address arithmetic. This disables hoisting of
-        // the basePtr constant. Hoisting that constant is worth a lot more perf than the reassociation. One
-        // way to make this all work happily is to combine offset legalization with constant hoisting, and
-        // then teach it reassociation. So, Add(Add(a, b), const) where a is loop-invariant while b isn't
-        // will turn into Add(Add(a, const), b) by the constant hoister. We would have to teach B3 to do this
-        // and possibly other smart things if we want to be able to remove this opaque.
-        // https://bugs.webkit.org/show_bug.cgi?id=175493
-        return m_out.opaque(result);
-#endif
-
-        UNUSED_PARAM(kind);
-        UNUSED_PARAM(base);
-        return ptr;
     }
 
     void buildSwitch(SwitchData* data, LType type, LValue switchValue)

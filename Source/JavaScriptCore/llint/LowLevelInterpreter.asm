@@ -310,10 +310,6 @@ else
     end
 end
 
-if GIGACAGE_ENABLED
-    const GigacagePrimitiveBasePtrOffset = constexpr Gigacage::offsetOfPrimitiveGigacageBasePtr
-end
-
 # Opcode offsets
 const OpcodeIDNarrowSize = 1 # OpcodeID
 const OpcodeIDWide16SizeJS = 2 # Wide16 Prefix + OpcodeID
@@ -1321,7 +1317,6 @@ macro getByValTypedArray(base, index, finishIntGetByVal, finishDoubleGetByVal, s
         const scratch = t7
         loadq JSArrayBufferView::m_length[base], length
     end
-    cagedPrimitive(t3, length, base, scratch)
 
     # Now bisect through the various types:
     #    Int8ArrayType,

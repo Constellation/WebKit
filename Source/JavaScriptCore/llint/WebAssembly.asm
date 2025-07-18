@@ -311,7 +311,6 @@ macro reloadMemoryRegistersFromInstance(instance, scratch1)
 if not ARMv7
     loadp JSWebAssemblyInstance::m_cachedMemory[instance], memoryBase
     loadp JSWebAssemblyInstance::m_cachedBoundsCheckingSize[instance], boundsCheckingSize
-    cagedPrimitiveMayBeNull(memoryBase, scratch1) # If boundsCheckingSize is 0, pointer can be a nullptr.
 end
 end
 
@@ -699,9 +698,6 @@ end
         loadp JSWebAssemblyInstance::m_cachedMemory[wasmInstance], memoryBase
         loadp JSWebAssemblyInstance::m_cachedBoundsCheckingSize[wasmInstance], boundsCheckingSize
     end
-    if not ARMv7
-        cagedPrimitiveMayBeNull(memoryBase, wa0)
-    end
 
     # Allocate stack space
     loadi WebAssemblyFunction::m_frameSize[ws0], wa0
@@ -940,10 +936,6 @@ end
         loadp JSWebAssemblyInstance::m_cachedMemory[wasmInstance], memoryBase
         loadp JSWebAssemblyInstance::m_cachedBoundsCheckingSize[wasmInstance], boundsCheckingSize
     end
-    if not ARMv7
-        cagedPrimitiveMayBeNull(memoryBase, ws1)
-    end
-
     jmp ws0, WasmEntryPtrTag
 end)
 
@@ -979,10 +971,6 @@ end
         loadp JSWebAssemblyInstance::m_cachedMemory[wasmInstance], memoryBase
         loadp JSWebAssemblyInstance::m_cachedBoundsCheckingSize[wasmInstance], boundsCheckingSize
     end
-    if not ARMv7
-        cagedPrimitiveMayBeNull(memoryBase, ws1)
-    end
-
     jmp ws0, WasmEntryPtrTag
 end)
 

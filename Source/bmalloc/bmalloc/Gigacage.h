@@ -165,28 +165,21 @@ void forEachKind(const Func& func)
 }
 
 template<typename T>
-BINLINE T* caged(Kind kind, T* ptr)
+BINLINE T* caged(Kind, T* ptr)
 {
     BASSERT(ptr);
-    if (!isEnabled(kind))
-        return ptr;
-    void* gigacageBasePtr = basePtr(kind);
-    return reinterpret_cast<T*>(
-        reinterpret_cast<uintptr_t>(gigacageBasePtr) + (
-            reinterpret_cast<uintptr_t>(ptr) & mask(kind)));
+    return ptr;
 }
 
 template<typename T>
-BINLINE T* cagedMayBeNull(Kind kind, T* ptr)
+BINLINE T* cagedMayBeNull(Kind, T* ptr)
 {
-    if (!ptr)
-        return ptr;
-    return caged(kind, ptr);
+    return ptr;
 }
 
-BINLINE bool isCaged(Kind kind, const void* ptr)
+BINLINE bool isCaged(Kind, const void*)
 {
-    return caged(kind, ptr) == ptr;
+    return true;
 }
 
 BINLINE bool contains(const void* ptr)

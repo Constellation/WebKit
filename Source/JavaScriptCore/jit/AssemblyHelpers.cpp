@@ -1537,45 +1537,6 @@ void AssemblyHelpers::copyCalleeSavesToEntryFrameCalleeSavesBufferImpl(GPRReg ca
 #endif
 }
 
-void AssemblyHelpers::cage(Gigacage::Kind kind, GPRReg storage)
-{
-#if GIGACAGE_ENABLED
-    if (!Gigacage::isEnabled(kind))
-        return;
-    andPtr(TrustedImmPtr(Gigacage::mask(kind)), storage);
-    addPtr(TrustedImmPtr(Gigacage::basePtr(kind)), storage);
-#else
-    UNUSED_PARAM(kind);
-    UNUSED_PARAM(storage);
-#endif
-}
-
-// length may be the same register as scratch.
-void AssemblyHelpers::cageConditionally(Gigacage::Kind kind, GPRReg storage, GPRReg length, GPRReg scratch)
-{
-#if GIGACAGE_ENABLED
-    if (Gigacage::isEnabled(kind)) {
-        if (kind != Gigacage::Primitive || Gigacage::disablingPrimitiveGigacageIsForbidden())
-            cage(kind, storage);
-        else {
-            JumpList done;
-            done.append(branchTest8(NonZero, AbsoluteAddress(&Gigacage::disablePrimitiveGigacageRequested)));
-
-            loadPtr(Gigacage::addressOfBasePtr(kind), scratch);
-            done.append(branchTest64(Zero, scratch));
-            andPtr(TrustedImmPtr(Gigacage::mask(kind)), storage);
-            addPtr(scratch, storage);
-            done.link(this);
-        }
-    }
-#endif
-
-    UNUSED_PARAM(kind);
-    UNUSED_PARAM(storage);
-    UNUSED_PARAM(length);
-    UNUSED_PARAM(scratch);
-}
-
 void AssemblyHelpers::emitSave(const RegisterAtOffsetList& list)
 {
     if constexpr (AssemblyHelpersInternal::dumpVerbose)

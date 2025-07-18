@@ -2174,13 +2174,7 @@ void InlineCacheCompiler::generateWithGuard(unsigned index, AccessCase& accessCa
         if (forInBy(accessCase.m_type))
             jit.moveTrustedValue(jsBoolean(true), valueRegs);
         else {
-#if USE(LARGE_TYPED_ARRAYS)
-            jit.load64(CCallHelpers::Address(baseGPR, JSArrayBufferView::offsetOfLength()), scratchGPR);
-#else
-            jit.load32(CCallHelpers::Address(baseGPR, JSArrayBufferView::offsetOfLength()), scratchGPR);
-#endif
             jit.loadPtr(CCallHelpers::Address(baseGPR, JSArrayBufferView::offsetOfVector()), scratch2GPR);
-            jit.cageConditionally(Gigacage::Primitive, scratch2GPR, scratchGPR, scratchGPR);
             jit.signExtend32ToPtr(propertyGPR, scratchGPR);
             if (isInt(type)) {
                 switch (elementSize(type)) {
@@ -2668,13 +2662,7 @@ void InlineCacheCompiler::generateWithGuard(unsigned index, AccessCase& accessCa
 #endif
         }
 
-#if USE(LARGE_TYPED_ARRAYS)
-        jit.load64(CCallHelpers::Address(baseGPR, JSArrayBufferView::offsetOfLength()), scratchGPR);
-#else
-        jit.load32(CCallHelpers::Address(baseGPR, JSArrayBufferView::offsetOfLength()), scratchGPR);
-#endif
         jit.loadPtr(CCallHelpers::Address(baseGPR, JSArrayBufferView::offsetOfVector()), scratch2GPR);
-        jit.cageConditionally(Gigacage::Primitive, scratch2GPR, scratchGPR, scratchGPR);
         jit.signExtend32ToPtr(propertyGPR, scratchGPR);
         if (isInt(type)) {
             if (isClamped(type)) {

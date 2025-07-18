@@ -1009,14 +1009,13 @@ public:
     }
 
 #if USE(JSVALUE64)
-    void toBigInt64(GPRReg cellGPR, GPRReg destGPR, GPRReg scratchGPR, GPRReg scratch2GPR)
+    void toBigInt64(GPRReg cellGPR, GPRReg destGPR, GPRReg scratchGPR)
     {
         ASSERT(noOverlap(cellGPR, destGPR, scratchGPR, scratch2GPR));
         load32(Address(cellGPR, JSBigInt::offsetOfLength()), destGPR);
         JumpList doneCases;
         doneCases.append(branchTest32(Zero, destGPR));
         loadPtr(Address(cellGPR, JSBigInt::offsetOfData()), scratchGPR);
-        cageConditionally(Gigacage::Primitive, scratchGPR, destGPR, scratch2GPR);
         load64(Address(scratchGPR), destGPR);
         doneCases.append(branchTest8(Zero, Address(cellGPR, JSBigInt::offsetOfSign())));
         neg64(destGPR);
@@ -1863,10 +1862,6 @@ public:
         storeFence();
         ok.link(this);
     }
-
-    JS_EXPORT_PRIVATE void cage(Gigacage::Kind, GPRReg storage);
-    // length may be the same register as scratch.
-    JS_EXPORT_PRIVATE void cageConditionally(Gigacage::Kind, GPRReg storage, GPRReg length, GPRReg scratch);
 
     void emitComputeButterflyIndexingMask(GPRReg vectorLengthGPR, GPRReg scratchGPR, GPRReg resultGPR)
     {

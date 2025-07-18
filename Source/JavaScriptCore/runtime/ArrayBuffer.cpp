@@ -225,9 +225,6 @@ Ref<ArrayBuffer> ArrayBuffer::createAdopted(std::span<const uint8_t> data)
 // - WebAssembly. Wasm should allocate from the cage.
 Ref<ArrayBuffer> ArrayBuffer::createFromBytes(std::span<const uint8_t> data, ArrayBufferDestructorFunction&& destructor)
 {
-    if (data.data() && !Gigacage::isCaged(Gigacage::Primitive, data.data()))
-        Gigacage::disablePrimitiveGigacage();
-    
     ArrayBufferContents contents(data, std::nullopt, WTFMove(destructor));
     return create(WTFMove(contents));
 }

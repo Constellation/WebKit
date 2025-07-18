@@ -501,49 +501,6 @@ else
     end
 end
 
-macro cage(basePtr, mask, ptr, scratch)
-    if GIGACAGE_ENABLED and not C_LOOP
-        loadp basePtr, scratch
-        btpz scratch, .done
-        andp mask, ptr
-        addp scratch, ptr
-    .done:
-    end
-end
-
-macro cagePrimitive(basePtr, mask, ptr, scratch)
-    if GIGACAGE_ENABLED and not C_LOOP
-        loadb GigacageConfig + Gigacage::Config::disablingPrimitiveGigacageIsForbidden, scratch
-        btbnz scratch, .doCaging
-
-        loadb _disablePrimitiveGigacageRequested, scratch
-        btbnz scratch, .done
-
-    .doCaging:
-        cage(basePtr, mask, ptr, scratch)
-    .done:
-    end
-end
-
-macro cagedPrimitive(ptr, length, scratch, scratch2)
-    const source = ptr
-    if GIGACAGE_ENABLED
-        cagePrimitive(GigacageConfig + Gigacage::Config::basePtrs + GigacagePrimitiveBasePtrOffset, constexpr Gigacage::primitiveGigacageMask, source, scratch)
-    end
-end
-
-macro cagedPrimitiveMayBeNull(ptr, scratch)
-    # Note that we may produce non-nullptr for nullptr since we add Gigacage offset.
-    # This behavior is aligned to AssemblyHelpers::{cageConditionally,cage}, FTL implementation of caging etc.
-    if GIGACAGE_ENABLED
-        cagePrimitive(GigacageConfig + Gigacage::Config::basePtrs + GigacagePrimitiveBasePtrOffset, constexpr Gigacage::primitiveGigacageMask, ptr, scratch)
-    end
-end
-
-macro loadCagedJSValue(source, dest, scratchOrLength)
-    loadp source, dest
-end
-
 macro loadVariable(get, fieldName, valueReg)
     get(fieldName, valueReg)
     loadq [cfr, valueReg, 8], valueReg
@@ -1683,7 +1640,7 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
     loadb JSCell::m_indexingTypeAndMisc[t3], t0
     btiz t0, IsArray, slowLabel
     btiz t0, IndexingShapeMask, slowLabel
-    loadCagedJSValue(JSObject::m_butterfly[t3], t0, t1)
+    loadp JSObject::m_butterfly[t3], t0
     loadi -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t0], t0
     bilt t0, 0, slowLabel
     orq numberTag, t0
@@ -1870,7 +1827,7 @@ llintOpWithMetadata(op_get_by_val, OpGetByVal, macro (size, get, dispatch, metad
     # This sign-extension makes the bounds-checking in getByValTypedArray work even on 4GB TypedArray.
     sxi2q t1, t1
 
-    loadCagedJSValue(JSObject::m_butterfly[t0], t3, numberTag)
+    loadp JSObject::m_butterfly[t0], t3
     move TagNumber, numberTag
 
     andi IndexingShapeMask, t2
@@ -2057,7 +2014,7 @@ macro putByValOp(opcodeName, opcodeStruct, osrExitPoint)
         get(m_property, t0)
         loadConstantOrVariableInt32(size, t0, t3, .opPutByValSlow)
         sxi2q t3, t3
-        loadCagedJSValue(JSObject::m_butterfly[t1], t0, numberTag)
+        loadp JSObject::m_butterfly[t1], t0
         move TagNumber, numberTag
         btinz t2, CopyOnWrite, .opPutByValSlow
         andi IndexingShapeMask, t2

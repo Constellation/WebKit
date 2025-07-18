@@ -279,9 +279,6 @@ macro ipintReloadMemory()
         loadp JSWebAssemblyInstance::m_cachedMemory[wasmInstance], memoryBase
         loadp JSWebAssemblyInstance::m_cachedBoundsCheckingSize[wasmInstance], boundsCheckingSize
     end
-    if not ARMv7
-        cagedPrimitiveMayBeNull(memoryBase, t2)
-    end
 end
 
 # Call site tracking

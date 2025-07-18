@@ -4516,16 +4516,6 @@ int jscmain(int argc, char** argv)
     if (Options::useSuperSampler())
         enableSuperSampler();
 
-    bool gigacageDisableRequested = false;
-#if GIGACAGE_ENABLED && !OS(WINDOWS)
-    if (char* gigacageEnabled = getenv("GIGACAGE_ENABLED")) {
-        if (!strcasecmp(gigacageEnabled, "no") || !strcasecmp(gigacageEnabled, "false") || !strcasecmp(gigacageEnabled, "0"))
-            gigacageDisableRequested = true;
-    }
-#endif
-    if (!gigacageDisableRequested)
-        Gigacage::forbidDisablingPrimitiveGigacage();
-
 #if PLATFORM(COCOA)
     auto& memoryPressureHandler = MemoryPressureHandler::singleton();
     {
