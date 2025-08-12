@@ -844,7 +844,7 @@ private:
     void emitArraySetUnchecked(uint32_t, Value*, Value*, Value*);
     // Returns true if a writeBarrier/mutatorFence is needed.
     bool WARN_UNUSED_RETURN emitStructSet(Value*, uint32_t, const StructType&, Value*);
-    ExpressionType WARN_UNUSED_RETURN pushArrayNew(uint32_t typeIndex, Value* initValue, ExpressionType size);
+    Value* WARN_UNUSED_RETURN allocateWasmGCArray(uint32_t typeIndex, Value* initValue, Value* size);
     using ArraySegmentOperation = EncodedJSValue SYSV_ABI (&)(JSC::JSWebAssemblyInstance*, uint32_t, uint32_t, uint32_t, uint32_t);
     ExpressionType WARN_UNUSED_RETURN pushArrayNewFromSegment(ArraySegmentOperation, uint32_t typeIndex, uint32_t segmentIndex, ExpressionType arraySize, ExpressionType offset, ExceptionType);
     void emitRefTestOrCast(CastKind, ExpressionType, bool, int32_t, bool, ExpressionType&);
@@ -3059,20 +3059,19 @@ auto OMGIRGenerator::addI31GetU(ExpressionType ref, ExpressionType& result) -> P
     return { };
 }
 
-Variable* OMGIRGenerator::pushArrayNew(uint32_t typeIndex, Value* initValue, ExpressionType size)
+Variable* OMGIRGenerator::allocateWasmGCArray(uint32_t typeIndex, Value* initValue, Value* size)
 {
     StorageType elementType;
     getArrayElementType(typeIndex, elementType);
 
-    auto* sizeValue = get(size);
-    auto* object = allocateWasmGCArrayUninitialized(typeIndex, sizeValue);
+    auto* object = allocateWasmGCArrayUninitialized(typeIndex, size);
 
     auto* loopHeader = m_proc.addBlock();
     auto* loopBody = m_proc.addBlock();
     auto* continuation = m_proc.addBlock();
 
     auto* payload = emitGetArrayPayloadBase(elementType, object);
-    auto* remainingUpsilon = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), sizeValue));
+    auto* remainingUpsilon = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), size));
 
     m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), loopHeader);
     loopHeader->addPredecessor(m_currentBlock);
@@ -3152,7 +3151,9 @@ auto OMGIRGenerator::addArrayNew(uint32_t typeIndex, ExpressionType size, Expres
 #endif
 
     Value* initValue = get(value);
-    result = pushArrayNew(typeIndex, initValue, size);
+    Value* sizeValue = get(size);
+    Value* array = allocateWasmGCArray(typeIndex, initValue, sizeValue);
+    result = push(array);
     return { };
 }
 
@@ -3171,14 +3172,20 @@ Variable* OMGIRGenerator::pushArrayNewFromSegment(ArraySegmentOperation operatio
 
 auto OMGIRGenerator::addArrayNewDefault(uint32_t typeIndex, ExpressionType size, ExpressionType& result) -> PartialResult
 {
-    Type resultType;
-    getArrayRefType(typeIndex, resultType);
+    StorageType elementType;
+    getArrayElementType(typeIndex, elementType);
 
-    result = push(callWasmOperation(m_currentBlock, toB3Type(resultType), operationWasmArrayNewEmpty,
-        instanceValue(), m_currentBlock->appendNew<Const32Value>(m_proc, origin(), typeIndex), get(size)));
+    Value* initValue = nullptr;
+    if (isRefType(elementType.unpacked()))
+        initValue = m_currentBlock->appendNew<WasmConstRefValue>(m_proc, origin(), JSValue::encode(jsNull()));
+    else if (elementType.elementSize() <= 4)
+        initValue = m_currentBlock->appendNew<Const32Value>(m_proc, origin(), 0);
+    else
+        initValue = m_currentBlock->appendNew<Const64Value>(m_proc, origin(), 0);
 
-    emitArrayNullCheck(get(result), ExceptionType::BadArrayNew);
-
+    Value* sizeValue = get(size);
+    Value* array = allocateWasmGCArray(typeIndex, initValue, sizeValue);
+    result = push(array);
     return { };
 }
 
