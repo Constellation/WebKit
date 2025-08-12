@@ -830,6 +830,14 @@ private:
     Value* emitAtomicCompareExchange(ExtAtomicOpType, Type, Value* pointer, Value* expected, Value*, uint32_t offset);
 
     Value* decodeNonNullStructure(Value* structureID);
+    Value* encodeStructureID(Value* structure);
+
+    Value* allocatorForWasmGCHeapCellSize(Value* size, BasicBlock* slowPath);
+    Value* allocateWasmGCHeapCell(Value* allocator, BasicBlock* slowPath);
+    Value* allocateWasmGCObject(Value* allocator, Value* structure, BasicBlock* slowPath);
+    Value* allocateWasmGCArrayUninitialized(uint32_t typeIndex, Value* size);
+
+    void mutatorFence();
 
     Value* emitGetArrayPayloadBase(Wasm::StorageType, Value*);
     void emitArrayNullCheck(Value*, ExceptionType);
@@ -3056,31 +3064,59 @@ Variable* OMGIRGenerator::pushArrayNew(uint32_t typeIndex, Value* initValue, Exp
     StorageType elementType;
     getArrayElementType(typeIndex, elementType);
 
-    // FIXME: Emit this inline.
-    // https://bugs.webkit.org/show_bug.cgi?id=245405
-    Value* resultValue;
-    if (!elementType.unpacked().isV128()) {
-        resultValue = callWasmOperation(m_currentBlock, toB3Type(Types::Arrayref), operationWasmArrayNew,
-            instanceValue(), m_currentBlock->appendNew<Const32Value>(m_proc, origin(), typeIndex),
-            get(size), initValue);
-    } else {
-        Value* lane0 = m_currentBlock->appendNew<SIMDValue>(m_proc, origin(), B3::VectorExtractLane, B3::Int64, SIMDLane::i64x2, SIMDSignMode::None, uint8_t { 0 }, initValue);
-        Value* lane1 = m_currentBlock->appendNew<SIMDValue>(m_proc, origin(), B3::VectorExtractLane, B3::Int64, SIMDLane::i64x2, SIMDSignMode::None, uint8_t { 1 }, initValue);
-        resultValue = callWasmOperation(m_currentBlock, toB3Type(Types::Arrayref), operationWasmArrayNewVector,
-            instanceValue(), m_currentBlock->appendNew<Const32Value>(m_proc, origin(), typeIndex),
-            get(size), lane0, lane1);
-    }
+    auto* sizeValue = get(size);
+    auto* object = allocateWasmGCArrayUninitialized(typeIndex, sizeValue);
 
+    auto* loopHeader = m_proc.addBlock();
+    auto* loopBody = m_proc.addBlock();
+    auto* continuation = m_proc.addBlock();
+
+    auto* payload = emitGetArrayPayloadBase(elementType, object);
+    auto* remainingUpsilon = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), sizeValue));
+
+    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), loopHeader);
+    loopHeader->addPredecessor(m_currentBlock);
+    m_currentBlock = loopHeader;
+
+    Value* remaining = m_currentBlock->appendNew<Value>(m_proc, Phi, pointerType(), origin());
+    remainingUpsilon->setPhi(remaining);
     {
-        CheckValue* check = m_currentBlock->appendNew<CheckValue>(m_proc, Check, origin(),
-            m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), resultValue, m_currentBlock->appendNew<WasmConstRefValue>(m_proc, origin(), JSValue::encode(jsNull()))));
-
-        check->setGenerator([=, this, origin = this->origin()] (CCallHelpers& jit, const B3::StackmapGenerationParams&) {
-            this->emitExceptionCheck(jit, origin, ExceptionType::BadArrayNew);
-        });
+        Value* condition = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), remaining, constant(pointerType(), 0));
+        m_currentBlock->appendNewControlValue(m_proc, Branch, origin(), condition, FrequentedBlock(continuation), FrequentedBlock(loopBody));
+        continuation->addPredecessor(m_currentBlock);
+        loopBody->addPredecessor(m_currentBlock);
     }
 
-    return push(resultValue);
+    m_currentBlock = loopBody;
+    auto* updatedRemaining = m_currentBlock->appendNew<Value>(m_proc, Sub, pointerType(), origin(), remainingUpsilon, constant(pointerType(), 1));
+    auto* updatedRemainingUpsilon = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), updatedRemaining);
+    updatedRemainingUpsilon->setPhi(remaining);
+
+    Value* indexedAddress = m_currentBlock->appendNew<Value>(m_proc, Add, pointerType(), origin(), payload, m_currentBlock->appendNew<Value>(m_proc, Mul, pointerType(), origin(), updatedRemaining, constant(pointerType(), elementType.elementSize())));
+
+    ([&] {
+        if (elementType.is<PackedType>()) {
+            switch (elementType.as<PackedType>()) {
+            case PackedType::I8:
+                m_currentBlock->appendNew<MemoryValue>(m_proc, Store8, origin(), initValue, indexedAddress);
+                return;
+            case PackedType::I16:
+                m_currentBlock->appendNew<MemoryValue>(m_proc, Store16, origin(), initValue, indexedAddress);
+                return;
+            }
+        }
+
+        ASSERT(elementType.is<Type>());
+        m_currentBlock->appendNew<MemoryValue>(m_proc, Store, origin(), initValue, indexedAddress);
+    })();
+    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), FrequentedBlock(loopHeader));
+    loopHeader->addPredecessor(m_currentBlock);
+
+    m_currentBlock = continuation;
+    if (Wasm::isRefType(elementType.unpacked()))
+        mutatorFence();
+
+    return push(object);
 }
 
 // Given a type index, verify that it's an array type and return its expansion
@@ -3116,16 +3152,7 @@ auto OMGIRGenerator::addArrayNew(uint32_t typeIndex, ExpressionType size, Expres
 #endif
 
     Value* initValue = get(value);
-    if (value->type() == B3::Float || value->type() == B3::Double) {
-        initValue = m_currentBlock->appendNew<Value>(m_proc, BitwiseCast, origin(), initValue);
-        if (initValue->type() == B3::Int32)
-            initValue = m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), initValue);
-    }
-
     result = pushArrayNew(typeIndex, initValue, size);
-
-    emitArrayNullCheck(get(result), ExceptionType::BadArrayNew);
-
     return { };
 }
 
@@ -3812,6 +3839,194 @@ Value* OMGIRGenerator::decodeNonNullStructure(Value* structureID)
         constant(pointerType(), startOfStructureHeap()));
 #endif
 }
+
+Value* OMGIRGenerator::encodeStructureID(Value* structure)
+{
+#if ENABLE(STRUCTURE_ID_WITH_SHIFT)
+    return m_currentBlock->appendNew<B3::Value>(m_proc, B3::Trunc, origin(), m_currentBlock->appendNew<Value>(m_proc, ZShr, origin(), structure, m_currentBlock->appendNew<Const32Value>(m_proc, origin(), StructureID::encodeShiftAmount)));
+#else
+    return m_currentBlock->appendNew<B3::Value>(m_proc, B3::Trunc, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitAnd, origin(), structure, constant(pointerType(), StructureID::structureIDMask)));
+#endif
+}
+
+Value* OMGIRGenerator::allocatorForWasmGCHeapCellSize(Value* sizeInBytes, BasicBlock* slowPath)
+{
+    static_assert(!(MarkedSpace::sizeStep & (MarkedSpace::sizeStep - 1)), "MarkedSpace::sizeStep must be a power of two.");
+
+    ptrdiff_t allocatorBufferBaseOffset = JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), m_info.typeCount(), 0);
+
+    // Try to do some constant-folding here.
+    if (sizeInBytes->hasIntPtr()) {
+        size_t actualSize = sizeInBytes->asIntPtr();
+        if (actualSize <= MarkedSpace::largeCutoff) {
+            size_t sizeClassIndex = MarkedSpace::sizeClassToIndex(actualSize);
+            auto offset = Checked<int32_t> { allocatorBufferBaseOffset } + Checked<int32_t> { sizeClassIndex } * static_cast<int32_t>(sizeof(Allocator));
+            return m_currentBlock->appendNew<MemoryValue>(m_proc, B3::Load, pointerType(), origin(), instanceValue(), offset.value());
+        }
+
+        auto* continuation = m_proc.addBlock();
+        m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), slowPath);
+        slowPath->addPredecessor(m_currentBlock);
+        m_currentBlock = continuation;
+        return constant(pointerType(), 0);
+    }
+
+    unsigned stepShift = getLSBSet(MarkedSpace::sizeStep);
+
+    auto* continuation = m_proc.addBlock();
+
+    auto* sizeClassIndex = m_currentBlock->appendNew<Value>(m_proc, ZShr, origin(),
+        m_currentBlock->appendNew<Value>(m_proc, B3::Add, origin(), sizeInBytes, constant(pointerType(), MarkedSpace::sizeStep - 1)),
+        m_currentBlock->appendNew<Const32Value>(m_proc, origin(), stepShift));
+
+    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(),
+        m_currentBlock->appendNew<Value>(m_proc, Above, origin(), sizeClassIndex, constant(pointerType(), MarkedSpace::largeCutoff >> stepShift)),
+        FrequentedBlock(slowPath, FrequencyClass::Rare), FrequentedBlock(continuation));
+    m_currentBlock->setSuccessors(FrequentedBlock(slowPath, FrequencyClass::Rare), FrequentedBlock(continuation));
+    slowPath->addPredecessor(m_currentBlock);
+    continuation->addPredecessor(m_currentBlock);
+    m_currentBlock = continuation;
+
+    Value* address = m_currentBlock->appendNew<Value>(m_proc, Add, origin(),
+        m_currentBlock->appendNew<Value>(m_proc, B3::Add, origin(), instanceValue(), constant(pointerType(), allocatorBufferBaseOffset)),
+        m_currentBlock->appendNew<Value>(m_proc, Mul, origin(), sizeClassIndex, constant(pointerType(), sizeof(Allocator))));
+    return m_currentBlock->appendNew<MemoryValue>(m_proc, B3::Load, pointerType(), origin(), address);
+}
+
+Value* OMGIRGenerator::allocateWasmGCHeapCell(Value* allocator, BasicBlock* slowPath)
+{
+    auto* continuation = m_proc.addBlock();
+    auto* patchpoint = m_currentBlock->appendNew<B3::PatchpointValue>(m_proc, pointerType(), origin());
+    if (isARM64()) {
+        // emitAllocateWithNonNullAllocator uses the scratch registers on ARM.
+        patchpoint->clobber(RegisterSetBuilder::macroClobberedGPRs());
+    }
+    patchpoint->effects.terminal = true;
+    patchpoint->appendSomeRegisterWithClobber(allocator);
+    patchpoint->numGPScratchRegisters++;
+    patchpoint->resultConstraints = { ValueRep::SomeEarlyRegister };
+
+    patchpoint->setGenerator(
+        [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
+            AllowMacroScratchRegisterUsageIf allowScratchIf(jit, isARM64());
+            CCallHelpers::JumpList jumpToSlowPath;
+
+            GPRReg allocatorGPR = params[1].gpr();
+
+            // We use a patchpoint to emit the allocation path because whenever we mess with
+            // allocation paths, we already reason about them at the machine code level. We know
+            // exactly what instruction sequence we want. We're confident that no compiler
+            // optimization could make this code better. So, it's best to have the code in
+            // AssemblyHelpers::emitAllocate(). That way, the same optimized path is shared by
+            // all of the compiler tiers.
+            jit.emitAllocateWithNonNullAllocator(
+                params[0].gpr(), JITAllocator::variable(), allocatorGPR, params.gpScratch(0),
+                jumpToSlowPath, CCallHelpers::SlowAllocationResult::UndefinedBehavior);
+
+            CCallHelpers::Jump jumpToSuccess;
+            if (!params.fallsThroughToSuccessor(0))
+                jumpToSuccess = jit.jump();
+
+            Vector<Box<CCallHelpers::Label>> labels = params.successorLabels();
+
+            params.addLatePath(
+                [=] (CCallHelpers& jit) {
+                    jumpToSlowPath.linkTo(*labels[1], &jit);
+                    if (jumpToSuccess.isSet())
+                        jumpToSuccess.linkTo(*labels[0], &jit);
+                });
+        });
+
+    m_currentBlock->appendSuccessor({ continuation, FrequencyClass::Normal });
+    m_currentBlock->appendSuccessor({ slowPath, FrequencyClass::Rare });
+
+    m_currentBlock = continuation;
+    return patchpoint;
+}
+
+Value* OMGIRGenerator::allocateWasmGCObject(Value* allocator, Value* structure, BasicBlock* slowPath)
+{
+    auto* cell = allocateWasmGCHeapCell(allocator, slowPath);
+    auto* structureID = encodeStructureID(structure);
+    auto* typeInfo = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), structure, safeCast<int32_t>(Structure::indexingModeIncludingHistoryOffset()));
+    m_currentBlock->appendNew<B3::MemoryValue>(m_proc, B3::Store, origin(), structureID, cell, safeCast<int32_t>(JSCell::structureIDOffset()));
+    m_currentBlock->appendNew<B3::MemoryValue>(m_proc, B3::Store, origin(), typeInfo, cell, safeCast<int32_t>(JSCell::indexingTypeAndMiscOffset()));
+    m_currentBlock->appendNew<B3::MemoryValue>(m_proc, B3::Store, origin(), constant(pointerType(), 0), cell, safeCast<int32_t>(JSObject::butterflyOffset()));
+    return cell;
+}
+
+Value* OMGIRGenerator::allocateWasmGCArrayUninitialized(uint32_t typeIndex, Value* size)
+{
+    auto* slowPath = m_proc.addBlock();
+    auto* continuation = m_proc.addBlock();
+
+    auto* structure = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGCObjectStructure(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), typeIndex)));
+    const ArrayType* typeDefinition = m_info.typeSignatures[typeIndex]->expand().template as<ArrayType>();
+    Value* sizeInBytes = nullptr;
+    if (size->hasInt32()) {
+        std::optional<unsigned> value = JSWebAssemblyArray::allocationSizeInBytes(typeDefinition->elementType(), size->asInt32());
+        if (value)
+            sizeInBytes = constant(pointerType(), value.value());
+    }
+
+    if (!sizeInBytes) {
+        size_t elementSize = typeDefinition->elementType().type.elementSize();
+        auto* extended = m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), size);
+        auto* shifted = m_currentBlock->appendNew<Value>(m_proc, Shl, origin(), extended, constant(Int32, getLSBSet(elementSize)));
+        sizeInBytes = m_currentBlock->appendNew<Value>(m_proc, Add, pointerType(), origin(), shifted, constant(pointerType(), sizeof(JSWebAssemblyArray)));
+    }
+
+    auto* allocator = allocatorForWasmGCHeapCellSize(sizeInBytes, slowPath);
+    auto* cell = allocateWasmGCObject(allocator, structure, slowPath);
+    auto* fastValue = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), cell);
+    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+    continuation->addPredecessor(m_currentBlock);
+
+    m_currentBlock = slowPath;
+    auto* slowResult = callWasmOperation(m_currentBlock, toB3Type(Types::Arrayref), operationWasmArrayNewEmpty,
+        instanceValue(), m_currentBlock->appendNew<Const32Value>(m_proc, origin(), typeIndex),
+        size);
+    CheckValue* check = m_currentBlock->appendNew<CheckValue>(m_proc, Check, origin(), m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), slowResult, m_currentBlock->appendNew<WasmConstRefValue>(m_proc, origin(), JSValue::encode(jsNull()))));
+    check->setGenerator([=, this, origin = this->origin()] (CCallHelpers& jit, const B3::StackmapGenerationParams&) {
+        this->emitExceptionCheck(jit, origin, ExceptionType::BadArrayNew);
+    });
+    auto* slowValue = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), slowResult);
+    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+    continuation->addPredecessor(m_currentBlock);
+
+    m_currentBlock = continuation;
+    auto* result = m_currentBlock->appendNew<Value>(m_proc, Phi, pointerType(), origin());
+    fastValue->setPhi(result);
+    slowValue->setPhi(result);
+
+    m_currentBlock->appendNew<B3::MemoryValue>(m_proc, B3::Store, origin(), size, result, safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize()));
+    return result;
+}
+
+void OMGIRGenerator::mutatorFence()
+{
+    if (isX86()) {
+        m_currentBlock->appendNew<FenceValue>(m_proc, origin());
+        return;
+    }
+
+    auto* slowPath = m_proc.addBlock();
+    auto* continuation = m_proc.addBlock();
+
+    Value* vm = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfVM()));
+    Value* shouldFence = m_currentBlock->appendNew<MemoryValue>(m_proc, Load8Z, Int32, origin(), vm, safeCast<int32_t>(VM::offsetOfHeapMutatorShouldBeFenced()));
+    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), shouldFence, FrequentedBlock(slowPath, FrequencyClass::Rare), FrequentedBlock(continuation));
+    slowPath->addPredecessor(m_currentBlock);
+    continuation->addPredecessor(m_currentBlock);
+
+    m_currentBlock = slowPath;
+    m_currentBlock->appendNew<FenceValue>(m_proc, origin());
+    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+    continuation->addPredecessor(m_currentBlock);
+
+    m_currentBlock = continuation;
+}
+
 
 Value* OMGIRGenerator::emitLoadRTTFromObject(Value* reference)
 {
