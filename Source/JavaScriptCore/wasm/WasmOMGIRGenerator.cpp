@@ -3059,7 +3059,7 @@ auto OMGIRGenerator::addI31GetU(ExpressionType ref, ExpressionType& result) -> P
     return { };
 }
 
-Variable* OMGIRGenerator::allocateWasmGCArray(uint32_t typeIndex, Value* initValue, Value* size)
+Value* OMGIRGenerator::allocateWasmGCArray(uint32_t typeIndex, Value* initValue, Value* size)
 {
     StorageType elementType;
     getArrayElementType(typeIndex, elementType);
@@ -3115,7 +3115,7 @@ Variable* OMGIRGenerator::allocateWasmGCArray(uint32_t typeIndex, Value* initVal
     if (Wasm::isRefType(elementType.unpacked()))
         mutatorFence();
 
-    return push(object);
+    return object;
 }
 
 // Given a type index, verify that it's an array type and return its expansion
