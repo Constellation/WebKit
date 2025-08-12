@@ -842,6 +842,7 @@ private:
     Value* emitGetArrayPayloadBase(Wasm::StorageType, Value*);
     void emitArrayNullCheck(Value*, ExceptionType);
     void emitArraySetUnchecked(uint32_t, Value*, Value*, Value*);
+    void emitArraySetUncheckedWithoutWriteBarrier(uint32_t, Value*, Value*, Value*);
     // Returns true if a writeBarrier/mutatorFence is needed.
     bool WARN_UNUSED_RETURN emitStructSet(Value*, uint32_t, const StructType&, Value*);
     Value* WARN_UNUSED_RETURN allocateWasmGCArray(uint32_t typeIndex, Value* initValue, Value* size);
@@ -3204,27 +3205,21 @@ auto OMGIRGenerator::addArrayNewElem(uint32_t typeIndex, uint32_t elemSegmentInd
 
 auto OMGIRGenerator::addArrayNewFixed(uint32_t typeIndex, ArgumentList& args, ExpressionType& result) -> PartialResult
 {
-    // Get the result type for the array.new_fixed operation
-    Type resultType;
-    getArrayRefType(typeIndex, resultType);
+    StorageType elementType;
+    getArrayElementType(typeIndex, elementType);
 
-    // Allocate an uninitialized array whose length matches the argument count
-
-    // FIXME: inline the allocation.
-    // https://bugs.webkit.org/show_bug.cgi?id=244388
-    Value* arrayValue = callWasmOperation(m_currentBlock, toB3Type(resultType), operationWasmArrayNewEmpty,
-        instanceValue(), m_currentBlock->appendNew<Const32Value>(m_proc, origin(), typeIndex),
-        m_currentBlock->appendNew<Const32Value>(m_proc, origin(), args.size()));
-
-    emitArrayNullCheck(arrayValue, ExceptionType::BadArrayNew);
+    auto* size = constant(Int32, args.size());
+    auto* object = allocateWasmGCArrayUninitialized(typeIndex, size);
 
     for (uint32_t i = 0; i < args.size(); ++i) {
         // Emit the array set code -- note that this omits the bounds check, since
         // if operationWasmArrayNewEmpty() returned a non-null value, it's an array of the right size
-        emitArraySetUnchecked(typeIndex, arrayValue, m_currentBlock->appendNew<Const32Value>(m_proc, origin(), i), get(args[i]));
+        emitArraySetUncheckedWithoutWriteBarrier(typeIndex, object, m_currentBlock->appendNew<Const32Value>(m_proc, origin(), i), get(args[i]));
     }
-    result = push(arrayValue);
+    if (Wasm::isRefType(elementType.unpacked()))
+        mutatorFence();
 
+    result = push(object);
     return { };
 }
 
@@ -3318,7 +3313,7 @@ Value* OMGIRGenerator::emitGetArrayPayloadBase(Wasm::StorageType fieldType, Valu
 
 // Does the array set without null check and bounds checks -- can be
 // called directly by addArrayNewFixed()
-void OMGIRGenerator::emitArraySetUnchecked(uint32_t typeIndex, Value* arrayref, Value* index, Value* setValue)
+void OMGIRGenerator::emitArraySetUncheckedWithoutWriteBarrier(uint32_t typeIndex, Value* arrayref, Value* index, Value* setValue)
 {
     StorageType elementType;
     getArrayElementType(typeIndex, elementType);
@@ -3342,11 +3337,17 @@ void OMGIRGenerator::emitArraySetUnchecked(uint32_t typeIndex, Value* arrayref, 
 
     ASSERT(elementType.is<Type>());
     m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Store), origin(), setValue, indexedAddress);
+}
 
+void OMGIRGenerator::emitArraySetUnchecked(uint32_t typeIndex, Value* arrayref, Value* index, Value* setValue)
+{
+    emitArraySetUncheckedWithoutWriteBarrier(typeIndex, arrayref, index, setValue);
+    StorageType elementType;
+    getArrayElementType(typeIndex, elementType);
     if (isRefType(elementType.unpacked()))
         emitWriteBarrier(arrayref, instanceValue());
-    return;
 }
+
 
 auto OMGIRGenerator::addArraySet(uint32_t typeIndex, ExpressionType arrayref, ExpressionType index, ExpressionType value) -> PartialResult
 {
