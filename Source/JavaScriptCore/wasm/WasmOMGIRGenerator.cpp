@@ -3087,7 +3087,7 @@ Value* OMGIRGenerator::allocateWasmGCArray(uint32_t typeIndex, Value* initValue,
     }
 
     m_currentBlock = loopBody;
-    auto* updatedRemaining = m_currentBlock->appendNew<Value>(m_proc, Sub, pointerType(), origin(), remainingUpsilon, constant(pointerType(), 1));
+    auto* updatedRemaining = m_currentBlock->appendNew<Value>(m_proc, Sub, pointerType(), origin(), remaining, constant(pointerType(), 1));
     auto* updatedRemainingUpsilon = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), updatedRemaining);
     updatedRemainingUpsilon->setPhi(remaining);
 
