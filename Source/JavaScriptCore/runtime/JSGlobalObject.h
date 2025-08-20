@@ -152,6 +152,14 @@ enum class TrustedTypesEnforcement {
     EnforcedWithEvalEnabled
 };
 
+#if ENABLE(WEBASSEMBLY)
+class WebAssemblyGCStructure;
+
+namespace Wasm {
+class RTT;
+}
+#endif
+
 constexpr bool typeExposedByDefault = true;
 
 #define DEFINE_STANDARD_BUILTIN(macro, upperName, lowerName) macro(upperName, lowerName, lowerName, JS ## upperName, upperName, object, typeExposedByDefault)
@@ -587,6 +595,10 @@ public:
     bool isSetPrototypeAddFastAndNonObservable();
     bool isArgumentsPrototypeIteratorProtocolFastAndNonObservable();
 
+#if ENABLE(WEBASSEMBLY)
+    WeakGCMap<const Wasm::RTT*, WebAssemblyGCStructure, PtrHash<const Wasm::RTT*>>& wasmGCStructures() { return m_wasmGCStructures; }
+#endif
+
 #if ENABLE(DFG_JIT)
     using ReferencedGlobalPropertyWatchpointSets = UncheckedKeyHashMap<RefPtr<UniquedStringImpl>, Ref<WatchpointSet>, IdentifierRepHash>;
     ReferencedGlobalPropertyWatchpointSets m_referencedGlobalPropertyWatchpointSets;
@@ -603,7 +615,6 @@ public:
     WeakPtr<ConsoleClient> m_consoleClient;
     std::optional<unsigned> m_stackTraceLimit;
     Weak<FunctionExecutable> m_executableForCachedFunctionExecutableForFunctionConstructor;
-
     TrustedTypesEnforcement m_trustedTypesEnforcement { TrustedTypesEnforcement::None };
 
     template<typename T>
@@ -626,6 +637,9 @@ public:
 
     const Ref<ImportMap> m_importMap;
 
+#if ENABLE(WEBASSEMBLY)
+    WeakGCMap<const Wasm::RTT*, WebAssemblyGCStructure, PtrHash<Wasm::RTT*>> m_wasmGCStructures;
+#endif
     HashMap<String, JSCJSGlobalObjectSignpostIdentifier> m_signposts;
 
 #if ASSERT_ENABLED

@@ -50,9 +50,15 @@ WebAssemblyGCStructure::WebAssemblyGCStructure(VM& vm, WebAssemblyGCStructure* p
 WebAssemblyGCStructure* WebAssemblyGCStructure::create(VM& vm, JSGlobalObject* globalObject, const TypeInfo& typeInfo, const ClassInfo* classInfo, Ref<const Wasm::TypeDefinition>&& type, Ref<const Wasm::RTT>&& rtt)
 {
     ASSERT(vm.structureStructure);
+    const Wasm::RTT* key = rtt.ptr();
+    if (auto* structure = globalObject->wasmGCStructures().get(key))
+        return structure;
+
     WebAssemblyGCStructure* newStructure = new (NotNull, allocateCell<WebAssemblyGCStructure>(vm)) WebAssemblyGCStructure(vm, globalObject, typeInfo, classInfo, WTFMove(type), WTFMove(rtt));
     newStructure->finishCreation(vm);
     ASSERT(newStructure->type() == StructureType);
+
+    globalObject->wasmGCStructures().set(key, newStructure);
     return newStructure;
 }
 

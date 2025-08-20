@@ -378,7 +378,7 @@ ipintOp(_throw_ref, macro()
     jumpToException()
 
 .throw_null_ref:
-    throwException(NullExnReference)
+    throwException(NullExnrefReference)
 end)
 
 macro uintDispatch()

@@ -322,7 +322,7 @@ TypeKind BBQJIT::toValueKind(TypeKind kind)
     case TypeKind::Func:
     case TypeKind::I31ref:
     case TypeKind::Funcref:
-    case TypeKind::Exn:
+    case TypeKind::Exnref:
     case TypeKind::Ref:
     case TypeKind::RefNull:
     case TypeKind::Rec:
@@ -335,10 +335,10 @@ TypeKind BBQJIT::toValueKind(TypeKind kind)
     case TypeKind::Arrayref:
     case TypeKind::Eqref:
     case TypeKind::Anyref:
-    case TypeKind::Nullexn:
-    case TypeKind::Nullref:
-    case TypeKind::Nullfuncref:
-    case TypeKind::Nullexternref:
+    case TypeKind::Noexnref:
+    case TypeKind::Noneref:
+    case TypeKind::Nofuncref:
+    case TypeKind::Noexternref:
         return TypeKind::I64;
     case TypeKind::Void:
         RELEASE_ASSERT_NOT_REACHED();
@@ -773,14 +773,14 @@ Value BBQJIT::addConstant(Type type, uint64_t value)
     case TypeKind::Structref:
     case TypeKind::Arrayref:
     case TypeKind::Funcref:
-    case TypeKind::Exn:
+    case TypeKind::Exnref:
     case TypeKind::Externref:
     case TypeKind::Eqref:
     case TypeKind::Anyref:
-    case TypeKind::Nullexn:
-    case TypeKind::Nullref:
-    case TypeKind::Nullfuncref:
-    case TypeKind::Nullexternref:
+    case TypeKind::Noexnref:
+    case TypeKind::Noneref:
+    case TypeKind::Nofuncref:
+    case TypeKind::Noexternref:
         result = Value::fromRef(type.kind, static_cast<EncodedJSValue>(value));
         LOG_INSTRUCTION("RefConst", makeString(type.kind), RESULT(result));
         break;
@@ -3108,7 +3108,7 @@ ControlData WARN_UNUSED_RETURN BBQJIT::addTopLevel(BlockSignature signature)
         case TypeKind::V128:
             clear(ClearMode::Zero, type, m_locals[i]);
             break;
-        case TypeKind::Exn:
+        case TypeKind::Exnref:
         case TypeKind::Externref:
         case TypeKind::Funcref:
         case TypeKind::Ref:
@@ -3117,10 +3117,10 @@ ControlData WARN_UNUSED_RETURN BBQJIT::addTopLevel(BlockSignature signature)
         case TypeKind::Arrayref:
         case TypeKind::Eqref:
         case TypeKind::Anyref:
-        case TypeKind::Nullexn:
-        case TypeKind::Nullref:
-        case TypeKind::Nullfuncref:
-        case TypeKind::Nullexternref:
+        case TypeKind::Noexnref:
+        case TypeKind::Noneref:
+        case TypeKind::Nofuncref:
+        case TypeKind::Noexternref:
             clear(ClearMode::JSNull, type, m_locals[i]);
             break;
         default:
@@ -3224,14 +3224,14 @@ B3::Type BBQJIT::toB3Type(TypeKind kind)
     case TypeKind::Structref:
     case TypeKind::Arrayref:
     case TypeKind::Funcref:
-    case TypeKind::Exn:
+    case TypeKind::Exnref:
     case TypeKind::Externref:
     case TypeKind::Eqref:
     case TypeKind::Anyref:
-    case TypeKind::Nullexn:
-    case TypeKind::Nullref:
-    case TypeKind::Nullfuncref:
-    case TypeKind::Nullexternref:
+    case TypeKind::Noexnref:
+    case TypeKind::Noneref:
+    case TypeKind::Nofuncref:
+    case TypeKind::Noexternref:
         return B3::Type(B3::Int64);
     case TypeKind::F32:
         return B3::Type(B3::Float);
