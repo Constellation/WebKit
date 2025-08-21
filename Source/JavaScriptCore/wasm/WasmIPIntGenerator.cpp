@@ -649,6 +649,7 @@ private:
     const FunctionSignature* m_cachedSignature { nullptr };
     Vector<uint8_t, 16> m_cachedCallBytecode;
 
+    uint32_t m_callSlotIndex { 0 };
     bool m_usesRethrow { false };
     bool m_usesSIMD { false };
 };
@@ -2843,6 +2844,7 @@ PartialResult WARN_UNUSED_RETURN IPIntGenerator::addCall(FunctionSpaceIndex inde
 
         IPInt::TailCallMetadata functionIndexMetadata {
             .length = safeCast<uint8_t>(getCurrentInstructionLength()),
+            .callSlotIndex = m_callSlotIndex++,
             .functionIndex = index,
             .callerStackArgSize = static_cast<int32_t>(callerStackArgs * sizeof(Register)),
             .argumentBytecode = { }
@@ -2858,6 +2860,7 @@ PartialResult WARN_UNUSED_RETURN IPIntGenerator::addCall(FunctionSpaceIndex inde
 
     IPInt::CallMetadata functionIndexMetadata {
         .length = safeCast<uint8_t>(getCurrentInstructionLength()),
+        .callSlotIndex = m_callSlotIndex++,
         .functionIndex = index,
         .signature = {
             static_cast<uint32_t>(callConvention.headerAndArgumentStackSizeInBytes),
@@ -2891,6 +2894,7 @@ PartialResult WARN_UNUSED_RETURN IPIntGenerator::addCallIndirect(unsigned tableI
 
         IPInt::TailCallIndirectMetadata functionIndexMetadata {
             .length = safeCast<uint8_t>(getCurrentInstructionLength()),
+            .callSlotIndex = m_callSlotIndex++,
             .tableIndex = tableIndex,
             .typeIndex = m_metadata->addSignature(originalSignature),
             .callerStackArgSize = static_cast<int32_t>(callerStackArgs * sizeof(Register)),
@@ -2908,6 +2912,7 @@ PartialResult WARN_UNUSED_RETURN IPIntGenerator::addCallIndirect(unsigned tableI
 
     IPInt::CallIndirectMetadata functionIndexMetadata {
         .length = safeCast<uint8_t>(getCurrentInstructionLength()),
+        .callSlotIndex = m_callSlotIndex++,
         .tableIndex = tableIndex,
         .typeIndex = m_metadata->addSignature(originalSignature),
         .signature = {
@@ -2943,6 +2948,7 @@ PartialResult WARN_UNUSED_RETURN IPIntGenerator::addCallRef(const TypeDefinition
 
         IPInt::TailCallRefMetadata callMetadata {
             .length = safeCast<uint8_t>(getCurrentInstructionLength()),
+            .callSlotIndex = m_callSlotIndex++,
             .typeIndex = m_metadata->addSignature(originalSignature),
             .callerStackArgSize = static_cast<int32_t>(callerStackArgs * sizeof(Register)),
             .argumentBytecode = { }
@@ -2959,6 +2965,7 @@ PartialResult WARN_UNUSED_RETURN IPIntGenerator::addCallRef(const TypeDefinition
 
     IPInt::CallRefMetadata callMetadata {
         .length = safeCast<uint8_t>(getCurrentInstructionLength()),
+        .callSlotIndex = m_callSlotIndex++,
         .typeIndex = m_metadata->addSignature(originalSignature),
         .signature = {
             static_cast<uint32_t>(callConvention.headerAndArgumentStackSizeInBytes),
