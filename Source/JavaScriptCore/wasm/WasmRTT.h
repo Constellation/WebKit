@@ -27,7 +27,7 @@
 
 #if ENABLE(WEBASSEMBLY)
 
-#include <JavaScriptCore/WasmTypeDefinition.h>
+#include "WasmTypeDefinition.h"
 
 #if HAVE(36BIT_ADDRESS)
 #define RTT_ALIGNMENT alignas(16)

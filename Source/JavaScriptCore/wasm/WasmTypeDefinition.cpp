@@ -34,6 +34,7 @@
 #include "JSWebAssemblyStruct.h"
 #include "WasmCallee.h"
 #include "WasmFormat.h"
+#include "WasmRTT.h"
 #include "WasmTypeDefinitionInlines.h"
 #include "WebAssemblyFunctionBase.h"
 #include <wtf/CommaPrinter.h>
