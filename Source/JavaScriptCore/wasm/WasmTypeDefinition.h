@@ -30,6 +30,7 @@
 #include <JavaScriptCore/JITCompilation.h>
 #include <JavaScriptCore/SIMDInfo.h>
 #include <JavaScriptCore/WasmOps.h>
+#include <JavaScriptCore/WasmRTT.h>
 #include <JavaScriptCore/WasmSIMDOpcodes.h>
 #include <JavaScriptCore/Width.h>
 #include <JavaScriptCore/WriteBarrier.h>
