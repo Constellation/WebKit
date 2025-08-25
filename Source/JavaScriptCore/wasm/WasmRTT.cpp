@@ -95,7 +95,6 @@ private:
     std::span<uint8_t> m_reserved;
 };
 
-static constexpr size_t rttHeapSize = 1 * WTF::GB;
 using RTTHeap = RegionHeap<sizeof(RTT), alignof(RTT), RTT>;
 static RTTHeap& rttHeap()
 {
@@ -103,9 +102,9 @@ static RTTHeap& rttHeap()
     static std::once_flag onceKey;
     std::call_once(onceKey,
         [&] {
-            auto memory = reinterpret_cast<uint8_t*>(OSAllocator::tryReserveUncommittedAligned(rttHeapSize, rttHeapSize, OSAllocator::FastMallocPages));
+            auto memory = reinterpret_cast<uint8_t*>(OSAllocator::tryReserveUncommittedAligned(rttHeapAddressSize, rttHeapAddressSize, OSAllocator::FastMallocPages));
             RELEASE_ASSERT(memory);
-            heap.construct(std::span { memory, rttHeapSize });
+            heap.construct(std::span { memory, rttHeapAddressSize });
         });
     return heap.get();
 }
