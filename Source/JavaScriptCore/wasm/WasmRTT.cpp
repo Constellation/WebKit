@@ -41,9 +41,73 @@
 #include <wtf/StringPrintStream.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if !USE(SYSTEM_MALLOC)
+#include <bmalloc/bmalloc.h>
+#include <bmalloc/bmalloc_heap.h>
+#include <bmalloc/bmalloc_heap_config.h>
+#include <bmalloc/bmalloc_heap_inlines.h>
+#include <bmalloc/bmalloc_heap_ref.h>
+#include <bmalloc/pas_page_sharing_pool.h>
+#include <bmalloc/pas_primitive_heap_ref.h>
+#include <bmalloc/pas_probabilistic_guard_malloc_allocator.h>
+#include <bmalloc/pas_scavenger.h>
+#include <bmalloc/pas_thread_local_cache.h>
+#endif
+
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC::Wasm {
+
+#if CPU(ADDRESS64) && !ENABLE(STRUCTURE_ID_WITH_SHIFT)
+
+template<size_t minimumSize, size_t minimumAlignment, typename Tag>
+class RegionHeap {
+public:
+    static constexpr bmalloc_type heapType { BMALLOC_TYPE_INITIALIZER(minimumSize, minimumAlignment, "RegionHeap") };
+
+    static pas_primitive_heap_ref* heap()
+    {
+        static pas_primitive_heap_ref staticHeap { BMALLOC_AUXILIARY_HEAP_REF_INITIALIZER(&heapType, pas_bmalloc_heap_ref_kind_compact) };
+        return &staticHeap;
+    }
+
+    RegionHeap(std::span<uint8_t> reserved)
+        : m_reserved(reserved)
+    {
+        // Do not include the first minimumSize to make 0 as a special meaning.
+        bmalloc_force_auxiliary_heap_into_reserved_memory(heap(), std::bit_cast<uintptr_t>(reserved.data() + minimumSize),  std::bit_cast<uintptr_t>(reserved.data() + reserved.size()));
+    }
+
+    void* tryAllocate(size_t size, size_t alignment)
+    {
+        return bmalloc_try_allocate_auxiliary_with_alignment_inline(heap(), size, alignment, pas_always_compact_allocation_mode);
+    }
+
+    void free(void* pointer)
+    {
+        bmalloc_deallocate_inline(pointer);
+    }
+
+private:
+    std::span<uint8_t> m_reserved;
+};
+
+static constexpr size_t rttHeapSize = 1 * WTF::GB;
+using RTTHeap = RegionHeap<sizeof(RTT), alignof(RTT), RTT>;
+static RTTHeap& rttHeap()
+{
+    static LazyNeverDestroyed<RTTHeap> heap;
+    static std::once_flag onceKey;
+    std::call_once(onceKey,
+        [&] {
+            auto memory = reinterpret_cast<uint8_t*>(OSAllocator::tryReserveUncommittedAligned(rttHeapSize, rttHeapSize, OSAllocator::FastMallocPages));
+            RELEASE_ASSERT(memory);
+            heap.construct(std::span { memory, rttHeapSize });
+        });
+    return heap.get();
+}
+
+#endif
 
 RTT::RTT(RTTKind kind)
     : TrailingArrayType(1)
@@ -65,18 +129,16 @@ RTT::RTT(RTTKind kind, const RTT& supertype)
 
 RefPtr<RTT> RTT::tryCreate(RTTKind kind)
 {
-    auto result = tryFastMalloc(allocationSize(/* itself */ 1));
-    void* memory = nullptr;
-    if (!result.getValue(memory))
+    auto* memory = rttHeap().tryAllocate(allocationSize(/* itself */ 1), alignof(RTT));
+    if (!memory) [[unlikely]]
         return nullptr;
     return adoptRef(new (NotNull, memory) RTT(kind));
 }
 
 RefPtr<RTT> RTT::tryCreate(RTTKind kind, const RTT& supertype)
 {
-    auto result = tryFastMalloc(allocationSize(supertype.size() + 1));
-    void* memory = nullptr;
-    if (!result.getValue(memory))
+    auto* memory = rttHeap().tryAllocate(allocationSize(supertype.size() + 1), alignof(RTT));
+    if (!memory) [[unlikely]]
         return nullptr;
     return adoptRef(new (NotNull, memory) RTT(kind, supertype));
 }
@@ -84,7 +146,7 @@ RefPtr<RTT> RTT::tryCreate(RTTKind kind, const RTT& supertype)
 void RTT::operator delete(RTT* rtt, std::destroying_delete_t)
 {
     rtt->~RTT();
-    fastFree(rtt);
+    rttHeap().free(rtt);
 }
 
 bool RTT::isSubRTT(const RTT& parent) const
