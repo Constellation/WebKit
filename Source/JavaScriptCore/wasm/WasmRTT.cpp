@@ -126,7 +126,7 @@ RTT::RTT(RTTKind kind)
     , m_kind(kind)
     , m_displaySizeExcludingThis(size() - 1)
 {
-    at(0) = this;
+    at(0) = RTTID::encode(this);
 }
 
 RTT::RTT(RTTKind kind, const RTT& supertype)
@@ -136,7 +136,7 @@ RTT::RTT(RTTKind kind, const RTT& supertype)
 {
     ASSERT(supertype.size() == (supertype.displaySizeExcludingThis() + 1));
     memcpySpan(span(), supertype.span());
-    at(supertype.size()) = this;
+    at(supertype.size()) = RTTID::encode(this);
 }
 
 RefPtr<RTT> RTT::tryCreate(RTTKind kind)

@@ -196,10 +196,10 @@ struct RTTIDHash {
 };
 
 
-class RTT_ALIGNMENT RTT final : public ThreadSafeRefCounted<RTT>, private TrailingArray<RTT, const RTT*> {
+class RTT_ALIGNMENT RTT final : public ThreadSafeRefCounted<RTT>, private TrailingArray<RTT, RTTID> {
     WTF_DEPRECATED_MAKE_FAST_COMPACT_ALLOCATED(RTT);
     WTF_MAKE_NONMOVABLE(RTT);
-    using TrailingArrayType = TrailingArray<RTT, const RTT*>;
+    using TrailingArrayType = TrailingArray<RTT, RTTID>;
     friend TrailingArrayType;
 public:
     RTT() = delete;
@@ -211,7 +211,7 @@ public:
 
     RTTKind kind() const { return m_kind; }
     DisplayCount displaySizeExcludingThis() const { return m_displaySizeExcludingThis; }
-    const RTT* displayEntry(DisplayCount i) const { return at(i); }
+    const RTT* displayEntry(DisplayCount i) const { return at(i).decode(); }
 
     bool isSubRTT(const RTT& other) const;
     bool isStrictSubRTT(const RTT& other) const;
