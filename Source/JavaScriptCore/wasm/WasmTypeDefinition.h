@@ -268,7 +268,6 @@ using FunctionArgCount = uint32_t;
 using StructFieldCount = uint32_t;
 using RecursionGroupCount = uint32_t;
 using ProjectionIndex = uint32_t;
-using DisplayCount = uint32_t;
 using SupertypeCount = uint32_t;
 
 ALWAYS_INLINE Width Type::width() const

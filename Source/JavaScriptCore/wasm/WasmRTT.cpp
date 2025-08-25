@@ -81,6 +81,12 @@ RefPtr<RTT> RTT::tryCreate(RTTKind kind, const RTT& supertype)
     return adoptRef(new (NotNull, memory) RTT(kind, supertype));
 }
 
+void RTT::operator delete(RTT* rtt, std::destroying_delete_t)
+{
+    rtt->~RTT();
+    fastFree(rtt);
+}
+
 bool RTT::isSubRTT(const RTT& parent) const
 {
     if (displaySizeExcludingThis() < parent.displaySizeExcludingThis())

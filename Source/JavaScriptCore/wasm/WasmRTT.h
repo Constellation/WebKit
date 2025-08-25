@@ -54,6 +54,8 @@ enum class RTTKind : uint8_t {
     Struct
 };
 
+using DisplayCount = uint32_t;
+
 class RTT_ALIGNMENT RTT final : public ThreadSafeRefCounted<RTT>, private TrailingArray<RTT, const RTT*> {
     WTF_DEPRECATED_MAKE_FAST_COMPACT_ALLOCATED(RTT);
     WTF_MAKE_NONMOVABLE(RTT);
@@ -64,6 +66,8 @@ public:
 
     static RefPtr<RTT> tryCreate(RTTKind);
     static RefPtr<RTT> tryCreate(RTTKind, const RTT&);
+
+    void operator delete(RTT*, std::destroying_delete_t);
 
     RTTKind kind() const { return m_kind; }
     DisplayCount displaySizeExcludingThis() const { return m_displaySizeExcludingThis; }
