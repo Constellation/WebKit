@@ -165,14 +165,14 @@ bool RTT::isSubRTT(const RTT& parent) const
 {
     if (displaySizeExcludingThis() < parent.displaySizeExcludingThis())
         return false;
-    return &parent == displayEntry(parent.displaySizeExcludingThis());
+    return RTTID::encode(&parent) == displayEntry(parent.displaySizeExcludingThis());
 }
 
 bool RTT::isStrictSubRTT(const RTT& parent) const
 {
     if (displaySizeExcludingThis() <= parent.displaySizeExcludingThis())
         return false;
-    return &parent == displayEntry(parent.displaySizeExcludingThis());
+    return RTTID::encode(&parent) == displayEntry(parent.displaySizeExcludingThis());
 }
 
 } // namespace JSC::Wasm

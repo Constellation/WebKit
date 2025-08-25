@@ -211,7 +211,7 @@ public:
 
     RTTKind kind() const { return m_kind; }
     DisplayCount displaySizeExcludingThis() const { return m_displaySizeExcludingThis; }
-    const RTT* displayEntry(DisplayCount i) const { return at(i).decode(); }
+    RTTID displayEntry(DisplayCount i) const { return at(i); }
 
     bool isSubRTT(const RTT& other) const;
     bool isStrictSubRTT(const RTT& other) const;

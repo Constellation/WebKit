@@ -5928,9 +5928,9 @@ auto OMGIRGenerator::addCallIndirect(unsigned tableIndex, const TypeDefinition& 
 
         // Check if the display contains the supertype signature.
         m_currentBlock = checkIfSupertypeIsInDisplay;
-        Value* displayEntry = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), calleeRTT, safeCast<uint32_t>(RTT::offsetOfData() + signatureRTT->displaySizeExcludingThis() * sizeof(const RTT*)));
+        Value* displayEntry = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), calleeRTT, safeCast<uint32_t>(RTT::offsetOfData() + signatureRTT->displaySizeExcludingThis() * sizeof(RTTID)));
         m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(),
-            m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), displayEntry, constant(pointerType(), std::bit_cast<uintptr_t>(signatureRTT.ptr()))),
+            m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), displayEntry, constant(Int32, RTTID::encode(signatureRTT.ptr()).bits())),
             FrequentedBlock(continuation), FrequentedBlock(throwBlock, FrequencyClass::Rare));
     } else
         m_currentBlock->appendNewControlValue(m_proc, B3::Jump, origin(), throwBlock);
