@@ -2447,11 +2447,16 @@ void BBQJIT::emitRefTestOrCast(const TypedExpression& typedValue, GPRReg valueGP
                     failureCases.append(m_jit.branchIfNotCell(valueGPR, DoNotHaveTagRegisters));
                 if (!typedValue.type().definitelyIsWasmGCObjectOrNull())
                     failureCases.append(m_jit.branchIfNotType(valueGPR, JSType::WebAssemblyGCObjectType));
-                m_jit.emitLoadStructure(valueGPR, wasmScratchGPR);
 
+                if (signature.isFinalType()) {
+                    // If signature is final type and pointer equality failed, this value must not be a subtype.
+                    failureCases.append(m_jit.branch32(CCallHelpers::NotEqual, Address(valueGPR, WebAssemblyGCObjectBase::offsetOfRTTID()), TrustedImm32(RTTID::encode(targetRTT.ptr()).bits())));
+                    return;
+                }
+
+                m_jit.emitLoadStructure(valueGPR, wasmScratchGPR);
                 if (targetRTT->displaySizeExcludingThis() < WebAssemblyGCStructure::inlinedTypeDisplaySize) {
-                    m_jit.loadPtr(Address(wasmScratchGPR, WebAssemblyGCStructure::offsetOfInlinedTypeDisplay() + targetRTT->displaySizeExcludingThis() * sizeof(const RTT*)), wasmScratchGPR);
-                    failureCases.append(m_jit.branchPtr(CCallHelpers::NotEqual, wasmScratchGPR, TrustedImmPtr(targetRTT.ptr())));
+                    failureCases.append(m_jit.branch32(CCallHelpers::NotEqual, Address(wasmScratchGPR, WebAssemblyGCStructure::offsetOfInlinedTypeDisplay() + targetRTT->displaySizeExcludingThis() * sizeof(RTTID)), TrustedImm32(RTTID::encode(targetRTT.ptr()).bits())));
                     return;
                 }
                 m_jit.loadPtr(Address(wasmScratchGPR, WebAssemblyGCStructure::offsetOfRTT()), wasmScratchGPR);
@@ -2463,7 +2468,7 @@ void BBQJIT::emitRefTestOrCast(const TypedExpression& typedValue, GPRReg valueGP
             } else {
                 doneCases.append(m_jit.branchPtr(CCallHelpers::Equal, wasmScratchGPR, TrustedImmPtr(targetRTT.ptr())));
                 failureCases.append(m_jit.branch32(CCallHelpers::BelowOrEqual, Address(wasmScratchGPR, RTT::offsetOfDisplaySizeExcludingThis()), TrustedImm32(targetRTT->displaySizeExcludingThis())));
-                failureCases.append(m_jit.branchPtr(CCallHelpers::NotEqual, Address(wasmScratchGPR, (RTT::offsetOfData() + targetRTT->displaySizeExcludingThis() * sizeof(const RTT*))), TrustedImmPtr(targetRTT.ptr())));
+                failureCases.append(m_jit.branch32(CCallHelpers::NotEqual, Address(wasmScratchGPR, (RTT::offsetOfData() + targetRTT->displaySizeExcludingThis() * sizeof(RTTID))), TrustedImm32(RTTID::encode(targetRTT.ptr()).bits())));
             }
         }());
     }
