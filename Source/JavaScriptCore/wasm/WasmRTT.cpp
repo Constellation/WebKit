@@ -74,8 +74,8 @@ public:
     RegionHeap(std::span<uint8_t> reserved)
         : m_reserved(reserved)
     {
-        // Do not include the first minimumSize to make 0 as a special meaning.
-        bmalloc_force_auxiliary_heap_into_reserved_memory(heap(), std::bit_cast<uintptr_t>(reserved.data() + minimumSize),  std::bit_cast<uintptr_t>(reserved.data() + reserved.size()));
+        // Do not include the first minimumSize * 2 region to make 0 and 1 as a special meaning.
+        bmalloc_force_auxiliary_heap_into_reserved_memory(heap(), std::bit_cast<uintptr_t>(reserved.data() + minimumSize * 2),  std::bit_cast<uintptr_t>(reserved.data() + reserved.size()));
     }
 
     void* tryAllocate(size_t size, size_t alignment)

@@ -90,9 +90,7 @@ class RTTID {
 public:
 #if ENABLE(WASM_RTT_ID_WITH_SHIFT)
     // ENABLE(WASM_RTT_ID_WITH_SHIFT) is used when our virtual memory space is limited (specifically, less than or equal to 36 bit) while pointer is 64 bit.
-    // In that case, we round up RTTs size with 32 bytes instead of 16 bytes. This ensures that lower 5 bit become zero for RTT.
-    // By shifting this address with 4, we can encode 36 bit address into 32 bit RTTID. And we can ensure that RTTID's lowest bit is still zero
-    // because we round RTT size with 32 bytes. This lowest bit is used for nuke bit.
+    // By shifting this address with 4, we can encode 36 bit address into 32 bit RTTID.
     static constexpr unsigned encodeShiftAmount = 4;
 #elif CPU(ADDRESS64)
     static constexpr CPURegister rttIDMask = rttHeapAddressSize - 1;
