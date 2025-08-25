@@ -38,7 +38,7 @@ WebAssemblyGCStructure::WebAssemblyGCStructure(VM& vm, JSGlobalObject* globalObj
     , m_type(WTFMove(type))
 {
     for (unsigned i = 0; i < std::min((m_rtt->displaySizeExcludingThis() + 1), inlinedTypeDisplaySize); ++i)
-        m_inlinedTypeDisplay[i] = m_rtt->displayEntry(i);
+        m_inlinedTypeDisplay[i] = Wasm::RTTID::encode(m_rtt->displayEntry(i));
 }
 
 WebAssemblyGCStructure::WebAssemblyGCStructure(VM& vm, WebAssemblyGCStructure* previous)
