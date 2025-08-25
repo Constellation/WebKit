@@ -58,7 +58,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC::Wasm {
 
-#if CPU(ADDRESS64) && !ENABLE(STRUCTURE_ID_WITH_SHIFT)
+#if CPU(ADDRESS64) && !ENABLE(WASM_RTT_ID_WITH_SHIFT)
 
 template<size_t minimumSize, size_t minimumAlignment, typename Tag>
 class RegionHeap {
@@ -88,6 +88,9 @@ public:
         bmalloc_deallocate_inline(pointer);
     }
 
+    uintptr_t startAddress() { return std::bit_cast<uintptr_t>(m_reserved.data()); }
+    size_t size() { return m_reserved.size(); }
+
 private:
     std::span<uint8_t> m_reserved;
 };
@@ -105,6 +108,16 @@ static RTTHeap& rttHeap()
             heap.construct(std::span { memory, rttHeapSize });
         });
     return heap.get();
+}
+
+uintptr_t RTTID::startOfRTTHeap()
+{
+    return rttHeap().startAddress();
+}
+
+size_t RTTID::sizeOfRTTHeap()
+{
+    return rttHeap().size();
 }
 
 #endif
