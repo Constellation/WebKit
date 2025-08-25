@@ -31,6 +31,7 @@
 #include "JSObject.h"
 #include "WasmTypeDefinition.h"
 #include "WebAssemblyGCStructure.h"
+#include "WasmRTT.h"
 
 namespace JSC {
 
@@ -45,6 +46,8 @@ public:
 
     const WebAssemblyGCStructure* gcStructure() const { return uncheckedDowncast<WebAssemblyGCStructure>(structure()); }
     Ref<const Wasm::RTT> rtt() const { return gcStructure()->rtt(); }
+
+    static constexpr ptrdiff_t offsetOfRTTID() { return OBJECT_OFFSETOF(WebAssemblyGCObjectBase, m_rttID); }
 
 protected:
     WebAssemblyGCObjectBase(VM&, WebAssemblyGCStructure*);
@@ -63,6 +66,8 @@ protected:
     JS_EXPORT_PRIVATE static bool setPrototype(JSObject*, JSGlobalObject*, JSValue, bool shouldThrowIfCantSet);
     JS_EXPORT_PRIVATE static bool isExtensible(JSObject*, JSGlobalObject*);
     JS_EXPORT_PRIVATE static bool preventExtensions(JSObject*, JSGlobalObject*);
+
+    const Wasm::RTTID m_rttID { };
 };
 
 } // namespace JSC
