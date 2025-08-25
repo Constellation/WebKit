@@ -3747,7 +3747,7 @@ void OMGIRGenerator::emitRefTestOrCast(CastKind castKind, TypedExpression refere
 
                 if (signature.isFinalType()) {
                     Value* rttID = m_currentBlock->appendNew<MemoryValue>(m_proc, B3::Load, Int32, origin(), value, safeCast<int32_t>(WebAssemblyGCObjectBase::offsetOfRTTID()));
-                    auto* targetRTTID = constant(Int32, std::bit_cast<uint32_t>(RTTID::encode(targetRTT.ptr()).bits()));
+                    auto* targetRTTID = constant(Int32, RTTID::encode(targetRTT.ptr()).bits());
                     emitCheckOrBranchForCast(castKind, m_currentBlock->appendNew<Value>(m_proc, NotEqual, origin(), rttID, targetRTTID), castFailure, falseBlock);
                     return;
                 }
@@ -3756,7 +3756,7 @@ void OMGIRGenerator::emitRefTestOrCast(CastKind castKind, TypedExpression refere
                 structure = decodeNonNullStructure(structureID);
                 if (targetRTT->displaySizeExcludingThis() < WebAssemblyGCStructure::inlinedTypeDisplaySize) {
                     auto* rttID = m_currentBlock->appendNew<MemoryValue>(m_proc, B3::Load, Int32, origin(), structure, safeCast<uint32_t>(WebAssemblyGCStructure::offsetOfInlinedTypeDisplay() + targetRTT->displaySizeExcludingThis() * sizeof(RTTID)));
-                    auto* targetRTTID = constant(Int32, std::bit_cast<uint32_t>(RTTID::encode(targetRTT.ptr()).bits()));
+                    auto* targetRTTID = constant(Int32, RTTID::encode(targetRTT.ptr()).bits());
                     emitCheckOrBranchForCast(castKind, m_currentBlock->appendNew<Value>(m_proc, NotEqual, origin(), rttID, targetRTTID), castFailure, falseBlock);
                     return;
                 }
@@ -5956,9 +5956,9 @@ auto OMGIRGenerator::addCallIndirect(unsigned tableIndex, const TypeDefinition& 
 
         // Check if the display contains the supertype signature.
         m_currentBlock = checkIfSupertypeIsInDisplay;
-        Value* displayEntry = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), calleeRTT, safeCast<uint32_t>(RTT::offsetOfData() + signatureRTT->displaySizeExcludingThis() * sizeof(const RTT*)));
+        Value* displayEntry = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), calleeRTT, safeCast<uint32_t>(RTT::offsetOfData() + signatureRTT->displaySizeExcludingThis() * sizeof(RTTID)));
         m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(),
-            m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), displayEntry, constant(pointerType(), std::bit_cast<uintptr_t>(signatureRTT.ptr()))),
+            m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), displayEntry, constant(Int32, RTTID::encode(signatureRTT.ptr()).bits())),
             FrequentedBlock(continuation), FrequentedBlock(throwBlock, FrequencyClass::Rare));
     } else
         m_currentBlock->appendNewControlValue(m_proc, B3::Jump, origin(), throwBlock);
