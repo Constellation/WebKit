@@ -456,7 +456,7 @@ public:
         return *m_signatures[index];
     }
 
-    bool doesCalls() const { return m_numCallSlots; }
+    unsigned numCallSlots() const { return m_numCallSlots; }
 
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
