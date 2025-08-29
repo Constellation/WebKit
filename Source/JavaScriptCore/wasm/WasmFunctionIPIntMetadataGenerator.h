@@ -93,8 +93,6 @@ public:
 
     unsigned addSignature(const TypeDefinition&);
 
-    bool doesCalls() const { return !!m_callSlotIndex; }
-
     unsigned addCallSlotIndex() { return m_callSlotIndex++; }
 
 private:

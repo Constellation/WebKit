@@ -456,7 +456,7 @@ public:
         return *m_signatures[index];
     }
 
-    bool doesCalls() const { return m_doesCalls; }
+    bool doesCalls() const { return m_numCallSlots; }
 
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
@@ -486,8 +486,7 @@ private:
     unsigned m_numLocals;
     unsigned m_numArgumentsOnStack;
     unsigned m_maxFrameSizeInV128;
-
-    bool m_doesCalls;
+    unsigned m_numCallSlots;
 
     IPIntTierUpCounter m_tierUpCounter;
 };

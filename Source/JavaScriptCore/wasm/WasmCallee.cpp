@@ -245,7 +245,7 @@ IPIntCallee::IPIntCallee(FunctionIPIntMetadataGenerator& generator, FunctionSpac
     , m_numArgumentsOnStack(generator.m_numArgumentsOnStack)
     , m_maxFrameSizeInV128(generator.m_maxFrameSizeInV128)
     , m_tierUpCounter(WTFMove(generator.m_tierUpCounter))
-    , m_doesCalls(generator.doesCalls())
+    , m_numCallSlots(generator.m_callSlotIndex)
 {
     if (size_t count = generator.m_exceptionHandlers.size()) {
         m_exceptionHandlers = FixedVector<HandlerInfo>(count);
