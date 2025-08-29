@@ -2248,6 +2248,7 @@ private:
     int m_frameSize { 0 };
     int m_maxCalleeStackSize { 0 };
     int m_localStorage { 0 }; // Stack offset pointing to the local with the lowest address.
+    unsigned m_callSlotIndex { 0 };
     bool m_usesSIMD { false }; // Whether the function we are compiling uses SIMD instructions or not.
     bool m_usesExceptions { false };
     Checked<unsigned> m_tryCatchDepth { 0 };

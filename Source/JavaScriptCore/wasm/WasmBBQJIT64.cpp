@@ -5450,6 +5450,8 @@ void BBQJIT::emitMove(StorageType type, Value src, Address dst)
 
 PartialResult WARN_UNUSED_RETURN BBQJIT::addCallRef(const TypeDefinition& originalSignature, ArgumentList& args, ResultList& results, CallType callType)
 {
+    unsigned callSlotIndex = m_callSlotIndex++;
+    UNUSED_PARAM(callSlotIndex);
     Value callee = args.takeLast();
     const TypeDefinition& signature = originalSignature.expand();
     ASSERT(signature.as<FunctionSignature>()->argumentCount() == args.size());
