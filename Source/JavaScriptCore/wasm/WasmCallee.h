@@ -412,6 +412,11 @@ public:
         return m_stackCheckSize;
     }
 
+    void addCallSlots(unsigned numCallSlots)
+    {
+        m_callSlots = FixedVector<CallSlot>(numCallSlots);
+    }
+
 private:
     BBQCallee(FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name, SavedFPWidth savedFPWidth)
         : OptimizingJITCallee(Wasm::CompilationMode::BBQMode, index, WTFMove(name))
@@ -457,6 +462,7 @@ public:
     }
 
     FixedVector<CallSlot>& callSlots() { return m_callSlots; }
+    const FixedVector<CallSlot>& callSlots() const { return m_callSlots; }
 
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
