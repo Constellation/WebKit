@@ -45,6 +45,7 @@
 #include "MacroAssembler.h"
 #include "RegisterSet.h"
 #include "WasmBBQDisassembler.h"
+#include "WasmCallSlot.h"
 #include "WasmCallingConvention.h"
 #include "WasmCompilationMode.h"
 #include "WasmFormat.h"
@@ -735,6 +736,12 @@ bool BBQJIT::canTierUpToOMG() const
         return false;
     }
     return true;
+}
+
+void BBQJIT::emitIncrementCallSlotCount(unsigned callSlotIndex)
+{
+    auto& slot = m_callee.callSlots()[callSlotIndex];
+    m_jit.add32(TrustedImm32(1), CCallHelpers::AbsoluteAddress(&slot.m_count));
 }
 
 void BBQJIT::setParser(FunctionParser<BBQJIT>* parser)
@@ -4243,7 +4250,7 @@ void BBQJIT::emitTailCall(FunctionSpaceIndex functionIndexSpace, const TypeDefin
 PartialResult WARN_UNUSED_RETURN BBQJIT::addCall(FunctionSpaceIndex functionIndexSpace, const TypeDefinition& signature, ArgumentList& arguments, ResultList& results, CallType callType)
 {
     unsigned callSlotIndex = m_callSlotIndex++;
-    UNUSED_PARAM(callSlotIndex);
+    emitIncrementCallSlotCount(callSlotIndex);
     JIT_COMMENT(m_jit, "calling functionIndexSpace: ", functionIndexSpace, ConditionalDump(!m_info.isImportedFunctionFromFunctionIndexSpace(functionIndexSpace), " functionIndex: ", functionIndexSpace - m_info.importFunctionCount()));
 
     if (callType == CallType::TailCall) {
@@ -4469,7 +4476,7 @@ void BBQJIT::emitIndirectTailCall(const char* opcode, const Value& callee, GPRRe
 PartialResult WARN_UNUSED_RETURN BBQJIT::addCallIndirect(unsigned tableIndex, const TypeDefinition& originalSignature, ArgumentList& args, ResultList& results, CallType callType)
 {
     unsigned callSlotIndex = m_callSlotIndex++;
-    UNUSED_PARAM(callSlotIndex);
+    emitIncrementCallSlotCount(callSlotIndex);
     Value calleeIndex = args.takeLast();
     const TypeDefinition& signature = originalSignature.expand();
     ASSERT(signature.as<FunctionSignature>()->argumentCount() == args.size());

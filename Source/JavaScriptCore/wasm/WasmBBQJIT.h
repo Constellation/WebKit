@@ -2216,6 +2216,8 @@ private:
 
     bool canTierUpToOMG() const;
 
+    void emitIncrementCallSlotCount(unsigned callSlotIndex);
+
     CCallHelpers& m_jit;
     CalleeGroup& m_calleeGroup;
     IPIntCallee& m_profiledCallee;
