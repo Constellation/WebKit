@@ -2048,6 +2048,7 @@
 		E386FD7E26E867B800E4C28B /* TemporalPlainTime.h in Headers */ = {isa = PBXBuildFile; fileRef = E386FD7826E867B800E4C28B /* TemporalPlainTime.h */; };
 		E386FD7F26E867B800E4C28B /* TemporalPlainTimePrototype.h in Headers */ = {isa = PBXBuildFile; fileRef = E386FD7926E867B800E4C28B /* TemporalPlainTimePrototype.h */; };
 		E389D854291226BC0085C3DC /* PageCount.h in Headers */ = {isa = PBXBuildFile; fileRef = E389D852291226BC0085C3DC /* PageCount.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E38CA06F2E614C0C00041A0C /* WasmCallSlot.h in Headers */ = {isa = PBXBuildFile; fileRef = E38CA06E2E614C0C00041A0C /* WasmCallSlot.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E38DAB532A95D23A0050B7A8 /* PerfLog.h in Headers */ = {isa = PBXBuildFile; fileRef = E38DAB512A95D23A0050B7A8 /* PerfLog.h */; };
 		E38DB2E727F588F80027BD3F /* ScriptExecutableInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E38DB2E627F588F70027BD3F /* ScriptExecutableInlines.h */; };
 		E38DE55C2C4A11C700EF7055 /* CharacterPropertyDataGenerator.h in Headers */ = {isa = PBXBuildFile; fileRef = E38DE55A2C4A11AD00EF7055 /* CharacterPropertyDataGenerator.h */; };
@@ -5830,6 +5831,7 @@
 		E3893A1C2203A7C600E79A74 /* AsyncFromSyncIteratorPrototype.lut.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AsyncFromSyncIteratorPrototype.lut.h; sourceTree = "<group>"; };
 		E389D851291226BC0085C3DC /* PageCount.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PageCount.cpp; sourceTree = "<group>"; };
 		E389D852291226BC0085C3DC /* PageCount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PageCount.h; sourceTree = "<group>"; };
+		E38CA06E2E614C0C00041A0C /* WasmCallSlot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmCallSlot.h; sourceTree = "<group>"; };
 		E38D060B1F8E814100649CF2 /* JSScriptFetchParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSScriptFetchParameters.h; sourceTree = "<group>"; };
 		E38D060C1F8E814100649CF2 /* ScriptFetchParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptFetchParameters.h; sourceTree = "<group>"; };
 		E38D060D1F8E814100649CF2 /* JSScriptFetchParameters.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSScriptFetchParameters.cpp; sourceTree = "<group>"; };
@@ -7924,6 +7926,7 @@
 				526AC4B51E977C5D003500E1 /* WasmCalleeGroup.h */,
 				53FD04D11D7AB187003287D3 /* WasmCallingConvention.cpp */,
 				53FD04D21D7AB187003287D3 /* WasmCallingConvention.h */,
+				E38CA06E2E614C0C00041A0C /* WasmCallSlot.h */,
 				E337B966224324E50093A820 /* WasmCapabilities.h */,
 				E32D51A52C6D0FD600B013D1 /* WasmCompilationContext.h */,
 				E37CFB2D22F27C57009A7B38 /* WasmCompilationMode.cpp */,
@@ -12094,6 +12097,7 @@
 				525C0DDA1E935847002184CD /* WasmCallee.h in Headers */,
 				526AC4B71E977C5D003500E1 /* WasmCalleeGroup.h in Headers */,
 				53FD04D41D7AB291003287D3 /* WasmCallingConvention.h in Headers */,
+				E38CA06F2E614C0C00041A0C /* WasmCallSlot.h in Headers */,
 				E337B967224324EA0093A820 /* WasmCapabilities.h in Headers */,
 				E32D51AF2C6D0FF200B013D1 /* WasmCompilationContext.h in Headers */,
 				E3BD2B7622F275020011765C /* WasmCompilationMode.h in Headers */,

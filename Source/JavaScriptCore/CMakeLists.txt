@@ -1395,6 +1395,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     tools/SourceProfiler.h
 
     wasm/WasmBranchHints.h
+    wasm/WasmCallSlot.h
     wasm/WasmCallee.h
     wasm/WasmCalleeGroup.h
     wasm/WasmCallingConvention.h
