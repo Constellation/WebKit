@@ -412,6 +412,13 @@ public:
         return m_stackCheckSize;
     }
 
+    void addCallSlots(unsigned numCallSlots)
+    {
+        m_callSlots = FixedVector<CallSlot>(numCallSlots);
+    }
+
+    FixedVector<CallSlot>& callSlots() { return m_callSlots; }
+
 private:
     BBQCallee(FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name, SavedFPWidth savedFPWidth)
         : OptimizingJITCallee(Wasm::CompilationMode::BBQMode, index, WTFMove(name))
@@ -421,6 +428,7 @@ private:
 
     RefPtr<OMGOSREntryCallee> m_osrEntryCallee;
     TierUpCount m_tierUpCounter;
+    FixedVector<CallSlot> m_callSlots;
     std::optional<CodeLocationLabel<WasmEntryPtrTag>> m_sharedLoopEntrypoint;
     Vector<CodeLocationLabel<WasmEntryPtrTag>> m_loopEntrypoints;
     unsigned m_osrEntryScratchBufferSize { 0 };
