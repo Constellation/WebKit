@@ -57,6 +57,7 @@ class PCToOriginMap;
 
 namespace Wasm {
 
+class CallSlot;
 class CalleeGroup;
 
 class Callee : public NativeCallee {

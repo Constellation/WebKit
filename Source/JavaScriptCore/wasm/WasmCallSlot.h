@@ -36,6 +36,7 @@ namespace JSC::Wasm {
 class CallSlot {
 public:
     uint32_t count() const { return m_count; }
+
     uint32_t m_count { 0 };
 };
 

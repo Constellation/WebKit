@@ -37,6 +37,7 @@
 #include "NativeCalleeRegistry.h"
 #include "PCToCodeOriginMap.h"
 #include "VMManager.h"
+#include "WasmCallSlot.h"
 #include "WasmCallingConvention.h"
 #include "WasmModuleInformation.h"
 #include "WebAssemblyBuiltin.h"

@@ -993,8 +993,6 @@ private:
     // This tracks the maximum stack offset for a tail call, to be used in the stack overflow check.
     Checked<int32_t> m_tailCallStackOffsetFromFP { 0 };
 
-    bool m_hasExceptionHandlers;
-
     Value* m_instanceValue { nullptr };
     Value* m_baseMemoryValue { nullptr };
     Value* m_boundsCheckingSizeValue { nullptr };
@@ -6062,8 +6060,9 @@ static bool shouldDumpIRFor(uint32_t functionIndex)
     return dumpAllowlist->shouldDumpWasmFunction(functionIndex);
 }
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext& compilationContext, IPIntCallee&, OptimizingJITCallee& callee, const FunctionData& function, const TypeDefinition& signature, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, CalleeGroup& calleeGroup, const ModuleInformation& info, MemoryMode mode, CompilationMode compilationMode, FunctionCodeIndex functionIndex, bool hasExceptionHandlers, uint32_t loopIndexForOSREntry)
+Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext& compilationContext, IPIntCallee& profiledCallee, OptimizingJITCallee& callee, const FunctionData& function, const TypeDefinition& signature, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, CalleeGroup& calleeGroup, const ModuleInformation& info, MemoryMode mode, CompilationMode compilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry)
 {
+    bool hasExceptionHandlers = profiledCallee.hasExceptionHandlers();
     CompilerTimingScope totalScope("B3"_s, "Total OMG compilation"_s);
 
     Wasm::Thunks::singleton().stub(Wasm::catchInWasmThunkGenerator);
