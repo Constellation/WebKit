@@ -38,6 +38,8 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC { namespace Wasm {
 
+class IPIntCallee;
+
 namespace BBQJITImpl {
 
 class BBQJIT {
@@ -1071,7 +1073,7 @@ public:
     static constexpr bool tierSupportsSIMD = true;
     static constexpr bool validateFunctionBodySize = true;
 
-    BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup&, BBQCallee& callee, const FunctionData& function, FunctionCodeIndex functionIndex, const ModuleInformation& info, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, MemoryMode mode, InternalFunction* compilation, bool hasExceptionHandlers, unsigned loopIndexForOSREntry);
+    BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup&, IPIntCallee& profiledCallee, BBQCallee& callee, const FunctionData& function, FunctionCodeIndex functionIndex, const ModuleInformation& info, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, MemoryMode mode, InternalFunction* compilation);
 
     ALWAYS_INLINE static Value emptyExpression()
     {
@@ -2216,6 +2218,7 @@ private:
 
     CCallHelpers& m_jit;
     CalleeGroup& m_calleeGroup;
+    IPIntCallee& m_profiledCallee;
     BBQCallee& m_callee;
     const FunctionData& m_function;
     const FunctionSignature* m_functionSignature;
@@ -2224,11 +2227,9 @@ private:
     MemoryMode m_mode;
     Vector<UnlinkedWasmToWasmCall>& m_unlinkedWasmToWasmCalls;
     FixedBitVector m_directCallees;
-    bool m_hasExceptionHandlers;
     FunctionParser<BBQJIT>* m_parser;
     Vector<uint32_t, 4> m_arguments;
     ControlData m_topLevel;
-    unsigned m_loopIndexForOSREntry;
     Vector<unsigned> m_outerLoops;
     unsigned m_osrEntryScratchBufferSize { 1 };
 
@@ -2285,11 +2286,8 @@ using MinOrMax = BBQJIT::MinOrMax;
 
 } // namespace JSC::Wasm::BBQJITImpl
 
-class BBQCallee;
-class CalleeGroup;
-
 using BBQJIT = BBQJITImpl::BBQJIT;
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileBBQ(CompilationContext&, BBQCallee&, const FunctionData&, const TypeDefinition&, Vector<UnlinkedWasmToWasmCall>&, CalleeGroup&, const ModuleInformation&, MemoryMode, FunctionCodeIndex functionIndex, bool hasExceptionHandlers, unsigned);
+Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileBBQ(CompilationContext&, IPIntCallee&, BBQCallee&, const FunctionData&, const TypeDefinition&, Vector<UnlinkedWasmToWasmCall>&, CalleeGroup&, const ModuleInformation&, MemoryMode, FunctionCodeIndex functionIndex);
 
 } } // namespace JSC::Wasm
 
