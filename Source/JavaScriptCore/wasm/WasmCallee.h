@@ -456,6 +456,8 @@ public:
         return *m_signatures[index];
     }
 
+    bool doesCalls() const { return m_doesCalls; }
+
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
     using OutOfLineJumpTargets = UncheckedKeyHashMap<unsigned, int>;
@@ -484,6 +486,8 @@ private:
     unsigned m_numLocals;
     unsigned m_numArgumentsOnStack;
     unsigned m_maxFrameSizeInV128;
+
+    bool m_doesCalls;
 
     IPIntTierUpCounter m_tierUpCounter;
 };

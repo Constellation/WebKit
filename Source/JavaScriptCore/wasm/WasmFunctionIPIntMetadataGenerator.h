@@ -93,6 +93,10 @@ public:
 
     unsigned addSignature(const TypeDefinition&);
 
+    bool doesCalls() const { return !!m_callSlotIndex; }
+
+    unsigned addCallSlotIndex() { return m_callSlotIndex++; }
+
 private:
     struct MetadataBufferMalloc final : public FastMalloc {
         static constexpr ALWAYS_INLINE size_t nextCapacity(size_t capacity) { return capacity + capacity; }
@@ -132,6 +136,7 @@ private:
     unsigned m_numArguments { 0 };
     unsigned m_numArgumentsOnStack { 0 };
     unsigned m_nonArgLocalOffset { 0 };
+    unsigned m_callSlotIndex { 0 };
     Vector<uint8_t, 16> m_argumINTBytecode { };
 
     Vector<const TypeDefinition*> m_signatures;
