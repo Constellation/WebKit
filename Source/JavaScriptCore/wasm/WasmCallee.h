@@ -412,13 +412,6 @@ public:
         return m_stackCheckSize;
     }
 
-    void addCallSlots(unsigned numCallSlots)
-    {
-        m_callSlots = FixedVector<CallSlot>(numCallSlots);
-    }
-
-    FixedVector<CallSlot>& callSlots() { return m_callSlots; }
-
 private:
     BBQCallee(FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name, SavedFPWidth savedFPWidth)
         : OptimizingJITCallee(Wasm::CompilationMode::BBQMode, index, WTFMove(name))
@@ -428,7 +421,6 @@ private:
 
     RefPtr<OMGOSREntryCallee> m_osrEntryCallee;
     TierUpCount m_tierUpCounter;
-    FixedVector<CallSlot> m_callSlots;
     std::optional<CodeLocationLabel<WasmEntryPtrTag>> m_sharedLoopEntrypoint;
     Vector<CodeLocationLabel<WasmEntryPtrTag>> m_loopEntrypoints;
     unsigned m_osrEntryScratchBufferSize { 0 };
@@ -464,7 +456,7 @@ public:
         return *m_signatures[index];
     }
 
-    unsigned numCallSlots() const { return m_numCallSlots; }
+    FixedVector<CallSlot>& callSlots() { return m_callSlots; }
 
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
@@ -494,7 +486,8 @@ private:
     unsigned m_numLocals;
     unsigned m_numArgumentsOnStack;
     unsigned m_maxFrameSizeInV128;
-    unsigned m_numCallSlots;
+
+    FixedVector<CallSlot> m_callSlots;
 
     IPIntTierUpCounter m_tierUpCounter;
 };

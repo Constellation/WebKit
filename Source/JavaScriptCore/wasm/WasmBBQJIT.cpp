@@ -719,8 +719,6 @@ BBQJIT::BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup& 
         m_arguments.append(i);
     }
     m_localStorage = m_frameSize; // All stack slots allocated so far are locals.
-
-    m_callee.addCallSlots(m_profiledCallee.numCallSlots());
 }
 
 bool BBQJIT::canTierUpToOMG() const
@@ -740,7 +738,7 @@ bool BBQJIT::canTierUpToOMG() const
 
 void BBQJIT::emitIncrementCallSlotCount(unsigned callSlotIndex)
 {
-    auto& slot = m_callee.callSlots()[callSlotIndex];
+    auto& slot = m_profiledCallee.callSlots()[callSlotIndex];
     m_jit.add32(TrustedImm32(1), CCallHelpers::AbsoluteAddress(&slot.m_count));
 }
 
