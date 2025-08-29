@@ -58,6 +58,7 @@
 #include "ProbeContext.h"
 #include "ScratchRegisterAllocator.h"
 #include "WasmBranchHints.h"
+#include "WasmCallSlot.h"
 #include "WasmCallingConvention.h"
 #include "WasmContext.h"
 #include "WasmExceptionType.h"
