@@ -412,11 +412,6 @@ public:
         return m_stackCheckSize;
     }
 
-    void addCallSlots(unsigned numCallSlots)
-    {
-        m_callSlots = FixedVector<CallSlot>(numCallSlots);
-    }
-
 private:
     BBQCallee(FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name, SavedFPWidth savedFPWidth)
         : OptimizingJITCallee(Wasm::CompilationMode::BBQMode, index, WTFMove(name))
