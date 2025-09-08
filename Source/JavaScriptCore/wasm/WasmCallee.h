@@ -345,6 +345,7 @@ private:
 
 class BBQCallee final : public OptimizingJITCallee {
     WTF_MAKE_COMPACT_TZONE_ALLOCATED(BBQCallee);
+    friend class Callee;
 public:
     static constexpr unsigned extraOSRValuesForLoopIndex = 1;
 
@@ -399,14 +400,14 @@ public:
         return m_stackCheckSize;
     }
 
-    JS_EXPORT_PRIVATE const RegisterAtOffsetList* calleeSaveRegistersImpl();
-
 private:
     BBQCallee(FunctionSpaceIndex index, std::pair<const Name*, RefPtr<NameSection>>&& name, SavedFPWidth savedFPWidth)
         : OptimizingJITCallee(Wasm::CompilationMode::BBQMode, index, WTFMove(name))
         , m_savedFPWidth(savedFPWidth)
     {
     }
+
+    JS_EXPORT_PRIVATE const RegisterAtOffsetList* calleeSaveRegistersImpl();
 
     RefPtr<OMGOSREntryCallee> m_osrEntryCallee;
     TierUpCount m_tierUpCounter;

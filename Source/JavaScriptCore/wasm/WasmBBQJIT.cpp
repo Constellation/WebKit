@@ -707,6 +707,11 @@ BBQJIT::BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup& 
     }
 
     CallInformation callInfo = wasmCallingConvention().callInformationFor(signature.expand(), CallRole::Callee);
+
+    // Allocate callee save register spaces.
+    for (auto& _ : RegisterAtOffsetList::bbqCalleeSaveRegisters())
+        allocateStack(Value::fromPointer(nullptr));
+
     ASSERT(callInfo.params.size() == m_functionSignature->argumentCount());
     for (unsigned i = 0; i < m_functionSignature->argumentCount(); i ++) {
         const Type& type = m_functionSignature->argumentType(i);
@@ -718,7 +723,7 @@ BBQJIT::BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup& 
         bind(parameter, Location::fromArgumentLocation(callInfo.params[i], type.kind));
         m_arguments.append(i);
     }
-    m_localStorage = m_frameSize; // All stack slots allocated so far are locals.
+    m_localAndCalleeSaveStorage = m_frameSize; // All stack slots allocated so far are locals.
 }
 
 bool BBQJIT::canTierUpToOMG() const
@@ -821,7 +826,7 @@ PartialResult BBQJIT::addLocal(Type type, uint32_t numberOfLocals)
     for (uint32_t i = 0; i < numberOfLocals; i ++) {
         uint32_t localIndex = m_locals.size();
         m_localSlots.append(allocateStack(Value::fromLocal(type.kind, localIndex)));
-        m_localStorage = m_frameSize;
+        m_localAndCalleeSaveStorage = m_frameSize;
         m_locals.append(m_localSlots.last());
         m_localTypes.append(type.kind);
     }
@@ -2997,6 +3002,8 @@ ControlData WARN_UNUSED_RETURN BBQJIT::addTopLevel(BlockSignature signature)
 
     m_pcToCodeOriginMapBuilder.appendItem(m_jit.label(), PCToCodeOriginMapBuilder::defaultCodeOrigin());
     m_jit.emitFunctionPrologue();
+    emitSaveCalleeSaves();
+
     m_topLevel = ControlData(*this, BlockType::TopLevel, signature, 0);
 
     JIT_COMMENT(m_jit, "Store boxed JIT callee");
@@ -3163,6 +3170,7 @@ MacroAssembler::Label BBQJIT::addLoopOSREntrypoint()
     //  - Don't need to zero our locals, since they are restored from the OSR entry scratch buffer anyway.
     auto label = m_jit.label();
     m_jit.emitFunctionPrologue();
+    emitSaveCalleeSaves();
 
     m_jit.move(CCallHelpers::TrustedImmPtr(CalleeBits::boxNativeCallee(&m_callee)), wasmScratchGPR);
     static_assert(CallFrameSlot::codeBlock + 1 == CallFrameSlot::callee);
@@ -3345,6 +3353,8 @@ void BBQJIT::emitLoopTierUpCheckAndOSREntryData(const ControlData& data, Stack& 
         Probe::SavedFPWidth savedFPWidth = generator.m_usesSIMD ? Probe::SavedFPWidth::SaveVectors : Probe::SavedFPWidth::DontSaveVectors; // By the time we reach the late path, we should know whether or not the function uses SIMD.
         jit.probe(tagCFunction<JITProbePtrTag>(operationWasmTriggerOSREntryNow), osrEntryDataPtr, savedFPWidth);
         jit.branchTestPtr(CCallHelpers::Zero, GPRInfo::nonPreservedNonArgumentGPR0).linkTo(tierUpResume, &jit);
+
+        // operationWasmTriggerOSREntryNow is already restoring callee saves. Thus we do not need to restore them before jumping.
         jit.farJump(GPRInfo::nonPreservedNonArgumentGPR0, WasmEntryPtrTag);
     });
 #else
@@ -3670,6 +3680,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addReturn(const ControlData& data, cons
         }
     }
 
+    emitRestoreCalleeSaves();
     m_jit.emitFunctionEpilogue();
     m_jit.ret();
     return { };
@@ -4154,12 +4165,14 @@ void BBQJIT::emitTailCall(FunctionSpaceIndex functionIndexSpace, const TypeDefin
     parameterLocations.reserveInitialCapacity(arguments.size() + isX86());
 
     // Save the old Frame Pointer for later and make sure the return address gets saved to its canonical location.
+    emitRestoreCalleeSaves();
     auto preserved = callingConvention.argumentGPRs();
     if constexpr (isARM64E())
         preserved.add(callingConvention.prologueScratchGPRs[0], IgnoreVectors);
     ScratchScope<1, 0> scratches(*this, WTFMove(preserved));
     GPRReg callerFramePointer = scratches.gpr(0);
     scratches.unbindPreserved();
+
 #if CPU(X86_64)
     m_jit.loadPtr(Address(MacroAssembler::framePointerRegister), callerFramePointer);
     resolvedArguments.append(Value::pinned(pointerType(), Location::fromStack(sizeof(Register))));
@@ -4392,6 +4405,7 @@ void BBQJIT::emitIndirectTailCall(const char* opcode, const Value& callee, GPRRe
     parameterLocations.append(Location::fromStack(tailCallStackOffsetFromFP + Checked<int>(CallFrameSlot::callee * sizeof(Register))));
 
     // Save the old Frame Pointer for later and make sure the return address gets saved to its canonical location.
+    emitRestoreCalleeSaves();
 #if CPU(X86_64)
     // There are no remaining non-argument non-preserved gprs left on X86_64 so we have to shuffle FP to a temp slot.
     resolvedArguments.append(Value::pinned(pointerType(), Location::fromStack(0)));
@@ -5015,7 +5029,7 @@ Location BBQJIT::canonicalSlot(Value value)
         return m_localSlots[value.asLocal()];
 
     LocalOrTempIndex tempIndex = value.asTemp();
-    int slotOffset = WTF::roundUpToMultipleOf<tempSlotSize>(m_localStorage) + (tempIndex + 1) * tempSlotSize;
+    int slotOffset = WTF::roundUpToMultipleOf<tempSlotSize>(m_localAndCalleeSaveStorage) + (tempIndex + 1) * tempSlotSize;
     if (m_frameSize < slotOffset)
         m_frameSize = slotOffset;
     return Location::fromStack(-slotOffset);
@@ -5076,6 +5090,16 @@ Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileBBQ(Compilati
     compilationContext.bbqDisassembler = irGenerator.takeDisassembler();
 
     return result;
+}
+
+void BBQJIT::emitSaveCalleeSaves()
+{
+    m_jit.emitSaveCalleeSavesFor(&RegisterAtOffsetList::bbqCalleeSaveRegisters());
+}
+
+void BBQJIT::emitRestoreCalleeSaves()
+{
+    m_jit.emitRestoreCalleeSavesFor(&RegisterAtOffsetList::bbqCalleeSaveRegisters());
 }
 
 } } // namespace JSC::Wasm
