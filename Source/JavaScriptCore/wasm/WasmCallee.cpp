@@ -460,6 +460,12 @@ BBQCallee::~BBQCallee()
     }
 }
 
+
+const RegisterAtOffsetList* BBQCallee::calleeSaveRegistersImpl()
+{
+    return &RegisterAtOffsetList::bbqCalleeSaveRegisters();
+}
+
 #endif
 
 WasmBuiltinCallee::WasmBuiltinCallee(const WebAssemblyBuiltin* builtin, std::pair<const Name*, RefPtr<NameSection>>&& name)
