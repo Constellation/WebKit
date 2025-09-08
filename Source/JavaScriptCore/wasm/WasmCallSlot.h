@@ -43,6 +43,7 @@ public:
     }
 
     uint32_t* addressOfCount() { return &m_count; }
+    static constexpr ptrdiff_t offsetOfCount() { return OBJECT_OFFSETOF(CallSlot, m_count); }
 
 private:
     uint32_t m_count { 0 };

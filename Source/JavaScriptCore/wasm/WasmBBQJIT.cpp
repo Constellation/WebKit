@@ -745,10 +745,8 @@ void BBQJIT::emitIncrementCallSlotCount(unsigned callSlotIndex)
 {
     // Note that this CallSlots are shared by all wasm threads, so this knowingly racy.
     // But this is OK since this is just for profiling counter information.
-    // FIXME: We should extend BBQ to have callee save registers and put this CallSlots vector to one of that register.
-    // This can reduce code size.
-    auto& slot = m_profiledCallee.callSlots()[callSlotIndex];
-    m_jit.add32(TrustedImm32(1), CCallHelpers::AbsoluteAddress(slot.addressOfCount()));
+    ASSERT(m_profiledCallee.needsProfiling());
+    m_jit.add32(TrustedImm32(1), CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfCount())));
 }
 
 void BBQJIT::setParser(FunctionParser<BBQJIT>* parser)
@@ -3003,6 +3001,8 @@ ControlData WARN_UNUSED_RETURN BBQJIT::addTopLevel(BlockSignature signature)
     m_pcToCodeOriginMapBuilder.appendItem(m_jit.label(), PCToCodeOriginMapBuilder::defaultCodeOrigin());
     m_jit.emitFunctionPrologue();
     emitSaveCalleeSaves();
+    if (m_profiledCallee.needsProfiling())
+        m_jit.move(CCallHelpers::TrustedImmPtr(m_profiledCallee.callSlots().mutableSpan().data()), GPRInfo::jitDataRegister);
 
     m_topLevel = ControlData(*this, BlockType::TopLevel, signature, 0);
 
@@ -3171,6 +3171,8 @@ MacroAssembler::Label BBQJIT::addLoopOSREntrypoint()
     auto label = m_jit.label();
     m_jit.emitFunctionPrologue();
     emitSaveCalleeSaves();
+    if (m_profiledCallee.needsProfiling())
+        m_jit.move(CCallHelpers::TrustedImmPtr(m_profiledCallee.callSlots().mutableSpan().data()), GPRInfo::jitDataRegister);
 
     m_jit.move(CCallHelpers::TrustedImmPtr(CalleeBits::boxNativeCallee(&m_callee)), wasmScratchGPR);
     static_assert(CallFrameSlot::codeBlock + 1 == CallFrameSlot::callee);

@@ -444,6 +444,8 @@ public:
     FixedVector<CallSlot>& callSlots() { return m_callSlots; }
     const FixedVector<CallSlot>& callSlots() const { return m_callSlots; }
 
+    bool needsProfiling() const { return !m_callSlots.isEmpty(); }
+
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
     using OutOfLineJumpTargets = UncheckedKeyHashMap<unsigned, int>;
