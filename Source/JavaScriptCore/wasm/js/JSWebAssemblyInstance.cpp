@@ -69,23 +69,23 @@ JSWebAssemblyInstance::JSWebAssemblyInstance(VM& vm, Structure* structure, JSWeb
     , m_moduleRecord(moduleRecord, WriteBarrierEarlyInit)
     , m_tables(module->module().moduleInformation().tableCount())
     , m_module(module->module())
+    , m_moduleInformation(module->moduleInformation())
     , m_sourceProvider(sourceProvider)
-    , m_globalsToMark(m_module.get().moduleInformation().globalCount())
-    , m_globalsToBinding(m_module.get().moduleInformation().globalCount())
-    , m_numImportFunctions(m_module->moduleInformation().importFunctionCount())
-    , m_passiveElements(m_module->moduleInformation().elementCount())
-    , m_passiveDataSegments(m_module->moduleInformation().dataSegmentsCount())
-    , m_tags(m_module->moduleInformation().exceptionIndexSpaceSize())
+    , m_globalsToMark(m_moduleInformation->globalCount())
+    , m_globalsToBinding(m_moduleInformation->globalCount())
+    , m_numImportFunctions(m_moduleInformation->importFunctionCount())
+    , m_passiveElements(m_moduleInformation->elementCount())
+    , m_passiveDataSegments(m_moduleInformation->dataSegmentsCount())
+    , m_tags(m_moduleInformation->exceptionIndexSpaceSize())
 {
     static_assert(static_cast<ptrdiff_t>(JSWebAssemblyInstance::offsetOfCachedMemory() + sizeof(void*)) == JSWebAssemblyInstance::offsetOfCachedBoundsCheckingSize());
     for (unsigned i = 0; i < m_numImportFunctions; ++i)
         new (importFunctionInfo(i)) WasmOrJSImportableFunctionCallLinkInfo();
 
-    auto& moduleInformation = m_module->moduleInformation();
-    m_globals = std::bit_cast<Global::Value*>(std::bit_cast<char*>(this) + offsetOfGlobalPtr(m_numImportFunctions, moduleInformation.tableCount(), 0));
-    memset(std::bit_cast<char*>(m_globals), 0, moduleInformation.globalCount() * sizeof(Global::Value));
-    for (unsigned i = 0; i < moduleInformation.globals.size(); ++i) {
-        const GlobalInformation& global = moduleInformation.globals[i];
+    m_globals = std::bit_cast<Global::Value*>(std::bit_cast<char*>(this) + offsetOfGlobalPtr(m_numImportFunctions, m_moduleInformation->tableCount(), 0));
+    memset(std::bit_cast<char*>(m_globals), 0, m_moduleInformation->globalCount() * sizeof(Global::Value));
+    for (unsigned i = 0; i < m_moduleInformation->globals.size(); ++i) {
+        const GlobalInformation& global = m_moduleInformation->globals[i];
         if (global.bindingMode == GlobalInformation::BindingMode::Portable) {
             // This is kept alive by JSWebAssemblyInstance -> JSWebAssemblyGlobal -> binding.
             m_globalsToBinding.set(i);
@@ -94,15 +94,15 @@ JSWebAssemblyInstance::JSWebAssemblyInstance(VM& vm, Structure* structure, JSWeb
             m_globalsToMark.set(i);
         }
     }
-    memset(std::bit_cast<char*>(this) + offsetOfTablePtr(m_numImportFunctions, 0), 0, moduleInformation.tableCount() * sizeof(Table*));
-    for (unsigned elementIndex = 0; elementIndex < moduleInformation.elementCount(); ++elementIndex) {
-        const auto& element = moduleInformation.elements[elementIndex];
+    memset(std::bit_cast<char*>(this) + offsetOfTablePtr(m_numImportFunctions, 0), 0, m_moduleInformation->tableCount() * sizeof(Table*));
+    for (unsigned elementIndex = 0; elementIndex < m_moduleInformation->elementCount(); ++elementIndex) {
+        const auto& element = m_moduleInformation->elements[elementIndex];
         if (element.isPassive())
             m_passiveElements.quickSet(elementIndex);
     }
 
-    for (unsigned dataSegmentIndex = 0; dataSegmentIndex < moduleInformation.dataSegmentsCount(); ++dataSegmentIndex) {
-        const auto& dataSegment = moduleInformation.data[dataSegmentIndex];
+    for (unsigned dataSegmentIndex = 0; dataSegmentIndex < m_moduleInformation->dataSegmentsCount(); ++dataSegmentIndex) {
+        const auto& dataSegment = m_moduleInformation->data[dataSegmentIndex];
         if (dataSegment->isPassive())
             m_passiveDataSegments.quickSet(dataSegmentIndex);
     }
@@ -132,12 +132,10 @@ void JSWebAssemblyInstance::finishCreation(VM& vm)
     for (unsigned i = 0; i < moduleInformation.typeCount(); ++i) {
         Ref rtt = moduleInformation.rtts[i];
         if (rtt->kind() == RTTKind::Array)
-            gcObjectStructureID(i).setWithoutWriteBarrier(JSWebAssemblyArray::createStructure(vm, globalObject, moduleInformation.typeSignatures[i]->expand(), WTFMove(rtt)));
+            gcObjectStructureID(i).set(vm, this, JSWebAssemblyArray::createStructure(vm, globalObject, moduleInformation.typeSignatures[i]->expand(), WTFMove(rtt)));
         else if (rtt->kind() == RTTKind::Struct)
-            gcObjectStructureID(i).setWithoutWriteBarrier(JSWebAssemblyStruct::createStructure(vm, globalObject, moduleInformation.typeSignatures[i]->expand(), WTFMove(rtt)));
+            gcObjectStructureID(i).set(vm, this, JSWebAssemblyStruct::createStructure(vm, globalObject, moduleInformation.typeSignatures[i]->expand(), WTFMove(rtt)));
     }
-    if (moduleInformation.typeCount())
-        vm.writeBarrier(this);
 
     m_vm->traps().registerMirror(m_stackMirror);
 }

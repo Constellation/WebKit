@@ -35,6 +35,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include <JavaScriptCore/WasmJS.h>
 #include <JavaScriptCore/WasmMemory.h>
 #include <JavaScriptCore/WasmOps.h>
+#include <JavaScriptCore/WasmProfileCollection.h>
 #include <wtf/Expected.h>
 #include <wtf/Lock.h>
 #include <wtf/SharedTask.h>
@@ -90,6 +91,7 @@ private:
     RefPtr<CalleeGroup> m_calleeGroups[numberOfMemoryModes];
     const Ref<IPIntCallees> m_ipintCallees;
     FixedVector<MacroAssemblerCodeRef<WasmEntryPtrTag>> m_wasmToJSExitStubs;
+    ThreadSafeWeakHashSet<ProfileCollection> m_profiles;
     Lock m_lock;
 };
 

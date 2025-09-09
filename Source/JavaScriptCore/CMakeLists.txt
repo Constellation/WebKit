@@ -1427,6 +1427,8 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     wasm/WasmOpcodeOrigin.h
     wasm/WasmParser.h
     wasm/WasmPlan.h
+    wasm/WasmProfile.h
+    wasm/WasmProfileCollection.h
     wasm/WasmSIMDOpcodes.h
     wasm/WasmSections.h
     wasm/WasmSIMDOpcodes.h

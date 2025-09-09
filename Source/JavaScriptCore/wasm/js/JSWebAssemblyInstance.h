@@ -118,7 +118,7 @@ public:
     }
 
     JSWebAssemblyModule* jsModule() const { return m_jsModule.get(); }
-    const Wasm::ModuleInformation& moduleInformation() const { return m_module->moduleInformation(); }
+    const Wasm::ModuleInformation& moduleInformation() const { return m_moduleInformation.get(); }
 
     void clearJSCallICs(VM&);
     void finalizeUnconditionally(VM&, CollectionScope);
@@ -323,6 +323,7 @@ private:
     CagedPtr<Gigacage::Primitive, void> m_cachedMemory;
     size_t m_cachedBoundsCheckingSize { 0 };
     const Ref<Wasm::Module> m_module;
+    const Ref<const Wasm::ModuleInformation> m_moduleInformation;
     RefPtr<SourceProvider> m_sourceProvider;
 
     CallFrame* m_temporaryCallFrame { nullptr };
