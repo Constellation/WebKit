@@ -4360,6 +4360,7 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callSlotIndex, const 
 #if USE(JSVALUE64)
         loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
 #endif
+        isSameInstanceBefore.link(m_jit);
     } else {
         JumpList profilingDone;
         JumpList profilingGiveUp;
@@ -4385,6 +4386,7 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callSlotIndex, const 
 
         store.link(m_jit);
         m_jit.store64(wasmScratchGPR, CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
+        profilingDone.link(m_jit);
     }
 
     m_jit.loadPtr(Address(calleeCode), calleeCode);
