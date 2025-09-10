@@ -5905,6 +5905,8 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
 
     calleeIndex = m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), calleeIndex);
 
+    BasicBlock* continuation = m_proc.addBlock();
+
     Value* callableFunction = m_currentBlock->appendNew<Value>(m_proc, Add, origin(), callableFunctionBuffer, m_currentBlock->appendNew<Value>(m_proc, Mul, origin(), calleeIndex, constant(pointerType(), sizeof(FuncRefTable::Function))));
 
     // Check that the WasmToWasmImportableFunction is initialized. We trap if it isn't. An "invalid" SignatureIndex indicates it's not initialized.
@@ -5913,11 +5915,12 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
     Value* calleeCallee = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfBoxedCallee()));
     Value* calleeInstance = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfTargetInstance()));
 
+    ValueResults fastValues;
     if (callType == CallType::Call) {
         if (m_profile->isCalled(callSlotIndex)) {
             if (auto* callee = m_profile->callee(callSlotIndex)) {
                 if (callee->compilationMode() == Wasm::CompilationMode::IPIntMode) {
-                    BasicBlock* continuation = m_proc.addBlock();
+                    BasicBlock* slowCase = m_proc.addBlock();
                     BasicBlock* directCall = m_proc.addBlock();
 
                     Value* isSameContextInstance = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeInstance, instanceValue());
@@ -5925,11 +5928,16 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
                     ;
                     m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitOr, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(continuation));
                     directCall->addPredecessor(m_currentBlock);
-                    continuation->addPredecessor(m_currentBlock);
+                    slowCase->addPredecessor(m_currentBlock);
 
                     m_currentBlock = directCall;
+                    auto result = emitDirectCall(callSlotIndex, callee->index(), signature, args, fastValues, callType);
+                    for (Value*& value : fastValues)
+                        value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), value);
+                    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+                    continuation->addPredecessor(m_currentBlock);
 
-                    m_currentBlock = continuation;
+                    m_currentBlock = slowCase;
                 }
             }
         }
@@ -5982,11 +5990,24 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
 
     Value* calleeCode = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), calleeCodeLocation);
 
-    ValueResults values;
-    auto result = emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, values, callType);
+    ValueResults slowValues;
+    auto result = emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, slowValues, callType);
+    for (Value*& value : slowValues)
+        value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), value);
+    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+    continuation->addPredecessor(m_currentBlock);
 
-    for (Value* value : values)
-        results.append(push(value));
+    m_currentBlock = continuation;
+    for (unsigned i = 0; i < slowValues.size(); ++i) {
+        auto* slowValue = slowValues[i];
+        auto* phi = m_currentBlock->appendNew<Value>(m_proc, Phi, slowValue->type(), origin());
+        slowValue->as<B3::UpsilonValue>()->setPhi(phi);
+        if (!fastValues.isEmpty()) {
+            auto* fastValue = fastValues[i];
+            fastValue->as<B3::UpsilonValue>()->setPhi(phi);
+        }
+        results.append(push(phi));
+    }
 
     const bool isTailCallInlineCaller = callType == CallType::TailCall && m_inlineParent;
     if (isTailCallInlineCaller) {
