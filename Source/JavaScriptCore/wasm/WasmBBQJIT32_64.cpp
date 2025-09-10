@@ -238,7 +238,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::getGlobal(uint32_t index, Value& result
     const Wasm::GlobalInformation& global = m_info.globals[index];
     Type type = global.type;
 
-    int32_t offset = JSWebAssemblyInstance::offsetOfGlobalPtr(m_info.importFunctionCount(), m_info.tableCount(), index);
+    int32_t offset = JSWebAssemblyInstance::offsetOfGlobal(m_info, index);
     Value globalValue = Value::pinned(type.kind, Location::fromGlobal(offset));
 
     switch (global.bindingMode) {
@@ -308,7 +308,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::setGlobal(uint32_t index, Value value)
     const Wasm::GlobalInformation& global = m_info.globals[index];
     Type type = global.type;
 
-    int32_t offset = JSWebAssemblyInstance::offsetOfGlobalPtr(m_info.importFunctionCount(), m_info.tableCount(), index);
+    int32_t offset = JSWebAssemblyInstance::offsetOfGlobal(m_info, index);
     Location valueLocation = locationOf(value);
 
     switch (global.bindingMode) {

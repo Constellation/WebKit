@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,33 +25,39 @@
 
 #pragma once
 
-#if ENABLE(WEBASSEMBLY_OMGJIT)
+#if ENABLE(WEBASSEMBLY)
 
-#include "B3Common.h"
-#include "B3Procedure.h"
-#include "CCallHelpers.h"
-#include "JITCompilation.h"
-#include "JITOpaqueByproducts.h"
-#include "PCToCodeOriginMap.h"
-#include "WasmBBQDisassembler.h"
-#include "WasmCompilationContext.h"
-#include "WasmCompilationMode.h"
-#include "WasmJS.h"
-#include "WasmMemory.h"
-#include "WasmModuleInformation.h"
-#include "WasmTierUpCount.h"
-#include <wtf/Box.h>
+#include <JavaScriptCore/WasmCallingConvention.h>
 #include <wtf/Expected.h>
-
-extern "C" void SYSV_ABI dumpProcedure(void*);
+#include <wtf/text/WTFString.h>
+#include <JavaScriptCore/WasmCallSlot.h>
+#include <JavaScriptCore/WasmCallee.h>
 
 namespace JSC::Wasm {
 
-class IPIntCallee;
-class Module;
+// Per-instance side data for wasm baseline execution (IPInt and BBQ).
+// Mainly for profiling / IC.
+class BaselineData final : public ThreadSafeRefCounted<BaselineData>, public TrailingArray<BaselineData, CallSlot> {
+    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(BaselineData);
+    WTF_MAKE_NONMOVABLE(BaselineData);
+    using TrailingArrayType = TrailingArray<BaselineData, CallSlot>;
+    friend TrailingArrayType;
+public:
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext&, IPIntCallee&, OptimizingJITCallee&, const FunctionData&, const TypeDefinition&, Vector<UnlinkedWasmToWasmCall>&, Module&, CalleeGroup&, const ModuleInformation&, MemoryMode, CompilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry);
+    static Ref<BaselineData> create(const IPIntCallee& callee)
+    {
+        auto result = adoptRef(*new (fastMalloc(allocationSize(callee.numCallSlots()))) BaselineData(callee.numCallSlots()));
+        WTF::storeStoreFence();
+        return result;
+    }
+
+private:
+    BaselineData(unsigned size)
+        : TrailingArrayType(size)
+    {
+    }
+};
 
 } // namespace JSC::Wasm
 
-#endif // ENABLE(WEBASSEMBLY_OMGJIT)
+#endif // ENABLE(WEBASSEMBLY)

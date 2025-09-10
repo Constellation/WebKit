@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,33 +25,30 @@
 
 #pragma once
 
-#if ENABLE(WEBASSEMBLY_OMGJIT)
+#if ENABLE(WEBASSEMBLY)
 
-#include "B3Common.h"
-#include "B3Procedure.h"
-#include "CCallHelpers.h"
-#include "JITCompilation.h"
-#include "JITOpaqueByproducts.h"
-#include "PCToCodeOriginMap.h"
-#include "WasmBBQDisassembler.h"
-#include "WasmCompilationContext.h"
-#include "WasmCompilationMode.h"
-#include "WasmJS.h"
-#include "WasmMemory.h"
-#include "WasmModuleInformation.h"
-#include "WasmTierUpCount.h"
-#include <wtf/Box.h>
+#include <JavaScriptCore/WasmCallingConvention.h>
+#include <JavaScriptCore/WasmBaselineData.h>
 #include <wtf/Expected.h>
-
-extern "C" void SYSV_ABI dumpProcedure(void*);
+#include <wtf/text/WTFString.h>
 
 namespace JSC::Wasm {
 
-class IPIntCallee;
 class Module;
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext&, IPIntCallee&, OptimizingJITCallee&, const FunctionData&, const TypeDefinition&, Vector<UnlinkedWasmToWasmCall>&, Module&, CalleeGroup&, const ModuleInformation&, MemoryMode, CompilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry);
+class ProfileCollection final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ProfileCollection> {
+    WTF_MAKE_TZONE_ALLOCATED(ProfileCollection);
+public:
+    static Ref<ProfileCollection> create(Module&);
+
+    RefPtr<BaselineData> tryGetBaselineData(FunctionCodeIndex);
+    void registerBaselineData(FunctionCodeIndex, Ref<BaselineData>&&);
+
+private:
+    UncheckedKeyHashMap<uint32_t, Ref<BaselineData>, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_collection;
+    mutable Lock m_lock;
+};
 
 } // namespace JSC::Wasm
 
-#endif // ENABLE(WEBASSEMBLY_OMGJIT)
+#endif // ENABLE(WEBASSEMBLY)

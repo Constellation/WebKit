@@ -45,6 +45,7 @@
 #include "MacroAssembler.h"
 #include "RegisterSet.h"
 #include "WasmBBQDisassembler.h"
+#include "WasmBaselineData.h"
 #include "WasmCallSlot.h"
 #include "WasmCallingConvention.h"
 #include "WasmCompilationMode.h"
@@ -747,7 +748,7 @@ void BBQJIT::emitIncrementCallSlotCount(unsigned callSlotIndex)
     // Note that this CallSlots are shared by all wasm threads, so this knowingly racy.
     // But this is OK since this is just for profiling counter information.
     ASSERT(m_profiledCallee.needsProfiling());
-    m_jit.add32(TrustedImm32(1), CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfCount())));
+    m_jit.add32(TrustedImm32(1), CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfCount())));
 }
 
 void BBQJIT::setParser(FunctionParser<BBQJIT>* parser)
@@ -3002,9 +3003,6 @@ ControlData WARN_UNUSED_RETURN BBQJIT::addTopLevel(BlockSignature signature)
     m_pcToCodeOriginMapBuilder.appendItem(m_jit.label(), PCToCodeOriginMapBuilder::defaultCodeOrigin());
     m_jit.emitFunctionPrologue();
     emitSaveCalleeSaves();
-    if (m_profiledCallee.needsProfiling())
-        m_jit.move(CCallHelpers::TrustedImmPtr(m_profiledCallee.callSlots().mutableSpan().data()), GPRInfo::jitDataRegister);
-
     m_topLevel = ControlData(*this, BlockType::TopLevel, signature, 0);
 
     JIT_COMMENT(m_jit, "Store boxed JIT callee");
@@ -3036,6 +3034,20 @@ ControlData WARN_UNUSED_RETURN BBQJIT::addTopLevel(BlockSignature signature)
     overflow.linkThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(throwStackOverflowFromWasmThunkGenerator).code()), &m_jit);
 
     m_jit.move(wasmScratchGPR, MacroAssembler::stackPointerRegister);
+
+    if (m_profiledCallee.needsProfiling()) {
+        Address baselineDataAddress(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfBaselineData(m_info, m_functionIndex));
+        m_jit.loadPtr(baselineDataAddress, GPRInfo::jitDataRegister);
+        Jump materialize = m_jit.branchTestPtr(CCallHelpers::Zero, GPRInfo::jitDataRegister);
+        MacroAssembler::Label done = m_jit.label();
+        addLatePath([materialize = WTFMove(materialize), done, baselineDataAddress](BBQJIT&, CCallHelpers& jit) {
+            materialize.link(&jit);
+            jit.move(GPRInfo::callFrameRegister, GPRInfo::nonPreservedNonArgumentGPR0);
+            jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(materializeBaselineDataGenerator).code()));
+            jit.loadPtr(baselineDataAddress, GPRInfo::jitDataRegister);
+            jit.jump(done);
+        });
+    }
 
     LocalOrTempIndex i = 0;
     for (; i < m_arguments.size(); ++i)
@@ -3172,8 +3184,6 @@ MacroAssembler::Label BBQJIT::addLoopOSREntrypoint()
     auto label = m_jit.label();
     m_jit.emitFunctionPrologue();
     emitSaveCalleeSaves();
-    if (m_profiledCallee.needsProfiling())
-        m_jit.move(CCallHelpers::TrustedImmPtr(m_profiledCallee.callSlots().mutableSpan().data()), GPRInfo::jitDataRegister);
 
     m_jit.move(CCallHelpers::TrustedImmPtr(CalleeBits::boxNativeCallee(&m_callee)), wasmScratchGPR);
     static_assert(CallFrameSlot::codeBlock + 1 == CallFrameSlot::callee);
@@ -3184,6 +3194,11 @@ MacroAssembler::Label BBQJIT::addLoopOSREntrypoint()
         m_jit.storePtr(GPRInfo::wasmContextInstancePointer, CCallHelpers::addressFor(CallFrameSlot::codeBlock));
     } else
         m_jit.storePairPtr(GPRInfo::wasmContextInstancePointer, wasmScratchGPR, GPRInfo::callFrameRegister, CCallHelpers::TrustedImm32(CallFrameSlot::codeBlock * sizeof(Register)));
+
+    if (m_profiledCallee.needsProfiling()) {
+        // Because tiering up code materializes BaselineData, this is always non nullptr.
+        m_jit.loadPtr(Address(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfBaselineData(m_info, m_functionIndex)), GPRInfo::jitDataRegister);
+    }
 
     int roundedFrameSize = stackCheckSize();
 #if CPU(X86_64) || CPU(ARM64)
@@ -4523,8 +4538,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addCallIndirect(unsigned callSlotIndex,
 
             ASSERT(tableIndex < m_info.tableCount());
 
-            int numImportFunctions = m_info.importFunctionCount();
-            m_jit.loadPtr(Address(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfTablePtr(numImportFunctions, tableIndex)), callableFunctionBufferLength);
+            m_jit.loadPtr(Address(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfTable(m_info, tableIndex)), callableFunctionBufferLength);
             auto& tableInformation = m_info.table(tableIndex);
             if (tableInformation.maximum() && tableInformation.maximum().value() == tableInformation.initial()) {
                 if (!tableInformation.isImport())

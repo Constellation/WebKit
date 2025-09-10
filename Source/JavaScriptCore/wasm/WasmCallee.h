@@ -57,6 +57,7 @@ class PCToOriginMap;
 
 namespace Wasm {
 
+class BaselineData;
 class CallSlot;
 class CalleeGroup;
 
@@ -441,10 +442,9 @@ public:
     unsigned localSizeToAlloc() const { return m_localSizeToAlloc; }
     unsigned rethrowSlots() const { return m_numRethrowSlotsToAlloc; }
 
-    FixedVector<CallSlot>& callSlots() { return m_callSlots; }
-    const FixedVector<CallSlot>& callSlots() const { return m_callSlots; }
+    unsigned numCallSlots() const { return m_numCallSlots; }
 
-    bool needsProfiling() const { return !m_callSlots.isEmpty(); }
+    bool needsProfiling() const;
 
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
 
@@ -473,8 +473,7 @@ private:
     unsigned m_numLocals;
     unsigned m_numArgumentsOnStack;
     unsigned m_maxFrameSizeInV128;
-
-    FixedVector<CallSlot> m_callSlots;
+    unsigned m_numCallSlots;
 
     IPIntTierUpCounter m_tierUpCounter;
 };

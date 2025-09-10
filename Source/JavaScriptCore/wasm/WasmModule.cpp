@@ -29,7 +29,9 @@
 #if ENABLE(WEBASSEMBLY)
 
 #include "WasmIPIntPlan.h"
+#include "WasmMergedProfile.h"
 #include "WasmModuleInformation.h"
+#include "WasmProfileCollection.h"
 #include "WasmWorklist.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
@@ -127,6 +129,29 @@ void Module::copyInitialCalleeGroupToAllMemoryModes(MemoryMode initialMode)
         if (auto& group = m_calleeGroups[i]; !group)
             group = CalleeGroup::createFromExisting(static_cast<MemoryMode>(i), initialBlock);
     }
+}
+
+
+Ref<Wasm::ProfileCollection> Module::createProfiles()
+{
+    auto profiles = Wasm::ProfileCollection::create(*this);
+    WTF::storeStoreFence();
+    m_profiles.add(profiles.get());
+    return profiles;
+}
+
+std::unique_ptr<MergedProfile> Module::createMergedProfile(IPIntCallee& callee)
+{
+    auto result = makeUnique<MergedProfile>(callee);
+    for (auto& collection : m_profiles) {
+        if (auto data = collection.tryGetBaselineData(callee.functionIndex())) {
+            auto span = result->mutableSpan();
+            RELEASE_ASSERT(data->size() == result->mutableSpan().size());
+            for (unsigned i = 0; i < data->size(); ++i)
+                span[i].merge(data->at(i));
+        }
+    }
+    return result;
 }
 
 } } // namespace JSC::Wasm

@@ -107,6 +107,36 @@ MacroAssemblerCodeRef<JITThunkPtrTag> throwStackOverflowFromWasmThunkGenerator(c
     return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "throwStackOverflowFromWasmThunk"_s, "Throw stack overflow from Wasm");
 }
 
+MacroAssemblerCodeRef<JITThunkPtrTag> materializeBaselineDataGenerator(const AbstractLocker&)
+{
+    CCallHelpers jit;
+    JIT_COMMENT(jit, "mnaterializeBaselineDataGenerator");
+    jit.emitFunctionPrologue();
+
+    const unsigned extraPaddingBytes = 0;
+    RegisterSetBuilder builder;
+    for (auto regs : wasmCallingConvention().jsrArgs)
+        builder.add(regs, IgnoreVectors);
+    for (auto reg : wasmCallingConvention().fprArgs)
+        builder.add(reg, Width128);
+
+    auto registersToSpill = RegisterSetBuilder::registersToSaveForCCall(builder.buildWithLowerBits()).buildWithLowerBits();
+    unsigned numberOfStackBytesUsedForRegisterPreservation = ScratchRegisterAllocator::preserveRegistersToStackForCall(jit, registersToSpill, extraPaddingBytes);
+
+    // We can clobber these argument registers now since we saved them and later we restore them.
+    jit.move(GPRInfo::nonPreservedNonArgumentGPR0, GPRInfo::argumentGPR0);
+    jit.move(GPRInfo::wasmContextInstancePointer, GPRInfo::argumentGPR1);
+    jit.move(MacroAssembler::TrustedImmPtr(tagCFunction<OperationPtrTag>(operationWasmMaterializeBaselineData)), GPRInfo::argumentGPR2);
+    jit.call(GPRInfo::argumentGPR2, OperationPtrTag);
+
+    ScratchRegisterAllocator::restoreRegistersFromStackForCall(jit, registersToSpill, { }, numberOfStackBytesUsedForRegisterPreservation, extraPaddingBytes);
+
+    jit.emitFunctionEpilogue();
+    jit.ret();
+    LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
+    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "materializeBaselineDataThunk"_s, "Materialize BaselineData");
+}
+
 #if USE(JSVALUE64)
 MacroAssemblerCodeRef<JITThunkPtrTag> catchInWasmThunkGenerator(const AbstractLocker&)
 {

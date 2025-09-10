@@ -187,7 +187,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::getGlobal(uint32_t index, Value& result
     const Wasm::GlobalInformation& global = m_info.globals[index];
     Type type = global.type;
 
-    int32_t offset = JSWebAssemblyInstance::offsetOfGlobalPtr(m_info.importFunctionCount(), m_info.tableCount(), index);
+    int32_t offset = JSWebAssemblyInstance::offsetOfGlobal(m_info, index);
     Value globalValue = Value::pinned(type.kind, Location::fromGlobal(offset));
 
     switch (global.bindingMode) {
@@ -254,7 +254,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::setGlobal(uint32_t index, Value value)
     const Wasm::GlobalInformation& global = m_info.globals[index];
     Type type = global.type;
 
-    int32_t offset = JSWebAssemblyInstance::offsetOfGlobalPtr(m_info.importFunctionCount(), m_info.tableCount(), index);
+    int32_t offset = JSWebAssemblyInstance::offsetOfGlobal(m_info, index);
     Location valueLocation = locationOf(value);
 
     switch (global.bindingMode) {
@@ -1600,8 +1600,8 @@ void BBQJIT::emitAllocateGCArrayUninitialized(GPRReg resultGPR, uint32_t typeInd
     RELEASE_ASSERT(m_info.hasGCObjectTypes());
     JumpList slowPath;
     const ArrayType* typeDefinition = m_info.typeSignatures[typeIndex]->expand().template as<ArrayType>();
-    MacroAssembler::Address allocatorBufferBase(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), m_info.typeCount(), 0));
-    MacroAssembler::Address structureIDAddress(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), typeIndex));
+    MacroAssembler::Address allocatorBufferBase(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info, 0));
+    MacroAssembler::Address structureIDAddress(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info, typeIndex));
     Location sizeLocation;
     size_t elementSize = typeDefinition->elementType().type.elementSize();
     if (size.isConst()) {
@@ -2138,8 +2138,8 @@ void BBQJIT::emitAllocateGCStructUninitialized(GPRReg resultGPR, uint32_t typeIn
     RELEASE_ASSERT(m_info.hasGCObjectTypes());
     JumpList slowPath;
     const StructType* typeDefinition = m_info.typeSignatures[typeIndex]->expand().template as<StructType>();
-    MacroAssembler::Address allocatorBufferBase(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), m_info.typeCount(), 0));
-    MacroAssembler::Address structureIDAddress(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), typeIndex));
+    MacroAssembler::Address allocatorBufferBase(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info, 0));
+    MacroAssembler::Address structureIDAddress(GPRInfo::wasmContextInstancePointer, JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info, typeIndex));
     Location sizeLocation;
 
     size_t sizeInBytes = JSWebAssemblyStruct::allocationSize(typeDefinition->instancePayloadSize());

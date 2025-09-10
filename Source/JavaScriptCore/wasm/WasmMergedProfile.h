@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,33 +25,42 @@
 
 #pragma once
 
-#if ENABLE(WEBASSEMBLY_OMGJIT)
+#if ENABLE(WEBASSEMBLY)
 
-#include "B3Common.h"
-#include "B3Procedure.h"
-#include "CCallHelpers.h"
-#include "JITCompilation.h"
-#include "JITOpaqueByproducts.h"
-#include "PCToCodeOriginMap.h"
-#include "WasmBBQDisassembler.h"
-#include "WasmCompilationContext.h"
-#include "WasmCompilationMode.h"
-#include "WasmJS.h"
-#include "WasmMemory.h"
-#include "WasmModuleInformation.h"
-#include "WasmTierUpCount.h"
-#include <wtf/Box.h>
 #include <wtf/Expected.h>
-
-extern "C" void SYSV_ABI dumpProcedure(void*);
+#include <wtf/text/WTFString.h>
+#include <JavaScriptCore/WasmBaselineData.h>
+#include <JavaScriptCore/WasmCallSlot.h>
+#include <JavaScriptCore/WasmCallee.h>
 
 namespace JSC::Wasm {
 
-class IPIntCallee;
 class Module;
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext&, IPIntCallee&, OptimizingJITCallee&, const FunctionData&, const TypeDefinition&, Vector<UnlinkedWasmToWasmCall>&, Module&, CalleeGroup&, const ModuleInformation&, MemoryMode, CompilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry);
+class MergedProfile {
+    WTF_MAKE_TZONE_ALLOCATED(MergedProfile);
+    WTF_MAKE_NONMOVABLE(MergedProfile);
+    friend class Module;
+public:
+    class CallSite {
+    public:
+        void merge(const CallSlot&);
+        uint32_t count() const { return m_count; }
+
+    private:
+        uint32_t m_count { 0 };
+    };
+
+    MergedProfile(const IPIntCallee&);
+    bool isCalled(size_t index) const { return !!m_callSites[index].count(); }
+
+    std::span<CallSite> mutableSpan() { return m_callSites.mutableSpan(); }
+    std::span<const CallSite> span() const { return m_callSites.span(); }
+
+private:
+    Vector<CallSite> m_callSites;
+};
 
 } // namespace JSC::Wasm
 
-#endif // ENABLE(WEBASSEMBLY_OMGJIT)
+#endif // ENABLE(WEBASSEMBLY)

@@ -1152,6 +1152,7 @@ wasm/WasmIPIntSlowPaths.cpp @no-unify
 wasm/WasmMachineThreads.cpp
 wasm/WasmMemory.cpp
 wasm/WasmMemoryInformation.cpp
+wasm/WasmMergedProfile.cpp
 wasm/WasmModule.cpp
 wasm/WasmModuleInformation.cpp
 wasm/WasmNameSectionParser.cpp
@@ -1160,6 +1161,7 @@ wasm/WasmOSREntryPlan.cpp
 wasm/WasmOpcodeOrigin.cpp
 wasm/WasmOperations.cpp
 wasm/WasmPlan.cpp
+wasm/WasmProfileCollection.cpp
 wasm/WasmSectionParser.cpp
 wasm/WasmTypeDefinition.cpp
 wasm/WasmOpcodeCounter.cpp

@@ -39,6 +39,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include "LLIntData.h"
 #include "LLIntExceptions.h"
 #include "WasmBBQPlan.h"
+#include "WasmBaselineData.h"
 #include "WasmCallSlot.h"
 #include "WasmCallee.h"
 #include "WasmCallingConvention.h"
@@ -269,8 +270,10 @@ WASM_IPINT_EXTERN_CPP_DECL(prologue_osr, CallFrame* callFrame)
 
     dataLogLnIf(Options::verboseOSR(), *callee, ": Entered prologue_osr with tierUpCounter = ", callee->tierUpCounter());
 
-    if (RefPtr replacement = jitCompileAndSetHeuristics(*callee, instance, OSRFor::Prologue))
+    if (RefPtr replacement = jitCompileAndSetHeuristics(*callee, instance, OSRFor::Prologue)) {
+        instance->ensureBaselineData(callee->functionIndex());
         WASM_RETURN_TWO(replacement->entrypoint().taggedPtr(), nullptr);
+    }
     WASM_RETURN_TWO(nullptr, nullptr);
 }
 
@@ -327,6 +330,7 @@ WASM_IPINT_EXTERN_CPP_DECL(loop_osr, CallFrame* callFrame, uint8_t* pc, IPIntLoc
     auto sharedLoopEntrypoint = bbqCallee->sharedLoopEntrypoint();
     RELEASE_ASSERT(sharedLoopEntrypoint);
 
+    instance->ensureBaselineData(callee->functionIndex());
     WASM_RETURN_TWO(buffer, sharedLoopEntrypoint->taggedPtr());
 }
 
@@ -917,7 +921,7 @@ WASM_IPINT_EXTERN_CPP_DECL(ref_cast, int32_t heapType, bool allowNull, EncodedJS
 WASM_IPINT_EXTERN_CPP_DECL(prepare_call, CallFrame* callFrame, CallMetadata* call, Register* calleeAndWasmInstanceReturn)
 {
     auto* callee = IPINT_CALLEE(callFrame);
-    callee->callSlots()[call->callSlotIndex].incrementCount();
+    instance->ensureBaselineData(callee->functionIndex()).at(call->callSlotIndex).incrementCount();
 
     Wasm::FunctionSpaceIndex functionIndex = call->functionIndex;
 
@@ -950,7 +954,7 @@ WASM_IPINT_EXTERN_CPP_DECL(prepare_call, CallFrame* callFrame, CallMetadata* cal
 WASM_IPINT_EXTERN_CPP_DECL(prepare_call_indirect, CallFrame* callFrame, Wasm::FunctionSpaceIndex* functionIndex, CallIndirectMetadata* call)
 {
     auto* callee = IPINT_CALLEE(callFrame);
-    callee->callSlots()[call->callSlotIndex].incrementCount();
+    instance->ensureBaselineData(callee->functionIndex()).at(call->callSlotIndex).incrementCount();
 
     unsigned tableIndex = call->tableIndex;
 
@@ -983,9 +987,7 @@ WASM_IPINT_EXTERN_CPP_DECL(prepare_call_indirect, CallFrame* callFrame, Wasm::Fu
 WASM_IPINT_EXTERN_CPP_DECL(prepare_call_ref, CallFrame* callFrame, CallRefMetadata* call, IPIntStackEntry* sp)
 {
     auto* callee = IPINT_CALLEE(callFrame);
-    callee->callSlots()[call->callSlotIndex].incrementCount();
-
-    UNUSED_PARAM(instance);
+    instance->ensureBaselineData(callee->functionIndex()).at(call->callSlotIndex).incrementCount();
 
     JSValue targetReference = JSValue::decode(sp->ref);
 

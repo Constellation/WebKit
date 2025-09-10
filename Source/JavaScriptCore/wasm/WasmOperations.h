@@ -71,6 +71,7 @@ JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmTriggerTierUpNow, void, (CallFra
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmTriggerOSREntryNow, void, (Probe::Context&));
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmLoopOSREnterBBQJIT, void, (Probe::Context&));
 #endif
+JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializeBaselineData, void, (CallFrame*, JSWebAssemblyInstance*));
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmUnwind, void*, (JSWebAssemblyInstance*));
 
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationConvertToI64, int64_t, (JSWebAssemblyInstance*, EncodedJSValue));

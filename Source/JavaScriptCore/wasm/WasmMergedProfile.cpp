@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,35 +23,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "config.h"
+#include "WasmMergedProfile.h"
 
-#if ENABLE(WEBASSEMBLY_OMGJIT)
+#include <wtf/NeverDestroyed.h>
+#include <wtf/TZoneMallocInlines.h>
 
-#include "B3Common.h"
-#include "B3Procedure.h"
-#include "CCallHelpers.h"
-#include "JITCompilation.h"
-#include "JITOpaqueByproducts.h"
-#include "PCToCodeOriginMap.h"
-#include "WasmBBQDisassembler.h"
-#include "WasmCompilationContext.h"
-#include "WasmCompilationMode.h"
-#include "WasmJS.h"
-#include "WasmMemory.h"
-#include "WasmModuleInformation.h"
-#include "WasmTierUpCount.h"
-#include <wtf/Box.h>
-#include <wtf/Expected.h>
-
-extern "C" void SYSV_ABI dumpProcedure(void*);
+#if ENABLE(WEBASSEMBLY)
 
 namespace JSC::Wasm {
 
-class IPIntCallee;
-class Module;
+WTF_MAKE_TZONE_ALLOCATED_IMPL(MergedProfile);
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext&, IPIntCallee&, OptimizingJITCallee&, const FunctionData&, const TypeDefinition&, Vector<UnlinkedWasmToWasmCall>&, Module&, CalleeGroup&, const ModuleInformation&, MemoryMode, CompilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry);
+MergedProfile::MergedProfile(const IPIntCallee& callee)
+    : m_callSites(callee.numCallSlots())
+{
+}
+
+void MergedProfile::CallSite::merge(const CallSlot& slot)
+{
+    m_count += slot.count();
+}
 
 } // namespace JSC::Wasm
 
-#endif // ENABLE(WEBASSEMBLY_OMGJIT)
+#endif

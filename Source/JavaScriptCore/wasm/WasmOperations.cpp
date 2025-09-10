@@ -1250,6 +1250,18 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationWasmLoopOSREnterBBQJIT, void, (Probe:
 
 #endif
 
+JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializeBaselineData, void, (CallFrame* callFrame, JSWebAssemblyInstance* instance))
+{
+    BBQCallee& callee = *static_cast<BBQCallee*>(callFrame->callee().asNativeCallee());
+    ASSERT(callee.compilationMode() == CompilationMode::BBQMode);
+
+    Wasm::CalleeGroup& calleeGroup = *instance->calleeGroup();
+    ASSERT(instance->memory()->mode() == calleeGroup.mode());
+
+    FunctionSpaceIndex functionIndexInSpace = callee.index();
+    FunctionCodeIndex functionIndex = calleeGroup.toCodeIndex(functionIndexInSpace);
+    instance->ensureBaselineData(functionIndex);
+}
 
 JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationWasmUnwind, void*, (JSWebAssemblyInstance* instance))
 {

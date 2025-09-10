@@ -57,6 +57,7 @@
 #include "JSWebAssemblyStruct.h"
 #include "ProbeContext.h"
 #include "ScratchRegisterAllocator.h"
+#include "WasmBaselineData.h"
 #include "WasmBranchHints.h"
 #include "WasmCallSlot.h"
 #include "WasmCallingConvention.h"
@@ -65,6 +66,7 @@
 #include "WasmFunctionParser.h"
 #include "WasmIRGeneratorHelpers.h"
 #include "WasmMemory.h"
+#include "WasmMergedProfile.h"
 #include "WasmOSREntryData.h"
 #include "WasmOpcodeOrigin.h"
 #include "WasmOperations.h"
@@ -380,8 +382,8 @@ public:
         return m_callSiteIndex;
     }
 
-    OMGIRGenerator(CompilationContext&, CalleeGroup&, const ModuleInformation&, IPIntCallee&, OptimizingJITCallee&, Procedure&, Vector<UnlinkedWasmToWasmCall>&, FixedBitVector& outgoingDirectCallees, unsigned& osrEntryScratchBufferSize, MemoryMode, CompilationMode, unsigned functionIndex, unsigned loopIndexForOSREntry);
-    OMGIRGenerator(CompilationContext&, OMGIRGenerator& inlineCaller, OMGIRGenerator& inlineRoot, CalleeGroup&, unsigned functionIndex, IPIntCallee&, BasicBlock* returnContinuation, Vector<Value*> args);
+    OMGIRGenerator(CompilationContext&, Module&, CalleeGroup&, const ModuleInformation&, IPIntCallee&, OptimizingJITCallee&, Procedure&, Vector<UnlinkedWasmToWasmCall>&, FixedBitVector& outgoingDirectCallees, unsigned& osrEntryScratchBufferSize, MemoryMode, CompilationMode, unsigned functionIndex, unsigned loopIndexForOSREntry);
+    OMGIRGenerator(CompilationContext&, OMGIRGenerator& inlineCaller, OMGIRGenerator& inlineRoot, Module&, CalleeGroup&, unsigned functionIndex, IPIntCallee&, BasicBlock* returnContinuation, Vector<Value*> args);
 
     void computeStackCheckSize(bool& needsOverflowCheck, int32_t& checkSize);
 
@@ -957,6 +959,7 @@ private:
 
     FunctionParser<OMGIRGenerator>* m_parser { nullptr };
     CompilationContext& m_context;
+    Module& m_module;
     CalleeGroup& m_calleeGroup;
     const ModuleInformation& m_info;
     const IPIntCallee& m_profiledCallee;
@@ -965,6 +968,7 @@ private:
     const CompilationMode m_compilationMode;
     const FunctionCodeIndex m_functionIndex;
     const unsigned m_loopIndexForOSREntry { UINT_MAX };
+    std::unique_ptr<MergedProfile> m_profile;
 
     struct RootBlock {
         BasicBlock* block;
@@ -1101,8 +1105,9 @@ void OMGIRGenerator::computeStackCheckSize(bool& needsOverflowCheck, int32_t& ch
     needsOverflowCheck = needsOverflowCheck || needUnderflowCheck;
 }
 
-OMGIRGenerator::OMGIRGenerator(CompilationContext& context, OMGIRGenerator& parentCaller, OMGIRGenerator& rootCaller, CalleeGroup& calleeGroup, unsigned functionIndex, IPIntCallee& profiledCallee, BasicBlock* returnContinuation, Vector<Value*> args)
+OMGIRGenerator::OMGIRGenerator(CompilationContext& context, OMGIRGenerator& parentCaller, OMGIRGenerator& rootCaller, Module& module, CalleeGroup& calleeGroup, unsigned functionIndex, IPIntCallee& profiledCallee, BasicBlock* returnContinuation, Vector<Value*> args)
     : m_context(context)
+    , m_module(module)
     , m_calleeGroup(calleeGroup)
     , m_info(rootCaller.m_info)
     , m_profiledCallee(profiledCallee)
@@ -1111,6 +1116,7 @@ OMGIRGenerator::OMGIRGenerator(CompilationContext& context, OMGIRGenerator& pare
     , m_compilationMode(CompilationMode::OMGMode)
     , m_functionIndex(functionIndex)
     , m_loopIndexForOSREntry(-1)
+    , m_profile(module.createMergedProfile(profiledCallee))
     , m_proc(rootCaller.m_proc)
     , m_returnContinuation(returnContinuation)
     , m_inlineRoot(&rootCaller)
@@ -1136,8 +1142,9 @@ OMGIRGenerator::OMGIRGenerator(CompilationContext& context, OMGIRGenerator& pare
         m_hasExceptionHandlers = true;
 }
 
-OMGIRGenerator::OMGIRGenerator(CompilationContext& context, CalleeGroup& calleeGroup, const ModuleInformation& info, IPIntCallee& profiledCallee, OptimizingJITCallee& callee, Procedure& procedure, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, FixedBitVector& outgoingDirectCallees, unsigned& osrEntryScratchBufferSize, MemoryMode mode, CompilationMode compilationMode, unsigned functionIndex, unsigned loopIndexForOSREntry)
+OMGIRGenerator::OMGIRGenerator(CompilationContext& context, Module& module, CalleeGroup& calleeGroup, const ModuleInformation& info, IPIntCallee& profiledCallee, OptimizingJITCallee& callee, Procedure& procedure, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, FixedBitVector& outgoingDirectCallees, unsigned& osrEntryScratchBufferSize, MemoryMode mode, CompilationMode compilationMode, unsigned functionIndex, unsigned loopIndexForOSREntry)
     : m_context(context)
+    , m_module(module)
     , m_calleeGroup(calleeGroup)
     , m_info(info)
     , m_profiledCallee(profiledCallee)
@@ -1146,6 +1153,7 @@ OMGIRGenerator::OMGIRGenerator(CompilationContext& context, CalleeGroup& calleeG
     , m_compilationMode(compilationMode)
     , m_functionIndex(functionIndex)
     , m_loopIndexForOSREntry(loopIndexForOSREntry)
+    , m_profile(module.createMergedProfile(profiledCallee))
     , m_proc(procedure)
     , m_inlineRoot(this)
     , m_inlinedBytes(m_info.functionWasmSize(m_functionIndex))
@@ -2075,11 +2083,11 @@ auto OMGIRGenerator::getGlobal(uint32_t index, ExpressionType& result) -> Partia
     const Wasm::GlobalInformation& global = m_info.globals[index];
     switch (global.bindingMode) {
     case Wasm::GlobalInformation::BindingMode::EmbeddedInInstance:
-        result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, Load, toB3Type(global.type), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobalPtr(m_numImportFunctions, m_info.tableCount(), index))));
+        result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, Load, toB3Type(global.type), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobal(m_info, index))));
         break;
     case Wasm::GlobalInformation::BindingMode::Portable: {
         ASSERT(global.mutability == Wasm::Mutability::Mutable);
-        Value* pointer = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobalPtr(m_numImportFunctions, m_info.tableCount(), index)));
+        Value* pointer = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobal(m_info, index)));
         result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, Load, toB3Type(global.type), origin(), pointer));
         break;
     }
@@ -2097,13 +2105,13 @@ auto OMGIRGenerator::setGlobal(uint32_t index, ExpressionType value) -> PartialR
 
     switch (global.bindingMode) {
     case Wasm::GlobalInformation::BindingMode::EmbeddedInInstance:
-        m_currentBlock->appendNew<MemoryValue>(m_proc, Store, origin(), get(value), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobalPtr(m_numImportFunctions, m_info.tableCount(), index)));
+        m_currentBlock->appendNew<MemoryValue>(m_proc, Store, origin(), get(value), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobal(m_info, index)));
         if (isRefType(global.type))
             emitWriteBarrierForJSWrapper();
         break;
     case Wasm::GlobalInformation::BindingMode::Portable: {
         ASSERT(global.mutability == Wasm::Mutability::Mutable);
-        Value* pointer = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobalPtr(m_numImportFunctions, m_info.tableCount(), index)));
+        Value* pointer = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGlobal(m_info, index)));
         m_currentBlock->appendNew<MemoryValue>(m_proc, Store, origin(), get(value), pointer);
         // We emit a write-barrier onto JSWebAssemblyGlobal, not JSWebAssemblyInstance.
         if (isRefType(global.type)) {
@@ -3859,7 +3867,7 @@ Value* OMGIRGenerator::allocatorForWasmGCHeapCellSize(Value* sizeInBytes, BasicB
 {
     static_assert(!(MarkedSpace::sizeStep & (MarkedSpace::sizeStep - 1)), "MarkedSpace::sizeStep must be a power of two.");
 
-    ptrdiff_t allocatorBufferBaseOffset = JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), m_info.typeCount(), 0);
+    ptrdiff_t allocatorBufferBaseOffset = JSWebAssemblyInstance::offsetOfAllocatorForGCObject(m_info, 0);
 
     unsigned stepShift = getLSBSet(MarkedSpace::sizeStep);
 
@@ -3948,7 +3956,7 @@ Value* OMGIRGenerator::allocateWasmGCArrayUninitialized(uint32_t typeIndex, Valu
     auto* slowPath = m_proc.addBlock();
     auto* continuation = m_proc.addBlock();
 
-    auto* structureID = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), typeIndex)));
+    auto* structureID = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info, typeIndex)));
     const ArrayType* typeDefinition = m_info.typeSignatures[typeIndex]->expand().template as<ArrayType>();
     size_t elementSize = typeDefinition->elementType().type.elementSize();
     auto* extended = m_currentBlock->appendNew<Value>(m_proc, ZExt32, origin(), size);
@@ -3983,7 +3991,7 @@ Value* OMGIRGenerator::allocateWasmGCStructUninitialized(uint32_t typeIndex)
     auto* slowPath = m_proc.addBlock();
     auto* continuation = m_proc.addBlock();
 
-    auto* structureID = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info.importFunctionCount(), m_info.tableCount(), m_info.globalCount(), typeIndex)));
+    auto* structureID = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfGCObjectStructureID(m_info, typeIndex)));
     const StructType* typeDefinition = m_info.typeSignatures[typeIndex]->expand().template as<StructType>();
     Value* sizeInBytes = constant(pointerType(), JSWebAssemblyStruct::allocationSize(typeDefinition->instancePayloadSize()));
     auto* allocator = allocatorForWasmGCHeapCellSize(sizeInBytes, slowPath);
@@ -5600,7 +5608,7 @@ bool OMGIRGenerator::canInline(FunctionSpaceIndex functionIndexSpace, unsigned c
     // too small (then call sequence can be larger than the inlined content).
     // Also, we could eventually consider emitting OSR exit, and stop generating
     // the rest of the code for this and subsequent basic blocks.
-    if (!m_profiledCallee.callSlots()[callSlotIndex].count())
+    if (!m_profile->isCalled(callSlotIndex))
         return false;
 
     if (m_inlineDepth >= Options::maximumWasmDepthForInlining())
@@ -5638,7 +5646,7 @@ auto OMGIRGenerator::emitInlineDirectCall(FunctionCodeIndex calleeFunctionIndex,
         Locker locker { m_calleeGroup.m_lock };
         profiledCallee = m_calleeGroup.ipintCalleeFromFunctionIndexSpace(locker, m_calleeGroup.toSpaceIndex(calleeFunctionIndex));
     }
-    m_protectedInlineeGenerators.append(makeUnique<OMGIRGenerator>(m_context, *this, *m_inlineRoot, m_calleeGroup, calleeFunctionIndex, *profiledCallee, continuation, WTFMove(getArgs)));
+    m_protectedInlineeGenerators.append(makeUnique<OMGIRGenerator>(m_context, *this, *m_inlineRoot, m_module, m_calleeGroup, calleeFunctionIndex, *profiledCallee, continuation, WTFMove(getArgs)));
     auto& irGenerator = *m_protectedInlineeGenerators.last();
     m_protectedInlineeParsers.append(makeUnique<FunctionParser<OMGIRGenerator>>(irGenerator, function.data, calleeSignature, m_info));
     auto& parser = *m_protectedInlineeParsers.last();
@@ -5880,7 +5888,7 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
     Value* callableFunctionBuffer = nullptr;
     Value* callableFunctionBufferLength;
     {
-        Value* table = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfTablePtr(m_numImportFunctions, tableIndex)));
+        Value* table = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), instanceValue(), safeCast<int32_t>(JSWebAssemblyInstance::offsetOfTable(m_info, tableIndex)));
         ASSERT(tableIndex < m_info.tableCount());
         auto& tableInformation = m_info.table(tableIndex);
 
@@ -6076,7 +6084,7 @@ static bool shouldDumpIRFor(uint32_t functionIndex)
     return dumpAllowlist->shouldDumpWasmFunction(functionIndex);
 }
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext& compilationContext, IPIntCallee& profiledCallee, OptimizingJITCallee& callee, const FunctionData& function, const TypeDefinition& signature, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, CalleeGroup& calleeGroup, const ModuleInformation& info, MemoryMode mode, CompilationMode compilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry)
+Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(CompilationContext& compilationContext, IPIntCallee& profiledCallee, OptimizingJITCallee& callee, const FunctionData& function, const TypeDefinition& signature, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, Module& module, CalleeGroup& calleeGroup, const ModuleInformation& info, MemoryMode mode, CompilationMode compilationMode, FunctionCodeIndex functionIndex, uint32_t loopIndexForOSREntry)
 {
     CompilerTimingScope totalScope("B3"_s, "Total OMG compilation"_s);
 
@@ -6108,7 +6116,7 @@ Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(Compilati
     procedure.code().setForceIRCRegisterAllocation();
 
     result->outgoingJITDirectCallees = FixedBitVector(info.internalFunctionCount());
-    OMGIRGenerator irGenerator(compilationContext, calleeGroup, info, profiledCallee, callee, procedure, unlinkedWasmToWasmCalls, result->outgoingJITDirectCallees, result->osrEntryScratchBufferSize, mode, compilationMode, functionIndex, loopIndexForOSREntry);
+    OMGIRGenerator irGenerator(compilationContext, module, calleeGroup, info, profiledCallee, callee, procedure, unlinkedWasmToWasmCalls, result->outgoingJITDirectCallees, result->osrEntryScratchBufferSize, mode, compilationMode, functionIndex, loopIndexForOSREntry);
     FunctionParser<OMGIRGenerator> parser(irGenerator, function.data, signature, info);
     WASM_FAIL_IF_HELPER_FAILS(parser.parse());
 

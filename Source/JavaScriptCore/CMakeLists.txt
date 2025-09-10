@@ -1398,6 +1398,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     tools/LLVMProfiling.h
     tools/SourceProfiler.h
 
+    wasm/WasmBaselineData.h
     wasm/WasmBranchHints.h
     wasm/WasmCallSlot.h
     wasm/WasmCallee.h
@@ -1427,6 +1428,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     wasm/WasmOpcodeOrigin.h
     wasm/WasmParser.h
     wasm/WasmPlan.h
+    wasm/WasmProfileCollection.h
     wasm/WasmSIMDOpcodes.h
     wasm/WasmSections.h
     wasm/WasmSIMDOpcodes.h
