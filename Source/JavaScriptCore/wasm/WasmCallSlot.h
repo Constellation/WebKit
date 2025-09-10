@@ -42,11 +42,16 @@ public:
         ++m_count;
     }
 
-    uint32_t* addressOfCount() { return &m_count; }
     static constexpr ptrdiff_t offsetOfCount() { return OBJECT_OFFSETOF(CallSlot, m_count); }
+    static constexpr ptrdiff_t offsetOfBoxedCallee() { return OBJECT_OFFSETOF(CallSlot, m_boxedCallee); }
+
+    static constexpr uint64_t initCallee = 0;
+    static constexpr uint64_t polymorphicCallee = 0b1;
+    static constexpr uint64_t megamorphicCallee = 0b11;
 
 private:
     uint32_t m_count { 0 };
+    uint64_t m_boxedCallee { initCallee };
 };
 
 } // namespace JSC::Wasm
