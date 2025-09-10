@@ -5924,18 +5924,23 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
                     BasicBlock* directCall = m_proc.addBlock();
 
                     Value* isSameContextInstance = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeInstance, instanceValue());
-                    Value* isSameCallee = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeCallee, CalleeBits::boxNativeCallee(callee));
+                    Value* isSameCallee = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeCallee, constant(pointerType(), std::bit_cast<uintptr_t>(CalleeBits::boxNativeCallee(callee))));
                     ;
                     m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitAnd, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(continuation));
                     directCall->addPredecessor(m_currentBlock);
                     slowCase->addPredecessor(m_currentBlock);
 
                     m_currentBlock = directCall;
-                    auto result = emitDirectCall(callSlotIndex, callee->index(), signature, args, fastValues, callType);
-                    for (Value*& value : fastValues)
-                        value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), value);
-                    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
-                    continuation->addPredecessor(m_currentBlock);
+                    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), slowCase);
+                    slowCase->addPredecessor(m_currentBlock);
+
+                    // auto result = emitDirectCall(callSlotIndex, callee->index(), signature, args, fastValues, callType);
+                    // for (Value*& value : fastValues) {
+                    //     auto* input = value;
+                    //     value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), input);
+                    // }
+                    // m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+                    // continuation->addPredecessor(m_currentBlock);
 
                     m_currentBlock = slowCase;
                 }
@@ -5956,13 +5961,13 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
             this->emitExceptionCheck(jit, origin, ExceptionType::BadSignature);
         });
     } else {
-        BasicBlock* continuation = m_proc.addBlock();
+        BasicBlock* checkDone = m_proc.addBlock();
         BasicBlock* moreChecks = m_proc.addBlock();
 
         Value* hasEqualSignatures = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeRTT, expectedRTT);
-        m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), hasEqualSignatures, FrequentedBlock(continuation), FrequentedBlock(moreChecks, FrequencyClass::Rare));
+        m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), hasEqualSignatures, FrequentedBlock(checkDone), FrequentedBlock(moreChecks, FrequencyClass::Rare));
         moreChecks->addPredecessor(m_currentBlock);
-        continuation->addPredecessor(m_currentBlock);
+        checkDone->addPredecessor(m_currentBlock);
 
         m_currentBlock = moreChecks;
         CheckValue* checkNull = m_currentBlock->appendNew<CheckValue>(m_proc, Check, origin(), m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeRTT, constant(pointerType(), 0)));
@@ -5982,18 +5987,20 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
             this->emitExceptionCheck(jit, origin, ExceptionType::BadSignature);
         });
 
-        m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
-        continuation->addPredecessor(m_currentBlock);
+        m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), checkDone);
+        checkDone->addPredecessor(m_currentBlock);
 
-        m_currentBlock = continuation;
+        m_currentBlock = checkDone;
     }
 
     Value* calleeCode = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), calleeCodeLocation);
 
     ValueResults slowValues;
     auto result = emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, slowValues, callType);
-    for (Value*& value : slowValues)
-        value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), value);
+    for (Value*& value : slowValues) {
+        auto* input = value;
+        value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), input);
+    }
     m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
     continuation->addPredecessor(m_currentBlock);
 
