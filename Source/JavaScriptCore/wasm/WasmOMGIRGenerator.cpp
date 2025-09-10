@@ -743,14 +743,17 @@ public:
     PartialResult WARN_UNUSED_RETURN addUnreachable();
     PartialResult WARN_UNUSED_RETURN addCrash();
     void fillCallResults(Value* callResult, const TypeDefinition& signature, ResultList& results);
-    PartialResult WARN_UNUSED_RETURN emitIndirectCall(Value* calleeInstance, Value* calleeCode, Value* boxedCalleeCallee, const TypeDefinition&, const ArgumentList& args, ResultList&, CallType = CallType::Call);
+
+    using ValueResults = Vector<Value*, 16>;
+    PartialResult WARN_UNUSED_RETURN emitDirectCall(unsigned, FunctionSpaceIndex functionIndexSpace, const TypeDefinition&, ArgumentList& args, ValueResults& results, CallType = CallType::Call);
+    PartialResult WARN_UNUSED_RETURN emitIndirectCall(Value* calleeInstance, Value* calleeCode, Value* boxedCalleeCallee, const TypeDefinition&, const ArgumentList& args, ValueResults&, CallType = CallType::Call);
 
     Vector<ConstrainedValue> createCallConstrainedArgs(BasicBlock*, const CallInformation& wasmCalleeInfo, const ArgumentList&);
     auto createCallPatchpoint(BasicBlock*, const TypeDefinition&, const CallInformation&, const ArgumentList& tmpArgs) -> CallPatchpointData;
     auto createTailCallPatchpoint(BasicBlock*, const TypeDefinition&, const CallInformation& wasmCallerInfoAsCallee, const CallInformation& wasmCalleeInfoAsCallee, const ArgumentList& tmpArgSourceLocations, Vector<B3::ConstrainedValue> patchArgs) -> CallPatchpointData;
 
     bool canInline(FunctionSpaceIndex functionIndexSpace, unsigned callSlotIndex) const;
-    PartialResult WARN_UNUSED_RETURN emitInlineDirectCall(FunctionCodeIndex calleeIndex, const TypeDefinition&, ArgumentList& args, ResultList& results);
+    PartialResult WARN_UNUSED_RETURN emitInlineDirectCall(FunctionCodeIndex calleeIndex, const TypeDefinition&, ArgumentList& args, ValueResults& results);
 
     void dump(const ControlStack&, const Stack* expressionStack);
     void setParser(FunctionParser<OMGIRGenerator>* parser) { m_parser = parser; };
@@ -1733,7 +1736,7 @@ auto OMGIRGenerator::addCrash() -> PartialResult
     return { };
 }
 
-auto OMGIRGenerator::emitIndirectCall(Value* calleeInstance, Value* calleeCode, Value* boxedCalleeCallee, const TypeDefinition& signature, const ArgumentList& args, ResultList& results, CallType callType) -> PartialResult
+auto OMGIRGenerator::emitIndirectCall(Value* calleeInstance, Value* calleeCode, Value* boxedCalleeCallee, const TypeDefinition& signature, const ArgumentList& args, ValueResults& results, CallType callType) -> PartialResult
 {
     const bool isTailCallInlineCaller = callType == CallType::TailCall && m_inlineParent;
     const bool isTailCall = callType == CallType::TailCall && !isTailCallInlineCaller;
@@ -1842,27 +1845,17 @@ auto OMGIRGenerator::emitIndirectCall(Value* calleeInstance, Value* calleeCode, 
     case B3::Tuple: {
         const Vector<B3::Type>& tuple = m_proc.tupleForType(returnType);
         for (unsigned i = 0; i < signature.as<FunctionSignature>()->returnCount(); ++i)
-            results.append(push(m_currentBlock->appendNew<ExtractValue>(m_proc, origin(), tuple[i], callResult, i)));
+            results.append(m_currentBlock->appendNew<ExtractValue>(m_proc, origin(), tuple[i], callResult, i));
         break;
     }
     default: {
-        results.append(push(callResult));
+        results.append(callResult);
         break;
     }
     }
 
     // The call could have been to another WebAssembly instance, and / or could have modified our Memory.
     restoreWebAssemblyGlobalState(m_info.memory, instanceValue(), m_currentBlock);
-
-    if (isTailCallInlineCaller) {
-        Stack typedResults;
-        typedResults.reserveInitialCapacity(results.size());
-        for (unsigned i = 0; i < results.size(); ++i)
-            typedResults.append(TypedExpression { signature.as<FunctionSignature>()->returnType(i), results[i] });
-        ASSERT(m_returnContinuation);
-        return addInlinedReturn(WTFMove(typedResults));
-    }
-
     return { };
 }
 
@@ -5627,7 +5620,7 @@ bool OMGIRGenerator::canInline(FunctionSpaceIndex functionIndexSpace, unsigned c
     return true;
 }
 
-auto OMGIRGenerator::emitInlineDirectCall(FunctionCodeIndex calleeFunctionIndex, const TypeDefinition& calleeSignature, ArgumentList& args, ResultList& resultList) -> PartialResult
+auto OMGIRGenerator::emitInlineDirectCall(FunctionCodeIndex calleeFunctionIndex, const TypeDefinition& calleeSignature, ArgumentList& args, ValueResults& results) -> PartialResult
 {
     Vector<Value*> getArgs;
 
@@ -5672,7 +5665,7 @@ auto OMGIRGenerator::emitInlineDirectCall(FunctionCodeIndex calleeFunctionIndex,
     m_currentBlock = continuation;
 
     for (unsigned i = 0; i < calleeSignature.as<FunctionSignature>()->returnCount(); ++i)
-        resultList.append(push(m_currentBlock->appendNew<VariableValue>(m_proc, B3::Get, origin(), irGenerator.m_inlinedResults[i])));
+        results.append(m_currentBlock->appendNew<VariableValue>(m_proc, B3::Get, origin(), irGenerator.m_inlinedResults[i]));
 
     auto lastInlineCallSiteIndex = advanceCallSiteIndex();
     advanceCallSiteIndex();
@@ -5684,6 +5677,28 @@ auto OMGIRGenerator::emitInlineDirectCall(FunctionCodeIndex calleeFunctionIndex,
 }
 
 auto OMGIRGenerator::addCall(unsigned callSlotIndex, FunctionSpaceIndex functionIndexSpace, const TypeDefinition& signature, ArgumentList& args, ResultList& results, CallType callType) -> PartialResult
+{
+    TRACE_CF("Call: entered with ", signature);
+
+    ValueResults values;
+    auto result = emitDirectCall(callSlotIndex, functionIndexSpace, signature, args, values, callType);
+    for (Value* value : values)
+        results.append(push(value));
+
+    const bool isTailCallInlineCaller = callType == CallType::TailCall && m_inlineParent;
+    if (isTailCallInlineCaller) {
+        Stack typedResults;
+        typedResults.reserveInitialCapacity(results.size());
+        for (unsigned i = 0; i < results.size(); ++i)
+            typedResults.append(TypedExpression { signature.as<FunctionSignature>()->returnType(i), results[i] });
+        ASSERT(m_returnContinuation);
+        return addInlinedReturn(WTFMove(typedResults));
+    }
+
+    return result;
+}
+
+auto OMGIRGenerator::emitDirectCall(unsigned callSlotIndex, FunctionSpaceIndex functionIndexSpace, const TypeDefinition& signature, ArgumentList& args, ValueResults& results, CallType callType) -> PartialResult
 {
     if (!m_info.isImportedFunctionFromFunctionIndexSpace(functionIndexSpace)) {
         // Record the callee so the callee knows to look for it in updateCallsitesToCallUs.
@@ -5697,8 +5712,6 @@ auto OMGIRGenerator::addCall(unsigned callSlotIndex, FunctionSpaceIndex function
 
     ASSERT(callType == CallType::Call || isTailCall || isTailCallInlineCaller);
     ASSERT(signature.as<FunctionSignature>()->argumentCount() == args.size());
-
-    TRACE_CF("Call: entered with ", signature);
 
     const auto& callingConvention = wasmCallingConvention();
     Checked<int32_t> tailCallStackOffsetFromFP;
@@ -5715,7 +5728,7 @@ auto OMGIRGenerator::addCall(unsigned callSlotIndex, FunctionSpaceIndex function
     Value* jumpDestination = nullptr;
 
     m_makesCalls = true;
-    if (isTailCall || isTailCallInlineCaller)
+    if (callType == CallType::TailCall)
         m_makesTailCalls = true;
 
     auto fillResults = [&] (Value* callResult) {
@@ -5729,11 +5742,11 @@ auto OMGIRGenerator::addCall(unsigned callSlotIndex, FunctionSpaceIndex function
             const Vector<B3::Type>& tuple = m_proc.tupleForType(returnType);
             ASSERT(signature.as<FunctionSignature>()->returnCount() == tuple.size());
             for (unsigned i = 0; i < signature.as<FunctionSignature>()->returnCount(); ++i)
-                results.append(push(m_currentBlock->appendNew<ExtractValue>(m_proc, origin(), tuple[i], callResult, i)));
+                results.append(m_currentBlock->appendNew<ExtractValue>(m_proc, origin(), tuple[i], callResult, i));
             break;
         }
         default: {
-            results.append(push(callResult));
+            results.append(callResult);
             break;
         }
         }
@@ -5789,18 +5802,7 @@ auto OMGIRGenerator::addCall(unsigned callSlotIndex, FunctionSpaceIndex function
 
         // The call could have been to another WebAssembly instance, and / or could have modified our Memory.
         restoreWebAssemblyGlobalState(m_info.memory, instanceValue(), m_currentBlock);
-
-        if (isTailCallInlineCaller) {
-            Stack typedResults;
-            typedResults.reserveInitialCapacity(results.size());
-            for (unsigned i = 0; i < results.size(); ++i)
-                typedResults.append(TypedExpression { signature.as<FunctionSignature>()->returnType(i), results[i] });
-            ASSERT(m_returnContinuation);
-            return addInlinedReturn(WTFMove(typedResults));
-        }
-
         return { };
-
     } // isImportedFunctionFromFunctionIndexSpace
 
     Vector<UnlinkedWasmToWasmCall>* unlinkedWasmToWasmCalls = &m_unlinkedWasmToWasmCalls;
@@ -5859,15 +5861,6 @@ auto OMGIRGenerator::addCall(unsigned callSlotIndex, FunctionSpaceIndex function
         restoreWebAssemblyGlobalState(m_info.memory, instanceValue(), m_currentBlock);
     }
 
-    if (isTailCallInlineCaller) {
-        Stack typedResults;
-        typedResults.reserveInitialCapacity(results.size());
-        for (unsigned i = 0; i < results.size(); ++i)
-            typedResults.append(TypedExpression { signature.as<FunctionSignature>()->returnType(i), results[i] });
-        ASSERT(m_returnContinuation);
-        return addInlinedReturn(WTFMove(typedResults));
-    }
-
     return { };
 }
 
@@ -5923,17 +5916,32 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
     // FIXME: when we have trap handlers, we can just let the call fail because Signature::invalidIndex is 0. https://bugs.webkit.org/show_bug.cgi?id=177210
     static_assert(sizeof(WasmToWasmImportableFunction::typeIndex) == sizeof(uintptr_t), "Load codegen assumes ptr");
     Value* calleeCallee = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfBoxedCallee()));
-    Value* calleeCodeLocation = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfEntrypointLoadLocation()));
-    Value* calleeRTT = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfRTT()));
     Value* calleeInstance = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfTargetInstance()));
 
     if (callType == CallType::Call) {
         if (m_profile->isCalled(callSlotIndex)) {
             if (auto* callee = m_profile->callee(callSlotIndex)) {
-                dataLogLn("MONOMORPHIC ", RawPointer(callee));
+                if (callee->compilationMode() == Wasm::CompilationMode::IPIntMode) {
+                    BasicBlock* continuation = m_proc.addBlock();
+                    BasicBlock* directCall = m_proc.addBlock();
+
+                    Value* isSameContextInstance = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeInstance, instanceValue());
+                    Value* isSameCallee = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeCallee, CalleeBits::boxNativeCallee(callee));
+                    ;
+                    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitOr, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(continuation));
+                    directCall->addPredecessor(m_currentBlock);
+                    continuation->addPredecessor(m_currentBlock);
+
+                    m_currentBlock = directCall;
+
+                    m_currentBlock = continuation;
+                }
             }
         }
     }
+
+    Value* calleeCodeLocation = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfEntrypointLoadLocation()));
+    Value* calleeRTT = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfRTT()));
 
     auto signatureRTT = TypeInformation::getCanonicalRTT(originalSignature.index());
 
@@ -5978,7 +5986,23 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
     }
 
     Value* calleeCode = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), calleeCodeLocation);
-    return emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, results, callType);
+
+    ValueResults values;
+    auto result = emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, values, callType);
+
+    for (Value* value : values)
+        results.append(push(value));
+
+    const bool isTailCallInlineCaller = callType == CallType::TailCall && m_inlineParent;
+    if (isTailCallInlineCaller) {
+        Stack typedResults;
+        typedResults.reserveInitialCapacity(results.size());
+        for (unsigned i = 0; i < results.size(); ++i)
+            typedResults.append(TypedExpression { signature.as<FunctionSignature>()->returnType(i), results[i] });
+        ASSERT(m_returnContinuation);
+        return addInlinedReturn(WTFMove(typedResults));
+    }
+    return result;
 }
 
 auto OMGIRGenerator::addCallRef(unsigned callSlotIndex, const TypeDefinition& originalSignature, ArgumentList& args, ResultList& results, CallType callType) -> PartialResult
@@ -6011,7 +6035,22 @@ auto OMGIRGenerator::addCallRef(unsigned callSlotIndex, const TypeDefinition& or
 
     Value* calleeCallee = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callee, safeCast<int32_t>(WebAssemblyFunctionBase::offsetOfBoxedCallee()));
 
-    return emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, results, callType);
+    ValueResults values;
+    auto result = emitIndirectCall(calleeInstance, calleeCode, calleeCallee, signature, args, values, callType);
+
+    for (Value* value : values)
+        results.append(push(value));
+
+    const bool isTailCallInlineCaller = callType == CallType::TailCall && m_inlineParent;
+    if (isTailCallInlineCaller) {
+        Stack typedResults;
+        typedResults.reserveInitialCapacity(results.size());
+        for (unsigned i = 0; i < results.size(); ++i)
+            typedResults.append(TypedExpression { signature.as<FunctionSignature>()->returnType(i), results[i] });
+        ASSERT(m_returnContinuation);
+        return addInlinedReturn(WTFMove(typedResults));
+    }
+    return result;
 }
 
 void OMGIRGenerator::unify(Value* phi, const ExpressionType source)
