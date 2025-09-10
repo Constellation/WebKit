@@ -5926,21 +5926,18 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
                     Value* isSameContextInstance = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeInstance, instanceValue());
                     Value* isSameCallee = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeCallee, constant(pointerType(), std::bit_cast<uintptr_t>(CalleeBits::boxNativeCallee(callee))));
                     ;
-                    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitAnd, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(continuation));
+                    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitAnd, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(slowCase));
                     directCall->addPredecessor(m_currentBlock);
                     slowCase->addPredecessor(m_currentBlock);
 
                     m_currentBlock = directCall;
-                    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), slowCase);
-                    slowCase->addPredecessor(m_currentBlock);
-
-                    // auto result = emitDirectCall(callSlotIndex, callee->index(), signature, args, fastValues, callType);
-                    // for (Value*& value : fastValues) {
-                    //     auto* input = value;
-                    //     value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), input);
-                    // }
-                    // m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
-                    // continuation->addPredecessor(m_currentBlock);
+                    auto result = emitDirectCall(callSlotIndex, callee->index(), signature, args, fastValues, callType);
+                    for (Value*& value : fastValues) {
+                        auto* input = value;
+                        value = m_currentBlock->appendNew<UpsilonValue>(m_proc, origin(), input);
+                    }
+                    m_currentBlock->appendNewControlValue(m_proc, Jump, origin(), continuation);
+                    continuation->addPredecessor(m_currentBlock);
 
                     m_currentBlock = slowCase;
                 }
@@ -6007,7 +6004,7 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
     m_currentBlock = continuation;
     for (unsigned i = 0; i < slowValues.size(); ++i) {
         auto* slowValue = slowValues[i];
-        auto* phi = m_currentBlock->appendNew<Value>(m_proc, Phi, slowValue->type(), origin());
+        auto* phi = m_currentBlock->appendNew<Value>(m_proc, Phi, slowValue->child(0)->type(), origin());
         slowValue->as<B3::UpsilonValue>()->setPhi(phi);
         if (!fastValues.isEmpty()) {
             auto* fastValue = fastValues[i];
