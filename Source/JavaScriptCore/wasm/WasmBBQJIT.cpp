@@ -745,8 +745,6 @@ bool BBQJIT::canTierUpToOMG() const
 
 void BBQJIT::emitIncrementCallSlotCount(unsigned callSlotIndex)
 {
-    // Note that this CallSlots are shared by all wasm threads, so this knowingly racy.
-    // But this is OK since this is just for profiling counter information.
     ASSERT(m_profiledCallee.needsProfiling());
     m_jit.add32(TrustedImm32(1), CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfCount())));
 }
@@ -4343,9 +4341,11 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addCall(unsigned callSlotIndex, Functio
     return { };
 }
 
-void BBQJIT::emitIndirectCall(const char* opcode, const Value& callee, GPRReg calleeInstance, GPRReg calleeCode, const TypeDefinition& signature, ArgumentList& arguments, ResultList& results)
+void BBQJIT::emitIndirectCall(const char* opcode, unsigned callSlotIndex, const Value& callee, GPRReg boxedCallee, GPRReg calleeInstance, GPRReg calleeCode, const TypeDefinition& signature, ArgumentList& arguments, ResultList& results)
 {
     ASSERT(!RegisterSetBuilder::argumentGPRs().contains(calleeCode, IgnoreVectors));
+
+    JumpList profilingDone;
 
     const auto& callingConvention = wasmCallingConvention();
     CallInformation wasmCalleeInfo = callingConvention.callInformationFor(signature, CallRole::Caller);
@@ -4354,12 +4354,21 @@ void BBQJIT::emitIndirectCall(const char* opcode, const Value& callee, GPRReg ca
 
     // Do a context switch if needed.
     Jump isSameInstanceBefore = m_jit.branchPtr(RelationalCondition::Equal, calleeInstance, GPRInfo::wasmContextInstancePointer);
+    m_jit.store64(TrustedImm32(CallSlot::megamorphicCallee), CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
     m_jit.move(calleeInstance, GPRInfo::wasmContextInstancePointer);
 #if USE(JSVALUE64)
     loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
 #endif
-    isSameInstanceBefore.link(&m_jit);
+    profilingDone.append(m_jit.jump());
 
+    isSameInstanceBefore.link(&m_jit);
+    m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee())), wasmScratchGPR);
+    profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, boxedCallee));
+    profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, TrustedImm32(CallSlot::megamorphicCallee)));
+    m_jit.moveConditionallyTest64(CCallHelpers::Zero, wasmScratchGPR, wasmScratchGPR, wasmScratchGPR, boxedCallee, wasmScratchGPR);
+    m_jit.store64(wasmScratchGPR, CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
+
+    profilingDone.link(m_jit);
     m_jit.loadPtr(Address(calleeCode), calleeCode);
     prepareForExceptions();
     saveValuesAcrossCallAndPassArguments(arguments, wasmCalleeInfo, signature); // Keep in mind that this clobbers wasmScratchGPR and wasmScratchFPR.
@@ -4526,7 +4535,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addCallIndirect(unsigned callSlotIndex,
         calleeCodeScratch.unbindPreserved();
 
         {
-            ScratchScope<3, 0> scratches(*this);
+            ScratchScope<2, 0> scratches(*this);
 
             if (calleeIndex.isConst())
                 emitMoveConst(calleeIndex, calleeIndexLocation = Location::fromGPR(scratches.gpr(1)));
@@ -4608,15 +4617,15 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addCallIndirect(unsigned callSlotIndex,
                 indexEqual.link(&m_jit);
             }
 
-            m_jit.loadPtr(Address(calleeSignatureIndex, FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfBoxedCallee()), calleeInstance);
-            m_jit.storeWasmCalleeToCalleeCallFrame(calleeInstance);
+            m_jit.loadPtr(Address(calleeSignatureIndex, FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfBoxedCallee()), calleeRTT);
+            m_jit.storeWasmCalleeToCalleeCallFrame(calleeRTT);
             m_jit.loadPtr(Address(calleeSignatureIndex, FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfTargetInstance()), calleeInstance);
         }
     }
 
     JIT_COMMENT(m_jit, "Finished loading callee code");
     if (callType == CallType::Call)
-        emitIndirectCall("CallIndirect", calleeIndex, calleeInstance, calleeCode, signature, args, results);
+        emitIndirectCall("CallIndirect", callSlotIndex, calleeIndex, calleeRTT, calleeInstance, calleeCode, signature, args, results);
     else
         emitIndirectTailCall("ReturnCallIndirect", calleeIndex, calleeInstance, calleeCode, signature, args);
     return { };
