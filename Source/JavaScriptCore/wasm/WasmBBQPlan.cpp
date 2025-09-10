@@ -50,9 +50,10 @@ namespace WasmBBQPlanInternal {
 static constexpr bool verbose = false;
 }
 
-BBQPlan::BBQPlan(VM& vm, Ref<ModuleInformation>&& moduleInformation, FunctionCodeIndex functionIndex, Ref<IPIntCallee>&& profiledCallee, Ref<CalleeGroup>&& calleeGroup, CompletionTask&& completionTask)
+BBQPlan::BBQPlan(VM& vm, Ref<ModuleInformation>&& moduleInformation, FunctionCodeIndex functionIndex, Ref<IPIntCallee>&& profiledCallee, Ref<Module>&& module, Ref<CalleeGroup>&& calleeGroup, CompletionTask&& completionTask)
     : Plan(vm, WTFMove(moduleInformation), WTFMove(completionTask))
     , m_profiledCallee(WTFMove(profiledCallee))
+    , m_module(WTFMove(module))
     , m_calleeGroup(WTFMove(calleeGroup))
     , m_functionIndex(functionIndex)
 {
@@ -175,7 +176,7 @@ std::unique_ptr<InternalFunction> BBQPlan::compileFunction(FunctionCodeIndex fun
 
     beginCompilerSignpost(callee);
     RELEASE_ASSERT(mode() == m_calleeGroup->mode());
-    parseAndCompileResult = parseAndCompileBBQ(context, m_profiledCallee.get(), callee, function, signature, unlinkedWasmToWasmCalls, m_calleeGroup.get(), m_moduleInformation.get(), m_mode, functionIndex);
+    parseAndCompileResult = parseAndCompileBBQ(context, m_profiledCallee.get(), callee, function, signature, unlinkedWasmToWasmCalls, m_module.get(), m_calleeGroup.get(), m_moduleInformation.get(), m_mode, functionIndex);
     endCompilerSignpost(callee);
 
     if (!parseAndCompileResult) [[unlikely]] {

@@ -54,6 +54,8 @@ public:
             return std::bit_cast<Callee*>(m_callee);
         }
 
+        bool isMegamorphic() const { return m_callee == megamorphic; }
+
     private:
         static constexpr uintptr_t megamorphic = 1;
 
@@ -64,6 +66,7 @@ public:
     MergedProfile(const IPIntCallee&);
     bool isCalled(size_t index) const { return !!m_callSites[index].count(); }
     Callee* callee(size_t index) const { return m_callSites[index].callee(); }
+    bool isMegamorphic(size_t index) const { return m_callSites[index].isMegamorphic(); }
 
     std::span<CallSite> mutableSpan() { return m_callSites.mutableSpan(); }
     std::span<const CallSite> span() const { return m_callSites.span(); }

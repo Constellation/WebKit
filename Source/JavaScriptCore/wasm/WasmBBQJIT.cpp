@@ -53,6 +53,7 @@
 #include "WasmFunctionParser.h"
 #include "WasmIRGeneratorHelpers.h"
 #include "WasmMemoryInformation.h"
+#include "WasmMergedProfile.h"
 #include "WasmModule.h"
 #include "WasmModuleInformation.h"
 #include "WasmOMGIRGenerator.h"
@@ -649,8 +650,9 @@ void ControlData::fillLabels(CCallHelpers::Label label)
         *box = label;
 }
 
-BBQJIT::BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup& calleeGroup, IPIntCallee& profiledCallee, BBQCallee& callee, const FunctionData& function, FunctionCodeIndex functionIndex, const ModuleInformation& info, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, MemoryMode mode, InternalFunction* compilation)
+BBQJIT::BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, Module& module, CalleeGroup& calleeGroup, IPIntCallee& profiledCallee, BBQCallee& callee, const FunctionData& function, FunctionCodeIndex functionIndex, const ModuleInformation& info, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, MemoryMode mode, InternalFunction* compilation)
     : m_jit(jit)
+    , m_module(module)
     , m_calleeGroup(calleeGroup)
     , m_profiledCallee(profiledCallee)
     , m_callee(callee)
@@ -664,6 +666,7 @@ BBQJIT::BBQJIT(CCallHelpers& jit, const TypeDefinition& signature, CalleeGroup& 
     , m_lastUseTimestamp(0)
     , m_compilation(compilation)
     , m_pcToCodeOriginMapBuilder(Options::useSamplingProfiler())
+    , m_profile(module.createMergedProfile(profiledCallee))
 {
     RegisterSetBuilder gprSetBuilder = RegisterSetBuilder::allGPRs();
     gprSetBuilder.exclude(RegisterSetBuilder::specialRegisters());
@@ -4345,37 +4348,45 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callSlotIndex, const 
 {
     ASSERT(!RegisterSetBuilder::argumentGPRs().contains(calleeCode, IgnoreVectors));
 
-    JumpList profilingDone;
-    JumpList profilingGiveUp;
-
     const auto& callingConvention = wasmCallingConvention();
     CallInformation wasmCalleeInfo = callingConvention.callInformationFor(signature, CallRole::Caller);
     Checked<int32_t> calleeStackSize = WTF::roundUpToMultipleOf<stackAlignmentBytes()>(wasmCalleeInfo.headerAndArgumentStackSizeInBytes);
     m_maxCalleeStackSize = std::max<int>(calleeStackSize, m_maxCalleeStackSize);
 
-    // Do a context switch if needed.
-    Jump isSameInstanceBefore = m_jit.branchPtr(RelationalCondition::Equal, calleeInstance, GPRInfo::wasmContextInstancePointer);
-    m_jit.move(calleeInstance, GPRInfo::wasmContextInstancePointer);
+    if (m_profile->isMegamorphic(callSlotIndex)) {
+        // Do a context switch if needed.
+        Jump isSameInstanceBefore = m_jit.branchPtr(RelationalCondition::Equal, calleeInstance, GPRInfo::wasmContextInstancePointer);
+        m_jit.move(calleeInstance, GPRInfo::wasmContextInstancePointer);
 #if USE(JSVALUE64)
-    loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
+        loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
 #endif
-    profilingGiveUp.append(m_jit.jump());
+    } else {
+        JumpList profilingDone;
+        JumpList profilingGiveUp;
 
-    isSameInstanceBefore.link(&m_jit);
-    m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee())), wasmScratchGPR);
-    profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, boxedCallee));
-    profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, TrustedImm32(CallSlot::megamorphicCallee)));
-    profilingGiveUp.append(m_jit.branchTest64(CCallHelpers::NonZero, wasmScratchGPR));
-    m_jit.move(boxedCallee, wasmScratchGPR);
-    auto store = m_jit.jump();
+        // Do a context switch if needed.
+        Jump isSameInstanceBefore = m_jit.branchPtr(RelationalCondition::Equal, calleeInstance, GPRInfo::wasmContextInstancePointer);
+        m_jit.move(calleeInstance, GPRInfo::wasmContextInstancePointer);
+#if USE(JSVALUE64)
+        loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
+#endif
+        profilingGiveUp.append(m_jit.jump());
 
-    profilingGiveUp.link(m_jit);
-    m_jit.move(TrustedImm32(CallSlot::megamorphicCallee), wasmScratchGPR);
+        isSameInstanceBefore.link(&m_jit);
+        m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee())), wasmScratchGPR);
+        profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, boxedCallee));
+        profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, TrustedImm32(CallSlot::megamorphicCallee)));
+        profilingGiveUp.append(m_jit.branchTest64(CCallHelpers::NonZero, wasmScratchGPR));
+        m_jit.move(boxedCallee, wasmScratchGPR);
+        auto store = m_jit.jump();
 
-    store.link(m_jit);
-    m_jit.store64(wasmScratchGPR, CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
+        profilingGiveUp.link(m_jit);
+        m_jit.move(TrustedImm32(CallSlot::megamorphicCallee), wasmScratchGPR);
 
-    profilingDone.link(m_jit);
+        store.link(m_jit);
+        m_jit.store64(wasmScratchGPR, CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
+    }
+
     m_jit.loadPtr(Address(calleeCode), calleeCode);
     prepareForExceptions();
     saveValuesAcrossCallAndPassArguments(arguments, wasmCalleeInfo, signature); // Keep in mind that this clobbers wasmScratchGPR and wasmScratchFPR.
@@ -5093,7 +5104,7 @@ void BBQJIT::emitArrayGetPayload(StorageType type, GPRReg arrayGPR, GPRReg paylo
 
 } // namespace JSC::Wasm::BBQJITImpl
 
-Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileBBQ(CompilationContext& compilationContext, IPIntCallee& profiledCallee, BBQCallee& callee, const FunctionData& function, const TypeDefinition& signature, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, CalleeGroup& calleeGroup, const ModuleInformation& info, MemoryMode mode, FunctionCodeIndex functionIndex)
+Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileBBQ(CompilationContext& compilationContext, IPIntCallee& profiledCallee, BBQCallee& callee, const FunctionData& function, const TypeDefinition& signature, Vector<UnlinkedWasmToWasmCall>& unlinkedWasmToWasmCalls, Module& module, CalleeGroup& calleeGroup, const ModuleInformation& info, MemoryMode mode, FunctionCodeIndex functionIndex)
 {
     CompilerTimingScope totalTime("BBQ"_s, "Total BBQ"_s);
 
@@ -5103,7 +5114,7 @@ Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileBBQ(Compilati
 
     compilationContext.wasmEntrypointJIT = makeUnique<CCallHelpers>();
 
-    BBQJIT irGenerator(*compilationContext.wasmEntrypointJIT, signature, calleeGroup, profiledCallee, callee, function, functionIndex, info, unlinkedWasmToWasmCalls, mode, result.get());
+    BBQJIT irGenerator(*compilationContext.wasmEntrypointJIT, signature, module, calleeGroup, profiledCallee, callee, function, functionIndex, info, unlinkedWasmToWasmCalls, mode, result.get());
     FunctionParser<BBQJIT> parser(irGenerator, function.data, signature, info);
     WASM_FAIL_IF_HELPER_FAILS(parser.parse());
 
