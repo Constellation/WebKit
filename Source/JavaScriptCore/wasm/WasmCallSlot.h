@@ -61,6 +61,8 @@ public:
         m_boxedCallee = megamorphicCallee;
     }
 
+    EncodedJSValue boxedCallee() const { return m_boxedCallee; }
+
     static constexpr ptrdiff_t offsetOfCount() { return OBJECT_OFFSETOF(CallSlot, m_count); }
     static constexpr ptrdiff_t offsetOfBoxedCallee() { return OBJECT_OFFSETOF(CallSlot, m_boxedCallee); }
 

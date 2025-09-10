@@ -4346,6 +4346,7 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callSlotIndex, const 
     ASSERT(!RegisterSetBuilder::argumentGPRs().contains(calleeCode, IgnoreVectors));
 
     JumpList profilingDone;
+    JumpList profilingGiveUp;
 
     const auto& callingConvention = wasmCallingConvention();
     CallInformation wasmCalleeInfo = callingConvention.callInformationFor(signature, CallRole::Caller);
@@ -4354,18 +4355,24 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callSlotIndex, const 
 
     // Do a context switch if needed.
     Jump isSameInstanceBefore = m_jit.branchPtr(RelationalCondition::Equal, calleeInstance, GPRInfo::wasmContextInstancePointer);
-    m_jit.store64(TrustedImm32(CallSlot::megamorphicCallee), CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
     m_jit.move(calleeInstance, GPRInfo::wasmContextInstancePointer);
 #if USE(JSVALUE64)
     loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
 #endif
-    profilingDone.append(m_jit.jump());
+    profilingGiveUp.append(m_jit.jump());
 
     isSameInstanceBefore.link(&m_jit);
     m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee())), wasmScratchGPR);
     profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, boxedCallee));
     profilingDone.append(m_jit.branch64(CCallHelpers::Equal, wasmScratchGPR, TrustedImm32(CallSlot::megamorphicCallee)));
-    m_jit.moveConditionallyTest64(CCallHelpers::Zero, wasmScratchGPR, wasmScratchGPR, wasmScratchGPR, boxedCallee, wasmScratchGPR);
+    profilingGiveUp.append(m_jit.branchTest64(CCallHelpers::NonZero, wasmScratchGPR));
+    m_jit.move(boxedCallee, wasmScratchGPR);
+    auto store = m_jit.jump();
+
+    profilingGiveUp.link(m_jit);
+    m_jit.move(TrustedImm32(CallSlot::megamorphicCallee), wasmScratchGPR);
+
+    store.link(m_jit);
     m_jit.store64(wasmScratchGPR, CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallSlot) * callSlotIndex + CallSlot::offsetOfBoxedCallee()))); // Give up for cross-instance indirect calls.
 
     profilingDone.link(m_jit);

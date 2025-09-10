@@ -47,12 +47,23 @@ public:
         void merge(const CallSlot&);
         uint32_t count() const { return m_count; }
 
+        Callee* callee() const
+        {
+            if (m_callee == megamorphic)
+                return nullptr;
+            return std::bit_cast<Callee*>(m_callee);
+        }
+
     private:
+        static constexpr uintptr_t megamorphic = 1;
+
         uint32_t m_count { 0 };
+        uintptr_t m_callee { 0 };
     };
 
     MergedProfile(const IPIntCallee&);
     bool isCalled(size_t index) const { return !!m_callSites[index].count(); }
+    Callee* callee(size_t index) const { return m_callSites[index].callee(); }
 
     std::span<CallSite> mutableSpan() { return m_callSites.mutableSpan(); }
     std::span<const CallSite> span() const { return m_callSites.span(); }

@@ -5927,6 +5927,14 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
     Value* calleeRTT = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfRTT()));
     Value* calleeInstance = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callableFunction, safeCast<int32_t>(FuncRefTable::Function::offsetOfFunction() + WasmToWasmImportableFunction::offsetOfTargetInstance()));
 
+    if (callType == CallType::Call) {
+        if (m_profile->isCalled(callSlotIndex)) {
+            if (auto* callee = m_profile->callee(callSlotIndex)) {
+                dataLogLn("MONOMORPHIC ", RawPointer(callee));
+            }
+        }
+    }
+
     auto signatureRTT = TypeInformation::getCanonicalRTT(originalSignature.index());
 
     Value* expectedRTT = constant(pointerType(), std::bit_cast<uintptr_t>(signatureRTT.ptr()));

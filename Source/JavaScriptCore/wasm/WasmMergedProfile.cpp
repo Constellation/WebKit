@@ -43,6 +43,23 @@ MergedProfile::MergedProfile(const IPIntCallee& callee)
 void MergedProfile::CallSite::merge(const CallSlot& slot)
 {
     m_count += slot.count();
+
+    auto bits = slot.boxedCallee();
+    if (bits == CallSlot::megamorphicCallee) {
+        m_callee = megamorphic;
+        return;
+    }
+    if (!bits)
+        return;
+
+    auto callee = std::bit_cast<uintptr_t>(static_cast<Callee*>(CalleeBits(bits).asNativeCallee()));
+    if (!m_callee) {
+        m_callee = callee;
+        return;
+    }
+    if (m_callee == callee)
+        return;
+    m_callee = megamorphic;
 }
 
 } // namespace JSC::Wasm
