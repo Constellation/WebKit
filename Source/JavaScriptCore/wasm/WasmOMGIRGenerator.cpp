@@ -5926,7 +5926,7 @@ auto OMGIRGenerator::addCallIndirect(unsigned callSlotIndex, unsigned tableIndex
                     Value* isSameContextInstance = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeInstance, instanceValue());
                     Value* isSameCallee = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), calleeCallee, CalleeBits::boxNativeCallee(callee));
                     ;
-                    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitOr, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(continuation));
+                    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), m_currentBlock->appendNew<Value>(m_proc, B3::BitAnd, origin(), isSameContextInstance, isSameCallee), FrequentedBlock(directCall), FrequentedBlock(continuation));
                     directCall->addPredecessor(m_currentBlock);
                     slowCase->addPredecessor(m_currentBlock);
 
