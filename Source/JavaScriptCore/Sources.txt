@@ -117,6 +117,7 @@ b3/B3Bank.cpp
 b3/B3BasicBlock.cpp
 b3/B3BlockInsertionSet.cpp
 b3/B3BottomTupleValue.cpp
+b3/B3BulkMemoryValue.cpp
 b3/B3BreakCriticalEdges.cpp
 b3/B3CanonicalizePrePostIncrements.cpp
 b3/B3CCallValue.cpp
@@ -159,6 +160,7 @@ b3/B3MathExtras.cpp
 b3/B3MemoryValue.cpp
 b3/B3MoveConstants.cpp
 b3/B3Opcode.cpp
+b3/B3Operations.cpp
 b3/B3OptimizeAssociativeExpressionTrees.cpp
 b3/B3Origin.cpp
 b3/B3OriginDump.cpp

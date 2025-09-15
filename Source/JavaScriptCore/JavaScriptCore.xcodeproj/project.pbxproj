@@ -1990,6 +1990,7 @@
 		E32FEA2C27448F3700FF41C1 /* JSONAtomStringCacheInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E32FEA2A27448F3600FF41C1 /* JSONAtomStringCacheInlines.h */; };
 		E32FEA2D27448F3700FF41C1 /* JSONAtomStringCache.h in Headers */ = {isa = PBXBuildFile; fileRef = E32FEA2B27448F3600FF41C1 /* JSONAtomStringCache.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E33095DD23210A1B00EB7856 /* JSInternalFieldObjectImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = E33095DC23210A1400EB7856 /* JSInternalFieldObjectImpl.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E3344A942E75522F004F63F5 /* B3Operations.h in Headers */ = {isa = PBXBuildFile; fileRef = E3344A912E75522F004F63F5 /* B3Operations.h */; };
 		E334CBB521FD96A9000EB178 /* RegExpGlobalData.h in Headers */ = {isa = PBXBuildFile; fileRef = E334CBB321FD96A9000EB178 /* RegExpGlobalData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E33637A61B63220200EE0840 /* ReflectObject.h in Headers */ = {isa = PBXBuildFile; fileRef = E33637A41B63220200EE0840 /* ReflectObject.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E3369129296EEBFE00324FD7 /* WasmOperationsInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E3369128296EEBFE00324FD7 /* WasmOperationsInlines.h */; };
@@ -2078,6 +2079,7 @@
 		E3A0531C21342B680022EC14 /* WasmSectionParser.h in Headers */ = {isa = PBXBuildFile; fileRef = E3A0531821342B670022EC14 /* WasmSectionParser.h */; };
 		E3A107282B7F2F8100ED24A3 /* ProfilerSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = E3A107272B7F2F7E00ED24A3 /* ProfilerSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E3A32BC71FC83147007D7E76 /* WeakMapImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = E3A32BC61FC8312E007D7E76 /* WeakMapImpl.h */; };
+		E3A38EFD2E754D3B00D53DDD /* B3BulkMemoryValue.h in Headers */ = {isa = PBXBuildFile; fileRef = E3A38EFB2E754D3B00D53DDD /* B3BulkMemoryValue.h */; };
 		E3A421431D6F58930007C617 /* PreciseJumpTargetsInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E3A421421D6F588F0007C617 /* PreciseJumpTargetsInlines.h */; };
 		E3AC277721FDB4940024452C /* RegExpCachedResult.h in Headers */ = {isa = PBXBuildFile; fileRef = 86F75EFC151C062F007C9BA3 /* RegExpCachedResult.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E3B2329D2DF7A0CC00ECC447 /* ConcatKeyAtomStringCache.h in Headers */ = {isa = PBXBuildFile; fileRef = E3B2329A2DF7A0BE00ECC447 /* ConcatKeyAtomStringCache.h */; };
@@ -5741,6 +5743,8 @@
 		E3305FB020B0F78700CEB82B /* InByVariant.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = InByVariant.cpp; sourceTree = "<group>"; };
 		E3305FB120B0F78800CEB82B /* InByVariant.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InByVariant.h; sourceTree = "<group>"; };
 		E33095DC23210A1400EB7856 /* JSInternalFieldObjectImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSInternalFieldObjectImpl.h; sourceTree = "<group>"; };
+		E3344A912E75522F004F63F5 /* B3Operations.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = B3Operations.h; path = b3/B3Operations.h; sourceTree = "<group>"; };
+		E3344A922E75522F004F63F5 /* B3Operations.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = B3Operations.cpp; path = b3/B3Operations.cpp; sourceTree = "<group>"; };
 		E334CBB221FD96A8000EB178 /* RegExpGlobalData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RegExpGlobalData.cpp; sourceTree = "<group>"; };
 		E334CBB321FD96A9000EB178 /* RegExpGlobalData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RegExpGlobalData.h; sourceTree = "<group>"; };
 		E33637A31B63220200EE0840 /* ReflectObject.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ReflectObject.cpp; sourceTree = "<group>"; };
@@ -5885,6 +5889,8 @@
 		E3A107272B7F2F7E00ED24A3 /* ProfilerSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProfilerSupport.h; sourceTree = "<group>"; };
 		E3A32BC51FC8312D007D7E76 /* WeakMapImpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WeakMapImpl.cpp; sourceTree = "<group>"; };
 		E3A32BC61FC8312E007D7E76 /* WeakMapImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WeakMapImpl.h; sourceTree = "<group>"; };
+		E3A38EFB2E754D3B00D53DDD /* B3BulkMemoryValue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = B3BulkMemoryValue.h; path = b3/B3BulkMemoryValue.h; sourceTree = "<group>"; };
+		E3A38EFC2E754D3B00D53DDD /* B3BulkMemoryValue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = B3BulkMemoryValue.cpp; path = b3/B3BulkMemoryValue.cpp; sourceTree = "<group>"; };
 		E3A421421D6F588F0007C617 /* PreciseJumpTargetsInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PreciseJumpTargetsInlines.h; sourceTree = "<group>"; };
 		E3B2329A2DF7A0BE00ECC447 /* ConcatKeyAtomStringCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConcatKeyAtomStringCache.h; sourceTree = "<group>"; };
 		E3B2329B2DF7A0BE00ECC447 /* ConcatKeyAtomStringCache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConcatKeyAtomStringCache.cpp; sourceTree = "<group>"; };
@@ -6606,6 +6612,8 @@
 				E392E6F724D25FA600B20767 /* B3BottomTupleValue.h */,
 				0F6B8ADE1C4EFE1700969052 /* B3BreakCriticalEdges.cpp */,
 				0F6B8ADF1C4EFE1700969052 /* B3BreakCriticalEdges.h */,
+				E3A38EFC2E754D3B00D53DDD /* B3BulkMemoryValue.cpp */,
+				E3A38EFB2E754D3B00D53DDD /* B3BulkMemoryValue.h */,
 				DD4BEC0E29CB85AF00398E35 /* B3CanonicalizePrePostIncrements.cpp */,
 				DD4BEC0F29CB85AF00398E35 /* B3CanonicalizePrePostIncrements.h */,
 				DC9A0C1C1D2D94EF0085124E /* B3CaseCollection.cpp */,
@@ -6697,6 +6705,8 @@
 				0F5BF1681F23A0AA0029D91D /* B3NaturalLoops.h */,
 				0FEC84D71BDACDAC0080FF74 /* B3Opcode.cpp */,
 				0FEC84D81BDACDAC0080FF74 /* B3Opcode.h */,
+				E3344A922E75522F004F63F5 /* B3Operations.cpp */,
+				E3344A912E75522F004F63F5 /* B3Operations.h */,
 				33743649224D79EF00C8C227 /* B3OptimizeAssociativeExpressionTrees.cpp */,
 				3374364A224D79EF00C8C227 /* B3OptimizeAssociativeExpressionTrees.h */,
 				0FEC84D91BDACDAC0080FF74 /* B3Origin.cpp */,
@@ -10551,6 +10561,7 @@
 				DCFDFBD91D1F5D9B00FE3D72 /* B3BottomProvider.h in Headers */,
 				E392E6F924D25FA900B20767 /* B3BottomTupleValue.h in Headers */,
 				0F6B8AE31C4EFE1700969052 /* B3BreakCriticalEdges.h in Headers */,
+				E3A38EFD2E754D3B00D53DDD /* B3BulkMemoryValue.h in Headers */,
 				DD4BEC1129CB85E000398E35 /* B3CanonicalizePrePostIncrements.h in Headers */,
 				DC9A0C201D2D9CB30085124E /* B3CaseCollection.h in Headers */,
 				DC9A0C1F1D2D9CB10085124E /* B3CaseCollectionInlines.h in Headers */,
@@ -10603,6 +10614,7 @@
 				0F2C63C21E664A5C00C13839 /* B3NativeTraits.h in Headers */,
 				0F5BF1691F23A0AA0029D91D /* B3NaturalLoops.h in Headers */,
 				0FEC85221BDACDAC0080FF74 /* B3Opcode.h in Headers */,
+				E3344A942E75522F004F63F5 /* B3Operations.h in Headers */,
 				0FEC85241BDACDAC0080FF74 /* B3Origin.h in Headers */,
 				0F4C91661C29F4F2004341A6 /* B3OriginDump.h in Headers */,
 				0FEC85261BDACDAC0080FF74 /* B3PatchpointSpecial.h in Headers */,
