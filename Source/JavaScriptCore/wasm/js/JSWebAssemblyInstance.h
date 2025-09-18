@@ -385,7 +385,7 @@ public:
     {
         m_exception = exception;
         m_faultPC = pc;
-    };
+    }
     Wasm::ExceptionType exception() const { return m_exception; }
     void* faultPC() const { return m_faultPC; }
 
