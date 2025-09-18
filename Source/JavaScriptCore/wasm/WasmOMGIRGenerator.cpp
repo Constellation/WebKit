@@ -861,7 +861,6 @@ private:
     void emitRefTestOrCast(CastKind, TypedExpression, bool, int32_t, bool, ExpressionType&);
     template <typename Generator>
     void emitCheckOrBranchForCast(CastKind, Value*, const Generator&, BasicBlock*);
-    Value* emitLoadRTTFromFuncref(Value*);
     Value* emitLoadRTTFromObject(Value*);
     Value* emitNotRTTKind(Value*, RTTKind);
 
@@ -3662,15 +3661,49 @@ void OMGIRGenerator::emitRefTestOrCast(CastKind castKind, TypedExpression refere
         this->emitExceptionCheck(jit, origin, ExceptionType::CastFailure);
     };
 
+    auto castAccessOffset = [&] -> std::optional<ptrdiff_t> {
+        if (castKind == CastKind::Test)
+            return std::nullopt;
+
+        if (allowNull)
+            return std::nullopt;
+
+        if (typeIndexIsType(static_cast<Wasm::TypeIndex>(toHeapType)))
+            return std::nullopt;
+
+        Wasm::TypeDefinition& signature = m_info.typeSignatures[toHeapType];
+        if (signature.expand().is<Wasm::FunctionSignature>())
+            return WebAssemblyFunctionBase::offsetOfRTT();
+
+        if (!reference.type().definitelyIsCellOrNull())
+            return std::nullopt;
+
+        if (!reference.type().definitelyIsWasmGCObjectOrNull())
+            return JSCell::typeInfoTypeOffset();
+        return JSCell::structureIDOffset();
+    };
+
+    bool canTrap = false;
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap) {
+            canTrap = false;
+            return trapping(input);
+        }
+        return input;
+    };
     // Ensure reference nullness agrees with heap type.
     {
         BasicBlock* nullCase = m_proc.addBlock();
         BasicBlock* nonNullCase = m_proc.addBlock();
 
         Value* isNull = nullptr;
-        if (reference.type().isNullable())
-            isNull = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), value, m_currentBlock->appendNew<WasmConstRefValue>(m_proc, origin(), JSValue::encode(jsNull())));
-        else
+        if (reference.type().isNullable()) {
+            if (auto offset = castAccessOffset(); offset && offset.value() <= maxAcceptableOffsetForNullReference()) {
+                isNull = constant(Int32, 0);
+                canTrap = true;
+            } else
+                isNull = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), value, m_currentBlock->appendNew<WasmConstRefValue>(m_proc, origin(), JSValue::encode(jsNull())));
+        } else
             isNull = constant(Int32, 0);
 
         m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), isNull, FrequentedBlock(nullCase), FrequentedBlock(nonNullCase));
@@ -3773,16 +3806,17 @@ void OMGIRGenerator::emitRefTestOrCast(CastKind castKind, TypedExpression refere
             Value* structure = nullptr;
             Value* rtt;
             if (signature.expand().is<Wasm::FunctionSignature>())
-                rtt = emitLoadRTTFromFuncref(value);
+                rtt = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(B3::Load), pointerType(), origin(), value, safeCast<int32_t>(WebAssemblyFunctionBase::offsetOfRTT()));
             else {
                 // The cell check is only needed for non-functions, as the typechecker does not allow non-Cell values for funcref casts.
                 if (!reference.type().definitelyIsCellOrNull())
                     emitCheckOrBranchForCast(castKind, m_currentBlock->appendNew<Value>(m_proc, BitAnd, origin(), value, constant(Int64, JSValue::NotCellMask)), castFailure, falseBlock);
+
                 if (!reference.type().definitelyIsWasmGCObjectOrNull()) {
-                    Value* jsType = m_currentBlock->appendNew<MemoryValue>(m_proc, Load8Z, Int32, origin(), value, safeCast<int32_t>(JSCell::typeInfoTypeOffset()));
+                    Value* jsType = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(Load8Z), Int32, origin(), value, safeCast<int32_t>(JSCell::typeInfoTypeOffset()));
                     emitCheckOrBranchForCast(castKind, m_currentBlock->appendNew<Value>(m_proc, NotEqual, origin(), jsType, constant(Int32, JSType::WebAssemblyGCObjectType)), castFailure, falseBlock);
                 }
-                Value* structureID = m_currentBlock->appendNew<MemoryValue>(m_proc, B3::Load, Int32, origin(), value, safeCast<int32_t>(JSCell::structureIDOffset()));
+                Value* structureID = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(B3::Load), Int32, origin(), value, safeCast<int32_t>(JSCell::structureIDOffset()));
                 structure = decodeNonNullStructure(structureID);
                 if (targetRTT->displaySizeExcludingThis() < WebAssemblyGCStructure::inlinedTypeDisplaySize) {
                     auto* targetRTTPointer = constant(pointerType(), std::bit_cast<uintptr_t>(targetRTT.ptr()));
@@ -3858,11 +3892,6 @@ void OMGIRGenerator::emitCheckOrBranchForCast(CastKind kind, Value* condition, c
         success->addPredecessor(m_currentBlock);
         m_currentBlock = success;
     }
-}
-
-Value* OMGIRGenerator::emitLoadRTTFromFuncref(Value* funcref)
-{
-    return m_currentBlock->appendNew<MemoryValue>(m_proc, B3::Load, pointerType(), origin(), funcref, safeCast<int32_t>(WebAssemblyFunctionBase::offsetOfRTT()));
 }
 
 Value* OMGIRGenerator::decodeNonNullStructure(Value* structureID)
