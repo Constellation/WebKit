@@ -1106,7 +1106,7 @@ extern "C" UGPRPair SYSV_ABI slow_path_wasm_throw_exception(CallFrame* callFrame
     SlowPathFrameTracer tracer(instance->vm(), callFrame);
 #if ENABLE(WEBASSEMBLY_BBQJIT)
     void* pc = instance->faultPC();
-    instance->setFaultPC(nullptr);
+    instance->setFaultPC(Wasm::ExceptionType::Termination, nullptr);
     auto* callee = callFrame->callee().asNativeCallee();
     ASSERT(callee->category() == NativeCallee::Category::Wasm);
     auto& wasmCallee = static_cast<Wasm::Callee&>(*callee);
@@ -1126,7 +1126,7 @@ extern "C" UCPURegister SYSV_ABI slow_path_wasm_unwind_exception(CallFrame* call
     SlowPathFrameTracer tracer(vm, callFrame);
 #if ENABLE(WEBASSEMBLY_BBQJIT)
     void* pc = instance->faultPC();
-    instance->setFaultPC(nullptr);
+    instance->setFaultPC(Wasm::ExceptionType::Termination, nullptr);
     auto* callee = callFrame->callee().asNativeCallee();
     ASSERT(callee->category() == NativeCallee::Category::Wasm);
     auto& wasmCallee = static_cast<Wasm::Callee&>(*callee);

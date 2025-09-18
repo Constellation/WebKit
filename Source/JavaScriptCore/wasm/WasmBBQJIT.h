@@ -1619,6 +1619,7 @@ public:
     void recordJumpToThrowException(ExceptionType, const JumpList&);
 
     void emitThrowOnNullReference(ExceptionType type, Location ref);
+    void emitThrowOnNullReferenceBeforeAccess(Location ref, ptrdiff_t offset);
 
     template<typename IntType, bool IsMod>
     void emitModOrDiv(Value& lhs, Location lhsLocation, Value& rhs, Location rhsLocation, Value& result, Location resultLocation);

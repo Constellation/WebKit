@@ -59,6 +59,7 @@ namespace Wasm {
     macro(BadArrayNew, "Failed to allocate new array"_s) \
     macro(BadArrayNewInitElem, "Out of bounds or failed to allocate in array.new_elem"_s) \
     macro(BadArrayNewInitData, "Out of bounds or failed to allocate in array.new_data"_s) \
+    macro(NullAccess, "access to a null reference"_s) \
     macro(NullArrayGet, "array.get to a null reference"_s) \
     macro(NullArraySet, "array.set to a null reference"_s) \
     macro(NullArrayLen, "array.len to a null reference"_s) \
@@ -130,6 +131,7 @@ ALWAYS_INLINE bool isTypeErrorExceptionType(ExceptionType type)
     case ExceptionType::BadArrayNew:
     case ExceptionType::BadArrayNewInitElem:
     case ExceptionType::BadArrayNewInitData:
+    case ExceptionType::NullAccess:
     case ExceptionType::NullArrayGet:
     case ExceptionType::NullArraySet:
     case ExceptionType::NullArrayLen:

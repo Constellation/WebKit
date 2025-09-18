@@ -1267,7 +1267,7 @@ op(wasm_throw_from_fault_handler_trampoline_reg_instance, macro ()
 
     move cfr, a0
     move a2, a1
-    move constexpr Wasm::ExceptionType::OutOfBoundsMemoryAccess, a2
+    loadi JSWebAssemblyInstance::m_exception[a1], a2
 
     storei 0, CallSiteIndex[cfr]
     cCall3(_slow_path_wasm_throw_exception)

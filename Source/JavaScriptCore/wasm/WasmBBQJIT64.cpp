@@ -50,6 +50,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include "WasmBBQDisassembler.h"
 #include "WasmCallingConvention.h"
 #include "WasmCompilationMode.h"
+#include "WasmFaultSignalHandler.h"
 #include "WasmFormat.h"
 #include "WasmFunctionParser.h"
 #include "WasmIRGeneratorHelpers.h"
@@ -1659,7 +1660,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayGet(ExtGCOpType arrayGetKind, u
 
     Location arrayLocation = loadIfNecessary(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArrayGet, arrayLocation);
+        emitThrowOnNullReferenceBeforeAccess(arrayLocation, JSWebAssemblyArray::offsetOfSize());
 
     Location indexLocation;
     if (index.isConst()) {
@@ -1846,7 +1847,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArraySet(uint32_t typeIndex, TypedEx
 
     Location arrayLocation = loadIfNecessary(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArraySet, arrayLocation);
+        emitThrowOnNullReferenceBeforeAccess(arrayLocation, JSWebAssemblyArray::offsetOfSize());
 
     ASSERT(index.type() == TypeKind::I32);
     if (index.isConst()) {
@@ -1884,7 +1885,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayLen(TypedExpression typedArray,
     Location arrayLocation = loadIfNecessary(arrayref);
     consume(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArrayLen, arrayLocation);
+        emitThrowOnNullReferenceBeforeAccess(arrayLocation, JSWebAssemblyArray::offsetOfSize());
 
     result = topValue(TypeKind::I32);
     Location resultLocation = allocateWithHint(result, arrayLocation);
@@ -2115,12 +2116,12 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructGet(ExtGCOpType structGetKind,
         return { };
     }
 
-    Location structLocation = loadIfNecessary(structValue);
-    if (typedStruct.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullStructGet, structLocation);
-
     unsigned fieldOffset = JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex);
     RELEASE_ASSERT((std::numeric_limits<int32_t>::max() & fieldOffset) == fieldOffset);
+
+    Location structLocation = loadIfNecessary(structValue);
+    if (typedStruct.type().isNullable())
+        emitThrowOnNullReferenceBeforeAccess(structLocation, fieldOffset);
 
     // We're ok with reusing the struct value for our result since their live ranges don't overlap within a struct.get.
     consume(structValue);
@@ -2202,9 +2203,12 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructSet(TypedExpression typedStruc
         return { };
     }
 
+    unsigned fieldOffset = JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex);
+    RELEASE_ASSERT((std::numeric_limits<int32_t>::max() & fieldOffset) == fieldOffset);
+
     Location structLocation = loadIfNecessary(structValue);
     if (typedStruct.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullStructSet, structLocation);
+        emitThrowOnNullReferenceBeforeAccess(structLocation, fieldOffset);
 
     bool needsWriteBarrier = emitStructSet(structLocation.asGPR(), structType, fieldIndex, value);
     if (needsWriteBarrier)
@@ -2423,6 +2427,15 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addI64Mul(Value lhs, Value rhs, Value& 
 void BBQJIT::emitThrowOnNullReference(ExceptionType type, Location ref)
 {
     recordJumpToThrowException(type, m_jit.branchIfNull(ref.asGPR()));
+}
+
+void BBQJIT::emitThrowOnNullReferenceBeforeAccess(Location ref, ptrdiff_t offset)
+{
+    if (Options::useWasmFaultSignalHandler()) {
+        if (offset <= maxAcceptableOffsetForNullReference())
+            return;
+    }
+    emitThrowOnNullReference(ExceptionType::NullAccess, ref);
 }
 
 PartialResult WARN_UNUSED_RETURN BBQJIT::addI64And(Value lhs, Value rhs, Value& result)
@@ -5325,7 +5338,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addCallRef(unsigned callProfileIndex, c
             } else
                 calleeLocation = loadIfNecessary(callee);
             consume(callee);
-            emitThrowOnNullReference(ExceptionType::NullReference, calleeLocation);
+            emitThrowOnNullReferenceBeforeAccess(calleeLocation, WebAssemblyFunctionBase::offsetOfBoxedCallee());
 
             calleePtr = calleeLocation.asGPR();
             calleeInstance = otherScratch.gpr(0);

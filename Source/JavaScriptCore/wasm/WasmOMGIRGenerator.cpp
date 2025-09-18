@@ -63,6 +63,7 @@
 #include "WasmCallingConvention.h"
 #include "WasmContext.h"
 #include "WasmExceptionType.h"
+#include "WasmFaultSignalHandler.h"
 #include "WasmFunctionParser.h"
 #include "WasmIRGeneratorHelpers.h"
 #include "WasmMemory.h"
@@ -849,10 +850,11 @@ private:
 
     Value* emitGetArrayPayloadBase(Wasm::StorageType, Value*);
     void emitNullCheck(Value*, ExceptionType);
+    bool emitNullCheckBeforeAccess(Value*, ptrdiff_t offset);
     void emitArraySetUnchecked(uint32_t, Value*, Value*, Value*);
     void emitArraySetUncheckedWithoutWriteBarrier(uint32_t, Value*, Value*, Value*);
     // Returns true if a writeBarrier/mutatorFence is needed.
-    bool WARN_UNUSED_RETURN emitStructSet(Value*, uint32_t, const StructType&, Value*);
+    bool WARN_UNUSED_RETURN emitStructSet(bool canTrap, Value*, uint32_t, const StructType&, Value*);
     Value* WARN_UNUSED_RETURN allocateWasmGCArray(uint32_t typeIndex, Value* initValue, Value* size);
     using ArraySegmentOperation = EncodedJSValue SYSV_ABI (&)(JSC::JSWebAssemblyInstance*, uint32_t, uint32_t, uint32_t, uint32_t);
     ExpressionType WARN_UNUSED_RETURN pushArrayNewFromSegment(ArraySegmentOperation, uint32_t typeIndex, uint32_t segmentIndex, ExpressionType arraySize, ExpressionType offset, ExceptionType);
@@ -2738,24 +2740,30 @@ Value* OMGIRGenerator::emitAtomicCompareExchange(ExtAtomicOpType op, Type valueT
     return sanitizeAtomicResult(op, valueType, result);
 }
 
-bool WARN_UNUSED_RETURN OMGIRGenerator::emitStructSet(Value* structValue, uint32_t fieldIndex, const StructType& structType, Value* argument)
+bool WARN_UNUSED_RETURN OMGIRGenerator::emitStructSet(bool canTrap, Value* structValue, uint32_t fieldIndex, const StructType& structType, Value* argument)
 {
     auto fieldType = structType.field(fieldIndex).type;
     int32_t fieldOffset = fixupPointerPlusOffset(structValue, JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex));
 
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap)
+            return trapping(input);
+        return input;
+    };
+
     if (fieldType.is<PackedType>()) {
         switch (structType.field(fieldIndex).type.as<PackedType>()) {
         case PackedType::I8:
-            m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Store8), origin(), argument, structValue, fieldOffset);
+            m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(memoryKind(Store8)), origin(), argument, structValue, fieldOffset);
             return false;
         case PackedType::I16:
-            m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Store16), origin(), argument, structValue, fieldOffset);
+            m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(memoryKind(Store16)), origin(), argument, structValue, fieldOffset);
             return false;
         }
     }
 
     ASSERT(fieldType.is<Type>());
-    m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Store), origin(), argument, structValue, fieldOffset);
+    m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(memoryKind(Store)), origin(), argument, structValue, fieldOffset);
     // FIXME: We should be able elide this write barrier if we know we're storing jsNull();
     return isRefType(fieldType.unpacked());
 }
@@ -3205,12 +3213,18 @@ auto OMGIRGenerator::addArrayGet(ExtGCOpType arrayGetKind, uint32_t typeIndex, T
     Wasm::Type resultType = elementType.unpacked();
 
     // Ensure arrayref is non-null.
+    ptrdiff_t offset = safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize());
+    bool canTrap = false;
     if (arrayref.type().isNullable())
-        emitNullCheck(arrayValue, ExceptionType::NullArrayGet);
+        canTrap = emitNullCheckBeforeAccess(arrayValue, offset);
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap)
+            return trapping(input);
+        return input;
+    };
 
     // Check array bounds.
-    Value* arraySize = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(),
-        arrayValue, safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize()));
+    Value* arraySize = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(Load), Int32, origin(), arrayValue, offset);
     {
         CheckValue* check = m_currentBlock->appendNew<CheckValue>(m_proc, Check, origin(),
             m_currentBlock->appendNew<Value>(m_proc, AboveEqual, origin(), indexValue, arraySize));
@@ -3267,6 +3281,21 @@ void OMGIRGenerator::emitNullCheck(Value* ref, ExceptionType exceptionType)
     check->setGenerator([=, this, origin = this->origin()] (CCallHelpers& jit, const B3::StackmapGenerationParams&) {
         this->emitExceptionCheck(jit, origin, exceptionType);
     });
+}
+
+bool OMGIRGenerator::emitNullCheckBeforeAccess(Value* ref, ptrdiff_t offset)
+{
+    if (Options::useWasmFaultSignalHandler()) {
+        if (offset <= maxAcceptableOffsetForNullReference())
+            return true;
+    }
+
+    CheckValue* check = m_currentBlock->appendNew<CheckValue>(m_proc, Check, origin(),
+        m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), ref, m_currentBlock->appendNew<WasmConstRefValue>(m_proc, origin(), JSValue::encode(jsNull()))));
+    check->setGenerator([=, this, origin = this->origin()] (CCallHelpers& jit, const B3::StackmapGenerationParams&) {
+        this->emitExceptionCheck(jit, origin, ExceptionType::NullAccess);
+    });
+    return false;
 }
 
 Value* OMGIRGenerator::emitGetArrayPayloadBase(Wasm::StorageType fieldType, Value* arrayref)
@@ -3330,12 +3359,19 @@ auto OMGIRGenerator::addArraySet(uint32_t typeIndex, TypedExpression arrayref, E
     auto indexValue = get(index);
     auto valueValue = get(value);
 
+    // Ensure arrayref is non-null.
+    ptrdiff_t offset = safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize());
+    bool canTrap = false;
     if (arrayref.type().isNullable())
-        emitNullCheck(arrayValue, ExceptionType::NullArraySet);
+        canTrap = emitNullCheckBeforeAccess(arrayValue, offset);
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap)
+            return trapping(input);
+        return input;
+    };
 
     // Check array bounds.
-    Value* arraySize = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(),
-        arrayValue, safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize()));
+    Value* arraySize = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(Load), Int32, origin(), arrayValue, offset);
     {
         CheckValue* check = m_currentBlock->appendNew<CheckValue>(m_proc, Check, origin(),
             m_currentBlock->appendNew<Value>(m_proc, AboveEqual, origin(), indexValue, arraySize));
@@ -3353,10 +3389,18 @@ auto OMGIRGenerator::addArrayLen(TypedExpression arrayref, ExpressionType& resul
 {
     auto arrayValue = get(arrayref);
 
+    // Ensure arrayref is non-null.
+    ptrdiff_t offset = safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize());
+    bool canTrap = false;
     if (arrayref.type().isNullable())
-        emitNullCheck(arrayValue, ExceptionType::NullArrayLen);
+        canTrap = emitNullCheckBeforeAccess(arrayValue, offset);
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap)
+            return trapping(input);
+        return input;
+    };
 
-    result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), arrayValue, safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize())));
+    result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(Load), Int32, origin(), arrayValue, offset));
 
     return { };
 }
@@ -3492,7 +3536,7 @@ auto OMGIRGenerator::addStructNew(uint32_t typeIndex, ArgumentList& args, Expres
     Value* structValue = allocateWasmGCStructUninitialized(typeIndex);
     const auto& structType = *m_info.typeSignatures[typeIndex]->expand().template as<StructType>();
     for (uint32_t i = 0; i < args.size(); ++i) {
-        bool needsWriteBarrier = emitStructSet(structValue, i, structType, get(args[i]));
+        bool needsWriteBarrier = emitStructSet(/* canTrap */ false, structValue, i, structType, get(args[i]));
         UNUSED_VARIABLE(needsWriteBarrier);
     }
     mutatorFence();
@@ -3513,7 +3557,7 @@ auto OMGIRGenerator::addStructNewDefault(uint32_t typeIndex, ExpressionType& res
         else
             initValue = constant(Int64, 0);
         // We know all the values here are not cells so we don't need a writeBarrier.
-        bool needsWriteBarrier = emitStructSet(structValue, i, structType, initValue);
+        bool needsWriteBarrier = emitStructSet(/* canTrap */ false, structValue, i, structType, initValue);
         UNUSED_VARIABLE(needsWriteBarrier);
     }
     mutatorFence();
@@ -3528,19 +3572,24 @@ auto OMGIRGenerator::addStructGet(ExtGCOpType structGetKind, TypedExpression str
 
     Value* structValue = get(structReference);
 
+    ptrdiff_t fieldOffset = fixupPointerPlusOffset(structValue, JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex));
+    bool canTrap = false;
     if (structReference.type().isNullable())
-        emitNullCheck(structValue, ExceptionType::NullStructGet);
-
-    int32_t fieldOffset = fixupPointerPlusOffset(structValue, JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex));
+        canTrap = emitNullCheckBeforeAccess(structValue, fieldOffset);
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap)
+            return trapping(input);
+        return input;
+    };
 
     if (fieldType.is<PackedType>()) {
         Value* load;
         switch (fieldType.as<PackedType>()) {
         case PackedType::I8:
-            load = m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Load8Z), Int32, origin(), structValue, fieldOffset);
+            load = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(memoryKind(Load8Z)), Int32, origin(), structValue, fieldOffset);
             break;
         case PackedType::I16:
-            load = m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Load16Z), Int32, origin(), structValue, fieldOffset);
+            load = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(memoryKind(Load16Z)), Int32, origin(), structValue, fieldOffset);
             break;
         }
         Value* postProcess = load;
@@ -3562,7 +3611,7 @@ auto OMGIRGenerator::addStructGet(ExtGCOpType structGetKind, TypedExpression str
     }
 
     ASSERT(fieldType.is<Type>());
-    result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, memoryKind(Load), toB3Type(resultType), origin(), structValue, fieldOffset));
+    result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(memoryKind(Load)), toB3Type(resultType), origin(), structValue, fieldOffset));
 
     return { };
 }
@@ -3572,10 +3621,12 @@ auto OMGIRGenerator::addStructSet(TypedExpression structReference, const StructT
     Value* structValue = get(structReference);
     Value* valueValue = get(value);
 
+    ptrdiff_t fieldOffset = fixupPointerPlusOffset(structValue, JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex));
+    bool canTrap = false;
     if (structReference.type().isNullable())
-        emitNullCheck(structValue, ExceptionType::NullStructSet);
+        canTrap = emitNullCheckBeforeAccess(structValue, fieldOffset);
 
-    bool needsWriteBarrier = emitStructSet(structValue, fieldIndex, structType, valueValue);
+    bool needsWriteBarrier = emitStructSet(canTrap, structValue, fieldIndex, structType, valueValue);
     if (needsWriteBarrier)
         emitWriteBarrier(structValue, instanceValue());
     return { };
@@ -6038,10 +6089,17 @@ auto OMGIRGenerator::addCallRef(unsigned callProfileIndex, const TypeDefinition&
     // can be to the js for our stack check calculation.
     m_maxNumJSCallArguments = std::max(m_maxNumJSCallArguments, static_cast<uint32_t>(args.size()));
 
+    ptrdiff_t offset = safeCast<int32_t>(WebAssemblyFunctionBase::offsetOfTargetInstance());
+    bool canTrap = false;
     if (calleeArg.type().isNullable())
-        emitNullCheck(callee, ExceptionType::NullReference);
+        canTrap = emitNullCheckBeforeAccess(callee, offset);
+    auto wrapTrapping = [&](auto input) -> B3::Kind {
+        if (canTrap)
+            return trapping(input);
+        return input;
+    };
 
-    Value* calleeInstance = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callee, safeCast<int32_t>(WebAssemblyFunctionBase::offsetOfTargetInstance()));
+    Value* calleeInstance = m_currentBlock->appendNew<MemoryValue>(m_proc, wrapTrapping(Load), pointerType(), origin(), callee, offset);
     Value* calleeCallee = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, pointerType(), origin(), callee, safeCast<int32_t>(WebAssemblyFunctionBase::offsetOfBoxedCallee()));
 
     BasicBlock* continuation = m_proc.addBlock();
