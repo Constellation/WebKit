@@ -638,7 +638,7 @@ WASM_IPINT_EXTERN_CPP_DECL(struct_get, EncodedJSValue object, uint32_t fieldInde
 {
     UNUSED_PARAM(instance);
     if (JSValue::decode(object).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullStructGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     IPINT_RETURN(Wasm::structGet(object, fieldIndex));
 }
 
@@ -646,7 +646,7 @@ WASM_IPINT_EXTERN_CPP_DECL(struct_get_s, EncodedJSValue object, uint32_t fieldIn
 {
     UNUSED_PARAM(instance);
     if (JSValue::decode(object).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullStructGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
 
     EncodedJSValue value = Wasm::structGet(object, fieldIndex);
 
@@ -666,7 +666,7 @@ WASM_IPINT_EXTERN_CPP_DECL(struct_set, EncodedJSValue object, uint32_t fieldInde
 {
     UNUSED_PARAM(instance);
     if (JSValue::decode(object).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullStructSet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     Wasm::structSet(object, fieldIndex, sp->i64);
     IPINT_END();
 }
@@ -739,7 +739,7 @@ WASM_IPINT_EXTERN_CPP_DECL(array_new_elem, IPInt::ArrayNewElemMetadata* metadata
 WASM_IPINT_EXTERN_CPP_DECL(array_get, uint32_t type, EncodedJSValue array, uint32_t index)
 {
     if (JSValue::decode(array).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullArrayGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     JSValue arrayValue = JSValue::decode(array);
     ASSERT(arrayValue.isObject());
     JSWebAssemblyArray* arrayObject = jsCast<JSWebAssemblyArray*>(arrayValue.getObject());
@@ -751,7 +751,7 @@ WASM_IPINT_EXTERN_CPP_DECL(array_get, uint32_t type, EncodedJSValue array, uint3
 WASM_IPINT_EXTERN_CPP_DECL(array_get_s, uint32_t type, EncodedJSValue array, uint32_t index)
 {
     if (JSValue::decode(array).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullArrayGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     JSValue arrayValue = JSValue::decode(array);
     ASSERT(arrayValue.isObject());
     JSWebAssemblyArray* arrayObject = jsCast<JSWebAssemblyArray*>(arrayValue.getObject());
@@ -776,7 +776,7 @@ WASM_IPINT_EXTERN_CPP_DECL(array_set, uint32_t type, IPIntStackEntry* sp)
     // sp[1] = index
     // sp[2] = array ref
     if (JSValue::decode(sp[2].ref).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullArraySet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
 
     JSValue arrayValue = JSValue::decode(sp[2].ref);
     ASSERT(arrayValue.isObject());

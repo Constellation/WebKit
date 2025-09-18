@@ -3295,7 +3295,7 @@ auto OMGIRGenerator::addArrayGet(ExtGCOpType arrayGetKind, uint32_t typeIndex, T
 
     // Ensure arrayref is non-null.
     if (arrayref.type().isNullable())
-        emitNullCheck(arrayValue, ExceptionType::NullArrayGet);
+        emitNullCheck(arrayValue, ExceptionType::NullAccess);
 
     // Check array bounds.
     Value* arraySize = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(),
@@ -3421,7 +3421,7 @@ auto OMGIRGenerator::addArraySet(uint32_t typeIndex, TypedExpression arrayref, E
     auto valueValue = get(value);
 
     if (arrayref.type().isNullable())
-        emitNullCheck(arrayValue, ExceptionType::NullArraySet);
+        emitNullCheck(arrayValue, ExceptionType::NullAccess);
 
     // Check array bounds.
     Value* arraySize = m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(),
@@ -3444,7 +3444,7 @@ auto OMGIRGenerator::addArrayLen(TypedExpression arrayref, ExpressionType& resul
     auto arrayValue = get(arrayref);
 
     if (arrayref.type().isNullable())
-        emitNullCheck(arrayValue, ExceptionType::NullArrayLen);
+        emitNullCheck(arrayValue, ExceptionType::NullAccess);
 
     result = push(m_currentBlock->appendNew<MemoryValue>(m_proc, Load, Int32, origin(), truncate(get(arrayref)), safeCast<int32_t>(JSWebAssemblyArray::offsetOfSize())));
 
@@ -3615,7 +3615,7 @@ auto OMGIRGenerator::addStructGet(ExtGCOpType structGetKind, TypedExpression str
     Value* structValue = get(structReference);
 
     if (structReference.type().isNullable())
-        emitNullCheck(structValue, ExceptionType::NullStructGet);
+        emitNullCheck(structValue, ExceptionType::NullAccess);
 
     structValue = truncate(structValue);
     int32_t fieldOffset = fixupPointerPlusOffset(structValue, JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex));
@@ -3660,7 +3660,7 @@ auto OMGIRGenerator::addStructSet(TypedExpression structReference, const StructT
     Value* valueValue = get(value);
 
     if (structReference.type().isNullable())
-        emitNullCheck(structValue, ExceptionType::NullStructSet);
+        emitNullCheck(structValue, ExceptionType::NullAccess);
 
     bool needsWriteBarrier = emitStructSet(structValue, fieldIndex, structType, valueValue);
     if (needsWriteBarrier)
