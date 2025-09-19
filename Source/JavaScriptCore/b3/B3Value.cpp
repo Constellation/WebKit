@@ -798,6 +798,7 @@ Effects Value::effects() const
             result.fence = true;
         }
         result.controlDependent = true;
+        result.readsImmutable = memory->isReadsImmutable();
         break;
     }
     case Store8:

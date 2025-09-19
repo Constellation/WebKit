@@ -71,6 +71,9 @@ public:
     const HeapRange& fenceRange() const { return m_fenceRange; }
     void setFenceRange(const HeapRange& range) { m_fenceRange = range; }
 
+    bool isReadsImmutable() const { return m_isReadsImmutable; }
+    void setIsReadsImmutable(bool value) { m_isReadsImmutable = value; }
+
     bool isStore() const { return B3::isStore(opcode()); }
     bool isLoad() const { return B3::isLoad(opcode()); }
 
@@ -152,6 +155,7 @@ private:
     OffsetType m_offset { 0 };
     HeapRange m_range { HeapRange::top() };
     HeapRange m_fenceRange { HeapRange() };
+    bool m_isReadsImmutable : 1 { false };
 };
 
 } } // namespace JSC::B3
