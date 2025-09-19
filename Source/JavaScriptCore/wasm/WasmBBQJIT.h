@@ -1449,7 +1449,8 @@ public:
 
     PartialResult WARN_UNUSED_RETURN addStructSet(TypedExpression structValue, const StructType& structType, uint32_t fieldIndex, Value value);
 
-    void emitRefTestOrCast(const TypedExpression&, GPRReg, bool allowNull, int32_t toHeapType, JumpList& failureCases);
+    enum class CastKind { Test, Cast };
+    void emitRefTestOrCast(CastKind, const TypedExpression&, GPRReg, bool allowNull, int32_t toHeapType, JumpList& failureCases);
 
     PartialResult WARN_UNUSED_RETURN addRefTest(TypedExpression reference, bool allowNull, int32_t heapType, bool shouldNegate, ExpressionType& result);
 
@@ -1619,6 +1620,7 @@ public:
     void recordJumpToThrowException(ExceptionType, const JumpList&);
 
     void emitThrowOnNullReference(ExceptionType type, Location ref);
+    void emitThrowOnNullReferenceBeforeAccess(Location ref, ptrdiff_t offset);
 
     template<typename IntType, bool IsMod>
     void emitModOrDiv(Value& lhs, Location lhsLocation, Value& rhs, Location rhsLocation, Value& result, Location resultLocation);

@@ -638,7 +638,7 @@ WASM_IPINT_EXTERN_CPP_DECL(struct_get, EncodedJSValue object, uint32_t fieldInde
 {
     UNUSED_PARAM(instance);
     if (JSValue::decode(object).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullStructGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     IPINT_RETURN(Wasm::structGet(object, fieldIndex));
 }
 
@@ -646,7 +646,7 @@ WASM_IPINT_EXTERN_CPP_DECL(struct_get_s, EncodedJSValue object, uint32_t fieldIn
 {
     UNUSED_PARAM(instance);
     if (JSValue::decode(object).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullStructGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
 
     EncodedJSValue value = Wasm::structGet(object, fieldIndex);
 
@@ -666,7 +666,7 @@ WASM_IPINT_EXTERN_CPP_DECL(struct_set, EncodedJSValue object, uint32_t fieldInde
 {
     UNUSED_PARAM(instance);
     if (JSValue::decode(object).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullStructSet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     Wasm::structSet(object, fieldIndex, sp->i64);
     IPINT_END();
 }
@@ -739,7 +739,7 @@ WASM_IPINT_EXTERN_CPP_DECL(array_new_elem, IPInt::ArrayNewElemMetadata* metadata
 WASM_IPINT_EXTERN_CPP_DECL(array_get, uint32_t type, EncodedJSValue array, uint32_t index)
 {
     if (JSValue::decode(array).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullArrayGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     JSValue arrayValue = JSValue::decode(array);
     ASSERT(arrayValue.isObject());
     JSWebAssemblyArray* arrayObject = jsCast<JSWebAssemblyArray*>(arrayValue.getObject());
@@ -751,7 +751,7 @@ WASM_IPINT_EXTERN_CPP_DECL(array_get, uint32_t type, EncodedJSValue array, uint3
 WASM_IPINT_EXTERN_CPP_DECL(array_get_s, uint32_t type, EncodedJSValue array, uint32_t index)
 {
     if (JSValue::decode(array).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullArrayGet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
     JSValue arrayValue = JSValue::decode(array);
     ASSERT(arrayValue.isObject());
     JSWebAssemblyArray* arrayObject = jsCast<JSWebAssemblyArray*>(arrayValue.getObject());
@@ -776,7 +776,7 @@ WASM_IPINT_EXTERN_CPP_DECL(array_set, uint32_t type, IPIntStackEntry* sp)
     // sp[1] = index
     // sp[2] = array ref
     if (JSValue::decode(sp[2].ref).isNull()) [[unlikely]]
-        IPINT_THROW(Wasm::ExceptionType::NullArraySet);
+        IPINT_THROW(Wasm::ExceptionType::NullAccess);
 
     JSValue arrayValue = JSValue::decode(sp[2].ref);
     ASSERT(arrayValue.isObject());
@@ -897,8 +897,11 @@ WASM_IPINT_EXTERN_CPP_DECL(ref_cast, int32_t heapType, bool allowNull, EncodedJS
     }
 
     auto& info = instance->module().moduleInformation();
-    if (!Wasm::refCast(value, allowNull, info.typeSignatures[heapType]->index(), info.rtts[heapType].ptr())) [[unlikely]]
+    if (!Wasm::refCast(value, allowNull, info.typeSignatures[heapType]->index(), info.rtts[heapType].ptr())) [[unlikely]] {
+        if (!allowNull && JSValue::decode(value).isNull())
+            IPINT_THROW(Wasm::ExceptionType::NullAccess);
         IPINT_THROW(Wasm::ExceptionType::CastFailure);
+    }
     IPINT_RETURN(value);
 }
 
@@ -1106,7 +1109,7 @@ extern "C" UGPRPair SYSV_ABI slow_path_wasm_throw_exception(CallFrame* callFrame
     SlowPathFrameTracer tracer(instance->vm(), callFrame);
 #if ENABLE(WEBASSEMBLY_BBQJIT)
     void* pc = instance->faultPC();
-    instance->setFaultPC(nullptr);
+    instance->setFaultPC(Wasm::ExceptionType::Termination, nullptr);
     auto* callee = callFrame->callee().asNativeCallee();
     ASSERT(callee->category() == NativeCallee::Category::Wasm);
     auto& wasmCallee = static_cast<Wasm::Callee&>(*callee);
@@ -1126,7 +1129,7 @@ extern "C" UCPURegister SYSV_ABI slow_path_wasm_unwind_exception(CallFrame* call
     SlowPathFrameTracer tracer(vm, callFrame);
 #if ENABLE(WEBASSEMBLY_BBQJIT)
     void* pc = instance->faultPC();
-    instance->setFaultPC(nullptr);
+    instance->setFaultPC(Wasm::ExceptionType::Termination, nullptr);
     auto* callee = callFrame->callee().asNativeCallee();
     ASSERT(callee->category() == NativeCallee::Category::Wasm);
     auto& wasmCallee = static_cast<Wasm::Callee&>(*callee);

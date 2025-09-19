@@ -381,7 +381,12 @@ public:
 
     void* softStackLimit() const { return m_stackMirror.softStackLimit(); }
 
-    void setFaultPC(void* pc) { m_faultPC = pc; };
+    void setFaultPC(Wasm::ExceptionType exception, void* pc)
+    {
+        m_exception = exception;
+        m_faultPC = pc;
+    }
+    Wasm::ExceptionType exception() const { return m_exception; }
     void* faultPC() const { return m_faultPC; }
 
 private:
@@ -422,6 +427,7 @@ private:
     // Used by builtin trampolines to quickly fetch callee bits to store in the call frame.
     // The actual callees are owned by builtins. Populated by WebAssemblyModuleRecord::initializeImports().
     CalleeBits m_builtinCalleeBits[WASM_BUILTIN_COUNT];
+    Wasm::ExceptionType m_exception { Wasm::ExceptionType::Termination };
 };
 
 } // namespace JSC

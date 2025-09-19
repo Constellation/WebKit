@@ -3471,7 +3471,7 @@ ipintOp(_array_len, macro()
     nextIPIntInstruction()
 
 .nullArray:
-    throwException(NullArrayLen)
+    throwException(NullAccess)
 end)
 
 ipintOp(_array_fill, macro()

@@ -50,6 +50,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include "WasmBBQDisassembler.h"
 #include "WasmCallingConvention.h"
 #include "WasmCompilationMode.h"
+#include "WasmFaultSignalHandler.h"
 #include "WasmFormat.h"
 #include "WasmFunctionParser.h"
 #include "WasmIRGeneratorHelpers.h"
@@ -1652,14 +1653,14 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayGet(ExtGCOpType arrayGetKind, u
     if (arrayref.isConst()) {
         ASSERT(arrayref.asI64() == JSValue::encode(jsNull()));
         consume(index);
-        emitThrowException(ExceptionType::NullArrayGet);
+        emitThrowException(ExceptionType::NullAccess);
         result = topValue(resultType.kind);
         return { };
     }
 
     Location arrayLocation = loadIfNecessary(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArrayGet, arrayLocation);
+        emitThrowOnNullReferenceBeforeAccess(arrayLocation, JSWebAssemblyArray::offsetOfSize());
 
     Location indexLocation;
     if (index.isConst()) {
@@ -1840,13 +1841,13 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArraySet(uint32_t typeIndex, TypedEx
 
         LOG_INSTRUCTION("ArraySet", typeIndex, arrayref, index, value);
         consume(value);
-        emitThrowException(ExceptionType::NullArraySet);
+        emitThrowException(ExceptionType::NullAccess);
         return { };
     }
 
     Location arrayLocation = loadIfNecessary(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArraySet, arrayLocation);
+        emitThrowOnNullReferenceBeforeAccess(arrayLocation, JSWebAssemblyArray::offsetOfSize());
 
     ASSERT(index.type() == TypeKind::I32);
     if (index.isConst()) {
@@ -1875,7 +1876,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayLen(TypedExpression typedArray,
     auto arrayref = typedArray.value();
     if (arrayref.isConst()) {
         ASSERT(arrayref.asI64() == JSValue::encode(jsNull()));
-        emitThrowException(ExceptionType::NullArrayLen);
+        emitThrowException(ExceptionType::NullAccess);
         result = Value::fromI32(0);
         LOG_INSTRUCTION("ArrayLen", arrayref, RESULT(result), "Exception");
         return { };
@@ -1884,7 +1885,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayLen(TypedExpression typedArray,
     Location arrayLocation = loadIfNecessary(arrayref);
     consume(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArrayLen, arrayLocation);
+        emitThrowOnNullReferenceBeforeAccess(arrayLocation, JSWebAssemblyArray::offsetOfSize());
 
     result = topValue(TypeKind::I32);
     Location resultLocation = allocateWithHint(result, arrayLocation);
@@ -2109,18 +2110,18 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructGet(ExtGCOpType structGetKind,
     if (structValue.isConst()) {
         // This is the only constant struct currently possible.
         ASSERT(JSValue::decode(structValue.asRef()).isNull());
-        emitThrowException(ExceptionType::NullStructGet);
+        emitThrowException(ExceptionType::NullAccess);
         result = topValue(resultKind);
         LOG_INSTRUCTION("StructGet", structValue, fieldIndex, "Exception");
         return { };
     }
 
-    Location structLocation = loadIfNecessary(structValue);
-    if (typedStruct.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullStructGet, structLocation);
-
     unsigned fieldOffset = JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex);
     RELEASE_ASSERT((std::numeric_limits<int32_t>::max() & fieldOffset) == fieldOffset);
+
+    Location structLocation = loadIfNecessary(structValue);
+    if (typedStruct.type().isNullable())
+        emitThrowOnNullReferenceBeforeAccess(structLocation, fieldOffset);
 
     // We're ok with reusing the struct value for our result since their live ranges don't overlap within a struct.get.
     consume(structValue);
@@ -2198,13 +2199,16 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructSet(TypedExpression typedStruc
 
         LOG_INSTRUCTION("StructSet", structValue, fieldIndex, value, "Exception");
         consume(value);
-        emitThrowException(ExceptionType::NullStructSet);
+        emitThrowException(ExceptionType::NullAccess);
         return { };
     }
 
+    unsigned fieldOffset = JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex);
+    RELEASE_ASSERT((std::numeric_limits<int32_t>::max() & fieldOffset) == fieldOffset);
+
     Location structLocation = loadIfNecessary(structValue);
     if (typedStruct.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullStructSet, structLocation);
+        emitThrowOnNullReferenceBeforeAccess(structLocation, fieldOffset);
 
     bool needsWriteBarrier = emitStructSet(structLocation.asGPR(), structType, fieldIndex, value);
     if (needsWriteBarrier)
@@ -2217,14 +2221,40 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructSet(TypedExpression typedStruc
     return { };
 }
 
-void BBQJIT::emitRefTestOrCast(const TypedExpression& typedValue, GPRReg valueGPR, bool allowNull, int32_t toHeapType, JumpList& failureCases)
+void BBQJIT::emitRefTestOrCast(CastKind castKind, const TypedExpression& typedValue, GPRReg valueGPR, bool allowNull, int32_t toHeapType, JumpList& failureCases)
 {
+    auto castAccessOffset = [&] -> std::optional<ptrdiff_t> {
+        if (castKind == CastKind::Test)
+            return std::nullopt;
+
+        if (allowNull)
+            return std::nullopt;
+
+        if (typeIndexIsType(static_cast<Wasm::TypeIndex>(toHeapType)))
+            return std::nullopt;
+
+        Wasm::TypeDefinition& signature = m_info.typeSignatures[toHeapType];
+        if (signature.expand().is<Wasm::FunctionSignature>())
+            return WebAssemblyFunctionBase::offsetOfRTT();
+
+        if (!typedValue.type().definitelyIsCellOrNull())
+            return std::nullopt;
+
+        if (!typedValue.type().definitelyIsWasmGCObjectOrNull())
+            return JSCell::typeInfoTypeOffset();
+        return JSCell::structureIDOffset();
+    };
+
     JumpList doneCases;
     if (typedValue.type().isNullable()) {
-        if (allowNull)
-            doneCases.append(m_jit.branchIfNull(valueGPR));
-        else
-            failureCases.append(m_jit.branchIfNull(valueGPR));
+        if (auto offset = castAccessOffset(); offset && offset.value() <= maxAcceptableOffsetForNullReference()) {
+            // We will have access which will be trapped.
+        } else {
+            if (allowNull)
+                doneCases.append(m_jit.branchIfNull(valueGPR));
+            else
+                failureCases.append(m_jit.branchIfNull(valueGPR));
+        }
     }
 
     if (typeIndexIsType(static_cast<Wasm::TypeIndex>(toHeapType))) {
@@ -2327,7 +2357,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addRefCast(TypedExpression typedValue, 
     Location resultLocation = allocate(result);
 
     JumpList failureCases;
-    emitRefTestOrCast(typedValue, valueLocation.asGPR(), allowNull, toHeapType, failureCases);
+    emitRefTestOrCast(CastKind::Cast, typedValue, valueLocation.asGPR(), allowNull, toHeapType, failureCases);
     recordJumpToThrowException(ExceptionType::CastFailure, failureCases);
     emitMove(TypeKind::Ref, valueLocation, resultLocation);
 
@@ -2353,7 +2383,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addRefTest(TypedExpression typedValue, 
     JumpList doneCases;
     JumpList failureCases;
 
-    emitRefTestOrCast(typedValue, valueLocation.asGPR(), allowNull, toHeapType, failureCases);
+    emitRefTestOrCast(CastKind::Test, typedValue, valueLocation.asGPR(), allowNull, toHeapType, failureCases);
     emitMoveConst(Value::fromI32(shouldNegate ? 0 : 1), resultLocation);
     doneCases.append(m_jit.jump());
 
@@ -2423,6 +2453,15 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addI64Mul(Value lhs, Value rhs, Value& 
 void BBQJIT::emitThrowOnNullReference(ExceptionType type, Location ref)
 {
     recordJumpToThrowException(type, m_jit.branchIfNull(ref.asGPR()));
+}
+
+void BBQJIT::emitThrowOnNullReferenceBeforeAccess(Location ref, ptrdiff_t offset)
+{
+    if (Options::useWasmFaultSignalHandler()) {
+        if (offset <= maxAcceptableOffsetForNullReference())
+            return;
+    }
+    emitThrowOnNullReference(ExceptionType::NullAccess, ref);
 }
 
 PartialResult WARN_UNUSED_RETURN BBQJIT::addI64And(Value lhs, Value rhs, Value& result)
@@ -5325,7 +5364,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addCallRef(unsigned callProfileIndex, c
             } else
                 calleeLocation = loadIfNecessary(callee);
             consume(callee);
-            emitThrowOnNullReference(ExceptionType::NullReference, calleeLocation);
+            emitThrowOnNullReferenceBeforeAccess(calleeLocation, WebAssemblyFunctionBase::offsetOfBoxedCallee());
 
             calleePtr = calleeLocation.asGPR();
             calleeInstance = otherScratch.gpr(0);

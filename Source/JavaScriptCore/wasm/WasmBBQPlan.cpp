@@ -36,6 +36,7 @@
 #include "WasmCallee.h"
 #include "WasmCalleeGroup.h"
 #include "WasmCompilationContext.h"
+#include "WasmFaultSignalHandler.h"
 #include "WasmIRGeneratorHelpers.h"
 #include "WasmTierUpCount.h"
 #include "WasmTypeDefinitionInlines.h"
@@ -59,6 +60,7 @@ BBQPlan::BBQPlan(VM& vm, Ref<ModuleInformation>&& moduleInformation, FunctionCod
 {
     ASSERT(Options::useBBQJIT());
     setMode(m_calleeGroup->mode());
+    Wasm::activateSignalingMemory();
     dataLogLnIf(WasmBBQPlanInternal::verbose, "Starting BBQ plan for ", functionIndex);
 }
 

@@ -1404,14 +1404,14 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayGet(ExtGCOpType arrayGetKind, u
 
     if (arrayref.isConst()) {
         ASSERT(arrayref.asI64() == JSValue::encode(jsNull()));
-        emitThrowException(ExceptionType::NullArrayGet);
+        emitThrowException(ExceptionType::NullAccess);
         result = topValue(resultType.kind);
         return { };
     }
 
     Location arrayLocation = loadIfNecessary(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArrayGet, arrayLocation);
+        emitThrowOnNullReference(ExceptionType::NullAccess, arrayLocation);
 
     Location indexLocation;
     if (index.isConst()) {
@@ -1657,13 +1657,13 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArraySet(uint32_t typeIndex, TypedEx
 
         LOG_INSTRUCTION("ArraySet", typeIndex, arrayref, index, value);
         consume(value);
-        emitThrowException(ExceptionType::NullArraySet);
+        emitThrowException(ExceptionType::NullAccess);
         return { };
     }
 
     Location arrayLocation = loadIfNecessary(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArraySet, arrayLocation);
+        emitThrowOnNullReference(ExceptionType::NullAccess, arrayLocation);
 
     if (index.isConst()) {
         m_jit.load32(MacroAssembler::Address(arrayLocation.asGPRlo(), JSWebAssemblyArray::offsetOfSize()), wasmScratchGPR);
@@ -1690,7 +1690,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayLen(TypedExpression typedArray,
     auto arrayref = typedArray.value();
     if (arrayref.isConst()) {
         ASSERT(arrayref.asI64() == JSValue::encode(jsNull()));
-        emitThrowException(ExceptionType::NullArrayLen);
+        emitThrowException(ExceptionType::NullAccess);
         result = Value::fromI32(0);
         LOG_INSTRUCTION("ArrayLen", arrayref, RESULT(result), "Exception");
         return { };
@@ -1699,7 +1699,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addArrayLen(TypedExpression typedArray,
     Location arrayLocation = loadIfNecessary(arrayref);
     consume(arrayref);
     if (typedArray.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullArrayLen, arrayLocation);
+        emitThrowOnNullReference(ExceptionType::NullAccess, arrayLocation);
 
     result = topValue(TypeKind::I32);
     Location resultLocation = allocateWithHint(result, arrayLocation);
@@ -1896,7 +1896,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructGet(ExtGCOpType structGetKind,
     if (structValue.isConst()) {
         // This is the only constant struct currently possible.
         ASSERT(JSValue::decode(structValue.asRef()).isNull());
-        emitThrowException(ExceptionType::NullStructGet);
+        emitThrowException(ExceptionType::NullAccess);
         result = topValue(resultKind);
         LOG_INSTRUCTION("StructGet", structValue, fieldIndex, "Exception");
         return { };
@@ -1904,7 +1904,7 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructGet(ExtGCOpType structGetKind,
 
     Location structLocation = loadIfNecessary(structValue);
     if (typedStruct.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullStructGet, structLocation);
+        emitThrowOnNullReference(ExceptionType::NullAccess, structLocation);
 
     unsigned fieldOffset = JSWebAssemblyStruct::offsetOfData() + structType.offsetOfFieldInPayload(fieldIndex);
     RELEASE_ASSERT((std::numeric_limits<int32_t>::max() & fieldOffset) == fieldOffset);
@@ -1969,13 +1969,13 @@ PartialResult WARN_UNUSED_RETURN BBQJIT::addStructSet(TypedExpression typedStruc
 
         LOG_INSTRUCTION("StructSet", structValue, fieldIndex, value, "Exception");
         consume(value);
-        emitThrowException(ExceptionType::NullStructSet);
+        emitThrowException(ExceptionType::NullAccess);
         return { };
     }
 
     Location structLocation = loadIfNecessary(structValue);
     if (typedStruct.type().isNullable())
-        emitThrowOnNullReference(ExceptionType::NullStructSet, structLocation);
+        emitThrowOnNullReference(ExceptionType::NullAccess, structLocation);
 
     bool needsWriteBarrier = emitStructSet(structLocation.asGPRlo(), structType, fieldIndex, value);
     if (needsWriteBarrier)
