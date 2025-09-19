@@ -94,6 +94,8 @@ void Effects::dump(PrintStream& out) const
         out.print(comma, "ExitsSideways"_s);
     if (controlDependent)
         out.print(comma, "ControlDependent"_s);
+    if (readsImmutable)
+        out.print(comma, "ReadsImmutable"_s);
     if (writesLocalState)
         out.print(comma, "WritesLocalState"_s);
     if (readsLocalState)
