@@ -52,6 +52,8 @@ public:
         uint64_t m_primitive;
         WriteBarrierBase<Unknown> m_externref;
         Value* m_pointer;
+
+        static constexpr ptrdiff_t offsetOfValue() { return 0; }
     };
     static_assert(sizeof(Value) == 16, "Update IPInt if this changes");
 

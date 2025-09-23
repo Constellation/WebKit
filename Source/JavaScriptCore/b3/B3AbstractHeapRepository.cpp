@@ -58,6 +58,7 @@
 #include "StructureRareDataInlines.h"
 #include "Symbol.h"
 #include "WasmGlobal.h"
+#include "WasmTypeDefinition.h"
 #include "WebAssemblyModuleRecord.h"
 
 namespace JSC::B3 {
@@ -173,8 +174,8 @@ void AbstractHeapRepository::computeRangesAndDecorateInstructions()
     for (HeapForValue entry : m_heapForMemory) {
         auto* memoryValue = entry.value->as<MemoryValue>();
         memoryValue->setRange(rangeFor(entry.heap));
-        if (memoryValue->isLoad())
-            memoryValue->setReadsMutability(entry.heap->mutability());
+        if (memoryValue->isLoad() && entry.heap->mutability() == B3::Mutability::Immutable)
+            memoryValue->setReadsMutability(B3::Mutability::Immutable);
     }
     for (HeapForValue entry : m_heapForCCallRead)
         entry.value->as<CCallValue>()->effects.reads = rangeFor(entry.heap);

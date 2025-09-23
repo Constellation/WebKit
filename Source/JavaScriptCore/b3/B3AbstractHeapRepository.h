@@ -134,6 +134,9 @@ namespace JSC::B3 {
     macro(JSScope_next, JSScope::offsetOfNext(), Mutability::Immutable) \
     macro(JSSymbolTableObject_symbolTable, JSSymbolTableObject::offsetOfSymbolTable(), Mutability::Mutable) \
     macro(JSWebAssemblyArray_size, JSWebAssemblyArray::offsetOfSize(), Mutability::Immutable) \
+    macro(JSWebAssemblyInstance_cachedMemorySize, JSWebAssemblyInstance::offsetOfCachedMemorySize(), Mutability::Mutable) \
+    macro(JSWebAssemblyInstance_cachedTable0Buffer, JSWebAssemblyInstance::offsetOfCachedTable0Buffer(), Mutability::Mutable) \
+    macro(JSWebAssemblyInstance_cachedTable0Length, JSWebAssemblyInstance::offsetOfCachedTable0Buffer(), Mutability::Mutable) \
     macro(JSWebAssemblyInstance_moduleRecord, JSWebAssemblyInstance::offsetOfModuleRecord(), Mutability::Mutable) \
     macro(JSWebAssemblyInstance_vm, JSWebAssemblyInstance::offsetOfVM(), Mutability::Immutable) \
     macro(NativeExecutable_asString, NativeExecutable::offsetOfAsString(), Mutability::Mutable) \
@@ -179,12 +182,19 @@ namespace JSC::B3 {
     macro(VM_heap_mutatorShouldBeFenced, VM::offsetOfHeapMutatorShouldBeFenced(), Mutability::Mutable) \
     macro(VM_exception, VM::exceptionOffset(), Mutability::Mutable) \
     macro(WatchpointSet_state, WatchpointSet::offsetOfState(), Mutability::Mutable) \
+    macro(WasmFuncRefTable_functions, Wasm::FuncRefTable::offsetOfFunctions(), Mutability::Mutable) \
     macro(WasmGlobal_value, Wasm::Global::offsetOfValue(), Mutability::Mutable) \
     macro(WasmGlobal_owner, Wasm::Global::offsetOfOwner(), Mutability::Immutable) \
+    macro(WasmGlobalValue_value, Wasm::Global::Value::offsetOfValue(), Mutability::Mutable) \
+    macro(WasmRTT_displaySizeExcludingThis, Wasm::RTT::offsetOfDisplaySizeExcludingThis(), Mutability::Immutable) \
+    macro(WasmRTT_kind, Wasm::RTT::offsetOfKind(), Mutability::Immutable) \
+    macro(WasmTable_length, Wasm::Table::offsetOfLength(), Mutability::Mutable) \
     macro(WeakMapImpl_capacity, WeakMapImpl<WeakMapBucket<WeakMapBucketDataKey>>::offsetOfCapacity(), Mutability::Mutable) \
     macro(WeakMapImpl_buffer,  WeakMapImpl<WeakMapBucket<WeakMapBucketDataKey>>::offsetOfBuffer(), Mutability::Mutable) \
     macro(WeakMapBucket_value, WeakMapBucket<WeakMapBucketDataKeyValue>::offsetOfValue(), Mutability::Mutable) \
     macro(WeakMapBucket_key, WeakMapBucket<WeakMapBucketDataKeyValue>::offsetOfKey(), Mutability::Mutable) \
+    macro(WebAssemblyFunctionBase_rtt, WebAssemblyFunctionBase::offsetOfRTT(), Mutability::Immutable) \
+    macro(WebAssemblyGCStructure_rtt, WebAssemblyGCStructure::offsetOfRTT(), Mutability::Immutable) \
     macro(WebAssemblyModuleRecord_exportsObject, WebAssemblyModuleRecord::offsetOfExportsObject(), Mutability::Mutable) \
     macro(Symbol_symbolImpl, Symbol::offsetOfSymbolImpl(), Mutability::Immutable) \
 
@@ -210,7 +220,34 @@ namespace JSC::B3 {
     macro(SmallIntCache, 0, sizeof(NumericStrings::StringWithJSString)) \
 
 #define FOR_EACH_NUMBERED_ABSTRACT_HEAP(macro) \
-    macro(properties)
+    macro(properties) \
+    /* WasmGC Struct access are analyzed via field index and field type. We can include Wasm type definition to further make alias analysis better. */ \
+    macro(JSWebAssemblyStruct_i8) \
+    macro(JSWebAssemblyStruct_i16) \
+    macro(JSWebAssemblyStruct_i32) \
+    macro(JSWebAssemblyStruct_i64) \
+    macro(JSWebAssemblyStruct_f32) \
+    macro(JSWebAssemblyStruct_f64) \
+    macro(JSWebAssemblyStruct_v128) \
+    macro(JSWebAssemblyStruct_ref) \
+    /* WasmGC Array access are analyzed via element index and element type. Not using IndexedAbstractHeap right now intentionally since large Wasm array has different base offset. */ \
+    macro(JSWebAssemblyArray_i8) \
+    macro(JSWebAssemblyArray_i16) \
+    macro(JSWebAssemblyArray_i32) \
+    macro(JSWebAssemblyArray_i64) \
+    macro(JSWebAssemblyArray_f32) \
+    macro(JSWebAssemblyArray_f64) \
+    macro(JSWebAssemblyArray_v128) \
+    macro(JSWebAssemblyArray_ref) \
+    /* Embedded WasmGlobal access are analyzed via index and element type. */ \
+    macro(JSWebAssemblyInstance_embeddedGlobals_i32) \
+    macro(JSWebAssemblyInstance_embeddedGlobals_i64) \
+    macro(JSWebAssemblyInstance_embeddedGlobals_f32) \
+    macro(JSWebAssemblyInstance_embeddedGlobals_f64) \
+    macro(JSWebAssemblyInstance_embeddedGlobals_v128) \
+    macro(JSWebAssemblyInstance_embeddedGlobals_ref) \
+    \
+    macro(JSWebAssemblyInstance_portableGlobals) \
 
 // This class is meant to be cacheable between compilations, but it doesn't have to be.
 // Doing so saves on creation of nodes. But clearing it will save memory.
