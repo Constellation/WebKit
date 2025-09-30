@@ -339,6 +339,7 @@ static JSC_DECLARE_HOST_FUNCTION(jsonStringify);
 static JSC_DECLARE_HOST_FUNCTION(enableSuperSampler);
 static JSC_DECLARE_HOST_FUNCTION(disableSuperSampler);
 static JSC_DECLARE_HOST_FUNCTION(enqueueJob);
+static JSC_DECLARE_HOST_FUNCTION(triggerPromiseReactions);
 #if ASSERT_ENABLED
 static JSC_DECLARE_HOST_FUNCTION(assertCall);
 #endif
@@ -718,6 +719,47 @@ JSC_DEFINE_HOST_FUNCTION(enqueueJob, (JSGlobalObject* globalObject, CallFrame* c
     JSValue argument3 = callFrame->argument(4);
 
     globalObject->queueMicrotask(job, argument0, argument1, argument2, argument3);
+
+    return encodedJSUndefined();
+}
+
+JSC_DEFINE_HOST_FUNCTION(triggerPromiseReactions, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    uint32_t state = callFrame->uncheckedArgument(0).asUInt32AsAnyInt();
+    auto* head = jsDynamicCast<JSPromiseReaction*>(callFrame->uncheckedArgument(1));
+    JSValue argument = callFrame->uncheckedArgument(2);
+
+    if (!head)
+        return encodedJSUndefined();
+
+    // Reverse the order of singly-linked-list.
+    JSValue previous = jsUndefined();
+    {
+        auto* current = head;
+        while (current) {
+            auto* next = jsDynamicCast<JSPromiseReaction*>(current->next());
+            current->setNext(vm, previous);
+            previous = current;
+            current = next;
+        }
+    }
+    head = jsCast<JSPromiseReaction*>(previous);
+
+    JSFunction* function = globalObject->promiseReactionJobFunction();
+    bool isResolved = state == static_cast<uint32_t>(JSPromise::Status::Fulfilled);
+    auto* current = head;
+    while (current) {
+        JSValue promise = current->promise();
+        JSValue handler = isResolved ? current->onFulfilled() : current->onRejected();
+        JSValue context = current->context();
+        current = jsDynamicCast<JSPromiseReaction*>(current->next());
+
+        globalObject->queueMicrotask(function, promise, handler, argument, handler.isUndefinedOrNull() ? jsNumber(state) : context);
+        RETURN_IF_EXCEPTION(scope, { });
+    }
 
     return encodedJSUndefined();
 }
@@ -1700,6 +1742,10 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
             // enqueueJob is public for async stack trace.
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 0, "enqueueJob"_s, enqueueJob, ImplementationVisibility::Public));
         });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::triggerPromiseReactions)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 0, "triggerPromiseReactions"_s, triggerPromiseReactions, ImplementationVisibility::Public));
+        });
+
     m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::makeTypeError)].initLater([] (const Initializer<JSCell>& init) {
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 0, "makeTypeError"_s, globalFuncMakeTypeError, ImplementationVisibility::Private));
         });

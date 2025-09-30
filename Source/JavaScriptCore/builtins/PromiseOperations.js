@@ -128,37 +128,6 @@ function newHandledRejectedPromise(error)
 }
 
 @linkTimeConstant
-function triggerPromiseReactions(state, reactions, argument)
-{
-    "use strict";
-
-    if (!reactions)
-        return;
-
-    // Reverse the order of singly-linked-list.
-    var previous = @undefined;
-    var current = reactions;
-    while (current) {
-        var next = @getPromiseReactionInternalField(current, @promiseReactionFieldNext);
-        @putPromiseReactionInternalField(current, @promiseReactionFieldNext, previous);
-        previous = current;
-        current = next;
-    }
-    reactions = previous;
-
-    var isResolved = state === @promiseStateFulfilled;
-
-    current = reactions;
-    while (current) {
-        var promise = @getPromiseReactionInternalField(current, @promiseReactionFieldPromise);
-        var handler = isResolved ? @getPromiseReactionInternalField(current, @promiseReactionFieldOnFulfilled) : @getPromiseReactionInternalField(current, @promiseReactionFieldOnRejected);
-        var context = @getPromiseReactionInternalField(current, @promiseReactionFieldContext);
-        current = @getPromiseReactionInternalField(current, @promiseReactionFieldNext);
-        @enqueueJob(@promiseReactionJob, promise, handler, argument, handler ? context : state);
-    }
-}
-
-@linkTimeConstant
 function resolvePromise(promise, resolution)
 {
     "use strict";

@@ -76,6 +76,7 @@ namespace JSC {
     macro(BuiltinDescribe) \
     macro(homeObject) \
     macro(enqueueJob) \
+    macro(triggerPromiseReactions) \
     macro(hostPromiseRejectionTracker) \
     macro(push) \
     macro(repeatCharacter) \

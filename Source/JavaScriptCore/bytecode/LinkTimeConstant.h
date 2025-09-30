@@ -56,6 +56,7 @@ class JSGlobalObject;
     v(copyDataProperties, nullptr) \
     v(cloneObject, nullptr) \
     v(enqueueJob, nullptr) \
+    v(triggerPromiseReactions, nullptr) \
     v(makeTypeError, nullptr) \
     v(AggregateError, nullptr) \
     v(typedArrayLength, nullptr) \

@@ -147,6 +147,8 @@ using JSResizableOrGrowableSharedBigUint64Array = JSGenericResizableOrGrowableSh
     macro(JSArrayBufferView, FirstTypedArrayType, LastTypedArrayType) \
     macro(JSIterator, JSType::JSIteratorType, JSType::JSIteratorType) \
     macro(JSPromise, JSType::JSPromiseType, JSType::JSPromiseType) \
+    macro(JSPromiseAllContext, JSType::JSPromiseAllContextType, JSType::JSPromiseAllContextType) \
+    macro(JSPromiseReaction, JSType::JSPromiseReactionType, JSType::JSPromiseReactionType) \
     macro(JSGlobalProxy, JSType::GlobalProxyType, JSType::GlobalProxyType) \
     macro(JSSet, JSType::JSSetType, JSType::JSSetType) \
     macro(JSMap, JSType::JSMapType, JSType::JSMapType) \
