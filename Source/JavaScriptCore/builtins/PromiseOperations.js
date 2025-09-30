@@ -175,7 +175,8 @@ function rejectPromise(promise, reason)
     if (!(flags & @promiseFlagsIsHandled))
         @hostPromiseRejectionTracker(promise, @promiseRejectionReject);
 
-    @triggerPromiseReactions(@promiseStateRejected, reactions, reason);
+    if (reactions)
+        @triggerPromiseReactions(@promiseStateRejected, reactions, reason);
 }
 
 @linkTimeConstant
@@ -191,7 +192,8 @@ function fulfillPromise(promise, value)
     @putPromiseInternalField(promise, @promiseFieldReactionsOrResult, value);
     @putPromiseInternalField(promise, @promiseFieldFlags, flags | @promiseStateFulfilled);
 
-    @triggerPromiseReactions(@promiseStateFulfilled, reactions, value);
+    if (reactions)
+        @triggerPromiseReactions(@promiseStateFulfilled, reactions, value);
 }
 
 @linkTimeConstant
