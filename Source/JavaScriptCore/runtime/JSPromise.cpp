@@ -78,32 +78,6 @@ void JSPromise::visitChildrenImpl(JSCell* cell, Visitor& visitor)
 
 DEFINE_VISIT_CHILDREN(JSPromise);
 
-auto JSPromise::status(VM&) const -> Status
-{
-    JSValue value = internalField(Field::Flags).get();
-    uint32_t flags = value.asUInt32AsAnyInt();
-    return static_cast<Status>(flags & stateMask);
-}
-
-JSValue JSPromise::result(VM& vm) const
-{
-    Status status = this->status(vm);
-    if (status == Status::Pending)
-        return jsUndefined();
-    return internalField(Field::ReactionsOrResult).get();
-}
-
-uint32_t JSPromise::flags() const
-{
-    JSValue value = internalField(Field::Flags).get();
-    return value.asUInt32AsAnyInt();
-}
-
-bool JSPromise::isHandled(VM&) const
-{
-    return flags() & isHandledFlag;
-}
-
 JSValue JSPromise::createNewPromiseCapability(JSGlobalObject* globalObject, JSPromiseConstructor* promiseConstructor)
 {
     VM& vm = globalObject->vm();
@@ -219,19 +193,11 @@ void JSPromise::reject(JSGlobalObject* lexicalGlobalObject, JSValue value)
     }
 }
 
-// https://webidl.spec.whatwg.org/#mark-a-promise-as-handled
-void JSPromise::markAsHandled(JSGlobalObject* lexicalGlobalObject)
-{
-    VM& vm = lexicalGlobalObject->vm();
-    uint32_t flags = this->flags();
-    internalField(Field::Flags).set(vm, this, jsNumber(flags | isHandledFlag));
-}
-
 void JSPromise::rejectAsHandled(JSGlobalObject* lexicalGlobalObject, JSValue value)
 {
     // Setting isHandledFlag before calling reject since this removes round-trip between JSC and PromiseRejectionTracker, and it does not show an user-observable behavior.
     if (!(flags() & isFirstResolvingFunctionCalledFlag)) {
-        markAsHandled(lexicalGlobalObject);
+        markAsHandled();
         reject(lexicalGlobalObject, value);
     }
 }

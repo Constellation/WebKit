@@ -72,9 +72,26 @@ public:
     const WriteBarrier<Unknown>& internalField(Field field) const { return Base::internalField(static_cast<uint32_t>(field)); }
     WriteBarrier<Unknown>& internalField(Field field) { return Base::internalField(static_cast<uint32_t>(field)); }
 
-    JS_EXPORT_PRIVATE Status status(VM&) const;
-    JS_EXPORT_PRIVATE JSValue result(VM&) const;
-    JS_EXPORT_PRIVATE bool isHandled(VM&) const;
+    inline Status status() const
+    {
+        JSValue value = internalField(Field::Flags).get();
+        uint32_t flags = value.asUInt32AsAnyInt();
+        return static_cast<Status>(flags & stateMask);
+    }
+
+    inline bool isHandled() const
+    {
+        return flags() & isHandledFlag;
+    }
+
+    inline JSValue result() const
+    {
+        Status status = this->status();
+        if (status == Status::Pending)
+            return jsUndefined();
+        return internalField(Field::ReactionsOrResult).get();
+    }
+
 
     JS_EXPORT_PRIVATE static JSPromise* resolvedPromise(JSGlobalObject*, JSValue);
     JS_EXPORT_PRIVATE static JSPromise* rejectedPromise(JSGlobalObject*, JSValue);
@@ -84,10 +101,19 @@ public:
     JS_EXPORT_PRIVATE void rejectAsHandled(JSGlobalObject*, JSValue);
     JS_EXPORT_PRIVATE void reject(JSGlobalObject*, Exception*);
     JS_EXPORT_PRIVATE void rejectAsHandled(JSGlobalObject*, Exception*);
-    JS_EXPORT_PRIVATE void markAsHandled(JSGlobalObject*);
     JS_EXPORT_PRIVATE void performPromiseThen(JSGlobalObject*, JSFunction*, JSFunction*, JSValue);
 
     JS_EXPORT_PRIVATE JSPromise* rejectWithCaughtException(JSGlobalObject*, ThrowScope&);
+
+    JSValue reactionsOrResult() const { return internalField(Field::ReactionsOrResult).get(); };
+    void setReactionsOrResult(VM& vm, JSValue value) { internalField(Field::ReactionsOrResult).set(vm, this, value); };
+
+    // https://webidl.spec.whatwg.org/#mark-a-promise-as-handled
+    void markAsHandled()
+    {
+        uint32_t flags = this->flags();
+        internalField(Field::Flags).setWithoutWriteBarrier(jsNumber(flags | isHandledFlag));
+    }
 
     struct DeferredData {
         WTF_FORBID_HEAP_ALLOCATION;
@@ -106,7 +132,11 @@ protected:
     JSPromise(VM&, Structure*);
     void finishCreation(VM&);
 
-    uint32_t flags() const;
+    inline uint32_t flags() const
+    {
+        JSValue value = internalField(Field::Flags).get();
+        return value.asUInt32AsAnyInt();
+    }
 };
 
 } // namespace JSC
