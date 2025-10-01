@@ -515,7 +515,7 @@ void ScriptExecutionContext::reportUnhandledPromiseRejection(JSC::JSGlobalObject
 
     Ref vm = state.vm();
     auto scope = DECLARE_CATCH_SCOPE(vm);
-    JSC::JSValue result = promise.result(vm);
+    JSC::JSValue result = promise.result();
     String resultMessage = retrieveErrorMessage(state, vm, result, scope);
     String errorMessage;
 

@@ -76,10 +76,6 @@ void MicrotaskQueue::runJSMicrotask(JSC::JSGlobalObject* globalObject, JSC::VM& 
         return;
 
     auto* job = JSC::asObject(task.job());
-
-    if (!scope.clearExceptionExceptTermination()) [[unlikely]]
-        return;
-
     auto* lexicalGlobalObject = job->globalObject();
     auto callData = JSC::getCallData(job);
     if (!scope.clearExceptionExceptTermination()) [[unlikely]]

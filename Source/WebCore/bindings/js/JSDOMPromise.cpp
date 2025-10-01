@@ -78,12 +78,12 @@ auto DOMPromise::whenPromiseIsSettled(JSDOMGlobalObject* globalObject, JSC::JSOb
 
 JSC::JSValue DOMPromise::result() const
 {
-    return promise()->result(m_globalObject->vm());
+    return promise()->result();
 }
 
 DOMPromise::Status DOMPromise::status() const
 {
-    switch (promise()->status(m_globalObject->vm())) {
+    switch (promise()->status()) {
     case JSC::JSPromise::Status::Pending:
         return Status::Pending;
     case JSC::JSPromise::Status::Fulfilled:
@@ -97,7 +97,7 @@ DOMPromise::Status DOMPromise::status() const
 
 void DOMPromise::markAsHandled()
 {
-    promise()->markAsHandled(m_globalObject.get());
+    promise()->markAsHandled();
 }
 
 }

@@ -29,8 +29,11 @@
 #include "CatchScope.h"
 #include "Debugger.h"
 #include "DeferTermination.h"
+#include "GlobalObjectMethodTable.h"
 #include "JSGlobalObject.h"
 #include "JSObjectInlines.h"
+#include "JSPromise.h"
+#include "JSPromiseReaction.h"
 #include "Microtask.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
@@ -46,9 +49,36 @@ void runJSMicrotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier
     if (!job.isObject()) [[unlikely]]
         return;
 
-    // If termination is issued, do not run microtasks. Otherwise, microtask should not care about exceptions.
-    if (!scope.clearExceptionExceptTermination()) [[unlikely]]
+    if (job == globalObject->promiseReactionJobFunction()) {
+    } else if (job == globalObject->promiseResolveThenableJobFastFunction()) {
+        JSValue thenable = arguments[0];
+        JSValue promiseToResolve = arguments[1];
+        if (auto* promise = jsDynamicCast<JSPromise*>(thenable)) {
+            switch (promise->status()) {
+            case JSPromise::Status::Pending: {
+                auto* reaction = JSPromiseReaction::create(vm, globalObject->promiseReactionStructure(), promiseToResolve, jsUndefined(), jsUndefined(), jsUndefined(), promise->reactionsOrResult());
+                promise->setReactionsOrResult(vm, reaction);
+                break;
+            }
+            case JSPromise::Status::Rejected: {
+                if (!promise->isHandled()) {
+                    if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
+                        globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
+                }
+                globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Rejected)));
+                break;
+            }
+            case JSPromise::Status::Fulfilled: {
+                globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Fulfilled)));
+                break;
+            }
+            }
+            promise->markAsHandled();
+        }
         return;
+    } else if (job == globalObject->promiseReactionJobWithoutPromiseFunction()) {
+    } else {
+    }
 
     auto handlerCallData = JSC::getCallData(job);
     if (!scope.clearExceptionExceptTermination()) [[unlikely]]

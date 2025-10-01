@@ -219,6 +219,9 @@ inline JSFunction* JSGlobalObject::resolvePromiseFunction() const { return jsCas
 inline JSFunction* JSGlobalObject::rejectPromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::rejectPromise)); }
 inline JSFunction* JSGlobalObject::promiseProtoThenFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::defaultPromiseThen)); }
 inline JSFunction* JSGlobalObject::performPromiseThenFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::performPromiseThen)); }
+inline JSFunction* JSGlobalObject::promiseReactionJobFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJob)); }
+inline JSFunction* JSGlobalObject::promiseResolveThenableJobFastFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJobFast)); }
+inline JSFunction* JSGlobalObject::promiseReactionJobWithoutPromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJobWithoutPromise)); }
 inline JSFunction* JSGlobalObject::regExpProtoExecFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::regExpBuiltinExec)); }
 inline JSFunction* JSGlobalObject::stringProtoSubstringFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::stringSubstring)); }
 inline JSFunction* JSGlobalObject::performProxyObjectHasFunction() const { return m_performProxyObjectHasFunction.get(); }
