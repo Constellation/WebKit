@@ -97,11 +97,6 @@ void runJSMicrotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier
     VM& vm = globalObject->vm();
     auto scope = DECLARE_CATCH_SCOPE(vm);
 
-    if (job == globalObject->promiseReactionJobFunction()) {
-    } else if (job == globalObject->promiseReactionJobWithoutPromiseFunction()) {
-    } else {
-    }
-
     auto handlerCallData = JSC::getCallData(job);
     if (!scope.clearExceptionExceptTermination()) [[unlikely]]
         return;
