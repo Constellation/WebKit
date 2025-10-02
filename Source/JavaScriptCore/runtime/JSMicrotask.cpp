@@ -40,14 +40,53 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC {
 
-void runJSMicrotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier, JSValue job, std::span<const JSValue> arguments)
+JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, InternalMicrotask task, std::span<const JSValue> arguments)
 {
     VM& vm = globalObject->vm();
+    switch (task) {
+    case InternalMicrotask::PromiseResolveThenableJobFast: {
+        auto* promise = jsCast<JSPromise*>(arguments[0]);
+        JSValue promiseToResolve = arguments[1];
 
-    auto scope = DECLARE_CATCH_SCOPE(vm);
+        switch (promise->status()) {
+        case JSPromise::Status::Pending: {
+            auto* reaction = JSPromiseReaction::create(vm, globalObject->promiseReactionStructure(), promiseToResolve, jsUndefined(), jsUndefined(), jsUndefined(), promise->reactionsOrResult());
+            promise->setReactionsOrResult(vm, reaction);
+            break;
+        }
+        case JSPromise::Status::Rejected: {
+            if (!promise->isHandled()) {
+                if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
+                    globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
+            }
+            globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Rejected)));
+            break;
+        }
+        case JSPromise::Status::Fulfilled: {
+            globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Fulfilled)));
+            break;
+        }
+        }
+        promise->markAsHandled();
+        return JSValue();
+    }
+    }
+    return JSValue();
+}
+
+void runJSMicrotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier, JSValue job, std::span<const JSValue> arguments)
+{
+    if (job.isInt32AsAnyInt()) {
+        job = runInternalMirotask(globalObject, identifier, static_cast<InternalMicrotask>(job.asInt32AsAnyInt()), arguments);
+        if (!job)
+            return;
+    }
 
     if (!job.isObject()) [[unlikely]]
         return;
+
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_CATCH_SCOPE(vm);
 
     if (job == globalObject->promiseReactionJobFunction()) {
     } else if (job == globalObject->promiseResolveThenableJobFastFunction()) {

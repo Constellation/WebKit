@@ -179,7 +179,7 @@ function resolvePromise(promise, resolution)
     }
 
     if (@isPromise(resolution) && then === @defaultPromiseThen) {
-        @enqueueJob(@promiseResolveThenableJobFast, resolution, promise);
+        @enqueueJob(@PromiseResolveThenableJobFast, resolution, promise);
         return;
     }
 

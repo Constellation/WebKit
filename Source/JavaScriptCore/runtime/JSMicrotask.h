@@ -32,5 +32,6 @@
 namespace JSC {
 
 void runJSMicrotask(JSGlobalObject*, MicrotaskIdentifier, JSValue job, std::span<const JSValue>);
+JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier, InternalMicrotask, std::span<const JSValue> arguments);
 
 } // namespace JSC

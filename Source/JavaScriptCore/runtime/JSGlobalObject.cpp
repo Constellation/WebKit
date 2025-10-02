@@ -711,8 +711,7 @@ const GlobalObjectMethodTable* JSGlobalObject::baseGlobalObjectMethodTable()
 
 JSC_DEFINE_HOST_FUNCTION(enqueueJob, (JSGlobalObject* globalObject, CallFrame* callFrame))
 {
-    auto* job = jsCast<JSFunction*>(callFrame->argument(0));
-    ASSERT(job->globalObject() == globalObject);
+    JSValue job = callFrame->argument(0);
     JSValue argument0 = callFrame->argument(1);
     JSValue argument1 = callFrame->argument(2);
     JSValue argument2 = callFrame->argument(3);
@@ -3318,7 +3317,7 @@ void JSGlobalObject::bumpGlobalLexicalBindingEpoch(VM& vm)
     }
 }
 
-void JSGlobalObject::queueMicrotask(JSFunction* job, JSValue argument0, JSValue argument1, JSValue argument2, JSValue argument3)
+void JSGlobalObject::queueMicrotask(JSValue job, JSValue argument0, JSValue argument1, JSValue argument2, JSValue argument3)
 {
     QueuedTask task { nullptr, this, job, argument0, argument1, argument2, argument3 };
     if (globalObjectMethodTable()->queueMicrotaskToEventLoop) {

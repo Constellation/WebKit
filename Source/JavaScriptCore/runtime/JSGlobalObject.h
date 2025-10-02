@@ -1115,7 +1115,7 @@ public:
     static bool shouldInterruptScriptBeforeTimeout(const JSGlobalObject*) { return false; }
     static RuntimeFlags javaScriptRuntimeFlags(const JSGlobalObject*) { return RuntimeFlags(); }
 
-    JS_EXPORT_PRIVATE void queueMicrotask(JSFunction* job, JSValue, JSValue, JSValue, JSValue);
+    JS_EXPORT_PRIVATE void queueMicrotask(JSValue job, JSValue, JSValue, JSValue, JSValue);
 
     static void reportViolationForUnsafeEval(const JSGlobalObject*, const String&) { }
 
