@@ -1995,6 +1995,9 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
         RELEASE_ASSERT(!m_arrayConstructorSpeciesWatchpoint);
         tryInstallSpeciesWatchpoint(this->arrayPrototype(), arrayConstructor, m_arrayPrototypeConstructorWatchpoint, m_arrayConstructorSpeciesWatchpoint, m_arraySpeciesWatchpointSet, HasSpeciesProperty::Yes, arraySpeciesGetterSetter());
     }
+    tryInstallSpeciesWatchpoint(this->promisePrototype(), promiseConstructor, m_promisePrototypeConstructorWatchpoint, m_promiseConstructorSpeciesWatchpoint, m_promiseSpeciesWatchpointSet, HasSpeciesProperty::No, nullptr);
+    tryInstallSpeciesWatchpoint(this->internalPromisePrototype(), internalPromiseConstructor, m_internalPromisePrototypeConstructorWatchpoint, m_internalPromiseConstructorSpeciesWatchpoint, m_internalPromiseSpeciesWatchpointSet, HasSpeciesProperty::No, nullptr);
+
     catchScope.assertNoException();
 
     installSaneChainWatchpoints();
@@ -3105,7 +3108,7 @@ void JSGlobalObject::tryInstallTypedArraySpeciesWatchpoint(TypedArrayType type)
         watchpointSet.invalidate(vm, StringFireDetail("Was not able to set up species watchpoint."));
         return;
     }
-    tryInstallSpeciesWatchpoint(prototype, constructor, typedArrayPrototypeConstructorWatchpoint(type), typedArrayConstructorSpeciesAbsenceWatchpoint(type), watchpointSet, HasSpeciesProperty::No, typedArraySpeciesGetterSetter());
+    tryInstallSpeciesWatchpoint(prototype, constructor, typedArrayPrototypeConstructorWatchpoint(type), typedArrayConstructorSpeciesAbsenceWatchpoint(type), watchpointSet, HasSpeciesProperty::No, nullptr);
 }
 
 void JSGlobalObject::installTypedArrayConstructorSpeciesWatchpoint(JSTypedArrayViewConstructor* constructor)
