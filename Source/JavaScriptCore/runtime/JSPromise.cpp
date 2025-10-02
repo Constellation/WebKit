@@ -32,6 +32,7 @@
 #include "JSCInlines.h"
 #include "JSInternalFieldObjectImplInlines.h"
 #include "JSPromiseConstructor.h"
+#include "JSPromiseReaction.h"
 #include "Microtask.h"
 
 namespace JSC {
@@ -241,6 +242,41 @@ void JSPromise::performPromiseThen(JSGlobalObject* globalObject, JSFunction* onF
     arguments.append(jsUndefined());
     ASSERT(!arguments.hasOverflowed());
     call(globalObject, performPromiseThenFunction, callData, jsUndefined(), arguments);
+}
+
+void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, JSPromise::Status status, JSPromiseReaction* head, JSValue argument)
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    if (!head)
+        return;
+
+    // Reverse the order of singly-linked-list.
+    JSValue previous = jsUndefined();
+    {
+        auto* current = head;
+        while (current) {
+            auto* next = jsDynamicCast<JSPromiseReaction*>(current->next());
+            current->setNext(vm, previous);
+            previous = current;
+            current = next;
+        }
+    }
+    head = jsCast<JSPromiseReaction*>(previous);
+
+    JSFunction* function = globalObject->promiseReactionJobFunction();
+    bool isResolved = status == JSPromise::Status::Fulfilled;
+    auto* current = head;
+    while (current) {
+        JSValue promise = current->promise();
+        JSValue handler = isResolved ? current->onFulfilled() : current->onRejected();
+        JSValue context = current->context();
+        current = jsDynamicCast<JSPromiseReaction*>(current->next());
+
+        globalObject->queueMicrotask(function, promise, handler, argument, handler.isUndefinedOrNull() ? jsNumber(state) : context);
+        RETURN_IF_EXCEPTION(scope, void());
+    }
 }
 
 } // namespace JSC

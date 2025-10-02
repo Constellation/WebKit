@@ -128,6 +128,8 @@ public:
 
     DECLARE_VISIT_CHILDREN;
 
+    static void triggerPromiseReactions(JSGlobalObject*, JSPromise::Status, JSPromiseReaction* head, JSValue argument);
+
 protected:
     JSPromise(VM&, Structure*);
     void finishCreation(VM&);
