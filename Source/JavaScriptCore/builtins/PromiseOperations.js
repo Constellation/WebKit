@@ -470,7 +470,7 @@ function promiseReactionJob(promiseOrCapability, handler, argument, contextOrSta
 }
 
 @linkTimeConstant
-function promiseResolveThenableJobFast(thenable, promiseToResolve)
+function promiseResolveThenableJobFastFallback(thenable, promiseToResolve)
 {
     "use strict";
 
@@ -480,22 +480,7 @@ function promiseResolveThenableJobFast(thenable, promiseToResolve)
     // Even if we are using @defaultPromiseThen, still thenable.constructor access is observable, and if it is not returning @Promise,
     // we need to call this constructor.
     var constructor = @speciesConstructor(thenable, @Promise);
-    if (constructor !== @Promise && constructor !== @InternalPromise) {
-        @promiseResolveThenableJobWithDerivedPromise(thenable, constructor, @createResolvingFunctions(promiseToResolve));
-        return;
-    }
-
-    var flags = @getPromiseInternalField(thenable, @promiseFieldFlags);
-    var state = flags & @promiseStateMask;
-    var reactionsOrResult = @getPromiseInternalField(thenable, @promiseFieldReactionsOrResult);
-    if (state === @promiseStatePending)
-        @putPromiseInternalField(thenable, @promiseFieldReactionsOrResult, @promiseReactionCreate(promiseToResolve, @undefined, @undefined, @undefined, reactionsOrResult));
-    else {
-        if (state === @promiseStateRejected && !(flags & @promiseFlagsIsHandled))
-            @hostPromiseRejectionTracker(thenable, @promiseRejectionHandle);
-        @enqueueJob(@promiseReactionJob, promiseToResolve, @undefined, reactionsOrResult, state);
-    }
-    @putPromiseInternalField(thenable, @promiseFieldFlags, @getPromiseInternalField(thenable, @promiseFieldFlags) | @promiseFlagsIsHandled);
+    @promiseResolveThenableJobWithDerivedPromise(thenable, constructor, @createResolvingFunctions(promiseToResolve));
 }
 
 @linkTimeConstant

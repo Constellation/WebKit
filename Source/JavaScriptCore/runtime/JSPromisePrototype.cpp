@@ -28,6 +28,8 @@
 
 #include "BuiltinNames.h"
 #include "JSCInlines.h"
+#include "JSInternalPromise.h"
+#include "JSPromise.h"
 
 namespace JSC {
 
@@ -76,6 +78,42 @@ void JSPromisePrototype::finishCreation(VM& vm, JSGlobalObject* globalObject)
 void JSPromisePrototype::addOwnInternalSlots(VM& vm, JSGlobalObject* globalObject)
 {
     putDirectWithoutTransition(vm, vm.propertyNames->builtinNames().thenPrivateName(), globalObject->promiseProtoThenFunction(), PropertyAttribute::DontEnum | PropertyAttribute::DontDelete | PropertyAttribute::ReadOnly);
+}
+
+bool promiseSpeciesWatchpointIsValid(VM& vm, JSPromise* thisObject)
+{
+    JSGlobalObject* globalObject = thisObject->globalObject();
+    auto* promisePrototype = globalObject->promisePrototype();
+
+    ASSERT(globalObject->promiseSpeciesWatchpointSet().state() != ClearWatchpoint);
+    if (promisePrototype != thisObject->getPrototypeDirect())
+        return false;
+
+    if (globalObject->promiseSpeciesWatchpointSet().state() != IsWatched)
+        return false;
+
+    if (!thisObject->hasCustomProperties())
+        return true;
+
+    return thisObject->getDirectOffset(vm, vm.propertyNames->constructor) == invalidOffset;
+}
+
+bool internalPromiseSpeciesWatchpointIsValid(VM& vm, JSInternalPromise* thisObject)
+{
+    JSGlobalObject* globalObject = thisObject->globalObject();
+    auto* promisePrototype = globalObject->promisePrototype();
+
+    ASSERT(globalObject->promiseSpeciesWatchpointSet().state() != ClearWatchpoint);
+    if (promisePrototype != thisObject->getPrototypeDirect())
+        return false;
+
+    if (globalObject->promiseSpeciesWatchpointSet().state() != IsWatched)
+        return false;
+
+    if (!thisObject->hasCustomProperties())
+        return true;
+
+    return thisObject->getDirectOffset(vm, vm.propertyNames->constructor) == invalidOffset;
 }
 
 } // namespace JSC

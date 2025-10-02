@@ -33,6 +33,7 @@
 #include "JSGlobalObject.h"
 #include "JSObjectInlines.h"
 #include "JSPromise.h"
+#include "JSPromisePrototype.h"
 #include "JSPromiseReaction.h"
 #include "Microtask.h"
 
@@ -47,6 +48,14 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
     case InternalMicrotask::PromiseResolveThenableJobFast: {
         auto* promise = jsCast<JSPromise*>(arguments[0]);
         JSValue promiseToResolve = arguments[1];
+
+        if (!promise->inherits<JSInternalPromise>()) {
+            if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]]
+                return globalObject->promiseResolveThenableJobFastFallback();
+        } else {
+            if (!internalPromiseSpeciesWatchpointIsValid(vm, jsCast<JSInternalPromise*>(promise))) [[unlikely]]
+                return globalObject->promiseResolveThenableJobFastFallback();
+        }
 
         switch (promise->status()) {
         case JSPromise::Status::Pending: {
@@ -89,32 +98,6 @@ void runJSMicrotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier
     auto scope = DECLARE_CATCH_SCOPE(vm);
 
     if (job == globalObject->promiseReactionJobFunction()) {
-    } else if (job == globalObject->promiseResolveThenableJobFastFunction()) {
-        JSValue thenable = arguments[0];
-        JSValue promiseToResolve = arguments[1];
-        if (auto* promise = jsDynamicCast<JSPromise*>(thenable)) {
-            switch (promise->status()) {
-            case JSPromise::Status::Pending: {
-                auto* reaction = JSPromiseReaction::create(vm, globalObject->promiseReactionStructure(), promiseToResolve, jsUndefined(), jsUndefined(), jsUndefined(), promise->reactionsOrResult());
-                promise->setReactionsOrResult(vm, reaction);
-                break;
-            }
-            case JSPromise::Status::Rejected: {
-                if (!promise->isHandled()) {
-                    if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
-                        globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
-                }
-                globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Rejected)));
-                break;
-            }
-            case JSPromise::Status::Fulfilled: {
-                globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Fulfilled)));
-                break;
-            }
-            }
-            promise->markAsHandled();
-        }
-        return;
     } else if (job == globalObject->promiseReactionJobWithoutPromiseFunction()) {
     } else {
     }

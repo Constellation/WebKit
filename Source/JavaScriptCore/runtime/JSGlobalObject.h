@@ -744,7 +744,7 @@ public:
     JSFunction* parseFloatFunction() const { return m_parseFloatFunction.get(this); }
 
     JSFunction* promiseReactionJobFunction() const;
-    JSFunction* promiseResolveThenableJobFastFunction() const;
+    JSFunction* promiseResolveThenableJobFastFallbackFunction() const;
     JSFunction* promiseReactionJobWithoutPromiseFunction() const;
     JSFunction* evalFunction() const;
     JSFunction* throwTypeErrorFunction() const;
