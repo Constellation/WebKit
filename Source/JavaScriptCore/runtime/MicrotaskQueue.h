@@ -168,6 +168,10 @@ class MicrotaskQueue final : public BasicRawSentinelNode<MicrotaskQueue> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(MicrotaskQueue, JS_EXPORT_PRIVATE);
     WTF_MAKE_NONCOPYABLE(MicrotaskQueue);
 public:
+    enum class InternalTask : int32_t {
+        PromiseResolveThenableJobFast = 0
+    };
+
     JS_EXPORT_PRIVATE MicrotaskQueue(VM&);
     JS_EXPORT_PRIVATE ~MicrotaskQueue();
 

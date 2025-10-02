@@ -227,6 +227,7 @@ enum class LinkTimeConstant : int32_t;
     macro(asyncDisposableStackFieldCapability) \
     macro(AsyncDisposableStackStatePending) \
     macro(AsyncDisposableStackStateDisposed) \
+    macro(PromiseResolveThenableJobFast) \
 
 
 #define JSC_COMMON_BYTECODE_INTRINSIC_CONSTANTS_CUSTOM_EACH_NAME(macro) \
