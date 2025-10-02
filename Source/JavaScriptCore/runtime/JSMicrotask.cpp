@@ -51,10 +51,10 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
 
         if (!promise->inherits<JSInternalPromise>()) {
             if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]]
-                return globalObject->promiseResolveThenableJobFastFallback();
+                return globalObject->promiseResolveThenableJobFastFallbackFunction();
         } else {
             if (!internalPromiseSpeciesWatchpointIsValid(vm, jsCast<JSInternalPromise*>(promise))) [[unlikely]]
-                return globalObject->promiseResolveThenableJobFastFallback();
+                return globalObject->promiseResolveThenableJobFastFallbackFunction();
         }
 
         switch (promise->status()) {
