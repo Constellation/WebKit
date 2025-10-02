@@ -1986,7 +1986,12 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
     installObjectAdaptiveStructureWatchpoint(setupAbsenceAdaptiveWatchpoint(this, m_arrayPrototype.get(), vm.propertyNames->isConcatSpreadableSymbol, objectPrototype()), m_arrayIsConcatSpreadableWatchpointSet);
     installObjectAdaptiveStructureWatchpoint(setupAbsenceAdaptiveWatchpoint(this, m_objectPrototype.get(), vm.propertyNames->isConcatSpreadableSymbol, nullptr), m_arrayIsConcatSpreadableWatchpointSet);
 
-    installArraySpeciesWatchpoint();
+    // Array Species watchpoint.
+    {
+        RELEASE_ASSERT(!m_arrayPrototypeConstructorWatchpoint);
+        RELEASE_ASSERT(!m_arrayConstructorSpeciesWatchpoint);
+        tryInstallSpeciesWatchpoint(this->arrayPrototype(), arrayConstructor, m_arrayPrototypeConstructorWatchpoint, m_arrayConstructorSpeciesWatchpoint, m_arraySpeciesWatchpointSet, HasSpeciesProperty::Yes, arraySpeciesGetterSetter());
+    }
     catchScope.assertNoException();
 
     installSaneChainWatchpoints();
@@ -2968,15 +2973,6 @@ void JSGlobalObject::tryInstallSpeciesWatchpoint(JSObject* prototype, JSObject* 
 
     speciesWatchpoint = makeUnique<SpeciesWatchpoint>(this, speciesCondition, speciesWatchpointSet);
     speciesWatchpoint->install(vm);
-}
-
-void JSGlobalObject::installArraySpeciesWatchpoint()
-{
-    // Species watchpoint.
-    RELEASE_ASSERT(!m_arrayPrototypeConstructorWatchpoint);
-    RELEASE_ASSERT(!m_arrayConstructorSpeciesWatchpoint);
-
-    tryInstallSpeciesWatchpoint(arrayPrototype(), arrayConstructor(), m_arrayPrototypeConstructorWatchpoint, m_arrayConstructorSpeciesWatchpoint, m_arraySpeciesWatchpointSet, HasSpeciesProperty::Yes, arraySpeciesGetterSetter());
 }
 
 void JSGlobalObject::installSaneChainWatchpoints()

@@ -1180,7 +1180,6 @@ public:
     void setWrapperMap(std::unique_ptr<WrapperMap>&&);
 #endif
 
-    void installArraySpeciesWatchpoint();
     void installSaneChainWatchpoints();
     void installNumberPrototypeWatchpoint(NumberPrototype*);
     void installMapPrototypeWatchpoint(MapPrototype*);
