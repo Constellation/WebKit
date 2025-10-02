@@ -128,6 +128,8 @@ public:
 
     DECLARE_VISIT_CHILDREN;
 
+    // This is abstract operations defined in the spec.
+    void rejectPromise(JSGlobalObject*, JSValue);
     static void triggerPromiseReactions(JSGlobalObject*, JSPromise::Status, JSPromiseReaction* head, JSValue argument);
 
 protected:

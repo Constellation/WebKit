@@ -725,7 +725,6 @@ JSC_DEFINE_HOST_FUNCTION(enqueueJob, (JSGlobalObject* globalObject, CallFrame* c
 
 JSC_DEFINE_HOST_FUNCTION(triggerPromiseReactions, (JSGlobalObject* globalObject, CallFrame* callFrame))
 {
-    VM& vm = globalObject->vm();
     uint32_t state = callFrame->uncheckedArgument(0).asUInt32AsAnyInt();
     auto* head = jsDynamicCast<JSPromiseReaction*>(callFrame->uncheckedArgument(1));
     JSValue argument = callFrame->uncheckedArgument(2);

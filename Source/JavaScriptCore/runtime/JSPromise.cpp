@@ -180,17 +180,14 @@ void JSPromise::resolve(JSGlobalObject* lexicalGlobalObject, JSValue value)
     }
 }
 
-void JSPromise::reject(JSGlobalObject* lexicalGlobalObject, JSValue value)
+void JSPromise::reject(JSGlobalObject* globalObject, JSValue value)
 {
-    VM& vm = lexicalGlobalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
+    VM& vm = globalObject->vm();
     uint32_t flags = this->flags();
     ASSERT(!value.inherits<Exception>());
     if (!(flags & isFirstResolvingFunctionCalledFlag)) {
         internalField(Field::Flags).set(vm, this, jsNumber(flags | isFirstResolvingFunctionCalledFlag));
-        JSGlobalObject* globalObject = this->globalObject();
-        callFunction(lexicalGlobalObject, globalObject->rejectPromiseFunction(), this, value);
-        RETURN_IF_EXCEPTION(scope, void());
+        rejectPromise(globalObject, value);
     }
 }
 
@@ -244,7 +241,30 @@ void JSPromise::performPromiseThen(JSGlobalObject* globalObject, JSFunction* onF
     call(globalObject, performPromiseThenFunction, callData, jsUndefined(), arguments);
 }
 
-void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, JSPromise::Status status, JSPromiseReaction* head, JSValue argument)
+void JSPromise::rejectPromise(JSGlobalObject* globalObject, JSValue argument)
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    ASSERT(status() == Status::Pending);
+    uint32_t flags = this->flags();
+    auto* reactions = jsDynamicCast<JSPromiseReaction*>(this->reactionsOrResult());
+    internalField(Field::Flags).set(vm, this, jsNumber(flags | static_cast<uint32_t>(Status::Rejected)));
+
+    if (!isHandled()) {
+        if (globalObject->globalObjectMethodTable()->promiseRejectionTracker) {
+            globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, this, JSPromiseRejectionOperation::Reject);
+            RETURN_IF_EXCEPTION(scope, void());
+        }
+    }
+
+    if (!reactions)
+        return;
+
+    RELEASE_AND_RETURN(scope, triggerPromiseReactions(globalObject, Status::Rejected, reactions, argument));
+}
+
+void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, Status status, JSPromiseReaction* head, JSValue argument)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
@@ -274,7 +294,7 @@ void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, JSPromise:
         JSValue context = current->context();
         current = jsDynamicCast<JSPromiseReaction*>(current->next());
 
-        globalObject->queueMicrotask(function, promise, handler, argument, handler.isUndefinedOrNull() ? jsNumber(state) : context);
+        globalObject->queueMicrotask(function, promise, handler, argument, handler.isUndefinedOrNull() ? jsNumber(static_cast<int32_t>(status)) : context);
         RETURN_IF_EXCEPTION(scope, void());
     }
 }
