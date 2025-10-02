@@ -2999,6 +2999,17 @@ void JSGlobalObject::installSaneChainWatchpoints()
         installObjectAdaptiveStructureWatchpoint(result, m_stringPrototypeChainIsSaneWatchpointSet);
     }
 
+    ASSERT(!promisePrototype()->structure()->mayInterceptIndexedAccesses());
+    ASSERT(!promisePrototype()->structure()->typeInfo().interceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero());
+    ASSERT(!promisePrototype()->structure()->hasPolyProto());
+    ASSERT(promisePrototype()->structure()->storedPrototype() == objectPrototype());
+    ASSERT(!hasIndexedProperties(promisePrototype()->structure()->indexingType()));
+    {
+        auto result = ObjectPropertyCondition::absenceOfIndexedProperties(*m_vm, this, promisePrototype(), objectPrototype());
+        ASSERT(result.isWatchable(PropertyCondition::MakeNoChanges));
+        installObjectAdaptiveStructureWatchpoint(result, m_promisePrototypeChainIsSaneWatchpointSet);
+    }
+
     ASSERT(!objectPrototype()->structure()->mayInterceptIndexedAccesses());
     ASSERT(!objectPrototype()->structure()->typeInfo().interceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero());
     ASSERT(!objectPrototype()->structure()->hasPolyProto());
@@ -3011,6 +3022,7 @@ void JSGlobalObject::installSaneChainWatchpoints()
     }
     installChainedWatchpoint(m_objectPrototypeChainIsSaneWatchpointSet, m_arrayPrototypeChainIsSaneWatchpointSet);
     installChainedWatchpoint(m_objectPrototypeChainIsSaneWatchpointSet, m_stringPrototypeChainIsSaneWatchpointSet);
+    installChainedWatchpoint(m_objectPrototypeChainIsSaneWatchpointSet, m_promisePrototypeChainIsSaneWatchpointSet);
 }
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
