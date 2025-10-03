@@ -259,9 +259,6 @@ void JSPromise::rejectPromise(JSGlobalObject* globalObject, JSValue argument)
             vm.promiseRejected(this);
     }
 
-    if (!reactions)
-        return;
-
     RELEASE_AND_RETURN(scope, triggerPromiseReactions(globalObject, Status::Rejected, reactions, argument));
 }
 
@@ -274,10 +271,6 @@ void JSPromise::fulfillPromise(JSGlobalObject* globalObject, JSValue argument)
     auto* reactions = jsDynamicCast<JSPromiseReaction*>(this->reactionsOrResult());
     internalField(Field::Flags).set(vm, this, jsNumber(flags | static_cast<uint32_t>(Status::Fulfilled)));
     internalField(Field::ReactionsOrResult).set(vm, this, argument);
-
-    if (!reactions)
-        return;
-
     triggerPromiseReactions(globalObject, Status::Fulfilled, reactions, argument);
 }
 
