@@ -70,14 +70,21 @@ void MicrotaskQueue::append(JSC::QueuedTask&& task)
 
 void MicrotaskQueue::runJSMicrotask(JSC::JSGlobalObject* globalObject, JSC::VM& vm, JSC::QueuedTask& task)
 {
-    auto scope = DECLARE_CATCH_SCOPE(vm);
+    JSC::JSValue job = task.job();
+    if (job.isInt32AsAnyInt()) {
+        job = JSC::runInternalMirotask(globalObject, task.identifier(), static_cast<JSC::InternalMicrotask>(job.asInt32AsAnyInt()), task.arguments());
+        if (!job)
+            return;
+    }
 
-    if (!task.job().isObject()) [[unlikely]]
+    if (!job.isObject()) [[unlikely]]
         return;
 
-    auto* job = JSC::asObject(task.job());
-    auto* lexicalGlobalObject = job->globalObject();
-    auto callData = JSC::getCallData(job);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    auto* jobObject = JSC::asObject(task.job());
+    auto* lexicalGlobalObject = jobObject->globalObject();
+    auto callData = JSC::getCallData(jobObject);
     if (!scope.clearExceptionExceptTermination()) [[unlikely]]
         return;
     ASSERT(callData.type != JSC::CallData::Type::None);
@@ -97,7 +104,7 @@ void MicrotaskQueue::runJSMicrotask(JSC::JSGlobalObject* globalObject, JSC::VM& 
 
     NakedPtr<JSC::Exception> returnedException = nullptr;
     if (!vm.hasPendingTerminationException()) [[likely]] {
-        JSC::profiledCall(lexicalGlobalObject, JSC::ProfilingReason::Microtask, job, callData, JSC::jsUndefined(), JSC::ArgList { std::bit_cast<JSC::EncodedJSValue*>(task.arguments().data()), count }, returnedException);
+        JSC::profiledCall(lexicalGlobalObject, JSC::ProfilingReason::Microtask, jobObject, callData, JSC::jsUndefined(), JSC::ArgList { std::bit_cast<JSC::EncodedJSValue*>(task.arguments().data()), count }, returnedException);
         if (returnedException) [[unlikely]]
             reportException(lexicalGlobalObject, returnedException);
         scope.clearExceptionExceptTermination();
