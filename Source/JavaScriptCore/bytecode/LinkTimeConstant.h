@@ -56,10 +56,12 @@ class JSGlobalObject;
     v(copyDataProperties, nullptr) \
     v(cloneObject, nullptr) \
     v(enqueueJob, nullptr) \
+    v(resolvePromise, nullptr) \
+    v(rejectPromise, nullptr) \
+    v(fulfillPromise, nullptr) \
     v(resolvePromiseWithFirstResolvingFunctionCallCheck, nullptr) \
     v(rejectPromiseWithFirstResolvingFunctionCallCheck, nullptr) \
     v(fulfillPromiseWithFirstResolvingFunctionCallCheck, nullptr) \
-    v(triggerPromiseReactions, nullptr) \
     v(makeTypeError, nullptr) \
     v(AggregateError, nullptr) \
     v(typedArrayLength, nullptr) \

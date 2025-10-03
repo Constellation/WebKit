@@ -340,10 +340,12 @@ static JSC_DECLARE_HOST_FUNCTION(jsonStringify);
 static JSC_DECLARE_HOST_FUNCTION(enableSuperSampler);
 static JSC_DECLARE_HOST_FUNCTION(disableSuperSampler);
 static JSC_DECLARE_HOST_FUNCTION(enqueueJob);
+static JSC_DECLARE_HOST_FUNCTION(resolvePromise);
+static JSC_DECLARE_HOST_FUNCTION(rejectPromise);
+static JSC_DECLARE_HOST_FUNCTION(fulfillPromise);
 static JSC_DECLARE_HOST_FUNCTION(resolvePromiseWithFirstResolvingFunctionCallCheck);
 static JSC_DECLARE_HOST_FUNCTION(rejectPromiseWithFirstResolvingFunctionCallCheck);
 static JSC_DECLARE_HOST_FUNCTION(fulfillPromiseWithFirstResolvingFunctionCallCheck);
-static JSC_DECLARE_HOST_FUNCTION(triggerPromiseReactions);
 #if ASSERT_ENABLED
 static JSC_DECLARE_HOST_FUNCTION(assertCall);
 #endif
@@ -727,6 +729,30 @@ JSC_DEFINE_HOST_FUNCTION(enqueueJob, (JSGlobalObject* globalObject, CallFrame* c
     return encodedJSUndefined();
 }
 
+JSC_DEFINE_HOST_FUNCTION(resolvePromise, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    auto* promise = jsCast<JSPromise*>(callFrame->uncheckedArgument(0));
+    JSValue argument = callFrame->uncheckedArgument(1);
+    promise->resolvePromise(globalObject, argument);
+    return encodedJSUndefined();
+}
+
+JSC_DEFINE_HOST_FUNCTION(rejectPromise, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    auto* promise = jsCast<JSPromise*>(callFrame->uncheckedArgument(0));
+    JSValue argument = callFrame->uncheckedArgument(1);
+    promise->rejectPromise(globalObject, argument);
+    return encodedJSUndefined();
+}
+
+JSC_DEFINE_HOST_FUNCTION(fulfillPromise, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    auto* promise = jsCast<JSPromise*>(callFrame->uncheckedArgument(0));
+    JSValue argument = callFrame->uncheckedArgument(1);
+    promise->fulfillPromise(globalObject, argument);
+    return encodedJSUndefined();
+}
+
 JSC_DEFINE_HOST_FUNCTION(resolvePromiseWithFirstResolvingFunctionCallCheck, (JSGlobalObject* globalObject, CallFrame* callFrame))
 {
     auto* promise = jsCast<JSPromise*>(callFrame->uncheckedArgument(0));
@@ -748,15 +774,6 @@ JSC_DEFINE_HOST_FUNCTION(fulfillPromiseWithFirstResolvingFunctionCallCheck, (JSG
     auto* promise = jsCast<JSPromise*>(callFrame->uncheckedArgument(0));
     JSValue argument = callFrame->uncheckedArgument(1);
     promise->fulfill(globalObject, argument);
-    return encodedJSUndefined();
-}
-
-JSC_DEFINE_HOST_FUNCTION(triggerPromiseReactions, (JSGlobalObject* globalObject, CallFrame* callFrame))
-{
-    uint32_t state = callFrame->uncheckedArgument(0).asUInt32AsAnyInt();
-    auto* head = jsDynamicCast<JSPromiseReaction*>(callFrame->uncheckedArgument(1));
-    JSValue argument = callFrame->uncheckedArgument(2);
-    JSPromise::triggerPromiseReactions(globalObject, static_cast<JSPromise::Status>(state), head, argument);
     return encodedJSUndefined();
 }
 
@@ -1740,6 +1757,15 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
             // enqueueJob is public for async stack trace.
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 0, "enqueueJob"_s, enqueueJob, ImplementationVisibility::Public));
         });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::resolvePromise)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "resolvePromise"_s, resolvePromise, ImplementationVisibility::Private));
+        });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::rejectPromise)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "rejectPromise"_s, rejectPromise, ImplementationVisibility::Private));
+        });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::fulfillPromise)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "fulfillPromise"_s, fulfillPromise, ImplementationVisibility::Private));
+        });
     m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::resolvePromiseWithFirstResolvingFunctionCallCheck)].initLater([] (const Initializer<JSCell>& init) {
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "resolvePromiseWithFirstResolvingFunctionCallCheck"_s, resolvePromiseWithFirstResolvingFunctionCallCheck, ImplementationVisibility::Private));
         });
@@ -1748,9 +1774,6 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
         });
     m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::fulfillPromiseWithFirstResolvingFunctionCallCheck)].initLater([] (const Initializer<JSCell>& init) {
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "fulfillPromiseWithFirstResolvingFunctionCallCheck"_s, fulfillPromiseWithFirstResolvingFunctionCallCheck, ImplementationVisibility::Private));
-        });
-    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::triggerPromiseReactions)].initLater([] (const Initializer<JSCell>& init) {
-            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 0, "triggerPromiseReactions"_s, triggerPromiseReactions, ImplementationVisibility::Private));
         });
 
     m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::makeTypeError)].initLater([] (const Initializer<JSCell>& init) {
