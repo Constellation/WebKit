@@ -53,12 +53,8 @@ static void promiseResolveThenableJobFastFallback(JSGlobalObject* globalObject, 
 
     auto [resolve, reject] = promiseToResolve->createResolvingFunctions(vm, globalObject);
 
-    auto [capabilityPromise, capabilityResolve, capabilityReject] = JSPromise::newPromiseCapability(globalObject, constructor);
+    auto capability = JSPromise::createNewPromiseCapability(globalObject, constructor);
     if (!scope.exception()) [[likely]] {
-        auto* capability = constructEmptyObject(globalObject);
-        capability->putDirect(vm, vm.propertyNames->resolve, capabilityResolve);
-        capability->putDirect(vm, vm.propertyNames->reject, capabilityReject);
-        capability->putDirect(vm, vm.propertyNames->promise, capabilityPromise);
         promise->performPromiseThen(globalObject, resolve, reject, capability, jsUndefined());
         if (!scope.exception()) [[likely]]
             return;
@@ -86,12 +82,8 @@ static void promiseResolveThenableJobWithoutPromiseFastFallback(JSGlobalObject* 
 
     auto [resolve, reject] = JSPromise::createResolvingFunctionsWithoutPromise(vm, globalObject, onFulfilled, onRejected, context);
 
-    auto [capabilityPromise, capabilityResolve, capabilityReject] = JSPromise::newPromiseCapability(globalObject, constructor);
+    auto capability = JSPromise::createNewPromiseCapability(globalObject, constructor);
     if (!scope.exception()) [[likely]] {
-        auto* capability = constructEmptyObject(globalObject);
-        capability->putDirect(vm, vm.propertyNames->resolve, capabilityResolve);
-        capability->putDirect(vm, vm.propertyNames->reject, capabilityReject);
-        capability->putDirect(vm, vm.propertyNames->promise, capabilityPromise);
         promise->performPromiseThen(globalObject, resolve, reject, capability, jsUndefined());
         if (!scope.exception()) [[likely]]
             return;

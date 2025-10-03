@@ -39,6 +39,7 @@
 #include "JSPromisePrototype.h"
 #include "JSPromiseReaction.h"
 #include "Microtask.h"
+#include "ObjectConstructor.h"
 
 namespace JSC {
 
@@ -84,19 +85,20 @@ void JSPromise::visitChildrenImpl(JSCell* cell, Visitor& visitor)
 
 DEFINE_VISIT_CHILDREN(JSPromise);
 
-JSValue JSPromise::createNewPromiseCapability(JSGlobalObject* globalObject, JSPromiseConstructor* promiseConstructor)
+JSValue JSPromise::createNewPromiseCapability(JSGlobalObject* globalObject, JSObject* constructor)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    JSFunction* newPromiseCapabilityFunction = globalObject->newPromiseCapabilityFunction();
-    auto callData = JSC::getCallData(newPromiseCapabilityFunction);
-    ASSERT(callData.type != CallData::Type::None);
+    auto [promise, resolve, reject] = newPromiseCapability(globalObject, constructor);
+    RETURN_IF_EXCEPTION(scope, { });
 
-    MarkedArgumentBuffer arguments;
-    arguments.append(promiseConstructor);
-    ASSERT(!arguments.hasOverflowed());
-    RELEASE_AND_RETURN(scope, call(globalObject, newPromiseCapabilityFunction, callData, jsUndefined(), arguments));
+    auto* capability = constructEmptyObject(globalObject);
+    capability->putDirect(vm, vm.propertyNames->resolve, resolve);
+    capability->putDirect(vm, vm.propertyNames->reject, reject);
+    capability->putDirect(vm, vm.propertyNames->promise, promise);
+
+    return capability;
 }
 
 std::tuple<JSObject*, JSObject*, JSObject*> JSPromise::newPromiseCapability(JSGlobalObject* globalObject, JSObject* constructor)
@@ -130,29 +132,20 @@ std::tuple<JSObject*, JSObject*, JSObject*> JSPromise::newPromiseCapability(JSGl
     return { newObject, asObject(resolve), asObject(reject) };
 }
 
-JSPromise::DeferredData JSPromise::convertCapabilityToDeferredData(JSGlobalObject* globalObject, JSValue promiseCapability)
-{
-    DeferredData result;
-    VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
-
-    result.promise = promiseCapability.getAs<JSPromise*>(globalObject, vm.propertyNames->builtinNames().promisePublicName());
-    RETURN_IF_EXCEPTION(scope, { });
-    result.resolve = promiseCapability.getAs<JSFunction*>(globalObject, vm.propertyNames->builtinNames().resolvePublicName());
-    RETURN_IF_EXCEPTION(scope, { });
-    result.reject = promiseCapability.getAs<JSFunction*>(globalObject, vm.propertyNames->builtinNames().rejectPublicName());
-    RETURN_IF_EXCEPTION(scope, { });
-
-    return result;
-}
-
 JSPromise::DeferredData JSPromise::createDeferredData(JSGlobalObject* globalObject, JSPromiseConstructor* promiseConstructor)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
-    JSValue capability = createNewPromiseCapability(globalObject, promiseConstructor);
+    auto [ promiseCapability, resolveCapability, rejectCapability ] = newPromiseCapability(globalObject, promiseConstructor);
     RETURN_IF_EXCEPTION(scope, { });
-    RELEASE_AND_RETURN(scope, convertCapabilityToDeferredData(globalObject, capability));
+    auto* promise = jsDynamicCast<JSPromise*>(promiseCapability);
+    auto* resolve = jsDynamicCast<JSFunction*>(resolveCapability);
+    auto* reject  = jsDynamicCast<JSFunction*>(rejectCapability);
+    if (promise && resolve && reject)
+        return DeferredData { promise, resolve, reject };
+
+    throwTypeError(globalObject, scope, "constructor is producing a bad value"_s);
+    return { };
 }
 
 JSPromise* JSPromise::resolvedPromise(JSGlobalObject* globalObject, JSValue value)

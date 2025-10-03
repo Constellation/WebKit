@@ -124,8 +124,7 @@ public:
         JSFunction* reject { nullptr };
     };
     static DeferredData createDeferredData(JSGlobalObject*, JSPromiseConstructor*);
-    JS_EXPORT_PRIVATE static JSValue createNewPromiseCapability(JSGlobalObject*, JSPromiseConstructor*);
-    JS_EXPORT_PRIVATE static DeferredData convertCapabilityToDeferredData(JSGlobalObject*, JSValue);
+    JS_EXPORT_PRIVATE static JSValue createNewPromiseCapability(JSGlobalObject*, JSObject*);
 
     DECLARE_VISIT_CHILDREN;
 
