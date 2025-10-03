@@ -1522,6 +1522,22 @@ NativeExecutable* VM::promiseResolvingFunctionRejectExecutableSlow()
     return executable;
 }
 
+NativeExecutable* VM::promiseResolvingFunctionResolveWithoutPromiseExecutableSlow()
+{
+    ASSERT(!m_promiseResolvingFunctionResolveWithoutPromiseExecutable);
+    auto* executable = getHostFunction(promiseResolvingFunctionResolveWithoutPromise, ImplementationVisibility::Public, nullptr, emptyString());
+    m_promiseResolvingFunctionResolveWithoutPromiseExecutable.setWithoutWriteBarrier(executable);
+    return executable;
+}
+
+NativeExecutable* VM::promiseResolvingFunctionRejectWithoutPromiseExecutableSlow()
+{
+    ASSERT(!m_promiseResolvingFunctionRejectWithoutPromiseExecutable);
+    auto* executable = getHostFunction(promiseResolvingFunctionRejectWithoutPromise, ImplementationVisibility::Public, nullptr, emptyString());
+    m_promiseResolvingFunctionRejectWithoutPromiseExecutable.setWithoutWriteBarrier(executable);
+    return executable;
+}
+
 void VM::executeEntryScopeServicesOnEntry()
 {
     if (hasEntryScopeServiceRequest(EntryScopeService::FirePrimitiveGigacageEnabled)) [[unlikely]] {
@@ -1697,6 +1713,8 @@ void VM::visitAggregateImpl(Visitor& visitor)
 
     visitor.append(m_promiseResolvingFunctionResolveExecutable);
     visitor.append(m_promiseResolvingFunctionRejectExecutable);
+    visitor.append(m_promiseResolvingFunctionResolveWithoutPromiseExecutable);
+    visitor.append(m_promiseResolvingFunctionRejectWithoutPromiseExecutable);
 }
 DEFINE_VISIT_AGGREGATE(VM);
 

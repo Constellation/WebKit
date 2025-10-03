@@ -135,10 +135,15 @@ public:
     void fulfillPromise(JSGlobalObject*, JSValue);
     void resolvePromise(JSGlobalObject*, JSValue);
 
+    static void resolveWithoutPromise(JSGlobalObject*, JSValue value, JSValue onFulfilled, JSValue onRejected, JSValue context);
+    static void rejectWithoutPromise(JSGlobalObject*, JSValue value, JSValue onFulfilled, JSValue onRejected, JSValue context);
+    static void fulfillWithoutPromise(JSGlobalObject*, JSValue value, JSValue onFulfilled, JSValue onRejected, JSValue context);
+
     bool isThenFastAndNonObservable();
 
 protected:
     std::tuple<JSFunction*, JSFunction*> createResolvingFunctions(VM&, JSGlobalObject*);
+    static std::tuple<JSFunction*, JSFunction*> createResolvingFunctionsWithoutPromise(VM& vm, JSGlobalObject* globalObject, JSValue onFulfilled, JSValue onRejected, JSValue context);
 
     JSPromise(VM&, Structure*);
     void finishCreation(VM&);
@@ -152,5 +157,7 @@ protected:
 
 JSC_DECLARE_HOST_FUNCTION(promiseResolvingFunctionResolve);
 JSC_DECLARE_HOST_FUNCTION(promiseResolvingFunctionReject);
+JSC_DECLARE_HOST_FUNCTION(promiseResolvingFunctionResolveWithoutPromise);
+JSC_DECLARE_HOST_FUNCTION(promiseResolvingFunctionRejectWithoutPromise);
 
 } // namespace JSC

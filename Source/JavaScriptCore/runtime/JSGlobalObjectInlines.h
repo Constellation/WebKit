@@ -215,10 +215,7 @@ inline JSFunction* JSGlobalObject::evalFunction() const { return jsCast<JSFuncti
 inline JSFunction* JSGlobalObject::throwTypeErrorFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::throwTypeErrorFunction)); }
 inline JSFunction* JSGlobalObject::iteratorProtocolFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::performIteration)); }
 inline JSFunction* JSGlobalObject::newPromiseCapabilityFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::newPromiseCapability)); }
-inline JSFunction* JSGlobalObject::resolvePromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::resolvePromise)); }
-inline JSFunction* JSGlobalObject::rejectPromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::rejectPromise)); }
 inline JSFunction* JSGlobalObject::promiseProtoThenFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::defaultPromiseThen)); }
-inline JSFunction* JSGlobalObject::performPromiseThenFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::performPromiseThen)); }
 inline JSFunction* JSGlobalObject::promiseReactionJobFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJob)); }
 inline JSFunction* JSGlobalObject::promiseReactionJobWithoutPromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJobWithoutPromise)); }
 inline JSFunction* JSGlobalObject::promiseResolveThenableJobFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJob)); }
