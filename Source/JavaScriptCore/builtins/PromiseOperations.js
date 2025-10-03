@@ -401,34 +401,3 @@ function promiseEmptyOnRejected(argument)
 
     throw argument;
 }
-
-@linkTimeConstant
-@alwaysInline
-function performPromiseThen(promise, onFulfilled, onRejected, promiseOrCapability, context)
-{
-    "use strict";
-
-    if (!@isCallable(onFulfilled))
-        onFulfilled = @promiseEmptyOnFulfilled;
-
-    if (!@isCallable(onRejected))
-        onRejected = @promiseEmptyOnRejected;
-
-    var reactionsOrResult = @getPromiseInternalField(promise, @promiseFieldReactionsOrResult);
-    var flags = @getPromiseInternalField(promise, @promiseFieldFlags);
-    var state = flags & @promiseStateMask;
-    if (state === @promiseStatePending)
-        @putPromiseInternalField(promise, @promiseFieldReactionsOrResult, @promiseReactionCreate(promiseOrCapability, onFulfilled, onRejected, context, reactionsOrResult));
-    else {
-        var handler;
-
-        if (state === @promiseStateRejected) {
-            handler = onRejected;
-            if (!(flags & @promiseFlagsIsHandled))
-                @hostPromiseRejectionTracker(promise, @promiseRejectionHandle);
-        } else
-            handler = onFulfilled;
-        @enqueueJob(@promiseReactionJob, promiseOrCapability, handler, reactionsOrResult, context);
-    }
-    @putPromiseInternalField(promise, @promiseFieldFlags, @getPromiseInternalField(promise, @promiseFieldFlags) | @promiseFlagsIsHandled);
-}

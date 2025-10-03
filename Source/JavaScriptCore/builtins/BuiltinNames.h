@@ -82,6 +82,7 @@ namespace JSC {
     macro(resolvePromiseWithFirstResolvingFunctionCallCheck) \
     macro(rejectPromiseWithFirstResolvingFunctionCallCheck) \
     macro(fulfillPromiseWithFirstResolvingFunctionCallCheck) \
+    macro(performPromiseThen) \
     macro(hostPromiseRejectionTracker) \
     macro(push) \
     macro(repeatCharacter) \

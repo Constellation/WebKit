@@ -751,6 +751,8 @@ public:
     JSFunction* promiseResolveThenableJobFunction() const;
     JSFunction* promiseResolveThenableJobFastFallbackFunction() const;
     JSFunction* promiseResolveThenableJobWithoutPromiseFastFallbackFunction() const;
+    JSFunction* promiseEmptyOnFulfilledFunction() const;
+    JSFunction* promiseEmptyOnRejectedFunction() const;
     JSFunction* evalFunction() const;
     JSFunction* throwTypeErrorFunction() const;
     JSFunction* objectProtoToStringFunction() const { return m_objectProtoToStringFunction.get(this); }

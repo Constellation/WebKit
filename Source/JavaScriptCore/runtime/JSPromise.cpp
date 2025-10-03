@@ -224,20 +224,43 @@ JSPromise* JSPromise::rejectWithCaughtException(JSGlobalObject* globalObject, Th
     return this;
 }
 
-void JSPromise::performPromiseThen(JSGlobalObject* globalObject, JSFunction* onFulFilled, JSFunction* onRejected, JSValue resultCapability)
+void JSPromise::performPromiseThen(JSGlobalObject* globalObject, JSValue onFulfilled, JSValue onRejected, JSValue promiseOrCapability, JSValue context)
 {
-    JSFunction* performPromiseThenFunction = globalObject->performPromiseThenFunction();
-    auto callData = JSC::getCallData(performPromiseThenFunction);
-    ASSERT(callData.type != CallData::Type::None);
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
 
-    MarkedArgumentBuffer arguments;
-    arguments.append(this);
-    arguments.append(onFulFilled);
-    arguments.append(onRejected);
-    arguments.append(resultCapability);
-    arguments.append(jsUndefined());
-    ASSERT(!arguments.hasOverflowed());
-    call(globalObject, performPromiseThenFunction, callData, jsUndefined(), arguments);
+    if (!onFulfilled.isCallable())
+        onFulfilled = globalObject->promiseEmptyOnFulfilledFunction();
+
+    if (!onRejected.isCallable())
+        onRejected = globalObject->promiseEmptyOnRejectedFunction();
+
+    JSValue reactionsOrResult = this->reactionsOrResult();
+    switch (status()) {
+    case JSPromise::Status::Pending: {
+        auto* reaction = JSPromiseReaction::create(vm, globalObject->promiseReactionStructure(), promiseOrCapability, onFulfilled, onRejected, context, reactionsOrResult);
+        setReactionsOrResult(vm, reaction);
+        break;
+    }
+    case JSPromise::Status::Rejected: {
+        if (!isHandled()) {
+            if (globalObject->globalObjectMethodTable()->promiseRejectionTracker) {
+                globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, this, JSPromiseRejectionOperation::Handle);
+                RETURN_IF_EXCEPTION(scope, void());
+            } else
+                vm.promiseRejected(this);
+        }
+        scope.release();
+        globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseOrCapability, onRejected, reactionsOrResult, context);
+        break;
+    }
+    case JSPromise::Status::Fulfilled: {
+        scope.release();
+        globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseOrCapability, onFulfilled, reactionsOrResult, context);
+        break;
+    }
+    }
+    markAsHandled();
 }
 
 void JSPromise::rejectPromise(JSGlobalObject* globalObject, JSValue argument)
