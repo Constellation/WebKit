@@ -749,7 +749,6 @@ public:
     JSFunction* promiseReactionJobFunction() const;
     JSFunction* promiseReactionJobWithoutPromiseFunction() const;
     JSFunction* promiseResolveThenableJobFunction() const;
-    JSFunction* promiseResolveThenableJobFastFallbackFunction() const;
     JSFunction* promiseResolveThenableJobWithoutPromiseFastFallbackFunction() const;
     JSFunction* promiseEmptyOnFulfilledFunction() const;
     JSFunction* promiseEmptyOnRejectedFunction() const;

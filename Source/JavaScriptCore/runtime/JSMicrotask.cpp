@@ -36,22 +36,76 @@
 #include "JSPromisePrototype.h"
 #include "JSPromiseReaction.h"
 #include "Microtask.h"
+#include "ObjectConstructor.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC {
 
-void promiseResolveThenableJobFastFallback(JSGlobalObject* globalObject, JSPromise* promise, JSPromise* promiseToResolve)
+static void promiseResolveThenableJobFastFallback(JSGlobalObject* globalObject, JSPromise* promise, JSPromise* promiseToResolve)
 {
     VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
 
     JSObject* constructor = promiseSpeciesConstructor(globalObject, promise);
-    RETURN_IF_EXCEPTION(scope, void());
+    if (scope.exception()) [[unlikely]]
+        return;
 
     auto [resolve, reject] = promiseToResolve->createResolvingFunctions(vm, globalObject);
 
-    auto [capability, resolve, reject] = JSPromise::newPromiseCapability(
+    auto [capabilityPromise, capabilityResolve, capabilityReject] = JSPromise::newPromiseCapability(globalObject, constructor);
+    if (!scope.exception()) [[likely]] {
+        auto* capability = constructEmptyObject(globalObject);
+        capability->putDirect(vm, vm.propertyNames->resolve, capabilityResolve);
+        capability->putDirect(vm, vm.propertyNames->reject, capabilityReject);
+        capability->putDirect(vm, vm.propertyNames->promise, capabilityPromise);
+        promise->performPromiseThen(globalObject, resolve, reject, capability, jsUndefined());
+        if (!scope.exception()) [[likely]]
+            return;
+    }
+
+    JSValue error = scope.exception()->value();
+    if (!scope.clearExceptionExceptTermination()) [[unlikely]]
+        return;
+
+    MarkedArgumentBuffer arguments;
+    arguments.append(error);
+    ASSERT(!arguments.hasOverflowed());
+    auto callData = JSC::getCallData(reject);
+    call(globalObject, reject, callData, jsUndefined(), arguments);
+}
+
+static void promiseResolveThenableJobWithoutPromiseFastFallback(JSGlobalObject* globalObject, JSPromise* promise, JSValue onFulfilled, JSValue onRejected, JSValue context)
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    JSObject* constructor = promiseSpeciesConstructor(globalObject, promise);
+    if (scope.exception()) [[unlikely]]
+        return;
+
+    auto [resolve, reject] = JSPromise::createResolvingFunctionsWithoutPromise(vm, globalObject, onFulfilled, onRejected, context);
+
+    auto [capabilityPromise, capabilityResolve, capabilityReject] = JSPromise::newPromiseCapability(globalObject, constructor);
+    if (!scope.exception()) [[likely]] {
+        auto* capability = constructEmptyObject(globalObject);
+        capability->putDirect(vm, vm.propertyNames->resolve, capabilityResolve);
+        capability->putDirect(vm, vm.propertyNames->reject, capabilityReject);
+        capability->putDirect(vm, vm.propertyNames->promise, capabilityPromise);
+        promise->performPromiseThen(globalObject, resolve, reject, capability, jsUndefined());
+        if (!scope.exception()) [[likely]]
+            return;
+    }
+
+    JSValue error = scope.exception()->value();
+    if (!scope.clearExceptionExceptTermination()) [[unlikely]]
+        return;
+
+    MarkedArgumentBuffer arguments;
+    arguments.append(error);
+    ASSERT(!arguments.hasOverflowed());
+    auto callData = JSC::getCallData(reject);
+    call(globalObject, reject, callData, jsUndefined(), arguments);
 }
 
 JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, InternalMicrotask task, std::span<const JSValue> arguments)
@@ -108,8 +162,11 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
         JSValue context = arguments[3];
 
         if (!promise->inherits<JSInternalPromise>()) {
-            if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]]
-                return globalObject->promiseResolveThenableJobWithoutPromiseFastFallbackFunction();
+            if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]] {
+                promiseResolveThenableJobWithoutPromiseFastFallback(globalObject, promise, onFulfilled, onRejected, context);
+                scope.clearExceptionExceptTermination();
+                return JSValue();
+            }
         }
 
         switch (promise->status()) {

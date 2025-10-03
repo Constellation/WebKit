@@ -219,7 +219,6 @@ inline JSFunction* JSGlobalObject::promiseProtoThenFunction() const { return jsC
 inline JSFunction* JSGlobalObject::promiseReactionJobFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJob)); }
 inline JSFunction* JSGlobalObject::promiseReactionJobWithoutPromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJobWithoutPromise)); }
 inline JSFunction* JSGlobalObject::promiseResolveThenableJobFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJob)); }
-inline JSFunction* JSGlobalObject::promiseResolveThenableJobFastFallbackFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJobFastFallback)); }
 inline JSFunction* JSGlobalObject::promiseResolveThenableJobWithoutPromiseFastFallbackFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJobWithoutPromiseFastFallback)); }
 inline JSFunction* JSGlobalObject::promiseEmptyOnFulfilledFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseEmptyOnFulfilled)); }
 inline JSFunction* JSGlobalObject::promiseEmptyOnRejectedFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseEmptyOnRejected)); }

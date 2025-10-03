@@ -99,6 +99,37 @@ JSValue JSPromise::createNewPromiseCapability(JSGlobalObject* globalObject, JSPr
     RELEASE_AND_RETURN(scope, call(globalObject, newPromiseCapabilityFunction, callData, jsUndefined(), arguments));
 }
 
+std::tuple<JSObject*, JSObject*, JSObject*> JSPromise::newPromiseCapability(JSGlobalObject* globalObject, JSObject* constructor)
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    // FIXME: Add optimizations here.
+    // if (constructor == globalObject->promiseConstructor())
+
+    auto* executor = JSFunctionWithFields::create(vm, globalObject, vm.promiseCapabilityExecutorExecutable(), 2, nullString());
+
+    MarkedArgumentBuffer args;
+    args.append(executor);
+    ASSERT(!args.hasOverflowed());
+    JSObject* newObject = construct(globalObject, constructor, args, "Species construction did not get a valid constructor"_s);
+    RETURN_IF_EXCEPTION(scope, { });
+
+    JSValue resolve = executor->fields()[0].get();
+    JSValue reject = executor->fields()[1].get();
+    if (!resolve.isCallable()) [[unlikely]] {
+        throwTypeError(globalObject, scope, "executor did not take a resolve function"_s);
+        return { };
+    }
+
+    if (!reject.isCallable()) [[unlikely]] {
+        throwTypeError(globalObject, scope, "executor did not take a reject function"_s);
+        return { };
+    }
+
+    return { newObject, asObject(resolve), asObject(reject) };
+}
+
 JSPromise::DeferredData JSPromise::convertCapabilityToDeferredData(JSGlobalObject* globalObject, JSValue promiseCapability)
 {
     DeferredData result;
@@ -394,6 +425,24 @@ JSC_DEFINE_HOST_FUNCTION(promiseResolvingFunctionRejectWithoutPromise, (JSGlobal
     JSValue argument = callFrame->argument(0);
 
     JSPromise::rejectWithoutPromise(globalObject, argument, context->values(), context->remainingElementsCount(), context->index());
+    return JSValue::encode(jsUndefined());
+}
+
+JSC_DEFINE_HOST_FUNCTION(promiseCapabilityExecutor, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    auto* callee = jsCast<JSFunctionWithFields*>(callFrame->jsCallee());
+    if (callee->fields()[0].get())
+        return throwVMTypeError(globalObject, scope, "resolve function is already set"_s);
+
+    if (callee->fields()[1].get())
+        return throwVMTypeError(globalObject, scope, "reject function is already set"_s);
+
+    callee->fields()[0].set(vm, callee, callFrame->argument(0));
+    callee->fields()[1].set(vm, callee, callFrame->argument(1));
+
     return JSValue::encode(jsUndefined());
 }
 

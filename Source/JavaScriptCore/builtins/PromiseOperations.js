@@ -128,33 +128,6 @@ function newHandledRejectedPromise(error)
 }
 
 @linkTimeConstant
-function createResolvingFunctions(promise)
-{
-    "use strict";
-    @assert(@isPromise(promise));
-
-    var alreadyResolved = false;
-
-    var resolve = (0, /* prevent function name inference */ (resolution) => {
-        if (alreadyResolved)
-            return @undefined;
-        alreadyResolved = true;
-
-        return @resolvePromise(promise, resolution);
-    });
-
-    var reject = (0, /* prevent function name inference */ (reason) => {
-        if (alreadyResolved)
-            return @undefined;
-        alreadyResolved = true;
-
-        return @rejectPromise(promise, reason);
-    });
-
-    return { resolve, reject };
-}
-
-@linkTimeConstant
 @neverInline
 function promiseReactionJobWithoutPromise(handler, argument, context)
 {
@@ -191,32 +164,6 @@ function resolveWithoutPromiseForAsyncAwait(resolution, onFulfilled, onRejected,
     }
 
     return @resolveWithoutPromise(resolution, onFulfilled, onRejected, context);
-}
-
-@linkTimeConstant
-function createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context)
-{
-    "use strict";
-
-    var alreadyResolved = false;
-
-    var resolve = (0, /* prevent function name inference */ (resolution) => {
-        if (alreadyResolved)
-            return @undefined;
-        alreadyResolved = true;
-
-        @resolveWithoutPromise(resolution, onFulfilled, onRejected, context);
-    });
-
-    var reject = (0, /* prevent function name inference */ (reason) => {
-        if (alreadyResolved)
-            return @undefined;
-        alreadyResolved = true;
-
-        @rejectWithoutPromise(reason, onFulfilled, onRejected, context);
-    });
-
-    return { resolve, reject };
 }
 
 @linkTimeConstant
@@ -282,33 +229,6 @@ function promiseReactionJob(promiseOrCapability, handler, argument, contextOrSta
 }
 
 @linkTimeConstant
-function promiseResolveThenableJobFastFallback(thenable, promiseToResolve)
-{
-    "use strict";
-
-    @assert(@isPromise(thenable));
-    @assert(@isPromise(promiseToResolve));
-
-    // Even if we are using @defaultPromiseThen, still thenable.constructor access is observable, and if it is not returning @Promise,
-    // we need to call this constructor.
-    var constructor = @speciesConstructor(thenable, @Promise);
-    @promiseResolveThenableJobWithDerivedPromise(thenable, constructor, @createResolvingFunctions(promiseToResolve));
-}
-
-@linkTimeConstant
-function promiseResolveThenableJobWithoutPromiseFastFallback(thenable, onFulfilled, onRejected, context)
-{
-    "use strict";
-
-    @assert(@isPromise(thenable));
-
-    // Even if we are using @defaultPromiseThen, still thenable.constructor access is observable, and if it is not returning @Promise,
-    // we need to call this constructor.
-    var constructor = @speciesConstructor(thenable, @Promise);
-    @promiseResolveThenableJobWithDerivedPromise(thenable, constructor, @createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context));
-}
-
-@linkTimeConstant
 function promiseResolveThenableJob(thenable, then, resolve, reject)
 {
     "use strict";
@@ -317,20 +237,6 @@ function promiseResolveThenableJob(thenable, then, resolve, reject)
         return then.@call(thenable, resolve, reject);
     } catch (error) {
         return reject.@call(@undefined, error);
-    }
-}
-
-@linkTimeConstant
-function promiseResolveThenableJobWithDerivedPromise(thenable, constructor, resolvingFunctions)
-{
-    "use strict";
-
-    try {
-        var promiseOrCapability = @newPromiseCapabilitySlow(constructor);
-        @performPromiseThen(thenable, resolvingFunctions.resolve, resolvingFunctions.reject, promiseOrCapability, @undefined);
-        return promiseOrCapability.promise;
-    } catch (error) {
-        return resolvingFunctions.reject.@call(@undefined, error);
     }
 }
 

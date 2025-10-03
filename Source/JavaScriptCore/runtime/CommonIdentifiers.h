@@ -252,6 +252,7 @@
     macro(resizable) \
     macro(resize) \
     macro(resolve) \
+    macro(reject) \
     macro(roundingIncrement) \
     macro(roundingMode) \
     macro(roundingPriority) \
