@@ -150,6 +150,7 @@ BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry(VM& vm)
     m_AsyncDisposableStackStatePending.set(m_vm, jsNumber(static_cast<int32_t>(JSAsyncDisposableStack::State::Pending)));
     m_AsyncDisposableStackStateDisposed.set(m_vm, jsNumber(static_cast<int32_t>(JSAsyncDisposableStack::State::Disposed)));
     m_PromiseResolveThenableJobFast.set(m_vm, jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)));
+    m_PromiseResolveThenableJobWithoutPromiseFast.set(m_vm, jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobWithoutPromiseFast)));
 }
 
 std::optional<BytecodeIntrinsicRegistry::Entry> BytecodeIntrinsicRegistry::lookup(const Identifier& ident) const

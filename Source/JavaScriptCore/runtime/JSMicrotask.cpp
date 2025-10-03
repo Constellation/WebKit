@@ -79,6 +79,43 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
         promise->markAsHandled();
         return JSValue();
     }
+
+    case InternalMicrotask::PromiseResolveThenableJobWithoutPromiseFast: {
+        auto* promise = jsCast<JSPromise*>(arguments[0]);
+        JSValue onFulfilled = arguments[1];
+        JSValue onRejected = arguments[2];
+        JSValue context = arguments[3];
+
+        if (!promise->inherits<JSInternalPromise>()) {
+            if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]]
+                return globalObject->promiseResolveThenableJobWithoutPromiseFastFallbackFunction();
+        } else {
+            if (!internalPromiseSpeciesWatchpointIsValid(vm, jsCast<JSInternalPromise*>(promise))) [[unlikely]]
+                return globalObject->promiseResolveThenableJobWithoutPromiseFastFallbackFunction();
+        }
+
+        switch (promise->status()) {
+        case JSPromise::Status::Pending: {
+            auto* reaction = JSPromiseReaction::create(vm, globalObject->promiseReactionStructure(), jsUndefined(), onFulfilled, onRejected, context, promise->reactionsOrResult());
+            promise->setReactionsOrResult(vm, reaction);
+            break;
+        }
+        case JSPromise::Status::Rejected: {
+            if (!promise->isHandled()) {
+                if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
+                    globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
+            }
+            globalObject->queueMicrotask(globalObject->promiseReactionJobWithoutPromiseFunction(), onRejected, promise->reactionsOrResult(), context, jsUndefined());
+            break;
+        }
+        case JSPromise::Status::Fulfilled: {
+            globalObject->queueMicrotask(globalObject->promiseReactionJobWithoutPromiseFunction(), onFulfilled, promise->reactionsOrResult(), context, jsUndefined());
+            break;
+        }
+        }
+
+        promise->markAsHandled();
+        return JSValue();
     }
     return JSValue();
 }

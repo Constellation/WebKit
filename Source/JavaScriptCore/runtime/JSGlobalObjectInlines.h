@@ -221,6 +221,7 @@ inline JSFunction* JSGlobalObject::promiseProtoThenFunction() const { return jsC
 inline JSFunction* JSGlobalObject::performPromiseThenFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::performPromiseThen)); }
 inline JSFunction* JSGlobalObject::promiseReactionJobFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJob)); }
 inline JSFunction* JSGlobalObject::promiseResolveThenableJobFastFallbackFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJobFastFallback)); }
+inline JSFunction* JSGlobalObject::promiseResolveThenableJobWithoutPromiseFastFallbackFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseResolveThenableJobWithoutPromiseFastFallback)); }
 inline JSFunction* JSGlobalObject::promiseReactionJobWithoutPromiseFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::promiseReactionJobWithoutPromise)); }
 inline JSFunction* JSGlobalObject::regExpProtoExecFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::regExpBuiltinExec)); }
 inline JSFunction* JSGlobalObject::stringProtoSubstringFunction() const { return jsCast<JSFunction*>(linkTimeConstant(LinkTimeConstant::stringSubstring)); }

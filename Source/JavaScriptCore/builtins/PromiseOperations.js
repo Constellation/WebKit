@@ -298,7 +298,7 @@ function resolveWithoutPromise(resolution, onFulfilled, onRejected, context)
     }
 
     if (@isPromise(resolution) && then === @defaultPromiseThen) {
-        @enqueueJob(@promiseResolveThenableJobWithoutPromiseFast, resolution, onFulfilled, onRejected, context);
+        @enqueueJob(@PromiseResolveThenableJobWithoutPromiseFast, resolution, onFulfilled, onRejected, context);
         return;
     }
 
@@ -455,7 +455,7 @@ function promiseResolveThenableJobFastFallback(thenable, promiseToResolve)
 }
 
 @linkTimeConstant
-function promiseResolveThenableJobWithoutPromiseFast(thenable, onFulfilled, onRejected, context)
+function promiseResolveThenableJobWithoutPromiseFastFallback(thenable, onFulfilled, onRejected, context)
 {
     "use strict";
 
@@ -464,25 +464,7 @@ function promiseResolveThenableJobWithoutPromiseFast(thenable, onFulfilled, onRe
     // Even if we are using @defaultPromiseThen, still thenable.constructor access is observable, and if it is not returning @Promise,
     // we need to call this constructor.
     var constructor = @speciesConstructor(thenable, @Promise);
-    if (constructor !== @Promise && constructor !== @InternalPromise) {
-        @promiseResolveThenableJobWithDerivedPromise(thenable, constructor, @createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context));
-        return;
-    }
-
-    var flags = @getPromiseInternalField(thenable, @promiseFieldFlags);
-    var state = flags & @promiseStateMask;
-    var reactionsOrResult = @getPromiseInternalField(thenable, @promiseFieldReactionsOrResult);
-    if (state === @promiseStatePending)
-        @putPromiseInternalField(thenable, @promiseFieldReactionsOrResult, @promiseReactionCreate(@undefined, onFulfilled, onRejected, context, reactionsOrResult));
-    else {
-        if (state === @promiseStateRejected) {
-            if (!(flags & @promiseFlagsIsHandled))
-                @hostPromiseRejectionTracker(thenable, @promiseRejectionHandle);
-            @rejectWithoutPromise(reactionsOrResult, onFulfilled, onRejected, context);
-        } else
-            @fulfillWithoutPromise(reactionsOrResult, onFulfilled, onRejected, context);
-    }
-    @putPromiseInternalField(thenable, @promiseFieldFlags, @getPromiseInternalField(thenable, @promiseFieldFlags) | @promiseFlagsIsHandled);
+    @promiseResolveThenableJobWithDerivedPromise(thenable, constructor, @createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context));
 }
 
 @linkTimeConstant

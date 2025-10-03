@@ -33,7 +33,8 @@ enum class MicrotaskIdentifierType { };
 using MicrotaskIdentifier = AtomicObjectIdentifier<MicrotaskIdentifierType>;
 
 enum class InternalMicrotask : int32_t {
-    PromiseResolveThenableJobFast = 0
+    PromiseResolveThenableJobFast = 0,
+    PromiseResolveThenableJobWithoutPromiseFast,
 };
 
 
