@@ -1506,6 +1506,22 @@ JSPropertyNameEnumerator* VM::emptyPropertyNameEnumeratorSlow()
     return enumerator;
 }
 
+NativeExecutable* VM::promiseResolvingFunctionResolveExecutableSlow()
+{
+    ASSERT(!m_promiseResolvingFunctionResolveExecutable);
+    auto* executable = getHostFunction(promiseResolvingFunctionResolve, ImplementationVisibility::Public, nullptr, emptyString());
+    m_promiseResolvingFunctionResolveExecutable.setWithoutWriteBarrier(executable);
+    return executable;
+}
+
+NativeExecutable* VM::promiseResolvingFunctionRejectExecutableSlow()
+{
+    ASSERT(!m_promiseResolvingFunctionRejectExecutable);
+    auto* executable = getHostFunction(promiseResolvingFunctionReject, ImplementationVisibility::Public, nullptr, emptyString());
+    m_promiseResolvingFunctionRejectExecutable.setWithoutWriteBarrier(executable);
+    return executable;
+}
+
 void VM::executeEntryScopeServicesOnEntry()
 {
     if (hasEntryScopeServiceRequest(EntryScopeService::FirePrimitiveGigacageEnabled)) [[unlikely]] {
@@ -1678,6 +1694,9 @@ void VM::visitAggregateImpl(Visitor& visitor)
     visitor.append(m_slowCanConstructBoundExecutable);
     visitor.append(lastCachedString);
     visitor.append(heapBigIntConstantOne);
+
+    visitor.append(m_promiseResolvingFunctionResolveExecutable);
+    visitor.append(m_promiseResolvingFunctionRejectExecutable);
 }
 DEFINE_VISIT_AGGREGATE(VM);
 

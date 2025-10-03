@@ -31,10 +31,10 @@
 #include "ErrorInstance.h"
 #include "GlobalObjectMethodTable.h"
 #include "JSCInlines.h"
+#include "JSFunctionWithFields.h"
 #include "JSInternalFieldObjectImplInlines.h"
 #include "JSInternalPromisePrototype.h"
 #include "JSPromiseConstructor.h"
-#include "JSPromiseContext.h"
 #include "JSPromisePrototype.h"
 #include "JSPromiseReaction.h"
 #include "Microtask.h"
@@ -170,17 +170,14 @@ static inline void callFunction(JSGlobalObject* globalObject, JSValue function, 
     call(globalObject, function, callData, jsUndefined(), arguments);
 }
 
-void JSPromise::resolve(JSGlobalObject* lexicalGlobalObject, JSValue value)
+void JSPromise::resolve(JSGlobalObject* globalObject, JSValue value)
 {
-    VM& vm = lexicalGlobalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
+    VM& vm = globalObject->vm();
     uint32_t flags = this->flags();
     ASSERT(!value.inherits<Exception>());
     if (!(flags & isFirstResolvingFunctionCalledFlag)) {
         internalField(Field::Flags).set(vm, this, jsNumber(flags | isFirstResolvingFunctionCalledFlag));
-        JSGlobalObject* globalObject = this->globalObject();
-        callFunction(lexicalGlobalObject, globalObject->resolvePromiseFunction(), this, value);
-        RETURN_IF_EXCEPTION(scope, void());
+        resolvePromise(globalObject, value);
     }
 }
 
@@ -286,45 +283,51 @@ void JSPromise::fulfillPromise(JSGlobalObject* globalObject, JSValue argument)
 void JSPromise::resolvePromise(JSGlobalObject* globalObject, JSValue resolution)
 {
     VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
 
     if (resolution == this) [[unlikely]] {
         Structure* errorStructure = globalObject->errorStructure(ErrorType::TypeError);
         auto* error = ErrorInstance::create(vm, errorStructure, "Cannot resolve a promise with itself"_s, jsUndefined(), nullptr, TypeNothing, ErrorType::TypeError, false);
-        RELEASE_AND_RETURN(scope, rejectPromise(globalObject, error));
+        return rejectPromise(globalObject, error);
     }
 
     if (!resolution.isObject())
-        RELEASE_AND_RETURN(scope, fulfillPromise(globalObject, resolution));
+        return fulfillPromise(globalObject, resolution);
 
     if (resolution.inherits<JSPromise>()) {
         auto* promise = jsCast<JSPromise*>(resolution);
         if (promise->isThenFastAndNonObservable())
-            RELEASE_AND_RETURN(scope, globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), promise, this, jsUndefined(), jsUndefined()));
+            return globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), resolution, this, jsUndefined(), jsUndefined());
     }
 
     JSValue then = resolution.get(globalObject, vm.propertyNames->then);
-    RETURN_IF_EXCEPTION(scope, void());
+    if (scope.exception()) [[unlikely]] {
+        JSValue error = scope.exception()->value();
+        if (!scope.clearExceptionExceptTermination()) [[unlikely]]
+            return;
+        return rejectPromise(globalObject, error);
+    }
 
     if (!then.isCallable()) [[likely]]
-        RELEASE_AND_RETURN(scope, fulfillPromise(globalObject, resolution));
+        return fulfillPromise(globalObject, resolution);
 
-
-    // FIXME: Wrong
-    RELEASE_AND_RETURN(scope, globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), resolution, then, jsUndefined(), jsUndefined()));
+    auto [ resolve, reject ] = createResolvingFunctions(vm, globalObject);
+    return globalObject->queueMicrotask(globalObject->promiseResolveThenableJobFunction(), resolution, then, resolve, reject);
 }
 
 JSC_DEFINE_HOST_FUNCTION(promiseResolvingFunctionResolve, (JSGlobalObject* globalObject, CallFrame* callFrame))
 {
     VM& vm = globalObject->vm();
 
-    auto* context = jsCast<JSPromiseContext*>(callFrame->argument(0));
-    if (context->index() != jsNumber(1))
-        return JSValue::encode(jsUndefined());
-    context->setIndex(vm, jsNumber(0));
+    auto* callee = jsCast<JSFunctionWithFields*>(callFrame->jsCallee());
+    auto* other = jsDynamicCast<JSFunctionWithFields*>(callee->fields()[1].get());
+    if (other) {
+        callee->fields()[1].set(vm, callee, jsNull());
+        other->fields()[1].set(vm, callee, jsNull());
+    }
 
-    auto* argument = jsCast<JSPromiseContext*>(callFrame->argument(1));
-    auto* promise = jsCast<JSPromise*>(callFrame->thisValue());
+    auto* promise = jsCast<JSPromise*>(callee->fields()[0].get());
+    JSValue argument = callFrame->argument(0);
 
     promise->resolvePromise(globalObject, argument);
     return JSValue::encode(jsUndefined());
@@ -334,26 +337,32 @@ JSC_DEFINE_HOST_FUNCTION(promiseResolvingFunctionReject, (JSGlobalObject* global
 {
     VM& vm = globalObject->vm();
 
-    auto* context = jsCast<JSPromiseContext*>(callFrame->argument(0));
-    if (context->index() != jsNumber(1))
-        return JSValue::encode(jsUndefined());
-    context->setIndex(vm, jsNumber(0));
+    auto* callee = jsCast<JSFunctionWithFields*>(callFrame->jsCallee());
+    auto* other = jsDynamicCast<JSFunctionWithFields*>(callee->fields()[1].get());
+    if (other) {
+        callee->fields()[1].set(vm, callee, jsNull());
+        other->fields()[1].set(vm, callee, jsNull());
+    }
 
-    auto* argument = jsCast<JSPromiseContext*>(callFrame->argument(1));
-    auto* promise = jsCast<JSPromise*>(callFrame->thisValue());
+    auto* promise = jsCast<JSPromise*>(callee->fields()[0].get());
+    JSValue argument = callFrame->argument(0);
 
     promise->rejectPromise(globalObject, argument);
     return JSValue::encode(jsUndefined());
 }
 
-std::tuple<JSFunction*, JSFunction*> JSPromise::createResolvingFunctions(JSGlobalObject* globalObject, JSPromise* promise)
+std::tuple<JSFunction*, JSFunction*> JSPromise::createResolvingFunctions(VM& vm, JSGlobalObject* globalObject)
 {
-    VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
+    auto* resolve = JSFunctionWithFields::create(vm, globalObject, vm.promiseResolvingFunctionResolveExecutable(), 1, nullString());
+    auto* reject = JSFunctionWithFields::create(vm, globalObject, vm.promiseResolvingFunctionRejectExecutable(), 1, nullString());
 
-    auto* context = JSPromiseContext::createWithInitialValues(vm, globalObject->promiseContextStructure());
-    context->setPromise(vm, promise);
-    context->setIndex(vm, jsNumber(1));
+    resolve->fields()[0].set(vm, resolve, this);
+    resolve->fields()[1].set(vm, resolve, reject);
+
+    reject->fields()[0].set(vm, reject, this);
+    reject->fields()[1].set(vm, reject, resolve);
+
+    return std::tuple { resolve, reject };
 }
 
 void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, Status status, JSPromiseReaction* head, JSValue argument)

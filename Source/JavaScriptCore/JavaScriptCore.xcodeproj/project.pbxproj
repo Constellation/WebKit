@@ -2035,6 +2035,7 @@
 		E367062A2A2705DB00CF892F /* StringSplitCacheInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E36706282A2705DB00CF892F /* StringSplitCacheInlines.h */; };
 		E367062B2A2705DB00CF892F /* StringSplitCache.h in Headers */ = {isa = PBXBuildFile; fileRef = E36706292A2705DB00CF892F /* StringSplitCache.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E36965F32D76E975005BCC77 /* MicrotaskQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = E36965F02D76E96F005BCC77 /* MicrotaskQueue.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E36A9C6D2E8F890A002D561C /* JSFunctionWithFields.h in Headers */ = {isa = PBXBuildFile; fileRef = E36A9C6B2E8F890A002D561C /* JSFunctionWithFields.h */; };
 		E36CC9472086314F0051FFD6 /* WasmCreationMode.h in Headers */ = {isa = PBXBuildFile; fileRef = E36CC9462086314F0051FFD6 /* WasmCreationMode.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E36D2BB82A8D9E5C001CF154 /* NativeCalleeRegistry.h in Headers */ = {isa = PBXBuildFile; fileRef = E36D2BB62A8D9E5B001CF154 /* NativeCalleeRegistry.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E36EDCE524F0975700E60DA2 /* Concurrency.h in Headers */ = {isa = PBXBuildFile; fileRef = E36EDCE424F0975700E60DA2 /* Concurrency.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -5847,6 +5848,8 @@
 		E36706292A2705DB00CF892F /* StringSplitCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringSplitCache.h; sourceTree = "<group>"; };
 		E36965F02D76E96F005BCC77 /* MicrotaskQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MicrotaskQueue.h; sourceTree = "<group>"; };
 		E36965F12D76E96F005BCC77 /* MicrotaskQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MicrotaskQueue.cpp; sourceTree = "<group>"; };
+		E36A9C6B2E8F890A002D561C /* JSFunctionWithFields.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSFunctionWithFields.h; sourceTree = "<group>"; };
+		E36A9C6C2E8F890A002D561C /* JSFunctionWithFields.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JSFunctionWithFields.cpp; sourceTree = "<group>"; };
 		E36B480123E9573800E4A66E /* UnlinkedCodeBlockGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = UnlinkedCodeBlockGenerator.cpp; sourceTree = "<group>"; };
 		E36CC9462086314F0051FFD6 /* WasmCreationMode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WasmCreationMode.h; sourceTree = "<group>"; };
 		E36D2BB62A8D9E5B001CF154 /* NativeCalleeRegistry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NativeCalleeRegistry.h; sourceTree = "<group>"; };
@@ -8669,6 +8672,8 @@
 				F692A85E0255597D01FF60F7 /* JSFunction.cpp */,
 				F692A85F0255597D01FF60F7 /* JSFunction.h */,
 				A72028B91797603D0098028C /* JSFunctionInlines.h */,
+				E36A9C6C2E8F890A002D561C /* JSFunctionWithFields.cpp */,
+				E36A9C6B2E8F890A002D561C /* JSFunctionWithFields.h */,
 				E34F930B2322D881002B8DB4 /* JSGenerator.cpp */,
 				E34F930C2322D881002B8DB4 /* JSGenerator.h */,
 				70B7918C1C024462002481E2 /* JSGeneratorFunction.cpp */,
@@ -11586,6 +11591,7 @@
 				0F2B66F017B6B5AB00A7AE3F /* JSFloat64Array.h in Headers */,
 				BC18C41F0E16F5CD00B34460 /* JSFunction.h in Headers */,
 				A72028BA1797603D0098028C /* JSFunctionInlines.h in Headers */,
+				E36A9C6D2E8F890A002D561C /* JSFunctionWithFields.h in Headers */,
 				E34F930E2322D882002B8DB4 /* JSGenerator.h in Headers */,
 				70B7919C1C024A49002481E2 /* JSGeneratorFunction.h in Headers */,
 				276B39212A71D2B600252F4E /* JSGeneratorFunctionInlines.h in Headers */,

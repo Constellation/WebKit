@@ -51,6 +51,7 @@
 #include "JITStubRoutineSet.h"
 #include "JITWorklistInlines.h"
 #include "JSFinalizationRegistry.h"
+#include "JSFunctionWithFields.h"
 #include "JSIterator.h"
 #include "JSPromiseAllContext.h"
 #include "JSPromiseReaction.h"

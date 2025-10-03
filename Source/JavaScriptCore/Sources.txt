@@ -907,6 +907,7 @@ runtime/JSDestructibleObjectHeapCellType.cpp
 runtime/JSDisposableStack.cpp
 runtime/JSFinalizationRegistry.cpp
 runtime/JSFunction.cpp
+runtime/JSFunctionWithFields.cpp
 runtime/JSGenerator.cpp
 runtime/JSGeneratorFunction.cpp
 runtime/JSGenericTypedArrayViewConstructor.cpp

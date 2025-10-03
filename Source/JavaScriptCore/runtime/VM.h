@@ -534,6 +534,8 @@ public:
     WriteBarrier<Structure> bigIntStructure;
 
     WriteBarrier<JSPropertyNameEnumerator> m_emptyPropertyNameEnumerator;
+    WriteBarrier<NativeExecutable> m_promiseResolvingFunctionResolveExecutable;
+    WriteBarrier<NativeExecutable> m_promiseResolvingFunctionRejectExecutable;
 
     WriteBarrier<JSCell> m_orderedHashTableDeletedValue;
     WriteBarrier<JSCell> m_orderedHashTableSentinel;
@@ -595,6 +597,20 @@ public:
         if (m_emptyPropertyNameEnumerator) [[likely]]
             return m_emptyPropertyNameEnumerator.get();
         return emptyPropertyNameEnumeratorSlow();
+    }
+
+    NativeExecutable* promiseResolvingFunctionResolveExecutable()
+    {
+        if (m_promiseResolvingFunctionResolveExecutable) [[likely]]
+            return m_promiseResolvingFunctionResolveExecutable.get();
+        return promiseResolvingFunctionResolveExecutableSlow();
+    }
+
+    NativeExecutable* promiseResolvingFunctionRejectExecutable()
+    {
+        if (m_promiseResolvingFunctionRejectExecutable) [[likely]]
+            return m_promiseResolvingFunctionRejectExecutable.get();
+        return promiseResolvingFunctionRejectExecutableSlow();
     }
 
     WeakGCMap<SymbolImpl*, Symbol, PtrHash<SymbolImpl*>> symbolImplToSymbolMap;
@@ -1032,6 +1048,8 @@ private:
     JS_EXPORT_PRIVATE JSCell* orderedHashTableDeletedValueSlow();
     JS_EXPORT_PRIVATE JSCell* orderedHashTableSentinelSlow();
     JSPropertyNameEnumerator* emptyPropertyNameEnumeratorSlow();
+    NativeExecutable* promiseResolvingFunctionResolveExecutableSlow();
+    NativeExecutable* promiseResolvingFunctionRejectExecutableSlow();
 
     void updateStackLimits();
 

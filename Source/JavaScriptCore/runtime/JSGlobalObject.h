@@ -375,6 +375,7 @@ public:
     WriteBarrierStructureID m_generatorFunctionStructure;
     WriteBarrierStructureID m_generatorStructure;
     WriteBarrierStructureID m_asyncGeneratorStructure;
+    WriteBarrierStructureID m_functionWithFieldsStructure;
     WriteBarrierStructureID m_iteratorStructure;
     WriteBarrierStructureID m_iteratorHelperStructure;
     WriteBarrierStructureID m_arrayIteratorStructure;
@@ -747,6 +748,7 @@ public:
 
     JSFunction* promiseReactionJobFunction() const;
     JSFunction* promiseReactionJobWithoutPromiseFunction() const;
+    JSFunction* promiseResolveThenableJobFunction() const;
     JSFunction* promiseResolveThenableJobFastFallbackFunction() const;
     JSFunction* promiseResolveThenableJobWithoutPromiseFastFallbackFunction() const;
     JSFunction* evalFunction() const;
@@ -919,6 +921,7 @@ public:
     Structure* generatorStructure() const { return m_generatorStructure.get(); }
     Structure* asyncFromSyncIteratorStructure() const { return m_asyncFromSyncIteratorStructure.get(); }
     Structure* asyncGeneratorStructure() const { return m_asyncGeneratorStructure.get(); }
+    Structure* functionWithFieldsStructure() const { return m_functionWithFieldsStructure.get(); }
     Structure* generatorFunctionStructure() const { return m_generatorFunctionStructure.get(); }
     Structure* asyncFunctionStructure() const { return m_asyncFunctionStructure.get(); }
     Structure* asyncGeneratorFunctionStructure() const { return m_asyncGeneratorFunctionStructure.get(); }

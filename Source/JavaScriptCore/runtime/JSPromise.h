@@ -137,7 +137,7 @@ public:
     bool isThenFastAndNonObservable();
 
 protected:
-    static std::tuple<JSFunction*, JSFunction*> createResolvingFunctions(JSGlobalObject*, JSPromise*);
+    std::tuple<JSFunction*, JSFunction*> createResolvingFunctions(VM&, JSGlobalObject*);
 
     JSPromise(VM&, Structure*);
     void finishCreation(VM&);

@@ -235,6 +235,7 @@ class Heap;
     v(float32ArraySpace, cellHeapCellType, JSFloat32Array) \
     v(float64ArraySpace, cellHeapCellType, JSFloat64Array) \
     v(functionRareDataSpace, destructibleCellHeapCellType, FunctionRareData) \
+    v(functionWithFieldsSpace, cellHeapCellType, JSFunctionWithFields) \
     v(generatorSpace, cellHeapCellType, JSGenerator) \
     v(globalObjectSpace, globalObjectHeapCellType, JSGlobalObject) \
     v(injectedScriptHostSpace, injectedScriptHostSpaceHeapCellType, Inspector::JSInjectedScriptHost) \
