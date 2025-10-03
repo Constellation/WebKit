@@ -129,10 +129,17 @@ public:
     DECLARE_VISIT_CHILDREN;
 
     // This is abstract operations defined in the spec.
-    void rejectPromise(JSGlobalObject*, JSValue);
     static void triggerPromiseReactions(JSGlobalObject*, JSPromise::Status, JSPromiseReaction* head, JSValue argument);
 
+    bool isThenFastAndNonObservable();
+
 protected:
+    void rejectPromise(JSGlobalObject*, JSValue);
+    void fulfillPromise(JSGlobalObject*, JSValue);
+    void resolvePromise(JSGlobalObject*, JSValue);
+
+    static std::tuple<JSFunction*, JSFunction*> createResolvingFunctions(JSGlobalObject*, JSPromise*);
+
     JSPromise(VM&, Structure*);
     void finishCreation(VM&);
 

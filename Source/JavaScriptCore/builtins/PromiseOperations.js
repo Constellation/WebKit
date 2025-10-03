@@ -155,7 +155,8 @@ function resolvePromise(promise, resolution)
     if (!@isCallable(then))
         return @fulfillPromise(promise, resolution);
 
-    @enqueueJob(@promiseResolveThenableJob, resolution, then, @createResolvingFunctions(promise));
+    var resolvingFunctions = @createResolvingFunctions(promise);
+    @enqueueJob(@promiseResolveThenableJob, resolution, then, resolvingFunctions.resolve, resolvingFunctions.reject);
 }
 
 // Keep in sync with JSPromise::rejectedPromise.
@@ -308,7 +309,8 @@ function resolveWithoutPromise(resolution, onFulfilled, onRejected, context)
     }
 
     // Wrap onFulfilled and onRejected with @createResolvingFunctionsWithoutPromise to ensure that each function will be called at most once.
-    @enqueueJob(@promiseResolveThenableJob, resolution, then, @createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context));
+    var resolvingFunctions = @createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context);
+    @enqueueJob(@promiseResolveThenableJob, resolution, then, resolvingFunctions.resolve, resolvingFunctions.reject);
 }
 
 // This function has strong guarantee that each handler function (onFulfilled and onRejected) will be called at most once.
@@ -468,14 +470,14 @@ function promiseResolveThenableJobWithoutPromiseFastFallback(thenable, onFulfill
 }
 
 @linkTimeConstant
-function promiseResolveThenableJob(thenable, then, resolvingFunctions)
+function promiseResolveThenableJob(thenable, then, resolve, reject)
 {
     "use strict";
 
     try {
-        return then.@call(thenable, resolvingFunctions.resolve, resolvingFunctions.reject);
+        return then.@call(thenable, resolve, reject);
     } catch (error) {
-        return resolvingFunctions.reject.@call(@undefined, error);
+        return reject.@call(@undefined, error);
     }
 }
 

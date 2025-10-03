@@ -28,10 +28,13 @@
 
 #include "BuiltinNames.h"
 #include "DeferredWorkTimer.h"
+#include "ErrorInstance.h"
 #include "GlobalObjectMethodTable.h"
 #include "JSCInlines.h"
 #include "JSInternalFieldObjectImplInlines.h"
+#include "JSInternalPromisePrototype.h"
 #include "JSPromiseConstructor.h"
+#include "JSPromisePrototype.h"
 #include "JSPromiseReaction.h"
 #include "Microtask.h"
 
@@ -264,6 +267,56 @@ void JSPromise::rejectPromise(JSGlobalObject* globalObject, JSValue argument)
     RELEASE_AND_RETURN(scope, triggerPromiseReactions(globalObject, Status::Rejected, reactions, argument));
 }
 
+void JSPromise::fulfillPromise(JSGlobalObject* globalObject, JSValue argument)
+{
+    VM& vm = globalObject->vm();
+
+    ASSERT(status() == Status::Pending);
+    uint32_t flags = this->flags();
+    auto* reactions = jsDynamicCast<JSPromiseReaction*>(this->reactionsOrResult());
+    internalField(Field::Flags).set(vm, this, jsNumber(flags | static_cast<uint32_t>(Status::Fulfilled)));
+
+    if (!reactions)
+        return;
+
+    triggerPromiseReactions(globalObject, Status::Fulfilled, reactions, argument);
+}
+
+void JSPromise::resolvePromise(JSGlobalObject* globalObject, JSValue resolution)
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    if (resolution == this) [[unlikely]] {
+        Structure* errorStructure = globalObject->errorStructure(ErrorType::TypeError);
+        auto* error = ErrorInstance::create(vm, errorStructure, "Cannot resolve a promise with itself"_s, jsUndefined(), nullptr, TypeNothing, ErrorType::TypeError, false);
+        RELEASE_AND_RETURN(scope, rejectPromise(globalObject, error));
+    }
+
+    if (!resolution.isObject())
+        RELEASE_AND_RETURN(scope, fulfillPromise(globalObject, resolution));
+
+    if (resolution.inherits<JSPromise>()) {
+        auto* promise = jsCast<JSPromise*>(resolution);
+        if (promise->isThenFastAndNonObservable())
+            RELEASE_AND_RETURN(scope, globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), promise, this, jsUndefined(), jsUndefined()));
+    }
+
+    JSValue then = resolution.get(globalObject, vm.propertyNames->then);
+    RETURN_IF_EXCEPTION(scope, void());
+
+    if (!then.isCallable()) [[likely]]
+        RELEASE_AND_RETURN(scope, fulfillPromise(globalObject, resolution));
+
+
+    // FIXME: Wrong
+    RELEASE_AND_RETURN(scope, globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), resolution, then, jsUndefined(), jsUndefined()));
+}
+
+std::tuple<JSFunction*, JSFunction*> JSPromise::createResolvingFunctions(JSGlobalObject* globalObject, JSPromise* promise)
+{
+}
+
 void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, Status status, JSPromiseReaction* head, JSValue argument)
 {
     VM& vm = globalObject->vm();
@@ -297,6 +350,30 @@ void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, Status sta
         globalObject->queueMicrotask(function, promise, handler, argument, handler.isUndefinedOrNull() ? jsNumber(static_cast<int32_t>(status)) : context);
         RETURN_IF_EXCEPTION(scope, void());
     }
+}
+
+bool JSPromise::isThenFastAndNonObservable()
+{
+    JSGlobalObject* globalObject = this->globalObject();
+    Structure* structure = this->structure();
+    // We do not allow overriding `then` in InternalPromise.
+    if (inherits<JSInternalPromise>())
+        return true;
+
+    if (!globalObject->promiseThenWatchpointSet().isStillValid()) [[unlikely]]
+        return false;
+
+    if (structure == globalObject->promiseStructure())
+        return true;
+
+    if (getPrototypeDirect() != globalObject->promisePrototype())
+        return false;
+
+    VM& vm = globalObject->vm();
+    if (getDirectOffset(vm, vm.propertyNames->then) != invalidOffset)
+        return false;
+
+    return true;
 }
 
 } // namespace JSC
