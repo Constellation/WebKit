@@ -34,6 +34,7 @@
 #include "JSInternalFieldObjectImplInlines.h"
 #include "JSInternalPromisePrototype.h"
 #include "JSPromiseConstructor.h"
+#include "JSPromiseContext.h"
 #include "JSPromisePrototype.h"
 #include "JSPromiseReaction.h"
 #include "Microtask.h"
@@ -313,8 +314,46 @@ void JSPromise::resolvePromise(JSGlobalObject* globalObject, JSValue resolution)
     RELEASE_AND_RETURN(scope, globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), resolution, then, jsUndefined(), jsUndefined()));
 }
 
+JSC_DEFINE_HOST_FUNCTION(promiseResolvingFunctionResolve, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    VM& vm = globalObject->vm();
+
+    auto* context = jsCast<JSPromiseContext*>(callFrame->argument(0));
+    if (context->index() != jsNumber(1))
+        return JSValue::encode(jsUndefined());
+    context->setIndex(vm, jsNumber(0));
+
+    auto* argument = jsCast<JSPromiseContext*>(callFrame->argument(1));
+    auto* promise = jsCast<JSPromise*>(callFrame->thisValue());
+
+    promise->resolvePromise(globalObject, argument);
+    return JSValue::encode(jsUndefined());
+}
+
+JSC_DEFINE_HOST_FUNCTION(promiseResolvingFunctionReject, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    VM& vm = globalObject->vm();
+
+    auto* context = jsCast<JSPromiseContext*>(callFrame->argument(0));
+    if (context->index() != jsNumber(1))
+        return JSValue::encode(jsUndefined());
+    context->setIndex(vm, jsNumber(0));
+
+    auto* argument = jsCast<JSPromiseContext*>(callFrame->argument(1));
+    auto* promise = jsCast<JSPromise*>(callFrame->thisValue());
+
+    promise->rejectPromise(globalObject, argument);
+    return JSValue::encode(jsUndefined());
+}
+
 std::tuple<JSFunction*, JSFunction*> JSPromise::createResolvingFunctions(JSGlobalObject* globalObject, JSPromise* promise)
 {
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    auto* context = JSPromiseContext::createWithInitialValues(vm, globalObject->promiseContextStructure());
+    context->setPromise(vm, promise);
+    context->setIndex(vm, jsNumber(1));
 }
 
 void JSPromise::triggerPromiseReactions(JSGlobalObject* globalObject, Status status, JSPromiseReaction* head, JSValue argument)

@@ -130,14 +130,13 @@ public:
 
     // This is abstract operations defined in the spec.
     static void triggerPromiseReactions(JSGlobalObject*, JSPromise::Status, JSPromiseReaction* head, JSValue argument);
-
-    bool isThenFastAndNonObservable();
-
-protected:
     void rejectPromise(JSGlobalObject*, JSValue);
     void fulfillPromise(JSGlobalObject*, JSValue);
     void resolvePromise(JSGlobalObject*, JSValue);
 
+    bool isThenFastAndNonObservable();
+
+protected:
     static std::tuple<JSFunction*, JSFunction*> createResolvingFunctions(JSGlobalObject*, JSPromise*);
 
     JSPromise(VM&, Structure*);
@@ -149,5 +148,8 @@ protected:
         return value.asUInt32AsAnyInt();
     }
 };
+
+JSC_DECLARE_HOST_FUNCTION(promiseResolvingFunctionResolve);
+JSC_DECLARE_HOST_FUNCTION(promiseResolvingFunctionReject);
 
 } // namespace JSC
