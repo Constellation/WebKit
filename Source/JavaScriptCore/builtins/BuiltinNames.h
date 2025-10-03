@@ -76,6 +76,9 @@ namespace JSC {
     macro(BuiltinDescribe) \
     macro(homeObject) \
     macro(enqueueJob) \
+    macro(resolvePromiseWithFirstResolvingFunctionCallCheck) \
+    macro(rejectPromiseWithFirstResolvingFunctionCallCheck) \
+    macro(fulfillPromiseWithFirstResolvingFunctionCallCheck) \
     macro(triggerPromiseReactions) \
     macro(hostPromiseRejectionTracker) \
     macro(push) \

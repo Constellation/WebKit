@@ -198,45 +198,6 @@ function fulfillPromise(promise, value)
 }
 
 @linkTimeConstant
-function resolvePromiseWithFirstResolvingFunctionCallCheck(promise, value)
-{
-    "use strict";
-
-    @assert(@isPromise(promise));
-    var flags = @getPromiseInternalField(promise, @promiseFieldFlags);
-    if (flags & @promiseFlagsIsFirstResolvingFunctionCalled)
-        return;
-    @putPromiseInternalField(promise, @promiseFieldFlags, flags | @promiseFlagsIsFirstResolvingFunctionCalled);
-    return @resolvePromise(promise, value);
-}
-
-@linkTimeConstant
-function fulfillPromiseWithFirstResolvingFunctionCallCheck(promise, value)
-{
-    "use strict";
-
-    @assert(@isPromise(promise));
-    var flags = @getPromiseInternalField(promise, @promiseFieldFlags);
-    if (flags & @promiseFlagsIsFirstResolvingFunctionCalled)
-        return;
-    @putPromiseInternalField(promise, @promiseFieldFlags, flags | @promiseFlagsIsFirstResolvingFunctionCalled);
-    return @fulfillPromise(promise, value);
-}
-
-@linkTimeConstant
-function rejectPromiseWithFirstResolvingFunctionCallCheck(promise, reason)
-{
-    "use strict";
-
-    @assert(@isPromise(promise));
-    var flags = @getPromiseInternalField(promise, @promiseFieldFlags);
-    if (flags & @promiseFlagsIsFirstResolvingFunctionCalled)
-        return;
-    @putPromiseInternalField(promise, @promiseFieldFlags, flags | @promiseFlagsIsFirstResolvingFunctionCalled);
-    return @rejectPromise(promise, reason);
-}
-
-@linkTimeConstant
 function createResolvingFunctions(promise)
 {
     "use strict";

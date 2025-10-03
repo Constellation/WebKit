@@ -157,19 +157,6 @@ JSPromise* JSPromise::rejectedPromise(JSGlobalObject* globalObject, JSValue valu
     return promise;
 }
 
-static inline void callFunction(JSGlobalObject* globalObject, JSValue function, JSPromise* promise, JSValue value)
-{
-    auto callData = getCallData(function);
-    ASSERT(callData.type != CallData::Type::None);
-
-    MarkedArgumentBuffer arguments;
-    arguments.append(promise);
-    arguments.append(value);
-    ASSERT(!arguments.hasOverflowed());
-
-    call(globalObject, function, callData, jsUndefined(), arguments);
-}
-
 void JSPromise::resolve(JSGlobalObject* globalObject, JSValue value)
 {
     VM& vm = globalObject->vm();
@@ -189,6 +176,17 @@ void JSPromise::reject(JSGlobalObject* globalObject, JSValue value)
     if (!(flags & isFirstResolvingFunctionCalledFlag)) {
         internalField(Field::Flags).set(vm, this, jsNumber(flags | isFirstResolvingFunctionCalledFlag));
         rejectPromise(globalObject, value);
+    }
+}
+
+void JSPromise::fulfill(JSGlobalObject* globalObject, JSValue value)
+{
+    VM& vm = globalObject->vm();
+    uint32_t flags = this->flags();
+    ASSERT(!value.inherits<Exception>());
+    if (!(flags & isFirstResolvingFunctionCalledFlag)) {
+        internalField(Field::Flags).set(vm, this, jsNumber(flags | isFirstResolvingFunctionCalledFlag));
+        fulfillPromise(globalObject, value);
     }
 }
 
@@ -294,13 +292,14 @@ void JSPromise::resolvePromise(JSGlobalObject* globalObject, JSValue resolution)
     if (!resolution.isObject())
         return fulfillPromise(globalObject, resolution);
 
-    if (resolution.inherits<JSPromise>()) {
-        auto* promise = jsCast<JSPromise*>(resolution);
+    auto* resolutionObject = asObject(resolution);
+    if (resolutionObject->inherits<JSPromise>()) {
+        auto* promise = jsCast<JSPromise*>(resolutionObject);
         if (promise->isThenFastAndNonObservable())
-            return globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), resolution, this, jsUndefined(), jsUndefined());
+            return globalObject->queueMicrotask(jsNumber(static_cast<int32_t>(InternalMicrotask::PromiseResolveThenableJobFast)), resolutionObject, this, jsUndefined(), jsUndefined());
     }
 
-    JSValue then = resolution.get(globalObject, vm.propertyNames->then);
+    JSValue then = resolutionObject->get(globalObject, vm.propertyNames->then);
     if (scope.exception()) [[unlikely]] {
         JSValue error = scope.exception()->value();
         if (!scope.clearExceptionExceptTermination()) [[unlikely]]
@@ -309,10 +308,10 @@ void JSPromise::resolvePromise(JSGlobalObject* globalObject, JSValue resolution)
     }
 
     if (!then.isCallable()) [[likely]]
-        return fulfillPromise(globalObject, resolution);
+        return fulfillPromise(globalObject, resolutionObject);
 
     auto [ resolve, reject ] = createResolvingFunctions(vm, globalObject);
-    return globalObject->queueMicrotask(globalObject->promiseResolveThenableJobFunction(), resolution, then, resolve, reject);
+    return globalObject->queueMicrotask(globalObject->promiseResolveThenableJobFunction(), resolutionObject, then, resolve, reject);
 }
 
 JSC_DEFINE_HOST_FUNCTION(promiseResolvingFunctionResolve, (JSGlobalObject* globalObject, CallFrame* callFrame))
