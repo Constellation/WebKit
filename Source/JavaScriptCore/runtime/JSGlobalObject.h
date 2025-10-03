@@ -440,6 +440,7 @@ public:
     WriteBarrier<GetterSetter> m_typedArraySpeciesGetterSetter;
     WriteBarrier<GetterSetter> m_arrayBufferSpeciesGetterSetter;
     WriteBarrier<GetterSetter> m_sharedArrayBufferSpeciesGetterSetter;
+    WriteBarrier<GetterSetter> m_promiseSpeciesGetterSetter;
     WriteBarrier<JSObject> m_unhandledRejectionCallback;
 
     LazyProperty<JSGlobalObject, JSTypedArrayViewPrototype> m_typedArrayProto;
@@ -724,6 +725,7 @@ public:
 
     GetterSetter* arraySpeciesGetterSetter() const { return m_arraySpeciesGetterSetter.get(); }
     GetterSetter* typedArraySpeciesGetterSetter() const { return m_typedArraySpeciesGetterSetter.get(); }
+    GetterSetter* promiseSpeciesGetterSetter() const { return m_promiseSpeciesGetterSetter.get(); }
 
     ArrayConstructor* arrayConstructor() const { return m_arrayConstructor.get(); }
     RegExpConstructor* regExpConstructor() const { return m_regExpConstructor.get(); }
