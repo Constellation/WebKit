@@ -44,6 +44,8 @@ namespace JSC {
 JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, InternalMicrotask task, std::span<const JSValue> arguments)
 {
     VM& vm = globalObject->vm();
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
     switch (task) {
     case InternalMicrotask::PromiseResolveThenableJobFast: {
         auto* promise = jsCast<JSPromise*>(arguments[0]);
@@ -62,14 +64,19 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
         }
         case JSPromise::Status::Rejected: {
             if (!promise->isHandled()) {
-                if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
+                if (globalObject->globalObjectMethodTable()->promiseRejectionTracker) {
                     globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
+                    if (!scope.clearExceptionExceptTermination()) [[unlikely]]
+                        return JSValue();
+                }
             }
             globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Rejected)));
+            scope.clearExceptionExceptTermination();
             break;
         }
         case JSPromise::Status::Fulfilled: {
             globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Fulfilled)));
+            scope.clearExceptionExceptTermination();
             break;
         }
         }
@@ -96,14 +103,19 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
         }
         case JSPromise::Status::Rejected: {
             if (!promise->isHandled()) {
-                if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
+                if (globalObject->globalObjectMethodTable()->promiseRejectionTracker) {
                     globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
+                    if (!scope.clearExceptionExceptTermination()) [[unlikely]]
+                        return JSValue();
+                }
             }
             globalObject->queueMicrotask(globalObject->promiseReactionJobWithoutPromiseFunction(), onRejected, promise->reactionsOrResult(), context, jsUndefined());
+            scope.clearExceptionExceptTermination();
             break;
         }
         case JSPromise::Status::Fulfilled: {
             globalObject->queueMicrotask(globalObject->promiseReactionJobWithoutPromiseFunction(), onFulfilled, promise->reactionsOrResult(), context, jsUndefined());
+            scope.clearExceptionExceptTermination();
             break;
         }
         }
