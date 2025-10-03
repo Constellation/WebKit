@@ -74,7 +74,7 @@
 #include "JSMapIterator.h"
 #include "JSModuleEnvironment.h"
 #include "JSModuleNamespaceObject.h"
-#include "JSPromiseAllContext.h"
+#include "JSPromiseContext.h"
 #include "JSPromiseConstructor.h"
 #include "JSPromiseReaction.h"
 #include "JSSetIterator.h"
@@ -4520,7 +4520,7 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             return CallOptimizationResult::Inlined;
         }
 
-        case PromiseAllContextCreateIntrinsic: {
+        case PromiseContextCreateIntrinsic: {
             if (argumentCountIncludingThis < 5)
                 return CallOptimizationResult::DidNothing;
 
@@ -4530,12 +4530,12 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             Node* values = get(virtualRegisterForArgumentIncludingThis(2, registerOffset));
             Node* remainingElementsCount = get(virtualRegisterForArgumentIncludingThis(3, registerOffset));
             Node* index = get(virtualRegisterForArgumentIncludingThis(4, registerOffset));
-            Node* promiseAllContext = addToGraph(NewInternalFieldObject, OpInfo(m_graph.registerStructure(globalObject->promiseAllContextStructure())));
-            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseAllContext::Field::Promise)), promiseAllContext, promise);
-            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseAllContext::Field::Values)), promiseAllContext, values);
-            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseAllContext::Field::RemainingElementsCount)), promiseAllContext, remainingElementsCount);
-            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseAllContext::Field::Index)), promiseAllContext, index);
-            setResult(promiseAllContext);
+            Node* promiseContext = addToGraph(NewInternalFieldObject, OpInfo(m_graph.registerStructure(globalObject->promiseContextStructure())));
+            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseContext::Field::Promise)), promiseContext, promise);
+            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseContext::Field::Values)), promiseContext, values);
+            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseContext::Field::RemainingElementsCount)), promiseContext, remainingElementsCount);
+            addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSPromiseContext::Field::Index)), promiseContext, index);
+            setResult(promiseContext);
             return CallOptimizationResult::Inlined;
         }
 

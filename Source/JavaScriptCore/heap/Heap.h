@@ -297,7 +297,7 @@ class Heap;
     v(weakSetSpace, weakSetHeapCellType, JSWeakSet) \
     v(withScopeSpace, cellHeapCellType, JSWithScope) \
     v(wrapForValidIteratorSpace, cellHeapCellType, JSWrapForValidIterator) \
-    v(promiseAllContextSpace, cellHeapCellType, JSPromiseAllContext) \
+    v(promiseContextSpace, cellHeapCellType, JSPromiseContext) \
     v(promiseReactionSpace, cellHeapCellType, JSPromiseReaction) \
     v(asyncFromSyncIteratorSpace, cellHeapCellType, JSAsyncFromSyncIterator) \
     v(regExpStringIteratorSpace, cellHeapCellType, JSRegExpStringIterator) \

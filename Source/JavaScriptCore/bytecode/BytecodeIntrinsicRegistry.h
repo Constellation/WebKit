@@ -62,7 +62,7 @@ enum class LinkTimeConstant : int32_t;
     macro(getRegExpStringIteratorInternalField) \
     macro(getProxyInternalField) \
     macro(getWrapForValidIteratorInternalField) \
-    macro(getPromiseAllContextInternalField) \
+    macro(getPromiseContextInternalField) \
     macro(getPromiseReactionInternalField) \
     macro(getDisposableStackInternalField) \
     macro(idWithProfile) \
@@ -78,7 +78,7 @@ enum class LinkTimeConstant : int32_t;
     macro(isIteratorHelper) \
     macro(isAsyncGenerator) \
     macro(isPromise) \
-    macro(isPromiseAllContext) \
+    macro(isPromiseContext) \
     macro(isPromiseReaction) \
     macro(isRegExpObject) \
     macro(isMap) \
@@ -112,7 +112,7 @@ enum class LinkTimeConstant : int32_t;
     macro(putMapIteratorInternalField) \
     macro(putSetIteratorInternalField) \
     macro(putRegExpStringIteratorInternalField) \
-    macro(putPromiseAllContextInternalField) \
+    macro(putPromiseContextInternalField) \
     macro(putPromiseReactionInternalField) \
     macro(putDisposableStackInternalField) \
     macro(superSamplerBegin) \
@@ -205,10 +205,10 @@ enum class LinkTimeConstant : int32_t;
     macro(abstractModuleRecordFieldState) \
     macro(wrapForValidIteratorFieldIteratedIterator) \
     macro(wrapForValidIteratorFieldIteratedNextMethod) \
-    macro(promiseAllContextFieldPromise) \
-    macro(promiseAllContextFieldValues) \
-    macro(promiseAllContextFieldRemainingElementsCount) \
-    macro(promiseAllContextFieldIndex) \
+    macro(promiseContextFieldPromise) \
+    macro(promiseContextFieldValues) \
+    macro(promiseContextFieldRemainingElementsCount) \
+    macro(promiseContextFieldIndex) \
     macro(promiseReactionFieldPromise) \
     macro(promiseReactionFieldOnFulfilled) \
     macro(promiseReactionFieldOnRejected) \

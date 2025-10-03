@@ -24,31 +24,31 @@
  */
 
 #include "config.h"
-#include "JSPromiseAllContext.h"
+#include "JSPromiseContext.h"
 
 #include "JSCInlines.h"
 #include "JSInternalFieldObjectImplInlines.h"
 
 namespace JSC {
 
-const ClassInfo JSPromiseAllContext::s_info = { "PromiseAllContext"_s, &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(JSPromiseAllContext) };
+const ClassInfo JSPromiseContext::s_info = { "PromiseContext"_s, &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(JSPromiseContext) };
 
-JSPromiseAllContext* JSPromiseAllContext::createWithInitialValues(VM& vm, Structure* structure)
+JSPromiseContext* JSPromiseContext::createWithInitialValues(VM& vm, Structure* structure)
 {
     auto values = initialValues();
-    JSPromiseAllContext* context = new (NotNull, allocateCell<JSPromiseAllContext>(vm)) JSPromiseAllContext(vm, structure);
+    JSPromiseContext* context = new (NotNull, allocateCell<JSPromiseContext>(vm)) JSPromiseContext(vm, structure);
     context->finishCreation(vm, values[0], values[1], values[2], values[3]);
     return context;
 }
 
-JSPromiseAllContext* JSPromiseAllContext::create(VM& vm, Structure* structure, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index)
+JSPromiseContext* JSPromiseContext::create(VM& vm, Structure* structure, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index)
 {
-    JSPromiseAllContext* result = new (NotNull, allocateCell<JSPromiseAllContext>(vm)) JSPromiseAllContext(vm, structure);
+    JSPromiseContext* result = new (NotNull, allocateCell<JSPromiseContext>(vm)) JSPromiseContext(vm, structure);
     result->finishCreation(vm, promise, values, remainingElementsCount, index);
     return result;
 }
 
-void JSPromiseAllContext::finishCreation(VM& vm, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index)
+void JSPromiseContext::finishCreation(VM& vm, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index)
 {
     Base::finishCreation(vm);
     this->setPromise(vm, promise);
@@ -58,18 +58,18 @@ void JSPromiseAllContext::finishCreation(VM& vm, JSValue promise, JSValue values
 }
 
 template<typename Visitor>
-void JSPromiseAllContext::visitChildrenImpl(JSCell* cell, Visitor& visitor)
+void JSPromiseContext::visitChildrenImpl(JSCell* cell, Visitor& visitor)
 {
-    auto* thisObject = jsCast<JSPromiseAllContext*>(cell);
+    auto* thisObject = jsCast<JSPromiseContext*>(cell);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
     Base::visitChildren(thisObject, visitor);
 }
 
-DEFINE_VISIT_CHILDREN(JSPromiseAllContext);
+DEFINE_VISIT_CHILDREN(JSPromiseContext);
 
-JSC_DEFINE_HOST_FUNCTION(promiseAllContextPrivateFuncCreate, (JSGlobalObject* globalObject, CallFrame* callFrame))
+JSC_DEFINE_HOST_FUNCTION(promiseContextPrivateFuncCreate, (JSGlobalObject* globalObject, CallFrame* callFrame))
 {
-    return JSValue::encode(JSPromiseAllContext::create(globalObject->vm(), globalObject->promiseAllContextStructure(), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(1), callFrame->uncheckedArgument(2), callFrame->uncheckedArgument(3)));
+    return JSValue::encode(JSPromiseContext::create(globalObject->vm(), globalObject->promiseContextStructure(), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(1), callFrame->uncheckedArgument(2), callFrame->uncheckedArgument(3)));
 }
 
 } // namespace JSC

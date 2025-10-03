@@ -29,11 +29,11 @@
 
 namespace JSC {
 
-const static uint8_t JSPromiseAllContextNumberOfInternalFields = 4;
+const static uint8_t JSPromiseContextNumberOfInternalFields = 4;
 
-class JSPromiseAllContext final : public JSInternalFieldObjectImpl<JSPromiseAllContextNumberOfInternalFields> {
+class JSPromiseContext final : public JSInternalFieldObjectImpl<JSPromiseContextNumberOfInternalFields> {
 public:
-    using Base = JSInternalFieldObjectImpl<JSPromiseAllContextNumberOfInternalFields>;
+    using Base = JSInternalFieldObjectImpl<JSPromiseContextNumberOfInternalFields>;
 
     DECLARE_EXPORT_INFO;
     DECLARE_VISIT_CHILDREN;
@@ -44,7 +44,7 @@ public:
         RemainingElementsCount,
         Index,
     };
-    static_assert(numberOfInternalFields == JSPromiseAllContextNumberOfInternalFields);
+    static_assert(numberOfInternalFields == JSPromiseContextNumberOfInternalFields);
 
     static std::array<JSValue, numberOfInternalFields> initialValues()
     {
@@ -62,13 +62,13 @@ public:
     template<typename CellType, SubspaceAccess mode>
     static GCClient::IsoSubspace* subspaceFor(VM& vm)
     {
-        return vm.promiseAllContextSpace<mode>();
+        return vm.promiseContextSpace<mode>();
     }
 
     inline static Structure* createStructure(VM&, JSGlobalObject*, JSValue);
 
-    static JSPromiseAllContext* createWithInitialValues(VM&, Structure*);
-    static JSPromiseAllContext* create(VM&, Structure*, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index);
+    static JSPromiseContext* createWithInitialValues(VM&, Structure*);
+    static JSPromiseContext* create(VM&, Structure*, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index);
 
     JSValue promise() const { return internalField(Field::Promise).get(); }
     JSValue values() const { return internalField(Field::Values).get(); }
@@ -81,7 +81,7 @@ public:
     void setIndex(VM& vm, JSValue index) { internalField(Field::Index).set(vm, this, index); }
 
 private:
-    JSPromiseAllContext(VM& vm, Structure* structure)
+    JSPromiseContext(VM& vm, Structure* structure)
         : Base(vm, structure)
     {
     }
@@ -89,8 +89,8 @@ private:
     void finishCreation(VM&, JSValue promise, JSValue values, JSValue remainingElementsCount, JSValue index);
 };
 
-STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(JSPromiseAllContext);
+STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(JSPromiseContext);
 
-JSC_DECLARE_HOST_FUNCTION(promiseAllContextPrivateFuncCreate);
+JSC_DECLARE_HOST_FUNCTION(promiseContextPrivateFuncCreate);
 
 } // namespace JSC

@@ -25,14 +25,14 @@
 
 #pragma once
 
-#include "JSPromiseAllContext.h"
+#include "JSPromiseContext.h"
 #include "Structure.h"
 
 namespace JSC {
 
-inline Structure* JSPromiseAllContext::createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
+inline Structure* JSPromiseContext::createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
 {
-    return Structure::create(vm, globalObject, prototype, TypeInfo(JSPromiseAllContextType, StructureFlags), info());
+    return Structure::create(vm, globalObject, prototype, TypeInfo(JSPromiseContextType, StructureFlags), info());
 }
 
 } // namespace JSC

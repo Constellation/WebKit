@@ -52,7 +52,7 @@
 #include "JITWorklistInlines.h"
 #include "JSFinalizationRegistry.h"
 #include "JSIterator.h"
-#include "JSPromiseAllContext.h"
+#include "JSPromiseContext.h"
 #include "JSPromiseReaction.h"
 #include "JSRawJSONObject.h"
 #include "JSRemoteFunction.h"
