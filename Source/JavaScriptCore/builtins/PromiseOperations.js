@@ -341,7 +341,7 @@ function resolveWithoutPromiseForAsyncAwait(resolution, onFulfilled, onRejected,
 
     if (@isPromise(resolution)) {
         try {
-            var { constructor } = resolution;
+            var constructor = resolution.constructor;
         } catch (error) {
             onRejected(error, context);
             return;
