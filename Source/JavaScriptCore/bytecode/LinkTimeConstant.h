@@ -89,7 +89,6 @@ class JSGlobalObject;
     v(isArray, nullptr) \
     v(isArraySlow, nullptr) \
     v(appendMemcpy, nullptr) \
-    v(hostPromiseRejectionTracker, nullptr) \
     v(Set, nullptr) \
     v(Map, nullptr) \
     v(importInRealm, nullptr) \

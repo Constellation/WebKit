@@ -247,8 +247,7 @@ void JSPromise::performPromiseThen(JSGlobalObject* globalObject, JSValue onFulfi
             if (globalObject->globalObjectMethodTable()->promiseRejectionTracker) {
                 globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, this, JSPromiseRejectionOperation::Handle);
                 RETURN_IF_EXCEPTION(scope, void());
-            } else
-                vm.promiseRejected(this);
+            }
         }
         scope.release();
         globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseOrCapability, onRejected, reactionsOrResult, context);

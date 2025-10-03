@@ -64,8 +64,6 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
             if (!promise->isHandled()) {
                 if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
                     globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
-                else
-                    vm.promiseRejected(promise);
             }
             globalObject->queueMicrotask(globalObject->promiseReactionJobFunction(), promiseToResolve, jsUndefined(), promise->reactionsOrResult(), jsNumber(static_cast<int32_t>(JSPromise::Status::Rejected)));
             break;
@@ -100,8 +98,6 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
             if (!promise->isHandled()) {
                 if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
                     globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Handle);
-                else
-                    vm.promiseRejected(promise);
             }
             globalObject->queueMicrotask(globalObject->promiseReactionJobWithoutPromiseFunction(), onRejected, promise->reactionsOrResult(), context, jsUndefined());
             break;
