@@ -148,8 +148,8 @@ JSPromise* JSPromise::rejectedPromise(JSGlobalObject* globalObject, JSValue valu
     // We can skip triggering them, which completely avoids calling JS functions.
     VM& vm = globalObject->vm();
     JSPromise* promise = JSPromise::create(vm, globalObject->promiseStructure());
-    promise->internalField(Field::ReactionsOrResult).set(vm, promise, value);
     promise->internalField(Field::Flags).set(vm, promise, jsNumber(promise->flags() | isFirstResolvingFunctionCalledFlag | static_cast<unsigned>(Status::Rejected)));
+    promise->internalField(Field::ReactionsOrResult).set(vm, promise, value);
     if (globalObject->globalObjectMethodTable()->promiseRejectionTracker)
         globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, promise, JSPromiseRejectionOperation::Reject);
     else
@@ -249,12 +249,14 @@ void JSPromise::rejectPromise(JSGlobalObject* globalObject, JSValue argument)
     uint32_t flags = this->flags();
     auto* reactions = jsDynamicCast<JSPromiseReaction*>(this->reactionsOrResult());
     internalField(Field::Flags).set(vm, this, jsNumber(flags | static_cast<uint32_t>(Status::Rejected)));
+    internalField(Field::ReactionsOrResult).set(vm, this, argument);
 
     if (!isHandled()) {
         if (globalObject->globalObjectMethodTable()->promiseRejectionTracker) {
             globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, this, JSPromiseRejectionOperation::Reject);
             RETURN_IF_EXCEPTION(scope, void());
-        }
+        } else
+            vm.promiseRejected(this);
     }
 
     if (!reactions)
@@ -271,6 +273,7 @@ void JSPromise::fulfillPromise(JSGlobalObject* globalObject, JSValue argument)
     uint32_t flags = this->flags();
     auto* reactions = jsDynamicCast<JSPromiseReaction*>(this->reactionsOrResult());
     internalField(Field::Flags).set(vm, this, jsNumber(flags | static_cast<uint32_t>(Status::Fulfilled)));
+    internalField(Field::ReactionsOrResult).set(vm, this, argument);
 
     if (!reactions)
         return;
