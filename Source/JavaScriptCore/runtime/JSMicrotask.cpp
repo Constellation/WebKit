@@ -41,6 +41,19 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC {
 
+void promiseResolveThenableJobFastFallback(JSGlobalObject* globalObject, JSPromise* promise, JSPromise* promiseToResolve)
+{
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSObject* constructor = promiseSpeciesConstructor(globalObject, promise);
+    RETURN_IF_EXCEPTION(scope, void());
+
+    auto [resolve, reject] = promiseToResolve->createResolvingFunctions(vm, globalObject);
+
+    auto [capability, resolve, reject] = JSPromise::newPromiseCapability(
+}
+
 JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, InternalMicrotask task, std::span<const JSValue> arguments)
 {
     VM& vm = globalObject->vm();
@@ -49,11 +62,14 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
     switch (task) {
     case InternalMicrotask::PromiseResolveThenableJobFast: {
         auto* promise = jsCast<JSPromise*>(arguments[0]);
-        JSValue promiseToResolve = arguments[1];
+        auto* promiseToResolve = jsCast<JSPromise*>(arguments[1]);
 
         if (!promise->inherits<JSInternalPromise>()) {
-            if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]]
-                return globalObject->promiseResolveThenableJobFastFallbackFunction();
+            if (!promiseSpeciesWatchpointIsValid(vm, promise)) [[unlikely]] {
+                promiseResolveThenableJobFastFallback(globalObject, promise, promiseToResolve);
+                scope.clearExceptionExceptTermination();
+                return JSValue();
+            }
         }
 
         switch (promise->status()) {

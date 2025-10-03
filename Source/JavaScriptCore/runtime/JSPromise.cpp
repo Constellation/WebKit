@@ -528,4 +528,39 @@ bool JSPromise::isThenFastAndNonObservable()
     return true;
 }
 
+JSObject* promiseSpeciesConstructor(JSGlobalObject* globalObject, JSObject* thisObject)
+{
+    VM& vm = getVM(globalObject);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    if (auto* promise = jsDynamicCast<JSPromise*>(thisObject)) [[likely]] {
+        if (promiseSpeciesWatchpointIsValid(vm, promise)) [[likely]]
+            return globalObject->promiseConstructor();
+    }
+
+    JSValue constructor = thisObject->get(globalObject, vm.propertyNames->constructor);
+    RETURN_IF_EXCEPTION(scope, { });
+
+    if (constructor.isUndefined())
+        return globalObject->promiseConstructor();
+
+    if (!constructor.isObject()) [[unlikely]] {
+        throwTypeError(globalObject, scope, "|this|.constructor is not an Object or undefined"_s);
+        return { };
+    }
+
+    constructor = asObject(constructor)->get(globalObject, vm.propertyNames->speciesSymbol);
+    RETURN_IF_EXCEPTION(scope, { });
+
+    if (constructor.isUndefinedOrNull())
+        return globalObject->promiseConstructor();
+
+    if (constructor.isConstructor()) [[likely]]
+        return asObject(constructor);
+
+    throwTypeError(globalObject, scope, "|this|.constructor[Symbol.species] is not a constructor"_s);
+    return { };
+}
+
+
 } // namespace JSC
