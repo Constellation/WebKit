@@ -117,6 +117,8 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
         promise->markAsHandled();
         return JSValue();
     }
+    }
+
     return JSValue();
 }
 
