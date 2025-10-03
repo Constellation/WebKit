@@ -41,7 +41,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 namespace JSC {
 
-JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, InternalMicrotask task, std::span<const JSValue> arguments)
+JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier identifier, InternalMicrotask task, std::span<const JSValue> arguments)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_CATCH_SCOPE(vm);
@@ -80,6 +80,7 @@ JSValue runInternalMirotask(JSGlobalObject* globalObject, MicrotaskIdentifier, I
             break;
         }
         }
+
         promise->markAsHandled();
         return JSValue();
     }
