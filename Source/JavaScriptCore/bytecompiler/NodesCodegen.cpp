@@ -43,7 +43,7 @@
 #include "JSIteratorHelper.h"
 #include "JSMapIterator.h"
 #include "JSPromise.h"
-#include "JSPromiseContext.h"
+#include "JSPromiseAllContext.h"
 #include "JSPromiseReaction.h"
 #include "JSRegExpStringIterator.h"
 #include "JSSetIterator.h"
@@ -1701,19 +1701,19 @@ static JSWrapForValidIterator::Field wrapForValidIteratorInternalFieldIndex(Byte
     return JSWrapForValidIterator::Field::IteratedNextMethod;
 }
 
-static JSPromiseContext::Field promiseContextInternalFieldIndex(BytecodeIntrinsicNode* node)
+static JSPromiseAllContext::Field promiseAllContextInternalFieldIndex(BytecodeIntrinsicNode* node)
 {
     ASSERT(node->entry().type() == BytecodeIntrinsicRegistry::Type::Emitter);
-    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseContextFieldPromise)
-        return JSPromiseContext::Field::Promise;
-    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseContextFieldValues)
-        return JSPromiseContext::Field::Values;
-    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseContextFieldRemainingElementsCount)
-        return JSPromiseContext::Field::RemainingElementsCount;
-    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseContextFieldIndex)
-        return JSPromiseContext::Field::Index;
+    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseAllContextFieldPromise)
+        return JSPromiseAllContext::Field::Promise;
+    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseAllContextFieldValues)
+        return JSPromiseAllContext::Field::Values;
+    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseAllContextFieldRemainingElementsCount)
+        return JSPromiseAllContext::Field::RemainingElementsCount;
+    if (node->entry().emitter() == &BytecodeIntrinsicNode::emit_intrinsic_promiseAllContextFieldIndex)
+        return JSPromiseAllContext::Field::Index;
     RELEASE_ASSERT_NOT_REACHED();
-    return JSPromiseContext::Field::Promise;
+    return JSPromiseAllContext::Field::Promise;
 }
 
 static JSPromiseReaction::Field promiseReactionInternalFieldIndex(BytecodeIntrinsicNode* node)
@@ -1928,14 +1928,14 @@ RegisterID* BytecodeIntrinsicNode::emit_intrinsic_getWrapForValidIteratorInterna
     return generator.emitGetInternalField(generator.finalDestination(dst), base.get(), index);
 }
 
-RegisterID* BytecodeIntrinsicNode::emit_intrinsic_getPromiseContextInternalField(BytecodeGenerator& generator, RegisterID* dst)
+RegisterID* BytecodeIntrinsicNode::emit_intrinsic_getPromiseAllContextInternalField(BytecodeGenerator& generator, RegisterID* dst)
 {
     ArgumentListNode* node = m_args->m_listNode;
     RefPtr<RegisterID> base = generator.emitNode(node);
     node = node->m_next;
     RELEASE_ASSERT(node->m_expr->isBytecodeIntrinsicNode());
-    unsigned index = static_cast<unsigned>(promiseContextInternalFieldIndex(static_cast<BytecodeIntrinsicNode*>(node->m_expr)));
-    ASSERT(index < JSPromiseContext::numberOfInternalFields);
+    unsigned index = static_cast<unsigned>(promiseAllContextInternalFieldIndex(static_cast<BytecodeIntrinsicNode*>(node->m_expr)));
+    ASSERT(index < JSPromiseAllContext::numberOfInternalFields);
     ASSERT(!node->m_next);
 
     return generator.emitGetInternalField(generator.finalDestination(dst), base.get(), index);
@@ -2235,14 +2235,14 @@ RegisterID* BytecodeIntrinsicNode::emit_intrinsic_putAsyncDisposableStackInterna
     return generator.move(dst, generator.emitPutInternalField(base.get(), index, value.get()));
 }
 
-RegisterID* BytecodeIntrinsicNode::emit_intrinsic_putPromiseContextInternalField(BytecodeGenerator& generator, RegisterID* dst)
+RegisterID* BytecodeIntrinsicNode::emit_intrinsic_putPromiseAllContextInternalField(BytecodeGenerator& generator, RegisterID* dst)
 {
     ArgumentListNode* node = m_args->m_listNode;
     RefPtr<RegisterID> base = generator.emitNode(node);
     node = node->m_next;
     RELEASE_ASSERT(node->m_expr->isBytecodeIntrinsicNode());
-    unsigned index = static_cast<unsigned>(promiseContextInternalFieldIndex(static_cast<BytecodeIntrinsicNode*>(node->m_expr)));
-    ASSERT(index < JSPromiseContext::numberOfInternalFields);
+    unsigned index = static_cast<unsigned>(promiseAllContextInternalFieldIndex(static_cast<BytecodeIntrinsicNode*>(node->m_expr)));
+    ASSERT(index < JSPromiseAllContext::numberOfInternalFields);
     node = node->m_next;
     RefPtr<RegisterID> value = generator.emitNode(node);
 
@@ -2450,7 +2450,7 @@ CREATE_INTRINSIC_FOR_BRAND_CHECK(isGenerator, IsGenerator)
 CREATE_INTRINSIC_FOR_BRAND_CHECK(isIteratorHelper, IsIteratorHelper)
 CREATE_INTRINSIC_FOR_BRAND_CHECK(isAsyncGenerator, IsAsyncGenerator)
 CREATE_INTRINSIC_FOR_BRAND_CHECK(isPromise, IsPromise)
-CREATE_INTRINSIC_FOR_BRAND_CHECK(isPromiseContext, IsPromiseContext)
+CREATE_INTRINSIC_FOR_BRAND_CHECK(isPromiseAllContext, IsPromiseAllContext)
 CREATE_INTRINSIC_FOR_BRAND_CHECK(isPromiseReaction, IsPromiseReaction)
 CREATE_INTRINSIC_FOR_BRAND_CHECK(isRegExpObject, IsRegExpObject)
 CREATE_INTRINSIC_FOR_BRAND_CHECK(isMap, IsMap)

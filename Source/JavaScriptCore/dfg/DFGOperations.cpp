@@ -66,7 +66,7 @@
 #include "JSLexicalEnvironment.h"
 #include "JSMap.h"
 #include "JSMapIterator.h"
-#include "JSPromiseContext.h"
+#include "JSPromiseAllContext.h"
 #include "JSPromiseConstructor.h"
 #include "JSPromiseReaction.h"
 #include "JSPropertyNameEnumerator.h"
@@ -2363,14 +2363,14 @@ JSC_DEFINE_JIT_OPERATION(operationNewAsyncFromSyncIterator, JSCell*, (VM* vmPoin
     OPERATION_RETURN(scope, JSAsyncFromSyncIterator::createWithInitialValues(vm, structure));
 }
 
-JSC_DEFINE_JIT_OPERATION(operationNewPromiseContext, JSCell*, (VM* vmPointer, Structure* structure))
+JSC_DEFINE_JIT_OPERATION(operationNewPromiseAllContext, JSCell*, (VM* vmPointer, Structure* structure))
 {
     VM& vm = *vmPointer;
     CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
     JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    OPERATION_RETURN(scope, JSPromiseContext::createWithInitialValues(vm, structure));
+    OPERATION_RETURN(scope, JSPromiseAllContext::createWithInitialValues(vm, structure));
 }
 
 JSC_DEFINE_JIT_OPERATION(operationNewPromiseReaction, JSCell*, (VM* vmPointer, Structure* structure))

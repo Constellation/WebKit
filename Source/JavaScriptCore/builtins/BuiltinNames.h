@@ -211,7 +211,7 @@ namespace JSC {
     macro(pop) \
     macro(wrapForValidIteratorCreate) \
     macro(asyncFromSyncIteratorCreate) \
-    macro(promiseContextCreate) \
+    macro(promiseAllContextCreate) \
     macro(promiseReactionCreate) \
     macro(regExpStringIteratorCreate) \
     macro(iteratorHelperCreate) \

@@ -80,9 +80,9 @@ function promiseOnRejectedWithContext(argument, context)
 {
     "use strict";
 
-    @assert(@isPromiseContext(context));
+    @assert(@isPromiseAllContext(context));
 
-    return @rejectPromiseWithFirstResolvingFunctionCallCheck(@getPromiseContextInternalField(context, @promiseContextFieldPromise), argument);
+    return @rejectPromiseWithFirstResolvingFunctionCallCheck(@getPromiseAllContextInternalField(context, @promiseAllContextFieldPromise), argument);
 }
 
 @linkTimeConstant
@@ -90,12 +90,12 @@ function promiseAllOnFulfilled(argument, context)
 {
     "use strict";
 
-    @assert(@isPromiseContext(context));
+    @assert(@isPromiseAllContext(context));
 
-    var promise = @getPromiseContextInternalField(context, @promiseContextFieldPromise);
-    var values = @getPromiseContextInternalField(context, @promiseContextFieldValues);
-    var remainingElementsCountObj = @getPromiseContextInternalField(context, @promiseContextFieldRemainingElementsCount);
-    var index = @getPromiseContextInternalField(context, @promiseContextFieldIndex);
+    var promise = @getPromiseAllContextInternalField(context, @promiseAllContextFieldPromise);
+    var values = @getPromiseAllContextInternalField(context, @promiseAllContextFieldValues);
+    var remainingElementsCountObj = @getPromiseAllContextInternalField(context, @promiseAllContextFieldRemainingElementsCount);
+    var index = @getPromiseAllContextInternalField(context, @promiseAllContextFieldIndex);
 
     @putByValDirect(values, index, argument);
 
@@ -118,7 +118,7 @@ function promiseAllNewResolveElement(context, index)
 {
     "use strict";
 
-    @assert(@isPromiseContext(context));
+    @assert(@isPromiseAllContext(context));
 
     var alreadyCalled = false;
     return (argument) => {
@@ -126,12 +126,12 @@ function promiseAllNewResolveElement(context, index)
             return @undefined;
         alreadyCalled = true;
 
-        var values = @getPromiseContextInternalField(context, @promiseContextFieldValues);
+        var values = @getPromiseAllContextInternalField(context, @promiseAllContextFieldValues);
         @putByValDirect(values, index, argument);
 
-        var remainingElementsCount = @getPromiseContextInternalField(context, @promiseContextFieldRemainingElementsCount);
+        var remainingElementsCount = @getPromiseAllContextInternalField(context, @promiseAllContextFieldRemainingElementsCount);
         if (!--remainingElementsCount.value) {
-            var promise = @getPromiseContextInternalField(context, @promiseContextFieldPromise);
+            var promise = @getPromiseAllContextInternalField(context, @promiseAllContextFieldPromise);
             return @resolvePromiseWithFirstResolvingFunctionCallCheck(promise, values);
         }
     };
@@ -160,7 +160,7 @@ function all(iterable)
             var nextPromise = promiseResolve.@call(this, value);
             ++remainingElementsCountObj.value;
             var then = nextPromise.then;
-            var context = @promiseContextCreate(promise, values, remainingElementsCountObj, index);
+            var context = @promiseAllContextCreate(promise, values, remainingElementsCountObj, index);
             if (@isPromise(nextPromise) && then === @defaultPromiseThen) {
                 var constructor = @speciesConstructor(nextPromise, @Promise);
                 var promiseOrCapability;

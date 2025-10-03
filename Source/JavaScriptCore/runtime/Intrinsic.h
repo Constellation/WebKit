@@ -198,7 +198,7 @@ namespace JSC {
     macro(IteratorHelperCreateIntrinsic) \
     macro(WrapForValidIteratorCreateIntrinsic) \
     macro(AsyncFromSyncIteratorCreateIntrinsic) \
-    macro(PromiseContextCreateIntrinsic) \
+    macro(PromiseAllContextCreateIntrinsic) \
     macro(PromiseReactionCreateIntrinsic) \
     macro(RegExpStringIteratorCreateIntrinsic) \
     \
