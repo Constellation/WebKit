@@ -79,6 +79,9 @@ namespace JSC {
     macro(resolvePromise) \
     macro(rejectPromise) \
     macro(fulfillPromise) \
+    macro(resolveWithoutPromise) \
+    macro(rejectWithoutPromise) \
+    macro(fulfillWithoutPromise) \
     macro(resolvePromiseWithFirstResolvingFunctionCallCheck) \
     macro(rejectPromiseWithFirstResolvingFunctionCallCheck) \
     macro(fulfillPromiseWithFirstResolvingFunctionCallCheck) \

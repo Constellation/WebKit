@@ -171,58 +171,6 @@ function promiseReactionJobWithoutPromise(handler, argument, context)
 }
 
 // This function has strong guarantee that each handler function (onFulfilled and onRejected) will be called at most once.
-@linkTimeConstant
-function resolveWithoutPromise(resolution, onFulfilled, onRejected, context)
-{
-    "use strict";
-
-    if (!@isObject(resolution)) {
-        @fulfillWithoutPromise(resolution, onFulfilled, onRejected, context);
-        return;
-    }
-
-    var then;
-    try {
-        then = resolution.then;
-    } catch (error) {
-        @rejectWithoutPromise(error, onFulfilled, onRejected, context);
-        return;
-    }
-
-    if (@isPromise(resolution) && then === @defaultPromiseThen) {
-        @enqueueJob(@PromiseResolveThenableJobWithoutPromiseFast, resolution, onFulfilled, onRejected, context);
-        return;
-    }
-
-    if (!@isCallable(then)) {
-        @fulfillWithoutPromise(resolution, onFulfilled, onRejected, context);
-        return;
-    }
-
-    // Wrap onFulfilled and onRejected with @createResolvingFunctionsWithoutPromise to ensure that each function will be called at most once.
-    var resolvingFunctions = @createResolvingFunctionsWithoutPromise(onFulfilled, onRejected, context);
-    @enqueueJob(@promiseResolveThenableJob, resolution, then, resolvingFunctions.resolve, resolvingFunctions.reject);
-}
-
-// This function has strong guarantee that each handler function (onFulfilled and onRejected) will be called at most once.
-@linkTimeConstant
-function rejectWithoutPromise(reason, onFulfilled, onRejected, context)
-{
-    "use strict";
-
-    @enqueueJob(@promiseReactionJobWithoutPromise, onRejected, reason, context);
-}
-
-// This function has strong guarantee that each handler function (onFulfilled and onRejected) will be called at most once.
-@linkTimeConstant
-function fulfillWithoutPromise(value, onFulfilled, onRejected, context)
-{
-    "use strict";
-
-    @enqueueJob(@promiseReactionJobWithoutPromise, onFulfilled, value, context);
-}
-
-// This function has strong guarantee that each handler function (onFulfilled and onRejected) will be called at most once.
 // This is special version of resolveWithoutPromise which skips resolution's then handling.
 // https://github.com/tc39/ecma262/pull/1250
 @linkTimeConstant

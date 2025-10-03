@@ -343,6 +343,9 @@ static JSC_DECLARE_HOST_FUNCTION(enqueueJob);
 static JSC_DECLARE_HOST_FUNCTION(resolvePromise);
 static JSC_DECLARE_HOST_FUNCTION(rejectPromise);
 static JSC_DECLARE_HOST_FUNCTION(fulfillPromise);
+static JSC_DECLARE_HOST_FUNCTION(resolveWithoutPromise);
+static JSC_DECLARE_HOST_FUNCTION(rejectWithoutPromise);
+static JSC_DECLARE_HOST_FUNCTION(fulfillWithoutPromise);
 static JSC_DECLARE_HOST_FUNCTION(resolvePromiseWithFirstResolvingFunctionCallCheck);
 static JSC_DECLARE_HOST_FUNCTION(rejectPromiseWithFirstResolvingFunctionCallCheck);
 static JSC_DECLARE_HOST_FUNCTION(fulfillPromiseWithFirstResolvingFunctionCallCheck);
@@ -751,6 +754,24 @@ JSC_DEFINE_HOST_FUNCTION(fulfillPromise, (JSGlobalObject* globalObject, CallFram
     auto* promise = jsCast<JSPromise*>(callFrame->uncheckedArgument(0));
     JSValue argument = callFrame->uncheckedArgument(1);
     promise->fulfillPromise(globalObject, argument);
+    return encodedJSUndefined();
+}
+
+JSC_DEFINE_HOST_FUNCTION(resolveWithoutPromise, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    JSPromise::resolveWithoutPromise(globalObject, callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0));
+    return encodedJSUndefined();
+}
+
+JSC_DEFINE_HOST_FUNCTION(rejectWithoutPromise, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    JSPromise::rejectWithoutPromise(globalObject, callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0));
+    return encodedJSUndefined();
+}
+
+JSC_DEFINE_HOST_FUNCTION(fulfillWithoutPromise, (JSGlobalObject* globalObject, CallFrame* callFrame))
+{
+    JSPromise::fulfillWithoutPromise(globalObject, callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0), callFrame->uncheckedArgument(0));
     return encodedJSUndefined();
 }
 
@@ -1777,6 +1798,15 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
         });
     m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::fulfillPromise)].initLater([] (const Initializer<JSCell>& init) {
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "fulfillPromise"_s, fulfillPromise, ImplementationVisibility::Private));
+        });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::resolveWithoutPromise)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 4, "resolveWithoutPromise"_s, resolveWithoutPromise, ImplementationVisibility::Private));
+        });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::rejectWithoutPromise)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 4, "rejectWithoutPromise"_s, rejectWithoutPromise, ImplementationVisibility::Private));
+        });
+    m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::fulfillWithoutPromise)].initLater([] (const Initializer<JSCell>& init) {
+            init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 4, "fulfillWithoutPromise"_s, fulfillWithoutPromise, ImplementationVisibility::Private));
         });
     m_linkTimeConstants[static_cast<unsigned>(LinkTimeConstant::resolvePromiseWithFirstResolvingFunctionCallCheck)].initLater([] (const Initializer<JSCell>& init) {
             init.set(JSFunction::create(init.vm, jsCast<JSGlobalObject*>(init.owner), 2, "resolvePromiseWithFirstResolvingFunctionCallCheck"_s, resolvePromiseWithFirstResolvingFunctionCallCheck, ImplementationVisibility::Private));

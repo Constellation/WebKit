@@ -59,6 +59,9 @@ class JSGlobalObject;
     v(resolvePromise, nullptr) \
     v(rejectPromise, nullptr) \
     v(fulfillPromise, nullptr) \
+    v(resolveWithoutPromise, nullptr) \
+    v(rejectWithoutPromise, nullptr) \
+    v(fulfillWithoutPromise, nullptr) \
     v(resolvePromiseWithFirstResolvingFunctionCallCheck, nullptr) \
     v(rejectPromiseWithFirstResolvingFunctionCallCheck, nullptr) \
     v(fulfillPromiseWithFirstResolvingFunctionCallCheck, nullptr) \
