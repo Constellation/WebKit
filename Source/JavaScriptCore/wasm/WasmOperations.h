@@ -50,6 +50,7 @@ namespace Wasm {
 enum class UseDefaultValue : bool { No, Yes };
 enum class ArrayGetKind : unsigned { New, NewDefault, NewFixed };
 
+class CallProfile;
 class TypeDefinition;
 class JSToWasmCallee;
 
@@ -73,6 +74,7 @@ JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmLoopOSREnterBBQJIT, void, (Probe
 #endif
 #if ENABLE(WEBASSEMBLY_BBQJIT)
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializeBaselineData, void, (CallFrame*, JSWebAssemblyInstance*));
+JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializePolymorphicCallee, WasmOrJSImportableFunction*, (JSWebAssemblyInstance*, CallProfile*, WasmOrJSImportableFunction*));
 #endif
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmUnwind, void*, (JSWebAssemblyInstance*));
 

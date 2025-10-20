@@ -43,23 +43,31 @@ class MergedProfile {
 public:
     class CallSite {
     public:
+        static constexpr size_t megamorphicThreshold = 4;
+
         void merge(const CallProfile&);
         uint32_t count() const { return m_count; }
 
         Callee* callee() const
         {
-            if (m_callee == megamorphic)
+            if (m_isMegamorphic)
                 return nullptr;
-            return std::bit_cast<Callee*>(m_callee);
+            if (m_callee.isEmpty())
+                return nullptr;
+            if (m_callee.size() != 1)
+                return nullptr;
+            return m_callee.begin()->key;
         }
 
-        bool isMegamorphic() const { return m_callee == megamorphic; }
+        bool isMegamorphic() const
+        {
+            return m_isMegamorphic;
+        }
 
     private:
-        static constexpr uintptr_t megamorphic = 1;
-
+        UncheckedKeyHashMap<Callee*, uint32_t> m_callee;
         uint32_t m_count { 0 };
-        uintptr_t m_callee { 0 };
+        bool m_isMegamorphic { false };
     };
 
     MergedProfile(const IPIntCallee&);

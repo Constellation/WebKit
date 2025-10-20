@@ -165,6 +165,38 @@ MacroAssemblerCodeRef<JITThunkPtrTag> materializeBaselineDataGenerator(const Abs
     LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
     return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "materializeBaselineDataThunk"_s, "Materialize BaselineData");
 }
+
+MacroAssemblerCodeRef<JITThunkPtrTag> materializePolymorphicCalleeGenerator(const AbstractLocker&)
+{
+    CCallHelpers jit;
+    JIT_COMMENT(jit, "materializePolymorphicCalleeGenerator");
+    jit.emitFunctionPrologue();
+
+    const unsigned extraPaddingBytes = 0;
+    RegisterSetBuilder builder;
+    for (auto regs : wasmCallingConvention().jsrArgs)
+        builder.add(regs, IgnoreVectors);
+    for (auto reg : wasmCallingConvention().fprArgs)
+        builder.add(reg, Options::useWasmSIMD() ? Width128 : Width64);
+
+    auto registersToSpill = RegisterSetBuilder::registersToSaveForCCall(builder.buildWithLowerBits()).buildWithLowerBits();
+    unsigned numberOfStackBytesUsedForRegisterPreservation = ScratchRegisterAllocator::preserveRegistersToStackForCall(jit, registersToSpill, extraPaddingBytes);
+
+    // We can clobber these argument registers now since we saved them and later we restore them.
+    jit.move(GPRInfo::wasmContextInstancePointer, GPRInfo::argumentGPR0);
+    jit.move(GPRInfo::nonPreservedNonArgumentGPR0, GPRInfo::argumentGPR1);
+    jit.move(GPRInfo::nonPreservedNonArgumentGPR1, GPRInfo::argumentGPR2);
+    jit.move(MacroAssembler::TrustedImmPtr(tagCFunction<OperationPtrTag>(operationWasmMaterializePolymorphicCallee)), GPRInfo::argumentGPR3);
+    jit.call(GPRInfo::argumentGPR3, OperationPtrTag);
+    jit.move(GPRInfo::returnValueGPR, GPRInfo::nonPreservedNonArgumentGPR1);
+
+    ScratchRegisterAllocator::restoreRegistersFromStackForCall(jit, registersToSpill, { }, numberOfStackBytesUsedForRegisterPreservation, extraPaddingBytes);
+
+    jit.emitFunctionEpilogue();
+    jit.ret();
+    LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
+    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "materializePolymorphicCalleeThunk"_s, "Materialize PolymorphicCallee");
+}
 #endif
 
 #if USE(JSVALUE64)

@@ -29,12 +29,16 @@
 
 #include <JavaScriptCore/WasmCallingConvention.h>
 #include <wtf/Expected.h>
+#include <wtf/TrailingArray.h>
 #include <wtf/text/WTFString.h>
 
 namespace JSC::Wasm {
 
 class CallProfile {
 public:
+    CallProfile() = default;
+    ~CallProfile();
+
     uint32_t count() const { return m_count; }
 
     void incrementCount()
@@ -44,7 +48,7 @@ public:
 
     void observeCrossInstanceCall()
     {
-        m_boxedCallee = megamorphicCallee;
+        makeMegamorphic();
     }
 
     void observeCallIndirect(EncodedJSValue boxedCallee)
@@ -57,8 +61,25 @@ public:
             return;
         }
 
-        // Initially, we are giving up for polymorphic calls.
-        m_boxedCallee = megamorphicCallee;
+        if (isMegamorphic(m_boxedCallee))
+            return;
+
+        auto* poly = polymorphic(m_boxedCallee);
+        if (!poly)
+            poly = makePolymorphic();
+
+        for (auto& profile : *poly) {
+            if (profile.boxedCallee() == boxedCallee) {
+                profile.incrementCount();
+                return;
+            }
+            if (!profile.boxedCallee()) {
+                profile.m_boxedCallee = boxedCallee;
+                profile.incrementCount();
+                return;
+            }
+        }
+        makeMegamorphic();
     }
 
     EncodedJSValue boxedCallee() const { return m_boxedCallee; }
@@ -66,11 +87,67 @@ public:
     static constexpr ptrdiff_t offsetOfCount() { return OBJECT_OFFSETOF(CallProfile, m_count); }
     static constexpr ptrdiff_t offsetOfBoxedCallee() { return OBJECT_OFFSETOF(CallProfile, m_boxedCallee); }
 
-    static constexpr EncodedJSValue initCallee = 0b00;
-    static constexpr EncodedJSValue polymorphicCallee = 0b01;
-    static constexpr EncodedJSValue megamorphicCallee = 0b10;
+    static constexpr EncodedJSValue initCallee = 0b0000;
+    static constexpr EncodedJSValue polymorphicCallee = 0b0100;
+    static constexpr EncodedJSValue megamorphicCallee = 0b1000;
+    static constexpr EncodedJSValue calleeMask = 0b1100;
+#if USE(JSVALUE64)
+    static_assert(!(JSValue::NativeCalleeTag & calleeMask));
+#endif
+
+    class alignas(16) PolymorphicCallee final : public ThreadSafeRefCounted<PolymorphicCallee>, public TrailingArray<PolymorphicCallee, CallProfile> {
+        WTF_DEPRECATED_MAKE_FAST_ALLOCATED(PolymorphicCallee);
+        WTF_MAKE_NONMOVABLE(PolymorphicCallee);
+        using TrailingArrayType = TrailingArray<PolymorphicCallee, CallProfile>;
+        friend TrailingArrayType;
+    public:
+
+        static Ref<PolymorphicCallee> create(unsigned size)
+        {
+            return adoptRef(*new (fastMalloc(allocationSize(size))) PolymorphicCallee(size));
+        }
+
+    private:
+        PolymorphicCallee(unsigned size)
+            : TrailingArrayType(size)
+        {
+        }
+    };
+
+    static bool isMegamorphic(EncodedJSValue boxedCallee)
+    {
+        return boxedCallee & megamorphicCallee;
+    }
+
+    static Callee* monomorphic(EncodedJSValue boxedCallee)
+    {
+        if (boxedCallee & megamorphicCallee)
+            return nullptr;
+        if (boxedCallee & polymorphicCallee)
+            return nullptr;
+        uintptr_t bits = static_cast<uintptr_t>(boxedCallee & ~calleeMask);
+        if (!bits)
+            return nullptr;
+        return std::bit_cast<Callee*>(CalleeBits(bits).asNativeCallee());
+    }
+
+    static PolymorphicCallee* polymorphic(EncodedJSValue boxedCallee)
+    {
+        if (boxedCallee & megamorphicCallee)
+            return nullptr;
+        if (boxedCallee & polymorphicCallee)
+            return std::bit_cast<PolymorphicCallee*>(static_cast<uintptr_t>(boxedCallee & ~calleeMask));
+        return nullptr;
+    }
 
 private:
+    void makeMegamorphic()
+    {
+        m_boxedCallee = (m_boxedCallee | megamorphicCallee);
+    }
+
+    PolymorphicCallee* makePolymorphic();
+
     uint32_t m_count { 0 };
     EncodedJSValue m_boxedCallee { initCallee };
 };

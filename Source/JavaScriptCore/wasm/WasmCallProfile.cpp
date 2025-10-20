@@ -24,8 +24,9 @@
  */
 
 #include "config.h"
-#include "WasmMergedProfile.h"
+#include "WasmCallProfile.h"
 
+#include "WasmMergedProfile.h"
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -33,44 +34,22 @@
 
 namespace JSC::Wasm {
 
-WTF_MAKE_TZONE_ALLOCATED_IMPL(MergedProfile);
-
-MergedProfile::MergedProfile(const IPIntCallee& callee)
-    : m_callSites(callee.numCallProfiles())
+CallProfile::~CallProfile()
 {
+    // Do not use ::polymorphic as it does not extract a callee when it is already megamorphic.
+    if (m_boxedCallee & polymorphicCallee) {
+        auto* poly = std::bit_cast<PolymorphicCallee*>(static_cast<uintptr_t>(m_boxedCallee & ~calleeMask));
+        poly->deref();
+    }
 }
 
-void MergedProfile::CallSite::merge(const CallProfile& slot)
+auto CallProfile::makePolymorphic() -> PolymorphicCallee*
 {
-    EncodedJSValue boxedCallee = slot.boxedCallee();
-    uint32_t count = slot.count();
-    m_count += count;
-
-    if (CallProfile::isMegamorphic(boxedCallee)) {
-        m_isMegamorphic = true;
-        return;
-    }
-
-    // Keep in mind that count is updated concurrently.
-    // Sum of all polymorphic counts may not be the same to the total count.
-    if (auto* poly = CallProfile::polymorphic(boxedCallee)) {
-        for (auto& profile : *poly) {
-            if (auto* callee = CallProfile::monomorphic(profile.boxedCallee())) {
-                auto addResult = m_callee.add(callee, profile.count());
-                if (!addResult.isNewEntry)
-                    addResult.iterator->value += profile.count();
-            }
-        }
-    } else if (auto* callee = CallProfile::monomorphic(boxedCallee)) {
-        auto addResult = m_callee.add(callee, count);
-        if (!addResult.isNewEntry)
-            addResult.iterator->value += count;
-    }
-
-    if (m_callee.size() > megamorphicThreshold) {
-        m_callee.clear();
-        m_isMegamorphic = true;
-    }
+    auto* poly = &PolymorphicCallee::create(MergedProfile::CallSite::megamorphicThreshold - 1).leakRef();
+    EncodedJSValue boxedCallee = std::bit_cast<EncodedJSValue>(poly) | polymorphicCallee;
+    WTF::storeStoreFence();
+    m_boxedCallee = boxedCallee;
+    return poly;
 }
 
 } // namespace JSC::Wasm

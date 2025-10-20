@@ -1270,6 +1270,12 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializeBaselineData, void, (C
     FunctionCodeIndex functionIndex = calleeGroup.toCodeIndex(functionIndexInSpace);
     instance->ensureBaselineData(functionIndex);
 }
+
+JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializePolymorphicCallee, WasmOrJSImportableFunction*, (JSWebAssemblyInstance*, CallProfile* callProfile, WasmOrJSImportableFunction* importableFunction))
+{
+    callProfile->observeCallIndirect(importableFunction->boxedCallee.encodedBits());
+    return importableFunction;
+}
 #endif
 
 JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationWasmUnwind, void*, (JSWebAssemblyInstance* instance))
