@@ -45,7 +45,7 @@ CallProfile::~CallProfile()
 
 auto CallProfile::makePolymorphic() -> PolymorphicCallee*
 {
-    auto* poly = &PolymorphicCallee::create(MergedProfile::CallSite::megamorphicThreshold - 1, this).leakRef();
+    auto* poly = &PolymorphicCallee::create(maxPolymorphicCallees, this).leakRef();
     EncodedJSValue boxedCallee = std::bit_cast<EncodedJSValue>(poly) | polymorphicCallee;
     WTF::storeStoreFence();
     m_boxedCallee = boxedCallee;

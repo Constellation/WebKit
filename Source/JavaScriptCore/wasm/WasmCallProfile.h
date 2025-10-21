@@ -95,6 +95,8 @@ public:
     static_assert(!(JSValue::NativeCalleeTag & calleeMask));
 #endif
 
+    static constexpr size_t maxPolymorphicCallees = 3;
+
     class alignas(16) PolymorphicCallee final : public ThreadSafeRefCounted<PolymorphicCallee>, public TrailingArray<PolymorphicCallee, CallProfile> {
         WTF_DEPRECATED_MAKE_FAST_ALLOCATED(PolymorphicCallee);
         WTF_MAKE_NONMOVABLE(PolymorphicCallee);

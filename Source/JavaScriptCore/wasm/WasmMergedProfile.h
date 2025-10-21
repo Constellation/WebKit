@@ -43,8 +43,6 @@ class MergedProfile {
 public:
     class CallSite {
     public:
-        static constexpr size_t megamorphicThreshold = 4;
-
         void merge(const CallProfile&);
         uint32_t count() const { return m_count; }
 

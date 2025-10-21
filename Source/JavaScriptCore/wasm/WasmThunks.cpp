@@ -191,7 +191,7 @@ MacroAssemblerCodeRef<JITThunkPtrTag> callPolymorphicCalleeGenerator(const Abstr
         next.link(jit);
     };
 
-    for (unsigned i = 0; i < (MergedProfile::CallSite::megamorphicThreshold - 1); ++i)
+    for (unsigned i = 0; i < CallProfile::maxPolymorphicCallees; ++i)
         handleCase(i);
 
     jit.loadPtr(CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, CallProfile::PolymorphicCallee::offsetOfProfile()), GPRInfo::nonPreservedNonArgumentGPR0);

@@ -67,7 +67,7 @@ void MergedProfile::CallSite::merge(const CallProfile& slot)
             addResult.iterator->value += count;
     }
 
-    if (m_callee.size() > megamorphicThreshold) {
+    if (m_callee.size() > CallProfile::maxPolymorphicCallees) {
         m_callee.clear();
         m_isMegamorphic = true;
     }
