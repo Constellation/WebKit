@@ -43,35 +43,68 @@ MergedProfile::MergedProfile(const IPIntCallee& callee)
 void MergedProfile::CallSite::merge(const CallProfile& slot)
 {
     EncodedJSValue boxedCallee = slot.boxedCallee();
-    uint32_t count = slot.count();
-    m_count += count;
+    uint32_t speculativeTotalCount = slot.count();
 
     if (CallProfile::isMegamorphic(boxedCallee)) {
+        m_count += speculativeTotalCount;
         m_isMegamorphic = true;
         return;
     }
 
-    // Keep in mind that count is updated concurrently.
-    // Sum of all polymorphic counts may not be the same to the total count.
+    // Let's not use slot.count() as we are concurrently reading polymorphic callee.
+    // Make m_count consistent with all the polymorphic callee's counts.
+    unsigned addedCount = 0;
     if (auto* poly = CallProfile::polymorphic(boxedCallee)) {
         for (auto& profile : *poly) {
             if (auto* callee = CallProfile::monomorphic(profile.boxedCallee())) {
                 auto addResult = m_callee.add(callee, profile.count());
                 if (!addResult.isNewEntry)
                     addResult.iterator->value += profile.count();
+                addedCount += profile.count();
             }
         }
     } else if (auto* callee = CallProfile::monomorphic(boxedCallee)) {
-        auto addResult = m_callee.add(callee, count);
+        auto addResult = m_callee.add(callee, speculativeTotalCount);
         if (!addResult.isNewEntry)
-            addResult.iterator->value += count;
+            addResult.iterator->value += speculativeTotalCount;
+        addedCount += speculativeTotalCount;
     }
-
     if (m_callee.size() > CallProfile::maxPolymorphicCallees) {
         m_callee.clear();
+        m_count += speculativeTotalCount;
         m_isMegamorphic = true;
     }
+
+    m_count += addedCount;
 }
+
+auto MergedProfile::CallSite::candidates() const -> Candidates
+{
+    if (m_isMegamorphic)
+        return { };
+    if (m_callee.isEmpty())
+        return { };
+
+    if (m_callee.size() > CallProfile::maxPolymorphicCallees)
+        return { };
+
+    return Candidates { m_count, m_callee };
+}
+
+MergedProfile::Candidates::Candidates(uint32_t totalCount, const UncheckedKeyHashMap<Callee*, uint32_t>& callees)
+    : m_totalCount(totalCount)
+{
+    uint32_t size = 0;
+    for (auto [callee, count] : callees)
+        m_callees[size++] = std::tuple { callee, count };
+    m_size = size;
+    auto mutableSpan = std::span { m_callees }.first(m_size);
+    std::sort(mutableSpan.begin(), mutableSpan.end(),
+        [&](const auto& lhs, const auto& rhs) {
+            return std::get<1>(lhs) > std::get<1>(rhs);
+        });
+}
+
 
 } // namespace JSC::Wasm
 

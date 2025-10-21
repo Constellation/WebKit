@@ -27,9 +27,12 @@
 
 #if ENABLE(WEBASSEMBLY)
 
+#include <array>
+#include <tuple>
 #include <JavaScriptCore/WasmBaselineData.h>
 #include <JavaScriptCore/WasmCallProfile.h>
 #include <JavaScriptCore/WasmCallee.h>
+#include <wtf/StdLibExtras.h>
 #include <wtf/text/WTFString.h>
 
 namespace JSC::Wasm {
@@ -41,21 +44,31 @@ class MergedProfile {
     WTF_MAKE_NONMOVABLE(MergedProfile);
     friend class Module;
 public:
+    class Candidates {
+    public:
+        Candidates() = default;
+        Candidates(uint32_t totalCount, const UncheckedKeyHashMap<Callee*, uint32_t>&);
+
+        std::span<const std::tuple<Callee*, uint32_t>> callees() const LIFETIME_BOUND
+        {
+            return std::span { m_callees }.first(m_size);
+        }
+
+        bool isEmpty() const { return !m_size; }
+        uint32_t totalCount() const { return m_totalCount; }
+
+    private:
+        uint32_t m_size { 0 };
+        uint32_t m_totalCount { 0 };
+        std::array<std::tuple<Callee*, uint32_t>, CallProfile::maxPolymorphicCallees> m_callees { };
+    };
+
     class CallSite {
     public:
         void merge(const CallProfile&);
         uint32_t count() const { return m_count; }
 
-        Callee* callee() const
-        {
-            if (m_isMegamorphic)
-                return nullptr;
-            if (m_callee.isEmpty())
-                return nullptr;
-            if (m_callee.size() != 1)
-                return nullptr;
-            return m_callee.begin()->key;
-        }
+        Candidates candidates() const;
 
         bool isMegamorphic() const
         {
@@ -70,7 +83,7 @@ public:
 
     MergedProfile(const IPIntCallee&);
     bool isCalled(size_t index) const { return !!m_callSites[index].count(); }
-    Callee* callee(size_t index) const { return m_callSites[index].callee(); }
+    Candidates candidates(size_t index) const { return m_callSites[index].candidates(); }
     bool isMegamorphic(size_t index) const { return m_callSites[index].isMegamorphic(); }
 
     std::span<CallSite> mutableSpan() { return m_callSites.mutableSpan(); }
