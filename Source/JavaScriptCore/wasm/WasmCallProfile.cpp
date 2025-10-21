@@ -38,14 +38,14 @@ CallProfile::~CallProfile()
 {
     // Do not use ::polymorphic as it does not extract a callee when it is already megamorphic.
     if (m_boxedCallee & polymorphicCallee) {
-        auto* poly = std::bit_cast<PolymorphicCallee*>(static_cast<uintptr_t>(m_boxedCallee & ~calleeMask));
-        poly->deref();
+        if (auto* poly = std::bit_cast<PolymorphicCallee*>(static_cast<uintptr_t>(m_boxedCallee & ~calleeMask)))
+            delete poly;
     }
 }
 
 auto CallProfile::makePolymorphic() -> PolymorphicCallee*
 {
-    auto* poly = &PolymorphicCallee::create(maxPolymorphicCallees, this).leakRef();
+    auto* poly = PolymorphicCallee::create(maxPolymorphicCallees, this).release();
     EncodedJSValue boxedCallee = std::bit_cast<EncodedJSValue>(poly) | polymorphicCallee;
     WTF::storeStoreFence();
     m_boxedCallee = boxedCallee;

@@ -97,16 +97,16 @@ public:
 
     static constexpr size_t maxPolymorphicCallees = 3;
 
-    class alignas(16) PolymorphicCallee final : public ThreadSafeRefCounted<PolymorphicCallee>, public TrailingArray<PolymorphicCallee, CallProfile> {
+    class alignas(16) PolymorphicCallee final : public TrailingArray<PolymorphicCallee, CallProfile> {
         WTF_DEPRECATED_MAKE_FAST_ALLOCATED(PolymorphicCallee);
         WTF_MAKE_NONMOVABLE(PolymorphicCallee);
         using TrailingArrayType = TrailingArray<PolymorphicCallee, CallProfile>;
         friend TrailingArrayType;
     public:
 
-        static Ref<PolymorphicCallee> create(unsigned size, CallProfile* profile)
+        static std::unique_ptr<PolymorphicCallee> create(unsigned size, CallProfile* profile)
         {
-            return adoptRef(*new (fastMalloc(allocationSize(size))) PolymorphicCallee(size, profile));
+            return std::unique_ptr<PolymorphicCallee>(new (fastMalloc(allocationSize(size))) PolymorphicCallee(size, profile));
         }
 
         static constexpr ptrdiff_t offsetOfProfile() { return OBJECT_OFFSETOF(PolymorphicCallee, m_profile); }
