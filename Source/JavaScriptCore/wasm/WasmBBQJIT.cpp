@@ -4508,6 +4508,7 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callProfileIndex, con
     // 2. boxedCallee is placed in GPRInfo::nonPreservedNonArgumentGPR1, so not clobbered via arguments set up.
     // 3. wasmScratchGPR can be clobbered now.
 
+    JumpList afterCall;
     m_jit.loadPtr(CCallHelpers::Address(importableFunction, WasmToWasmImportableFunction::offsetOfBoxedCallee()), wasmScratchGPR);
     m_jit.storeWasmCalleeToCalleeCallFrame(wasmScratchGPR);
     if (m_profile->isMegamorphic(callProfileIndex)) {
@@ -4521,7 +4522,7 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callProfileIndex, con
         isSameInstanceBefore.link(m_jit);
     } else {
         JumpList profilingDone;
-        JumpList megamorphicCross;
+        JumpList updateProfile;
 
         m_jit.loadPtr(CCallHelpers::Address(importableFunction, WasmToWasmImportableFunction::offsetOfTargetInstance()), m_jit.scratchRegister());
         Jump isSameInstanceBefore = m_jit.branchPtr(RelationalCondition::Equal, m_jit.scratchRegister(), GPRInfo::wasmContextInstancePointer);
@@ -4530,65 +4531,29 @@ void BBQJIT::emitIndirectCall(const char* opcode, unsigned callProfileIndex, con
         loadWebAssemblyGlobalState(wasmBaseMemoryPointer, wasmBoundsCheckingSizeRegister);
 #endif
         m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallProfile) * callProfileIndex + CallProfile::offsetOfBoxedCallee())), wasmScratchGPR);
-        megamorphicCross.append(m_jit.jump());
+        m_jit.orPtr(TrustedImm32(CallProfile::megamorphicCallee), wasmScratchGPR);
+        updateProfile.append(m_jit.jump());
 
         isSameInstanceBefore.link(m_jit);
         m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallProfile) * callProfileIndex + CallProfile::offsetOfBoxedCallee())), m_jit.scratchRegister());
         profilingDone.append(m_jit.branchPtr(CCallHelpers::Equal, wasmScratchGPR, m_jit.scratchRegister()));
         profilingDone.append(m_jit.branchTestPtr(CCallHelpers::NonZero, m_jit.scratchRegister(), TrustedImm32(CallProfile::megamorphicCallee)));
 
-        auto initialState = m_jit.branchTestPtr(CCallHelpers::Zero, m_jit.scratchRegister());
-        auto needsPolyMaterialization = m_jit.branchTestPtr(CCallHelpers::Zero, m_jit.scratchRegister(), TrustedImm32(CallProfile::polymorphicCallee));
-        m_jit.addPtr(TrustedImm32(CallProfile::PolymorphicCallee::offsetOfData() - CallProfile::polymorphicCallee), m_jit.scratchRegister(), GPRInfo::wasmContextInstancePointer);
+        updateProfile.append(m_jit.branchTestPtr(CCallHelpers::Zero, m_jit.scratchRegister()));
+        m_jit.addPtr(TrustedImm32(safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallProfile) * callProfileIndex)), GPRInfo::jitDataRegister, GPRInfo::wasmContextInstancePointer);
+        m_jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(callPolymorphicCalleeGenerator).code()));
+        afterCall.append(m_jit.jump());
 
-        JumpList found;
-        JumpList isZero;
-        JumpList megamorphic;
-
-        m_jit.loadPtr(Address(GPRInfo::wasmContextInstancePointer, CallProfile::offsetOfBoxedCallee()), m_jit.scratchRegister());
-        isZero.append(m_jit.branchTestPtr(CCallHelpers::Zero, m_jit.scratchRegister()));
-        found.append(m_jit.branchPtr(CCallHelpers::Equal, wasmScratchGPR, m_jit.scratchRegister()));
-
-        m_jit.addPtr(TrustedImm32(sizeof(CallProfile)), GPRInfo::wasmContextInstancePointer);
-        m_jit.loadPtr(Address(GPRInfo::wasmContextInstancePointer, CallProfile::offsetOfBoxedCallee()), m_jit.scratchRegister());
-        isZero.append(m_jit.branchTestPtr(CCallHelpers::Zero, m_jit.scratchRegister()));
-        found.append(m_jit.branchPtr(CCallHelpers::Equal, wasmScratchGPR, m_jit.scratchRegister()));
-
-        m_jit.addPtr(TrustedImm32(sizeof(CallProfile)), GPRInfo::wasmContextInstancePointer);
-        m_jit.loadPtr(Address(GPRInfo::wasmContextInstancePointer, CallProfile::offsetOfBoxedCallee()), m_jit.scratchRegister());
-        isZero.append(m_jit.branchTestPtr(CCallHelpers::Zero, m_jit.scratchRegister()));
-        found.append(m_jit.branchPtr(CCallHelpers::Equal, wasmScratchGPR, m_jit.scratchRegister()));
-        megamorphic.append(m_jit.jump());
-
-        isZero.link(m_jit);
-        m_jit.storePtr(wasmScratchGPR, CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, WasmToWasmImportableFunction::offsetOfBoxedCallee()));
-        found.link(m_jit);
-        m_jit.add32(TrustedImm32(1), CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, CallProfile::offsetOfCount()));
-        m_jit.loadPtr(CCallHelpers::Address(importableFunction, WasmToWasmImportableFunction::offsetOfTargetInstance()), GPRInfo::wasmContextInstancePointer);
-        profilingDone.append(m_jit.jump());
-
-        megamorphic.link(m_jit);
-        m_jit.loadPtr(CCallHelpers::Address(importableFunction, WasmToWasmImportableFunction::offsetOfTargetInstance()), GPRInfo::wasmContextInstancePointer);
-        m_jit.loadPtr(CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallProfile) * callProfileIndex + CallProfile::offsetOfBoxedCallee())), wasmScratchGPR);
-        megamorphicCross.link(m_jit);
-        m_jit.orPtr(TrustedImm32(CallProfile::megamorphicCallee), wasmScratchGPR);
-        initialState.link(&m_jit);
+        updateProfile.link(&m_jit);
         m_jit.storePtr(wasmScratchGPR, CCallHelpers::Address(GPRInfo::jitDataRegister, safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallProfile) * callProfileIndex + CallProfile::offsetOfBoxedCallee())));
         profilingDone.link(m_jit);
-
-        MacroAssembler::Label done = m_jit.label();
-        addLatePath(origin(), [callProfileIndex, needsPolyMaterialization = WTFMove(needsPolyMaterialization), done](BBQJIT&, CCallHelpers& jit) {
-            needsPolyMaterialization.link(jit);
-            jit.addPtr(TrustedImm32(safeCast<int32_t>(BaselineData::offsetOfData() + sizeof(CallProfile) * callProfileIndex)), GPRInfo::jitDataRegister, GPRInfo::nonPreservedNonArgumentGPR0);
-            jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(materializePolymorphicCalleeGenerator).code()));
-            jit.jump(done);
-        });
     }
 
     m_jit.loadPtr(CCallHelpers::Address(importableFunction, WasmToWasmImportableFunction::offsetOfEntrypointLoadLocation()), wasmScratchGPR);
     m_jit.call(CCallHelpers::Address(wasmScratchGPR), WasmEntryPtrTag);
 
     // Our callee could have tail called someone else and changed SP so we need to restore it. Do this before restoring our results since results are stored at the top of the reserved stack space.
+    afterCall.link(m_jit);
     m_frameSizeLabels.append(m_jit.moveWithPatch(TrustedImmPtr(nullptr), wasmScratchGPR));
 #if CPU(ARM64)
     m_jit.subPtr(GPRInfo::callFrameRegister, wasmScratchGPR, MacroAssembler::stackPointerRegister);

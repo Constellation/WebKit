@@ -74,7 +74,7 @@ JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmLoopOSREnterBBQJIT, void, (Probe
 #endif
 #if ENABLE(WEBASSEMBLY_BBQJIT)
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializeBaselineData, void, (CallFrame*, JSWebAssemblyInstance*));
-JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializePolymorphicCallee, WasmOrJSImportableFunction*, (JSWebAssemblyInstance*, CallProfile*, WasmOrJSImportableFunction*));
+JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmMaterializePolymorphicCallee, WasmOrJSImportableFunction*, (CallProfile*, WasmOrJSImportableFunction*));
 #endif
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationWasmUnwind, void*, (JSWebAssemblyInstance*));
 

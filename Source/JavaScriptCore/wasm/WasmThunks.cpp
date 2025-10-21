@@ -37,6 +37,7 @@
 #include "ProbeContext.h"
 #include "ScratchRegisterAllocator.h"
 #include "WasmExceptionType.h"
+#include "WasmMergedProfile.h"
 #include "WasmOperations.h"
 #include <wtf/TZoneMallocInlines.h>
 
@@ -166,12 +167,42 @@ MacroAssemblerCodeRef<JITThunkPtrTag> materializeBaselineDataGenerator(const Abs
     return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "materializeBaselineDataThunk"_s, "Materialize BaselineData");
 }
 
-MacroAssemblerCodeRef<JITThunkPtrTag> materializePolymorphicCalleeGenerator(const AbstractLocker&)
+MacroAssemblerCodeRef<JITThunkPtrTag> callPolymorphicCalleeGenerator(const AbstractLocker&)
 {
     CCallHelpers jit;
-    JIT_COMMENT(jit, "materializePolymorphicCalleeGenerator");
-    jit.emitFunctionPrologue();
+    JIT_COMMENT(jit, "callPolymorphicCalleeGenerator");
 
+    auto needsPolyMaterialization = jit.branchTestPtr(CCallHelpers::Zero, jit.scratchRegister(), CCallHelpers::TrustedImm32(CallProfile::polymorphicCallee));
+    jit.subPtr(jit.scratchRegister(), CCallHelpers::TrustedImm32(CallProfile::polymorphicCallee), GPRInfo::wasmContextInstancePointer);
+
+    auto handleCase = [&](unsigned index) {
+        jit.loadPtr(CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, sizeof(CallProfile) * index + CallProfile::offsetOfBoxedCallee()), jit.scratchRegister());
+        auto found = jit.branchPtr(CCallHelpers::Equal, GPRInfo::nonPreservedNonArgumentGPR0, jit.scratchRegister());
+        auto next = jit.branchTestPtr(CCallHelpers::NonZero, jit.scratchRegister());
+
+        jit.storePtr(GPRInfo::nonPreservedNonArgumentGPR0, CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, sizeof(CallProfile) * index + CallProfile::offsetOfBoxedCallee()));
+
+        found.link(jit);
+        jit.add32(CCallHelpers::TrustedImm32(1), CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, sizeof(CallProfile) * index + CallProfile::offsetOfCount()));
+        jit.loadPtr(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1, WasmToWasmImportableFunction::offsetOfTargetInstance()), GPRInfo::wasmContextInstancePointer);
+        jit.loadPtr(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1, WasmToWasmImportableFunction::offsetOfEntrypointLoadLocation()), GPRInfo::nonPreservedNonArgumentGPR1);
+        jit.farJump(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1), WasmEntryPtrTag);
+
+        next.link(jit);
+    };
+
+    for (unsigned i = 0; i < (MergedProfile::CallSite::megamorphicThreshold - 1); ++i)
+        handleCase(i);
+
+    jit.loadPtr(CCallHelpers::Address(GPRInfo::wasmContextInstancePointer, CallProfile::PolymorphicCallee::offsetOfProfile()), GPRInfo::nonPreservedNonArgumentGPR0);
+    jit.orPtr(CCallHelpers::TrustedImm32(CallProfile::megamorphicCallee | CallProfile::polymorphicCallee), GPRInfo::wasmContextInstancePointer);
+    jit.storePtr(GPRInfo::wasmContextInstancePointer, CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR0, CallProfile::offsetOfBoxedCallee()));
+    jit.loadPtr(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1, WasmToWasmImportableFunction::offsetOfTargetInstance()), GPRInfo::wasmContextInstancePointer);
+    jit.loadPtr(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1, WasmToWasmImportableFunction::offsetOfEntrypointLoadLocation()), GPRInfo::nonPreservedNonArgumentGPR1);
+    jit.farJump(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1), WasmEntryPtrTag);
+
+    needsPolyMaterialization.link(jit);
+    jit.emitFunctionPrologue();
     const unsigned extraPaddingBytes = 0;
     RegisterSetBuilder builder;
     for (auto regs : wasmCallingConvention().jsrArgs)
@@ -184,18 +215,22 @@ MacroAssemblerCodeRef<JITThunkPtrTag> materializePolymorphicCalleeGenerator(cons
 
     // We can clobber these argument registers now since we saved them and later we restore them.
     jit.move(GPRInfo::wasmContextInstancePointer, GPRInfo::argumentGPR0);
-    jit.move(GPRInfo::nonPreservedNonArgumentGPR0, GPRInfo::argumentGPR1);
-    jit.move(GPRInfo::nonPreservedNonArgumentGPR1, GPRInfo::argumentGPR2);
-    jit.move(MacroAssembler::TrustedImmPtr(tagCFunction<OperationPtrTag>(operationWasmMaterializePolymorphicCallee)), GPRInfo::argumentGPR3);
-    jit.call(GPRInfo::argumentGPR3, OperationPtrTag);
+    jit.move(GPRInfo::nonPreservedNonArgumentGPR1, GPRInfo::argumentGPR1);
+    jit.move(MacroAssembler::TrustedImmPtr(tagCFunction<OperationPtrTag>(operationWasmMaterializePolymorphicCallee)), GPRInfo::argumentGPR2);
+    jit.call(GPRInfo::argumentGPR2, OperationPtrTag);
     jit.move(GPRInfo::returnValueGPR, GPRInfo::nonPreservedNonArgumentGPR1);
 
     ScratchRegisterAllocator::restoreRegistersFromStackForCall(jit, registersToSpill, { }, numberOfStackBytesUsedForRegisterPreservation, extraPaddingBytes);
 
     jit.emitFunctionEpilogue();
-    jit.ret();
+
+    jit.loadPtr(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1, WasmToWasmImportableFunction::offsetOfTargetInstance()), GPRInfo::wasmContextInstancePointer);
+    jit.loadPtr(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1, WasmToWasmImportableFunction::offsetOfEntrypointLoadLocation()), GPRInfo::nonPreservedNonArgumentGPR1);
+    jit.untagReturnAddress();
+    jit.farJump(CCallHelpers::Address(GPRInfo::nonPreservedNonArgumentGPR1), WasmEntryPtrTag);
+
     LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
-    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "materializePolymorphicCalleeThunk"_s, "Materialize PolymorphicCallee");
+    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "callPolymorphicCalleeThunk"_s, "callPolymorphicCallee");
 }
 #endif
 

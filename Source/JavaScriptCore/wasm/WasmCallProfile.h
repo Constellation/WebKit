@@ -102,16 +102,21 @@ public:
         friend TrailingArrayType;
     public:
 
-        static Ref<PolymorphicCallee> create(unsigned size)
+        static Ref<PolymorphicCallee> create(unsigned size, CallProfile* profile)
         {
-            return adoptRef(*new (fastMalloc(allocationSize(size))) PolymorphicCallee(size));
+            return adoptRef(*new (fastMalloc(allocationSize(size))) PolymorphicCallee(size, profile));
         }
 
+        static constexpr ptrdiff_t offsetOfProfile() { return OBJECT_OFFSETOF(PolymorphicCallee, m_profile); }
+
     private:
-        PolymorphicCallee(unsigned size)
+        PolymorphicCallee(unsigned size, CallProfile* profile)
             : TrailingArrayType(size)
+            , m_profile(profile)
         {
         }
+
+        CallProfile* m_profile { nullptr };
     };
 
     static bool isMegamorphic(EncodedJSValue boxedCallee)
