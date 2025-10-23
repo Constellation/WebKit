@@ -1158,6 +1158,7 @@ wasm/WasmFunctionIPIntMetadataGenerator.cpp
 wasm/WasmGlobal.cpp
 wasm/WasmHandlerInfo.cpp
 wasm/WasmIndexOrName.cpp
+wasm/WasmInliningDecision.cpp
 wasm/WasmInstanceAnchor.cpp
 wasm/WasmIPIntGenerator.cpp
 wasm/WasmIPIntPlan.cpp

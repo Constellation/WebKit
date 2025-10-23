@@ -2051,6 +2051,7 @@
 		E383500A2390D93B0036316D /* WasmGlobal.h in Headers */ = {isa = PBXBuildFile; fileRef = E38350092390D9370036316D /* WasmGlobal.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E38416422E6FC06000591840 /* WasmBaselineData.h in Headers */ = {isa = PBXBuildFile; fileRef = E38416412E6FC06000591840 /* WasmBaselineData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E3850B15226ED641009ABF9C /* DFGMinifiedIDInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E3850B14226ED63E009ABF9C /* DFGMinifiedIDInlines.h */; };
+		E385CF202EAAE1300022B769 /* WasmInliningDecision.h in Headers */ = {isa = PBXBuildFile; fileRef = E385CF1E2EAAE1300022B769 /* WasmInliningDecision.h */; };
 		E38652E3237CA0C900E1D5EE /* BlockDirectoryBits.h in Headers */ = {isa = PBXBuildFile; fileRef = E38652E2237CA0C800E1D5EE /* BlockDirectoryBits.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E386FD7B26E867B800E4C28B /* TemporalPlainTimeConstructor.h in Headers */ = {isa = PBXBuildFile; fileRef = E386FD7526E867B700E4C28B /* TemporalPlainTimeConstructor.h */; };
 		E386FD7E26E867B800E4C28B /* TemporalPlainTime.h in Headers */ = {isa = PBXBuildFile; fileRef = E386FD7826E867B800E4C28B /* TemporalPlainTime.h */; };
@@ -5878,6 +5879,8 @@
 		E38350092390D9370036316D /* WasmGlobal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmGlobal.h; sourceTree = "<group>"; };
 		E38416412E6FC06000591840 /* WasmBaselineData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmBaselineData.h; sourceTree = "<group>"; };
 		E3850B14226ED63E009ABF9C /* DFGMinifiedIDInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DFGMinifiedIDInlines.h; path = dfg/DFGMinifiedIDInlines.h; sourceTree = "<group>"; };
+		E385CF1E2EAAE1300022B769 /* WasmInliningDecision.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmInliningDecision.h; sourceTree = "<group>"; };
+		E385CF1F2EAAE1300022B769 /* WasmInliningDecision.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WasmInliningDecision.cpp; sourceTree = "<group>"; };
 		E38652E2237CA0C800E1D5EE /* BlockDirectoryBits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BlockDirectoryBits.h; sourceTree = "<group>"; };
 		E386FD7426E867B700E4C28B /* TemporalPlainTimeConstructor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TemporalPlainTimeConstructor.cpp; sourceTree = "<group>"; };
 		E386FD7526E867B700E4C28B /* TemporalPlainTimeConstructor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TemporalPlainTimeConstructor.h; sourceTree = "<group>"; };
@@ -8067,6 +8070,8 @@
 				148521D726EAEBFE00CC1D1A /* WasmHandlerInfo.h */,
 				AD8FF3961EB5BD850087FF82 /* WasmIndexOrName.cpp */,
 				AD8FF3951EB5BD850087FF82 /* WasmIndexOrName.h */,
+				E385CF1F2EAAE1300022B769 /* WasmInliningDecision.cpp */,
+				E385CF1E2EAAE1300022B769 /* WasmInliningDecision.h */,
 				E338C4A72E7B23D500C039A5 /* WasmInstanceAnchor.cpp */,
 				E338C4A62E7B23D500C039A5 /* WasmInstanceAnchor.h */,
 				F3D9C2382A426CB7006EE152 /* WasmIPIntGenerator.cpp */,
@@ -12285,6 +12290,7 @@
 				E383500A2390D93B0036316D /* WasmGlobal.h in Headers */,
 				148521D826EAEBFE00CC1D1A /* WasmHandlerInfo.h in Headers */,
 				AD8FF3981EB5BDB20087FF82 /* WasmIndexOrName.h in Headers */,
+				E385CF202EAAE1300022B769 /* WasmInliningDecision.h in Headers */,
 				E338C4A92E7B23D500C039A5 /* WasmInstanceAnchor.h in Headers */,
 				F3D9C2392A426CB8006EE152 /* WasmIPIntGenerator.h in Headers */,
 				F3D9C23B2A426CB8006EE152 /* WasmIPIntPlan.h in Headers */,
