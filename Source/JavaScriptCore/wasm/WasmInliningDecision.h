@@ -37,14 +37,30 @@ namespace JSC::Wasm {
 
 class Module;
 
-class InliningDecision {
+class InliningDecision final : RefCounted<InliningDecision> {
     WTF_MAKE_TZONE_ALLOCATED(InliningDecision);
     WTF_MAKE_NONMOVABLE(InliningDecision);
     friend class Module;
 public:
     InliningDecision() = default;
 
+    static Ref<InliningDecision> create()
+    {
+        return adoptRef(*new InliningDecision);
+    }
+
 private:
+};
+
+class InliningDecisionBuilder {
+public:
+    InliningDecisionBuilder()
+        : m_root(InliningDecision::create())
+    {
+    }
+
+private:
+    Ref<InliningDecision> m_root;
 };
 
 } // namespace JSC::Wasm
