@@ -70,14 +70,17 @@ public:
     };
 
     MergedProfile(const IPIntCallee&);
+    unsigned size() const { return m_callSites.size(); }
     bool isCalled(size_t index) const { return m_callSites[index].isCalled(); }
     Candidates candidates(size_t index) const { return m_callSites[index].finalize(); }
     bool isMegamorphic(size_t index) const { return m_callSites[index].isMegamorphic(); }
 
     void merge(BaselineData&);
+    bool merged() const { return m_merged; }
 
 private:
     Vector<Candidates> m_callSites;
+    bool m_merged { false };
 };
 
 } // namespace JSC::Wasm

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2023 the V8 project authors. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,32 +36,56 @@
 
 namespace JSC::Wasm {
 
+class MergedProfile;
 class Module;
+class InliningDecision;
 
-class InliningDecision final : RefCounted<InliningDecision> {
+class InliningNode {
+    WTF_MAKE_TZONE_ALLOCATED(InliningNode);
+    WTF_MAKE_NONMOVABLE(InliningNode);
+public:
+    using CallSite = Vector<InliningNode*, 3>;
+
+    InliningNode(const IPIntCallee&, InliningNode* caller, uint32_t wasmSize, double relativeCallCount);
+
+    void inlineNode(InliningDecision&);
+
+    const IPIntCallee& callee() const { return m_callee; }
+    const Vector<CallSite>& callSites() const { return m_callSites; }
+    bool isInlined() const { return m_isInlined; }
+    bool isUnused() const { return m_isUnused; }
+    uint32_t depth() const { return m_depth; }
+    double relativeCallCount() const { return m_relativeCallCount; }
+    uint32_t wasmSize() const { return m_wasmSize; }
+    double score() const;
+
+private:
+    const IPIntCallee& m_callee;
+    Vector<CallSite> m_callSites;
+    bool m_isInlined { false };
+    bool m_isUnused { true };
+    uint32_t m_depth { 0 };
+    uint32_t m_wasmSize { 0 };
+    double m_relativeCallCount { 0.0 };
+};
+
+class InliningDecision final {
     WTF_MAKE_TZONE_ALLOCATED(InliningDecision);
     WTF_MAKE_NONMOVABLE(InliningDecision);
     friend class Module;
+    friend class InliningNode;
 public:
-    InliningDecision() = default;
+    InliningDecision(Module& module, const IPIntCallee& rootCallee);
 
-    static Ref<InliningDecision> create()
-    {
-        return adoptRef(*new InliningDecision);
-    }
+    MergedProfile* profileForCallee(const IPIntCallee&);
+
+    void expand();
 
 private:
-};
-
-class InliningDecisionBuilder {
-public:
-    InliningDecisionBuilder()
-        : m_root(InliningDecision::create())
-    {
-    }
-
-private:
-    Ref<InliningDecision> m_root;
+    Module& m_module;
+    SegmentedVector<InliningNode, 16> m_arena;
+    UncheckedKeyHashMap<const IPIntCallee*, std::unique_ptr<MergedProfile>> m_profiles;
+    InliningNode& m_root;
 };
 
 } // namespace JSC::Wasm

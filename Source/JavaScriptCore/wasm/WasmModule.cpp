@@ -148,7 +148,7 @@ Ref<Wasm::InstanceAnchor> Module::registerAnchor(JSWebAssemblyInstance* instance
     return anchor;
 }
 
-std::unique_ptr<MergedProfile> Module::createMergedProfile(IPIntCallee& callee)
+std::unique_ptr<MergedProfile> Module::createMergedProfile(const IPIntCallee& callee)
 {
     auto result = makeUnique<MergedProfile>(callee);
     for (Ref anchor : m_anchors) {

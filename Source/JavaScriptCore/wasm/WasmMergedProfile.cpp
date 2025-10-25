@@ -111,16 +111,21 @@ void MergedProfile::Candidates::merge(const CallProfile& slot)
 auto MergedProfile::Candidates::finalize() const -> Candidates
 {
     Candidates result(*this);
+    unsigned totalCount = 0;
     auto mutableSpan = std::span { result.m_callees }.first(result.m_size);
     std::sort(mutableSpan.begin(), mutableSpan.end(),
         [&](const auto& lhs, const auto& rhs) {
             return std::get<1>(lhs) > std::get<1>(rhs);
         });
+    for (auto& [callee, count] : mutableSpan)
+        totalCount += count;
+    result.m_totalCount = totalCount;
     return result;
 }
 
 void MergedProfile::merge(BaselineData& data)
 {
+    m_merged = true;
     auto span = m_callSites.mutableSpan();
     RELEASE_ASSERT(data.size() == span.size());
     for (unsigned i = 0; i < data.size(); ++i)
