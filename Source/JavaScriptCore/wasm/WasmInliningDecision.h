@@ -46,7 +46,7 @@ class InliningNode {
 public:
     using CallSite = Vector<InliningNode*, 3>;
 
-    InliningNode(const IPIntCallee&, InliningNode* caller, uint32_t wasmSize, double relativeCallCount);
+    InliningNode(const IPIntCallee&, InliningNode* caller, size_t wasmSize, double relativeCallCount);
 
     void inlineNode(InliningDecision&);
 
@@ -56,7 +56,7 @@ public:
     bool isUnused() const { return m_isUnused; }
     uint32_t depth() const { return m_depth; }
     double relativeCallCount() const { return m_relativeCallCount; }
-    uint32_t wasmSize() const { return m_wasmSize; }
+    size_t wasmSize() const { return m_wasmSize; }
     double score() const;
 
 private:
@@ -82,10 +82,15 @@ public:
     void expand();
 
 private:
+    bool canInline(InliningNode*, size_t initialWasmSize, size_t inlinedWasmSize);
+
     Module& m_module;
     SegmentedVector<InliningNode, 16> m_arena;
     UncheckedKeyHashMap<const IPIntCallee*, std::unique_ptr<MergedProfile>> m_profiles;
     InliningNode& m_root;
+    uint32_t m_inlinedCount { 0 };
+    double m_maxGrowthFactor { 0 };
+    size_t m_budgetCap { 0 };
 };
 
 } // namespace JSC::Wasm
