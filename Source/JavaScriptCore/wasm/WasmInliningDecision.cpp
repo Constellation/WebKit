@@ -113,8 +113,11 @@ InliningNode* InliningNode::callTarget(FunctionSpaceIndex functionIndexSpace, un
 
     auto& callSite = m_callSites[callProfileIndex];
     for (auto* inlining : callSite) {
-        if (inlining->callee().index() == functionIndexSpace)
-            return inlining;
+        if (inlining->callee().index() == functionIndexSpace) {
+            if (inlining->isInlined())
+                return inlining;
+            return nullptr;
+        }
     }
     return nullptr;
 }
