@@ -214,12 +214,12 @@ void InliningDecision::expand()
 
     while (!queue.isEmpty()) {
         if (m_inlinedCount >= Options::maximumWasmInliningCount()) {
-            dataLogLnIf(WasmInliningDecisionInternal::verbose, "[function ", m_root.callee().index(), ": too many inlining candidates, stopping...]");
+            dataLogLnIf(WasmInliningDecisionInternal::verbose, "    [function ", m_root.callee().index(), ": too many inlining candidates, stopping...]");
             break;
         }
 
         auto* target = queue.dequeue();
-        dataLogIf(WasmInliningDecisionInternal::verbose, "[function ", m_root.callee().index(), ": in function ", target->caller()->callee().index(), ", considering call #", target->callProfileIndex(), ", case #", target->caseIndex(), ", to function ", target->callee().index(), " (relative_call_count=", target->relativeCallCount(), ", size=", target->wasmSize(), ", score=", target->score(), ")... ");
+        dataLogIf(WasmInliningDecisionInternal::verbose, "    [function ", m_root.callee().index(), ": in function ", target->caller()->callee().index(), ", considering call #", target->callProfileIndex(), ", case #", target->caseIndex(), ", to function ", target->callee().index(), " (relative_call_count=", target->relativeCallCount(), ", size=", target->wasmSize(), ", score=", target->score(), ")... ");
 
         if (target->wasmSize() >= 12) {
             if (target->score() < 0.0001) {
@@ -241,8 +241,7 @@ void InliningDecision::expand()
         constexpr size_t oneLessCall = 6; // Guesstimated savings per call.
         size_t addition = target->wasmSize();
         if (addition >= oneLessCall)
-            addition -= oneLessCall;
-        inlinedWasmSize += addition;
+            inlinedWasmSize += (addition - oneLessCall);
     }
 }
 
