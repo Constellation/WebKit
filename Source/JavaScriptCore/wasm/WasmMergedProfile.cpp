@@ -26,6 +26,8 @@
 #include "config.h"
 #include "WasmMergedProfile.h"
 
+#include "WasmModule.h"
+#include "WasmModuleInformation.h"
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -67,13 +69,17 @@ bool MergedProfile::Candidates::add(Callee* observedCallee, uint32_t observedCou
     return false;
 }
 
-void MergedProfile::Candidates::merge(const CallProfile& slot)
+void MergedProfile::Candidates::merge(IPIntCallee* target, const CallProfile& slot)
 {
     EncodedJSValue boxedCallee = slot.boxedCallee();
     uint32_t speculativeTotalCount = slot.count();
 
     if (!boxedCallee) {
         // boxedCallee becomes nullptr when it is (1) a direct call or (2) an indirect call not recording anything yet.
+        if (target) {
+            // Direct call case.
+            add(target, speculativeTotalCount);
+        }
         m_totalCount += speculativeTotalCount;
         return;
     }
@@ -123,13 +129,20 @@ auto MergedProfile::Candidates::finalize() const -> Candidates
     return result;
 }
 
-void MergedProfile::merge(BaselineData& data)
+void MergedProfile::merge(const Module& module, const IPIntCallee& callee, BaselineData& data)
 {
     m_merged = true;
     auto span = m_callSites.mutableSpan();
     RELEASE_ASSERT(data.size() == span.size());
-    for (unsigned i = 0; i < data.size(); ++i)
-        span[i].merge(data.at(i));
+    for (unsigned i = 0; i < data.size(); ++i) {
+        IPIntCallee* target = nullptr;
+        FunctionSpaceIndex index = callee.callTarget(i);
+        if (index != FunctionSpaceIndex { }) {
+            if (!module.moduleInformation().isImportedFunctionFromFunctionIndexSpace(index))
+                target = module.ipintCallees().at(module.moduleInformation().toCodeIndex(index)).ptr();
+        }
+        span[i].merge(target, data.at(i));
+    }
 }
 
 } // namespace JSC::Wasm

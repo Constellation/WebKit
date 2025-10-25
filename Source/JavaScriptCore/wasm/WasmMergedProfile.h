@@ -56,7 +56,7 @@ public:
         bool isMegamorphic() const { return m_isMegamorphic; }
         uint32_t totalCount() const { return m_totalCount; }
 
-        void merge(const CallProfile&);
+        void merge(IPIntCallee*, const CallProfile&);
         Candidates finalize() const;
 
     private:
@@ -75,7 +75,7 @@ public:
     Candidates candidates(size_t index) const { return m_callSites[index].finalize(); }
     bool isMegamorphic(size_t index) const { return m_callSites[index].isMegamorphic(); }
 
-    void merge(BaselineData&);
+    void merge(const Module&, const IPIntCallee&, BaselineData&);
     bool merged() const { return m_merged; }
 
 private:

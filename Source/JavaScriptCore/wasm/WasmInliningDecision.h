@@ -46,26 +46,32 @@ class InliningNode {
 public:
     using CallSite = Vector<InliningNode*, 3>;
 
-    InliningNode(const IPIntCallee&, InliningNode* caller, size_t wasmSize, double relativeCallCount);
+    InliningNode(const IPIntCallee&, InliningNode* caller, uint8_t caseIndex, unsigned callProfileIndex, size_t wasmSize, double relativeCallCount);
 
     void inlineNode(InliningDecision&);
 
     const IPIntCallee& callee() const { return m_callee; }
+    InliningNode* caller() const { return m_caller; }
     const Vector<CallSite>& callSites() const { return m_callSites; }
     bool isInlined() const { return m_isInlined; }
     bool isUnused() const { return m_isUnused; }
+    uint8_t caseIndex() const { return m_caseIndex; }
     uint32_t depth() const { return m_depth; }
+    unsigned callProfileIndex() const { return m_callProfileIndex; }
     double relativeCallCount() const { return m_relativeCallCount; }
     size_t wasmSize() const { return m_wasmSize; }
     double score() const;
 
 private:
     const IPIntCallee& m_callee;
+    InliningNode* m_caller;
     Vector<CallSite> m_callSites;
     bool m_isInlined { false };
     bool m_isUnused { true };
+    uint8_t m_caseIndex { 0 };
     uint32_t m_depth { 0 };
-    uint32_t m_wasmSize { 0 };
+    unsigned m_callProfileIndex { 0 };
+    size_t m_wasmSize { 0 };
     double m_relativeCallCount { 0.0 };
 };
 

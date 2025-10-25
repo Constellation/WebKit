@@ -67,6 +67,7 @@
 #include "WasmFaultSignalHandler.h"
 #include "WasmFunctionParser.h"
 #include "WasmIRGeneratorHelpers.h"
+#include "WasmInliningDecision.h"
 #include "WasmMemory.h"
 #include "WasmMergedProfile.h"
 #include "WasmOSREntryData.h"
@@ -6704,6 +6705,8 @@ Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(Compilati
     Wasm::Thunks::singleton().stub(Wasm::catchInWasmThunkGenerator);
 
     auto result = makeUnique<InternalFunction>();
+    auto inliningDecision = makeUnique<InliningDecision>(module, profiledCallee);
+    inliningDecision->expand();
 
     AbstractHeapRepository heaps;
     compilationContext.wasmEntrypointJIT = makeUnique<CCallHelpers>();

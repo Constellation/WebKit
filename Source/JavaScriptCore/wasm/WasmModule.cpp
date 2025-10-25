@@ -160,7 +160,7 @@ std::unique_ptr<MergedProfile> Module::createMergedProfile(const IPIntCallee& ca
         }
         if (!data)
             continue;
-        result->merge(*data);
+        result->merge(*this, callee, *data);
     }
     return result;
 }

@@ -37,14 +37,20 @@
 #if ENABLE(WEBASSEMBLY)
 
 namespace JSC::Wasm {
+namespace WasmInliningDecisionInternal {
+static constexpr bool verbose = true;
+}
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(InliningNode);
 WTF_MAKE_TZONE_ALLOCATED_IMPL(InliningDecision);
 
 
-InliningNode::InliningNode(const IPIntCallee& callee, InliningNode* caller, size_t wasmSize, double relativeCallCount)
+InliningNode::InliningNode(const IPIntCallee& callee, InliningNode* caller, uint8_t caseIndex, unsigned callProfileIndex, size_t wasmSize, double relativeCallCount)
     : m_callee(callee)
+    , m_caller(caller)
+    , m_caseIndex(caseIndex)
     , m_depth(caller ? caller->m_depth + 1 : 0)
+    , m_callProfileIndex(callProfileIndex)
     , m_wasmSize(wasmSize)
     , m_relativeCallCount(relativeCallCount)
 {
@@ -123,7 +129,7 @@ void InliningNode::inlineNode(InliningDecision& decision)
             if (candidates.totalCount())
                 relativeCallCount = callCount / static_cast<double>(candidates.totalCount());
             size_t wasmSize = decision.m_module.moduleInformation().functionWasmSizeImportSpace(candidateCallee->index());
-            auto& child = decision.m_arena.alloc(static_cast<const IPIntCallee&>(*candidateCallee), this, wasmSize, relativeCallCount);
+            auto& child = decision.m_arena.alloc(static_cast<const IPIntCallee&>(*candidateCallee), this, callSite.size(), index, wasmSize, relativeCallCount);
             callSite.append(&child);
         }
     }
@@ -150,7 +156,7 @@ static double budgetScaleFactor(const Module& module)
 
 InliningDecision::InliningDecision(Module& module, const IPIntCallee& rootCallee)
     : m_module(module)
-    , m_root(m_arena.alloc(rootCallee, nullptr, module.moduleInformation().functionWasmSizeImportSpace(rootCallee.index()), 1.0))
+    , m_root(m_arena.alloc(rootCallee, nullptr, 0, 0, module.moduleInformation().functionWasmSizeImportSpace(rootCallee.index()), 1.0))
 {
     double scaled = budgetScaleFactor(module);
     int highGrowth = Options::wasmInliningFactor();
@@ -174,7 +180,7 @@ MergedProfile* InliningDecision::profileForCallee(const IPIntCallee& callee)
 
 static bool isHigherPriority(InliningNode* const& lhs, InliningNode* const& rhs)
 {
-    return std::tuple { lhs->score(), lhs->callee().index(), lhs } < std::tuple { rhs->score(), rhs->callee().index(), rhs };
+    return std::tuple { lhs->score(), lhs->callee().index(), lhs } > std::tuple { rhs->score(), rhs->callee().index(), rhs };
 }
 
 void InliningDecision::expand()
@@ -182,36 +188,52 @@ void InliningDecision::expand()
     PriorityQueue<InliningNode*, isHigherPriority> queue;
 
     auto addChildrenToQueue = [&](InliningNode* target) {
-        if (target->depth() >= Options::maximumWasmDepthForInlining())
+        if (target->depth() >= Options::maximumWasmDepthForInlining()) {
+            dataLogLnIf(WasmInliningDecisionInternal::verbose, "max inlining depth reached]");
             return;
-
-        for (const auto& callSite : target->callSites()) {
-            for (auto* node : callSite)
-                queue.enqueue(node);
         }
+
+        unsigned actual = 0;
+        for (const auto& callSite : target->callSites()) {
+            for (auto* node : callSite) {
+                queue.enqueue(node);
+                ++actual;
+            }
+        }
+        dataLogLnIf(WasmInliningDecisionInternal::verbose, "queueing ", actual, " callees in ", target->callSites().size(), " sites]");
     };
 
     uint32_t initialWasmSize = m_root.wasmSize();
     uint32_t inlinedWasmSize = 0;
 
+
+    dataLogIf(WasmInliningDecisionInternal::verbose, "[function ", m_root.callee().index(), ": expanding topmost caller... ");
     m_root.inlineNode(*this);
     ++m_inlinedCount;
     addChildrenToQueue(&m_root);
 
     while (!queue.isEmpty()) {
-        if (m_inlinedCount >= Options::maximumWasmInliningCount())
+        if (m_inlinedCount >= Options::maximumWasmInliningCount()) {
+            dataLogLnIf(WasmInliningDecisionInternal::verbose, "[function ", m_root.callee().index(), ": too many inlining candidates, stopping...]");
             break;
-
-        auto* target = queue.dequeue();
-
-        if (target->wasmSize() >= 12) {
-            if (target->score() < 0.0001)
-                continue;
         }
 
-        if (!canInline(target, initialWasmSize, inlinedWasmSize))
-            continue;
+        auto* target = queue.dequeue();
+        dataLogIf(WasmInliningDecisionInternal::verbose, "[function ", m_root.callee().index(), ": in function ", target->caller()->callee().index(), ", considering call #", target->callProfileIndex(), ", case #", target->caseIndex(), ", to function ", target->callee().index(), " (relative_call_count=", target->relativeCallCount(), ", size=", target->wasmSize(), ", score=", target->score(), ")... ");
 
+        if (target->wasmSize() >= 12) {
+            if (target->score() < 0.0001) {
+                dataLogLnIf(WasmInliningDecisionInternal::verbose, "not called often enough]");
+                continue;
+            }
+        }
+
+        if (!canInline(target, initialWasmSize, inlinedWasmSize)) {
+            dataLogLnIf(WasmInliningDecisionInternal::verbose, "not enough inlining budget]");
+            continue;
+        }
+
+        dataLogIf(WasmInliningDecisionInternal::verbose, "decided to inline! ");
         target->inlineNode(*this);
         ++m_inlinedCount;
         addChildrenToQueue(target);
