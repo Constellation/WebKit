@@ -233,6 +233,11 @@ void InliningDecision::expand()
     addChildrenToQueue(&m_root);
 
     while (!queue.isEmpty()) {
+        if (!Options::useOMGInlining()) {
+            dataLogLnIf(WasmInliningDecisionInternal::verbose, "    [function ", m_root.callee().index(), ": inlining is disabled, stopping...]");
+            break;
+        }
+
         if (m_inlinedCount >= Options::maximumWasmInliningCount()) {
             dataLogLnIf(WasmInliningDecisionInternal::verbose, "    [function ", m_root.callee().index(), ": too many inlining candidates, stopping...]");
             break;

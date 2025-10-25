@@ -1014,8 +1014,6 @@ private:
     OMGIRGenerator* m_inlineParent { nullptr };
     Vector<Value*> m_inlinedArgs;
     Vector<Variable*> m_inlinedResults;
-    unsigned m_inlineDepth { 0 };
-    Checked<uint32_t> m_inlinedBytes { 0 };
 
     Vector<Variable*> m_locals;
     Vector<Variable*> m_stack;
@@ -1151,7 +1149,6 @@ OMGIRGenerator::OMGIRGenerator(AbstractHeapRepository& heaps, CompilationContext
     , m_inlineRoot(&rootCaller)
     , m_inlineParent(&parentCaller)
     , m_inlinedArgs(WTFMove(args))
-    , m_inlineDepth(parentCaller.m_inlineDepth + 1)
     , m_unlinkedWasmToWasmCalls(rootCaller.m_unlinkedWasmToWasmCalls)
     , m_directCallees(rootCaller.m_directCallees)
     , m_osrEntryScratchBufferSize(nullptr)
@@ -1186,7 +1183,6 @@ OMGIRGenerator::OMGIRGenerator(AbstractHeapRepository& heaps, CompilationContext
     , m_inlining(inlining)
     , m_proc(procedure)
     , m_inlineRoot(this)
-    , m_inlinedBytes(m_info.functionWasmSize(m_functionIndex))
     , m_unlinkedWasmToWasmCalls(unlinkedWasmToWasmCalls)
     , m_directCallees(outgoingDirectCallees)
     , m_osrEntryScratchBufferSize(&osrEntryScratchBufferSize)
@@ -6028,15 +6024,11 @@ auto OMGIRGenerator::createTailCallPatchpoint(BasicBlock* block, const TypeDefin
 
 InliningNode* OMGIRGenerator::canInline(FunctionSpaceIndex functionIndexSpace, unsigned callProfileIndex) const
 {
-    ASSERT(!m_inlinedBytes || !m_inlineParent);
-    if (!Options::useOMGInlining())
-        return nullptr;
-
     auto* result = m_inlining->callTarget(functionIndexSpace, callProfileIndex);
     if (!result)
         return nullptr;
 
-    if (m_inlineDepth > 1 && !StackCheck(Thread::currentSingleton().stack(), StackBounds::DefaultReservedZone * 2).isSafeToRecurse())
+    if (result->depth() > 1 && !StackCheck(Thread::currentSingleton().stack(), StackBounds::DefaultReservedZone * 2).isSafeToRecurse())
         return nullptr;
 
     return result;
@@ -6089,7 +6081,7 @@ auto OMGIRGenerator::emitInlineDirectCall(InliningNode* inlining, FunctionCodeIn
     advanceCallSiteIndex();
     m_callee->addCodeOrigin(firstInlineCallSiteIndex, lastInlineCallSiteIndex, m_info, calleeFunctionIndex + m_numImportFunctions);
 
-    dataLogLnIf(WasmOMGIRGeneratorInternal::verboseInlining, "Inlining CallSiteIndex range: ", firstInlineCallSiteIndex, " -> ", lastInlineCallSiteIndex, " [", m_inlineDepth, "]");
+    dataLogLnIf(WasmOMGIRGeneratorInternal::verboseInlining, "Inlining CallSiteIndex range: ", firstInlineCallSiteIndex, " -> ", lastInlineCallSiteIndex, " [", inlining->depth(), "]");
 
     return { };
 }
@@ -6237,8 +6229,7 @@ auto OMGIRGenerator::emitDirectCall(unsigned callProfileIndex, FunctionSpaceInde
     if (callType == CallType::Call) {
         if (auto* inlining = canInline(functionIndexSpace, callProfileIndex)) {
             auto functionIndex = m_info.toCodeIndex(functionIndexSpace);
-            dataLogLnIf(WasmOMGIRGeneratorInternal::verboseInlining, " inlining call to ", functionIndex, " from ", m_functionIndex, " depth ", m_inlineDepth);
-            m_inlineRoot->m_inlinedBytes += m_info.functionWasmSizeImportSpace(functionIndexSpace);
+            dataLogLnIf(WasmOMGIRGeneratorInternal::verboseInlining, " inlining call to ", functionIndex, " from ", m_functionIndex, " depth ", inlining->depth());
             return emitInlineDirectCall(inlining, functionIndex, signature, args, results);
         }
     }
