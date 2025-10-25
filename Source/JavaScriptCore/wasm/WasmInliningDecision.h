@@ -62,6 +62,8 @@ public:
     size_t wasmSize() const { return m_wasmSize; }
     double score() const;
 
+    InliningNode* callTarget(FunctionSpaceIndex functionIndexSpace, unsigned callProfileIndex);
+
 private:
     const IPIntCallee& m_callee;
     InliningNode* m_caller;
@@ -86,6 +88,8 @@ public:
     MergedProfile* profileForCallee(const IPIntCallee&);
 
     void expand();
+
+    InliningNode* root() { return &m_root; }
 
 private:
     bool canInline(InliningNode*, size_t initialWasmSize, size_t inlinedWasmSize);

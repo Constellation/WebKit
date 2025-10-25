@@ -38,7 +38,7 @@
 
 namespace JSC::Wasm {
 namespace WasmInliningDecisionInternal {
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(InliningNode);
@@ -68,6 +68,10 @@ bool InliningDecision::canInline(InliningNode* target, size_t initialWasmSize, s
 {
     size_t wasmSize = target->wasmSize();
     if (wasmSize > Options::maximumWasmCalleeSizeForInlining())
+        return false;
+
+    // FIXME: There's no fundamental reason we can't inline these including imports.
+    if (m_module.moduleInformation().callCanClobberInstance(target->callee().index()))
         return false;
 
     // For tiny functions, let's be a bit more generous.
@@ -100,6 +104,19 @@ bool InliningDecision::canInline(InliningNode* target, size_t initialWasmSize, s
     size_t budgetLargeFunction = std::max<size_t>(m_budgetCap, initialWasmSize * 1.1);
     size_t totalSize = initialWasmSize + inlinedWasmSize + static_cast<size_t>(wasmSize);
     return totalSize < std::min<size_t>(budgetSmallFunction, budgetLargeFunction);
+}
+
+InliningNode* InliningNode::callTarget(FunctionSpaceIndex functionIndexSpace, unsigned callProfileIndex)
+{
+    if (m_callSites.size() <= callProfileIndex)
+        return nullptr;
+
+    auto& callSite = m_callSites[callProfileIndex];
+    for (auto* inlining : callSite) {
+        if (inlining->callee().index() == functionIndexSpace)
+            return inlining;
+    }
+    return nullptr;
 }
 
 void InliningNode::inlineNode(InliningDecision& decision)
