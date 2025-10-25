@@ -197,10 +197,9 @@ CallLinkStatus CallLinkStatus::computeFromCallLinkInfo(
             // If the call is at the tail of the distribution, then we don't optimize it and we
             // treat it as if it was a call to something unknown. We define the tail as being either
             // a call that doesn't belong to the N most frequent callees (N =
-            // maxPolymorphicCallVariantsForInlining) or that has a total call count that is too
+            // maxPolymorphicCallVariantListSize) or that has a total call count that is too
             // small.
-            if (i >= Options::maxPolymorphicCallVariantsForInlining()
-                || edge.count() < Options::frequentCallThreshold())
+            if (i >= Options::maxPolymorphicCallVariantListSize() || edge.count() < Options::frequentCallThreshold())
                 totalCallsToUnknown += edge.count();
             else {
                 totalCallsToKnown += edge.count();

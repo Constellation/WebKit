@@ -168,16 +168,8 @@ void linkPolymorphicCall(VM& vm, JSCell* owner, CallFrame* callFrame, CallLinkIn
         callLinkInfo.setHasSeenClosure();
 
     // If we are over the limit, just use a normal virtual call.
-    unsigned maxPolymorphicCallVariantListSize;
-    if (isWebAssembly)
-        maxPolymorphicCallVariantListSize = Options::maxPolymorphicCallVariantListSizeForWasmToJS();
-    else if (callerCodeBlock->jitType() == JITCode::topTierJIT())
-        maxPolymorphicCallVariantListSize = Options::maxPolymorphicCallVariantListSizeForTopTier();
-    else
-        maxPolymorphicCallVariantListSize = Options::maxPolymorphicCallVariantListSize();
-
     // We use list.size() instead of callSlots.size() because we respect CallVariant size for now.
-    if (list.size() > maxPolymorphicCallVariantListSize) {
+    if (list.size() > Options::maxPolymorphicCallVariantListSize()) {
         callLinkInfo.setVirtualCall(vm);
         return;
     }
