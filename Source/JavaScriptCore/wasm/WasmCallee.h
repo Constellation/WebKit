@@ -448,6 +448,7 @@ public:
     bool needsProfiling() const;
 
     IPIntTierUpCounter& tierUpCounter() { return m_tierUpCounter; }
+    const IPIntTierUpCounter& tierUpCounter() const { return m_tierUpCounter; }
 
     FunctionSpaceIndex callTarget(unsigned callProfileIndex) const { return m_callTargets[callProfileIndex]; }
 

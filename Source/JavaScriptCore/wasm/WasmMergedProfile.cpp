@@ -37,8 +37,9 @@ namespace JSC::Wasm {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(MergedProfile);
 
-MergedProfile::MergedProfile(const IPIntCallee& callee)
+MergedProfile::MergedProfile(const IPIntCallee& callee, double totalCount)
     : m_callSites(callee.numCallProfiles())
+    , m_totalCount(totalCount)
 {
 }
 

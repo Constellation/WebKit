@@ -146,8 +146,8 @@ void InliningNode::inlineNode(InliningDecision& decision)
                 continue;
 
             double relativeCallCount = 0;
-            if (candidates.totalCount())
-                relativeCallCount = callCount / static_cast<double>(candidates.totalCount());
+            if (profile->totalCount())
+                relativeCallCount = callCount / profile->totalCount();
             size_t wasmSize = decision.m_module.moduleInformation().functionWasmSizeImportSpace(candidateCallee->index());
             auto& child = decision.m_arena.alloc(static_cast<const IPIntCallee&>(*candidateCallee), this, callSite.size(), index, wasmSize, relativeCallCount);
             callSite.append(&child);
