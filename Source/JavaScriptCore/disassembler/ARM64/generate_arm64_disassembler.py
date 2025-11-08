@@ -261,10 +261,42 @@ class ARM64InstructionParser:
                 link_lower = link.lower()
 
                 # Check if this is R_option (width specifier)
-                if link_lower in ['r_option', 'r_option__2', 'r_option__3']:
+                if link_lower in ['r_option', 'r_option__2', 'r_option__3', 'r_option__4']:
                     # Store hover to determine width for next operand
                     last_r_option = hover
                     i += 1
+                    # Check if immediately followed by Rn_option/Rm_option (register number)
+                    if i < len(parts) and parts[i][0] == 'operand':
+                        next_link = parts[i][1].lower()
+                        next_hover = parts[i][2]
+                        # Pattern: R_option followed by register number operand
+                        if next_link in ['rn_option', 'rn_option__2', 'rm_option', 'rm_option__2', 'rd_option']:
+                            # Extract register number field
+                            reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', next_hover)
+                            reg_field = reg_fields[0] if reg_fields else 'Rn'
+
+                            # Determine register width from R_option hover
+                            is_64bit = 'x' in last_r_option.lower() or '64' in last_r_option or 'X' in last_r_option
+
+                            # Create appropriate register operand
+                            if is_64bit:
+                                # Check for ZR variant
+                                if 'zr' in last_r_option.lower():
+                                    operand = Operand('REG_GPR_XZR', None, reg_field, None, False, next_hover)
+                                else:
+                                    operand = Operand('REG_GPR_X', None, reg_field, None, False, next_hover)
+                            else:
+                                # W register
+                                if 'zr' in last_r_option.lower() or 'wzr' in last_r_option.lower():
+                                    operand = Operand('REG_GPR_WZR', None, reg_field, None, False, next_hover)
+                                else:
+                                    operand = Operand('REG_GPR_W', None, reg_field, None, False, next_hover)
+
+                            operands.append(operand)
+                            i += 1  # Skip the Rn_option we just processed
+                            last_r_option = None
+                            continue
+                    # If not followed by register number, just continue (R_option alone is skipped)
                     continue
 
                 # Check if this is V_option (SIMD width specifier)
@@ -280,6 +312,139 @@ class ARM64InstructionParser:
                     last_t_option = (hover, link)
                     i += 1
                     continue
+
+                # Check if this is an arrangement specifier (Ta_option, Tb_option, etc.)
+                # These come after a "." following a SIMD register
+                # Skip them here - they'll be handled by the preceding register operand
+                if '_option' in link_lower and not link_lower in ['r_option', 'r_option__2', 'r_option__3']:
+                    # Check if previous was a SIMD register followed by "."
+                    if i > 0:
+                        # Look back to see if this is an arrangement for a register
+                        for j in range(i - 1, -1, -1):
+                            if parts[j][0] == 'text':
+                                if '.' in parts[j][1]:
+                                    # This is an arrangement specifier, skip it
+                                    i += 1
+                                    continue
+                                break
+                            elif parts[j][0] == 'operand':
+                                break
+
+                # Look ahead for arrangement specifier pattern: SIMD register followed by "." and arrangement
+                # Pattern: Vd/Vn/Vm/Vt + "." + Ta_option/Tb_option/etc
+                # Note: links may have suffixes like Vn__2, so check with startswith
+                link_base = re.sub(r'__\d+$', '', link_lower)  # Remove __N suffix
+                if link_base in ['vd', 'vn', 'vm', 'vt', 'va'] and i + 2 < len(parts):
+                    # Check if next is "." and then an arrangement option
+                    if parts[i + 1][0] == 'text' and '.' in parts[i + 1][1]:
+                        if parts[i + 2][0] == 'operand':
+                            arrangement_link = parts[i + 2][1].lower()
+                            arrangement_hover = parts[i + 2][2]
+
+                            # Check if this is an indexed element: Vd.Ts[index]
+                            # Look for "[" after the element size
+                            is_indexed = False
+                            if i + 3 < len(parts) and parts[i + 3][0] == 'text' and '[' in parts[i + 3][1]:
+                                # This is indexed element syntax
+                                is_indexed = True
+
+                            if is_indexed and i + 4 < len(parts) and parts[i + 4][0] == 'operand':
+                                # Pattern: Vd.Ts[index]
+                                # Get register field
+                                reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', hover)
+                                register_field = reg_fields[0] if reg_fields else 'Rd'
+
+                                # Get index field from parts[i+4]
+                                index_link = parts[i + 4][1].lower()
+                                index_hover = parts[i + 4][2]
+                                index_fields = re.findall(r'"([A-Za-z0-9_:]+)"', index_hover)
+                                index_field = index_fields[0] if index_fields else 'imm5'
+
+                                # Get element size field name
+                                elem_fields = re.findall(r'"([A-Za-z0-9_:]+)"', arrangement_hover)
+                                elem_size_field = elem_fields[0] if elem_fields else None
+
+                                # Determine how element size is encoded
+                                # Common patterns:
+                                # - Ts_option with imm5 field
+                                # - size field (2 bits)
+                                # For INS: element size comes from imm5 (lowest set bit)
+
+                                # Create indexed element operand
+                                # field1 = register number
+                                # field2 = index field (imm5, imm4, or index)
+                                # subtype = element size encoding method:
+                                #   0 = imm5-based (lowest set bit)
+                                #   1 = size field (2-bit)
+                                #   2 = other
+
+                                if index_field == 'imm5' or 'imm5' in index_link:
+                                    subtype = 0  # imm5-based encoding
+                                elif elem_size_field and 'size' in elem_size_field:
+                                    subtype = 1  # size field
+                                else:
+                                    subtype = 0  # default to imm5
+
+                                operand = Operand('REG_SIMD_ELEMENT', subtype, register_field,
+                                                index_field, False, f"SIMD {register_field} indexed by {index_field}")
+                                operands.append(operand)
+
+                                # Skip past: ".", element_size, "[", index, "]"
+                                # Find the closing bracket
+                                skip_to = i + 5
+                                while skip_to < len(parts):
+                                    if parts[skip_to][0] == 'text' and ']' in parts[skip_to][1]:
+                                        i = skip_to + 1
+                                        break
+                                    skip_to += 1
+                                else:
+                                    i += 5
+                                continue
+
+                            elif '_option' in arrangement_link:
+                                # Non-indexed arrangement specifier
+                                # This is a SIMD register with arrangement
+                                # Extract arrangement field(s) from hover
+                                arr_fields = re.findall(r'"([A-Za-z0-9_:]+)"', arrangement_hover)
+                                arrangement_field = arr_fields[0] if arr_fields else None
+
+                                # If no field found in hover, use common defaults
+                                # Common SIMD instruction patterns:
+                                # - Ta_option/Tb_option with immh field (shift operations)
+                                # - Arrangement with size field (arithmetic operations)
+                                # - Arrangement with imm5 field (DUP operations)
+                                if not arrangement_field:
+                                    if arrangement_link.startswith('ta_'):
+                                        # Destination arrangement - typically immh for shift ops
+                                        arrangement_field = 'immh'
+                                    elif arrangement_link.startswith('tb_'):
+                                        # Source arrangement - typically immh:Q for shift ops
+                                        arrangement_field = 'immh:Q'
+                                    elif 't' in arrangement_link and '_option' in arrangement_link:
+                                        # Generic arrangement - try size:Q for arithmetic ops
+                                        arrangement_field = 'size:Q'
+                                    else:
+                                        # Fallback
+                                        arrangement_field = 'size:Q'
+
+                                # Get register field from current operand hover
+                                reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', hover)
+                                register_field = reg_fields[0] if reg_fields else 'Rd'
+
+                                # Determine if compound field (has ':')
+                                is_compound = ':' in arrangement_field if arrangement_field else False
+                                subtype = 1 if is_compound else 0
+
+                                # Create arranged SIMD register operand
+                                # field1 = register number, field2 = arrangement field
+                                # subtype: 0 = simple (Ta), 1 = compound (Ta:Q or Tb:Q)
+                                operand = Operand('REG_SIMD_ARRANGED', subtype, register_field,
+                                                arrangement_field, False, f"SIMD {register_field} with arrangement {arrangement_field}")
+                                operands.append(operand)
+
+                                # Skip the "." and arrangement operand
+                                i += 3
+                                continue
 
                 # Look ahead for memory operand pattern: operand followed by ", ["
                 if i + 1 < len(parts) and parts[i + 1][0] == 'text':
@@ -677,6 +842,8 @@ class CodeGenerator:
         'REG_FP_B': 10, 'REG_FP_H': 11, 'REG_FP_S': 12,
         'REG_FP_D': 13, 'REG_FP_Q': 14, 'REG_SIMD_V': 15,
         'REG_SIMD_SIZED': 16,  # SIMD register with size determined by field
+        'REG_SIMD_ARRANGED': 17,  # SIMD register with arrangement specifier
+        'REG_SIMD_ELEMENT': 18,  # SIMD register with indexed element (v1.b[0])
         'REG_SVE_Z': 20, 'REG_SVE_P': 21,
         'IMM_UINT': 30, 'IMM_SINT': 31, 'IMM_HEX': 32,
         'IMM_FLOAT': 33, 'IMM_LOGICAL': 34, 'IMM_SHIFTED': 35,
@@ -869,10 +1036,19 @@ static const char* const g_extendNames[8] = {
                 for op in instr.operands:
                     # Get bit positions from instruction's field dict
                     field1_start, field1_width = instr.fields.get(op.field_name, (255, 0))
-                    field2_start, field2_width = instr.fields.get(op.field_name2, (255, 0)) if op.field_name2 else (255, 0)
-                    op_type_val = self.OP_TYPES.get(op.type, 0)
 
-                    code += f"    {{ {op_type_val}, 0, {field1_start}, {field1_width}, {field2_start}, {field2_width} }},\n"
+                    # Handle compound field names (e.g., "immh:Q")
+                    if op.field_name2 and ':' in op.field_name2:
+                        # Compound field - use first field for positioning
+                        first_field = op.field_name2.split(':')[0]
+                        field2_start, field2_width = instr.fields.get(first_field, (255, 0))
+                    else:
+                        field2_start, field2_width = instr.fields.get(op.field_name2, (255, 0)) if op.field_name2 else (255, 0)
+
+                    op_type_val = self.OP_TYPES.get(op.type, 0)
+                    op_subtype = op.subtype if op.subtype is not None else 0
+
+                    code += f"    {{ {op_type_val}, {op_subtype}, {field1_start}, {field1_width}, {field2_start}, {field2_width} }},\n"
                     operand_offset += 1
 
             self.instruction_operand_info.append((start_offset, operand_count))
@@ -1110,31 +1286,167 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 16: // REG_SIMD_SIZED (size determined by field2)
             // field1 = register number (Rd, Rn, etc.)
             // field2 = size field (sz, size, Q, etc.)
-            // Map size field value to register prefix
+            // Map size field value to register prefix OR full arrangement
             {
-                char prefix;
-                // Common mappings:
-                // 1-bit sz: 0=S, 1=D
-                // 2-bit size: 00=B, 01=H, 10=S, 11=D
-                // 1-bit Q: 0=D, 1=Q
-                if (op.field2_width == 1) {
-                    // 1-bit field: sz or Q
-                    if (op.field2_start == 30) {
-                        // Q bit (bit 30) determines scalar size
-                        prefix = field2_val ? 'q' : 'd';
-                    } else {
-                        // sz bit determines FP size
-                        prefix = field2_val ? 'd' : 's';
-                    }
-                } else if (op.field2_width == 2) {
-                    // 2-bit size field
-                    const char size_map[] = {'b', 'h', 's', 'd'};
-                    prefix = size_map[field2_val & 3];
+                // Check if this is DUP-style (needs full arrangement, not just register prefix)
+                // DUP uses size field + Q bit to determine arrangement
+                // For arrangement output: check if Q bit exists and output like "8b", "16b"
+                // For register prefix output: output like "b0", "d0"
+
+                // Try to determine from context: if field2 is "size" at bits 22-23 (width 2),
+                // and Q bit is present, output full arrangement
+                bool output_arrangement = (op.field2_width == 2 && op.field2_start == 22);
+
+                if (output_arrangement) {
+                    // Output full arrangement (like DUP destination)
+                    uint32_t Q = extractBits(opcode, 30, 1);
+                    uint32_t size = field2_val & 0x3;
+                    const char* arrangement = "???";
+
+                    if (size == 0) arrangement = Q ? "16b" : "8b";
+                    else if (size == 1) arrangement = Q ? "8h" : "4h";
+                    else if (size == 2) arrangement = Q ? "4s" : "2s";
+                    else if (size == 3) arrangement = Q ? "2d" : "1d";
+
+                    offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1_val, arrangement);
                 } else {
-                    // Default to 's' if unknown
-                    prefix = 's';
+                    // Output register with size prefix (original behavior)
+                    char prefix;
+                    // Common mappings:
+                    // 1-bit sz: 0=S, 1=D
+                    // 2-bit size: 00=B, 01=H, 10=S, 11=D
+                    // 1-bit Q: 0=D, 1=Q
+                    if (op.field2_width == 1) {
+                        // 1-bit field: sz or Q
+                        if (op.field2_start == 30) {
+                            // Q bit (bit 30) determines scalar size
+                            prefix = field2_val ? 'q' : 'd';
+                        } else {
+                            // sz bit determines FP size
+                            prefix = field2_val ? 'd' : 's';
+                        }
+                    } else if (op.field2_width == 2) {
+                        // 2-bit size field
+                        const char size_map[] = {'b', 'h', 's', 'd'};
+                        prefix = size_map[field2_val & 3];
+                    } else {
+                        // Default to 's' if unknown
+                        prefix = 's';
+                    }
+                    offset += snprintf(buffer + offset, bufferSize - offset, "%c%u", prefix, field1_val);
                 }
-                offset += snprintf(buffer + offset, bufferSize - offset, "%c%u", prefix, field1_val);
+            }
+            break;
+
+        case 17: // REG_SIMD_ARRANGED (SIMD register with arrangement specifier)
+            // field1 = register number (Rd, Rn, etc.)
+            // field2 = arrangement field (immh, size, etc.) - determines element size and count
+            // subtype: 0 = simple arrangement (Ta), 1 = compound arrangement (Ta:Q or Tb:Q or size:Q)
+            {
+                // Common patterns for ARM64 SIMD instructions:
+                //
+                // 1. immh-based (SXTL/SSHLL type, bits 22-19):
+                //    - immh[2:0] with bit 0 set (0001) → 8-bit elements
+                //    - immh[2:0] with bit 1 set (001x) → 16-bit elements
+                //    - immh[2:0] with bit 2 set (01xx) → 32-bit elements
+                //    Simple (Ta): 8H/4S/2D, Compound (Tb): (Q?16B:8B)/(Q?8H:4H)/(Q?4S:2S)
+                //
+                // 2. size-based (ADD/MUL type, bits 23-22):
+                //    size=00 → 8-bit, size=01 → 16-bit, size=10 → 32-bit, size=11 → 64-bit
+                //    With Q bit: Q=0 → 64-bit vector, Q=1 → 128-bit vector
+                //    Arrangements: (Q?16B:8B)/(Q?8H:4H)/(Q?4S:2S)/(Q?2D:1D)
+                //
+                // 3. imm5-based (DUP type, bits 20-16):
+                //    Similar to immh but at different bit position
+
+                const char* arrangement = "???";
+
+                // Check pattern based on field position and width
+                if (op.field2_start == 19 && op.field2_width == 4) {
+                    // immh field (bits 22-19) - SXTL/SSHLL type
+                    uint32_t immh_low = field2_val & 0x7;
+
+                    if (op.subtype == 0) {
+                        // Simple: destination with larger elements
+                        if (immh_low & 0x4) arrangement = "2d";
+                        else if (immh_low & 0x2) arrangement = "4s";
+                        else if (immh_low & 0x1) arrangement = "8h";
+                    } else {
+                        // Compound: source with Q bit
+                        uint32_t Q = extractBits(opcode, 30, 1);
+                        if (immh_low & 0x4) arrangement = Q ? "4s" : "2s";
+                        else if (immh_low & 0x2) arrangement = Q ? "8h" : "4h";
+                        else if (immh_low & 0x1) arrangement = Q ? "16b" : "8b";
+                    }
+                } else if (op.field2_start == 22 && op.field2_width == 2) {
+                    // size field (bits 23-22) - ADD/MUL/SUB type
+                    uint32_t Q = extractBits(opcode, 30, 1);
+                    uint32_t size = field2_val & 0x3;
+
+                    // Element count based on Q and size
+                    if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
+                    else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
+                    else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
+                    else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
+                } else if (op.field2_start == 16 && op.field2_width == 5) {
+                    // imm5 field (bits 20-16) - DUP type
+                    // Element size from lowest set bit, arrangement from Q bit
+                    uint32_t Q = extractBits(opcode, 30, 1);
+                    uint32_t imm5_low = field2_val & 0xF;
+
+                    if (imm5_low & 0x1) arrangement = Q ? "16b" : "8b";       // byte
+                    else if (imm5_low & 0x2) arrangement = Q ? "8h" : "4h";   // half
+                    else if (imm5_low & 0x4) arrangement = Q ? "4s" : "2s";   // single
+                    else if (imm5_low & 0x8) arrangement = Q ? "2d" : "1d";   // double
+                }
+                // Add more patterns as needed
+
+                offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1_val, arrangement);
+            }
+            break;
+
+        case 18: // REG_SIMD_ELEMENT (indexed element like v1.b[0])
+            // field1 = register number (Rd, Rn, etc.)
+            // field2 = index field (usually imm5 or imm4)
+            // subtype: 0 = imm5-based (lowest set bit determines size), 1 = size field
+            {
+                const char* elem_size = "?";
+                unsigned index = 0;
+
+                if (op.subtype == 0 && op.field2_width >= 4) {
+                    // imm5-based encoding (common for INS, DUP, etc.)
+                    // Element size determined by lowest set bit position in imm5[3:0]
+                    // Index in upper bits
+                    uint32_t imm5_low = field2_val & 0xF;  // imm5[3:0]
+
+                    if (imm5_low & 0x1) {
+                        // Bit 0 set → byte (8-bit)
+                        elem_size = "b";
+                        index = (field2_val >> 1) & ((1U << (op.field2_width - 1)) - 1);  // imm5[4:1]
+                    } else if (imm5_low & 0x2) {
+                        // Bit 1 set → halfword (16-bit)
+                        elem_size = "h";
+                        index = (field2_val >> 2) & ((1U << (op.field2_width - 2)) - 1);  // imm5[4:2]
+                    } else if (imm5_low & 0x4) {
+                        // Bit 2 set → single (32-bit)
+                        elem_size = "s";
+                        index = (field2_val >> 3) & ((1U << (op.field2_width - 3)) - 1);  // imm5[4:3]
+                    } else if (imm5_low & 0x8) {
+                        // Bit 3 set → double (64-bit)
+                        elem_size = "d";
+                        index = (field2_val >> 4) & ((1U << (op.field2_width - 4)) - 1);  // imm5[4]
+                    }
+                } else if (op.subtype == 1) {
+                    // size field-based encoding (2-bit size field)
+                    // Would need additional logic based on specific instruction
+                    // For now, handle common cases
+                    const char* sizes[] = {"b", "h", "s", "d"};
+                    elem_size = sizes[field2_val & 0x3];
+                    index = 0;  // Would need separate index field
+                }
+
+                offset += snprintf(buffer + offset, bufferSize - offset,
+                                 "v%u.%s[%u]", field1_val, elem_size, index);
             }
             break;
 
