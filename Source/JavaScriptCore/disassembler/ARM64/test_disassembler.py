@@ -54,7 +54,7 @@ TEST_CASES = [
 
 # Create minimal test C++ program
 TEST_CPP = """
-#include "A64InstructionTableV3.h"
+#include "A64InstructionTable.h"
 #include <stdio.h>
 #include <stdint.h>
 
@@ -111,7 +111,7 @@ def main():
     print(f"  clang++ -std=c++17 -DENABLE_ARM64_DISASSEMBLER=1 \\")
     print(f"          -I/path/to/webkit/Source/JavaScriptCore \\")
     print(f"          -I/path/to/webkit/Source/WTF \\")
-    print(f"          test_disassembler.cpp A64InstructionTableV3.cpp \\")
+    print(f"          test_disassembler.cpp A64InstructionTable.cpp \\")
     print(f"          -o test_disassembler")
     print(f"  ./test_disassembler")
 
