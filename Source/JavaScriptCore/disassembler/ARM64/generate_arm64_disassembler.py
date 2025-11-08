@@ -250,17 +250,34 @@ class ARM64InstructionParser:
         # Parse operands with memory grouping
         i = 0
         last_r_option = None  # Track R_option (width specifier) for next register
+        last_v_option = None  # Track V_option (SIMD width specifier) for next register
+        last_t_option = None  # Track T_option (element size specifier) for next register
 
         while i < len(parts):
             part = parts[i]
 
             if part[0] == 'operand':
                 link, hover = part[1], part[2]
+                link_lower = link.lower()
 
                 # Check if this is R_option (width specifier)
-                if link.lower() in ['r_option', 'r_option__2', 'r_option__3']:
+                if link_lower in ['r_option', 'r_option__2', 'r_option__3']:
                     # Store hover to determine width for next operand
                     last_r_option = hover
+                    i += 1
+                    continue
+
+                # Check if this is V_option (SIMD width specifier)
+                if link_lower.startswith('v_option'):
+                    # Store hover and link to determine SIMD register size
+                    last_v_option = (hover, link)
+                    i += 1
+                    continue
+
+                # Check if this is T_option (element size specifier)
+                if link_lower.startswith('t_option'):
+                    # Store hover and link to determine element size
+                    last_t_option = (hover, link)
                     i += 1
                     continue
 
@@ -271,10 +288,12 @@ class ARM64InstructionParser:
                     # Check if this starts a memory operand
                     if ', [' in next_text or ',[' in next_text:
                         # This operand is not part of memory, add it normally
-                        operand = self._infer_operand(link, hover, field_map, is_64bit, last_r_option)
+                        operand = self._infer_operand(link, hover, field_map, is_64bit, last_r_option, last_v_option, last_t_option)
                         if operand:
                             operands.append(operand)
                             last_r_option = None  # Reset after use
+                            last_v_option = None
+                            last_t_option = None
                         i += 1
                         continue
 
@@ -298,10 +317,12 @@ class ARM64InstructionParser:
                                 continue
 
                 # Regular operand (not part of memory)
-                operand = self._infer_operand(link, hover, field_map, is_64bit, last_r_option)
+                operand = self._infer_operand(link, hover, field_map, is_64bit, last_r_option, last_v_option, last_t_option)
                 if operand:
                     operands.append(operand)
                     last_r_option = None  # Reset after use
+                    last_v_option = None
+                    last_t_option = None
 
             i += 1
 
@@ -398,8 +419,20 @@ class ARM64InstructionParser:
                       f"Memory: {mem_type}")
 
     def _infer_operand(self, link: str, hover: str, field_map: Dict,
-                      is_64bit: bool, r_option_hover: Optional[str] = None) -> Optional[Operand]:
-        """Infer operand type with field mapping"""
+                      is_64bit: bool, r_option_hover: Optional[str] = None,
+                      v_option_data: Optional[Tuple[str, str]] = None,
+                      t_option_data: Optional[Tuple[str, str]] = None) -> Optional[Operand]:
+        """Infer operand type with field mapping
+
+        Args:
+            link: Link name from XML
+            hover: Hover text from XML
+            field_map: Map of field names to BitField objects
+            is_64bit: Whether instruction is 64-bit
+            r_option_hover: R_option hover text for GP register width
+            v_option_data: Tuple of (hover, link) for V_option SIMD width specifier
+            t_option_data: Tuple of (hover, link) for T_option element size specifier
+        """
         # Extract field names from quotes, handling compound fields like "imms:immr" or "N:imms:immr"
         quoted_strings = re.findall(r'"([A-Za-z0-9_:]+)"', hover)
         field_names = []
@@ -413,6 +446,36 @@ class ARM64InstructionParser:
 
         link_lower = link.lower()
         hover_lower = hover.lower()
+
+        # Strip suffix numbers from link patterns (__2, __3, etc.) for better matching
+        link_base = re.sub(r'__\d+$', '', link_lower)
+
+        # Check for single-letter register numbers with V_option or T_option context
+        # These are register numbers (d, n, m, t, a) that depend on a preceding size specifier
+        if re.match(r'^[dnmta](__\d+)?$', link_lower):
+            # This is a single-letter register number
+            if v_option_data:
+                # V_option specifies the register size (B/H/S/D/Q)
+                # Extract the field name from V_option hover (e.g., "sz", "size", "Q")
+                v_hover, v_link = v_option_data
+                # Get the field name for the size specifier
+                v_field_names = re.findall(r'"([A-Za-z0-9_:]+)"', v_hover)
+                size_field = v_field_names[0] if v_field_names else 'size'
+                # Return a sized SIMD register operand
+                # The size_field determines B/H/S/D/Q at runtime
+                return Operand('REG_SIMD_SIZED', None, primary_field or 'Rd', size_field, is_optional,
+                              f"SIMD register with size from {size_field}")
+            elif t_option_data:
+                # T_option specifies element size
+                t_hover, t_link = t_option_data
+                t_field_names = re.findall(r'"([A-Za-z0-9_:]+)"', t_hover)
+                size_field = t_field_names[0] if t_field_names else 'size'
+                return Operand('REG_SIMD_SIZED', None, primary_field or 'Rd', size_field, is_optional,
+                              f"SIMD register with size from {size_field}")
+            elif 'simd' in hover_lower or 'fp' in hover_lower or 'vector' in hover_lower:
+                # Single-letter SIMD/FP register without size specifier
+                # Default to generic SIMD register
+                return Operand('REG_SIMD_V', None, primary_field or 'Rd', None, is_optional, hover)
 
         # GP registers - check for specific register patterns at word boundaries
         # Use more specific checks to avoid false matches like 'xn' in 'extend_option'
@@ -588,6 +651,7 @@ class CodeGenerator:
         'REG_GPR_XZR': 5, 'REG_GPR_WZR': 6,
         'REG_FP_B': 10, 'REG_FP_H': 11, 'REG_FP_S': 12,
         'REG_FP_D': 13, 'REG_FP_Q': 14, 'REG_SIMD_V': 15,
+        'REG_SIMD_SIZED': 16,  # SIMD register with size determined by field
         'REG_SVE_Z': 20, 'REG_SVE_P': 21,
         'IMM_UINT': 30, 'IMM_SINT': 31, 'IMM_HEX': 32,
         'IMM_FLOAT': 33, 'IMM_LOGICAL': 34, 'IMM_SHIFTED': 35,
@@ -1018,6 +1082,36 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 15: // REG_SIMD_V
             offset += snprintf(buffer + offset, bufferSize - offset, "v%u", field1_val);
             break;
+        case 16: // REG_SIMD_SIZED (size determined by field2)
+            // field1 = register number (Rd, Rn, etc.)
+            // field2 = size field (sz, size, Q, etc.)
+            // Map size field value to register prefix
+            {
+                char prefix;
+                // Common mappings:
+                // 1-bit sz: 0=S, 1=D
+                // 2-bit size: 00=B, 01=H, 10=S, 11=D
+                // 1-bit Q: 0=D, 1=Q
+                if (op.field2_width == 1) {
+                    // 1-bit field: sz or Q
+                    if (op.field2_start == 30) {
+                        // Q bit (bit 30) determines scalar size
+                        prefix = field2_val ? 'q' : 'd';
+                    } else {
+                        // sz bit determines FP size
+                        prefix = field2_val ? 'd' : 's';
+                    }
+                } else if (op.field2_width == 2) {
+                    // 2-bit size field
+                    const char size_map[] = {'b', 'h', 's', 'd'};
+                    prefix = size_map[field2_val & 3];
+                } else {
+                    // Default to 's' if unknown
+                    prefix = 's';
+                }
+                offset += snprintf(buffer + offset, bufferSize - offset, "%c%u", prefix, field1_val);
+            }
+            break;
 
         // SVE Registers
         case 20: // REG_SVE_Z
@@ -1076,6 +1170,72 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 32: // IMM_HEX
             offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1_val);
             break;
+
+        case 33: { // IMM_FLOAT
+            // Decode ARM64 floating-point immediate (8-bit encoding)
+            // imm8 = abcdefgh
+            // Expanded format:
+            //   Single (32-bit): a[NOT(b)]bbbbbbcd efgh0000000000000000000
+            //   Double (64-bit): a[NOT(b)]bbbbbbbbbcd efgh000000000000000000000000000000000000000000000000
+
+            uint32_t imm8 = field1_val & 0xFF;
+            uint32_t a = (imm8 >> 7) & 1;  // Sign bit
+            uint32_t b = (imm8 >> 6) & 1;
+            uint32_t c = (imm8 >> 5) & 1;
+            uint32_t d = (imm8 >> 4) & 1;
+            uint32_t e = (imm8 >> 3) & 1;
+            uint32_t f = (imm8 >> 2) & 1;
+            uint32_t g = (imm8 >> 1) & 1;
+            uint32_t h = (imm8 >> 0) & 1;
+
+            // Determine precision from opcode bits 22-23 (type/ftype field)
+            uint32_t ftype = extractBits(opcode, 22, 2);
+            bool is_double = (ftype & 1) == 1;  // bit 22: 0=single, 1=double
+
+            if (is_double) {
+                // Double precision (64-bit)
+                // Format: a [NOT(b):b:b:b:b:b:b:b:b:b:b:c:d] [e:f:g:h:0...0]
+                //         ↑  ←------- 11 bits -------→        ←-- 52 bits -→
+                uint64_t sign = (uint64_t)a << 63;
+
+                // Build 11-bit exponent: [NOT(b)]:b:b:b:b:b:b:b:b:b:b:c:d
+                uint64_t exp_bits = ((uint64_t)(b ? 0 : 1) << 10) |  // NOT(b)
+                                    ((uint64_t)b << 9) | ((uint64_t)b << 8) | ((uint64_t)b << 7) |
+                                    ((uint64_t)b << 6) | ((uint64_t)b << 5) | ((uint64_t)b << 4) |
+                                    ((uint64_t)b << 3) | ((uint64_t)b << 2) | ((uint64_t)b << 1) |
+                                    (uint64_t)b | ((uint64_t)c << 1) | (uint64_t)d;
+                uint64_t exp = exp_bits << 52;  // Shift to exponent position
+
+                // Build mantissa: e:f:g:h in upper 4 bits, rest zeros
+                uint64_t mant = ((uint64_t)e << 51) | ((uint64_t)f << 50) |
+                                ((uint64_t)g << 49) | ((uint64_t)h << 48);
+
+                uint64_t bits = sign | exp | mant;
+                double value;
+                memcpy(&value, &bits, sizeof(value));
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%.1f", value);
+            } else {
+                // Single precision (32-bit)
+                // Format: a [NOT(b):b:b:b:b:b:c:d] [e:f:g:h:0...0]
+                //         ↑  ←----- 8 bits -----→  ←--- 23 bits --→
+                uint32_t sign = a << 31;
+
+                // Build 8-bit exponent: [NOT(b)]:b:b:b:b:b:c:d
+                uint32_t exp_bits = ((b ? 0 : 1) << 7) |  // NOT(b)
+                                    (b << 6) | (b << 5) | (b << 4) | (b << 3) | (b << 2) |
+                                    (c << 1) | d;
+                uint32_t exp = exp_bits << 23;  // Shift to exponent position
+
+                // Build mantissa: e:f:g:h in upper 4 bits, rest zeros
+                uint32_t mant = (e << 22) | (f << 21) | (g << 20) | (h << 19);
+
+                uint32_t bits = sign | exp | mant;
+                float value;
+                memcpy(&value, &bits, sizeof(value));
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%.1f", value);
+            }
+            break;
+        }
 
         case 34: { // IMM_LOGICAL
             // Decode logical immediate
