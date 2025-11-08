@@ -770,7 +770,10 @@ static const char* const g_extendNames[8] = {
             start_offset, operand_count = self.instruction_operand_info[i]
             flags = 1 if instr.is_64bit_variant else 0
 
-            code += f"    {{ \"{instr.name}\", \"{instr.mnemonic}\", "
+            # Convert mnemonic to lowercase for table
+            lowercase_mnemonic = instr.mnemonic.lower()
+
+            code += f"    {{ \"{instr.name}\", \"{lowercase_mnemonic}\", "
             code += f"0x{instr.mask:08x}U, 0x{instr.pattern:08x}U, "
             code += f"{start_offset}, {operand_count}, {flags} }},\n"
 
@@ -850,16 +853,6 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         return;
     }
 
-    // Convert mnemonic to lowercase
-    char lowercaseMnemonic[32];
-    const char* src = entry->mnemonic;
-    char* dst = lowercaseMnemonic;
-    while (*src && (dst - lowercaseMnemonic) < 31) {
-        *dst++ = (*src >= 'A' && *src <= 'Z') ? (*src + 32) : *src;
-        src++;
-    }
-    *dst = '\\0';
-
     // Check if first operand is a condition code for conditional branches
     bool hasConditionSuffix = false;
     const char* conditionCode = nullptr;
@@ -875,10 +868,11 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     }
 
     // Format mnemonic (with optional condition suffix)
+    // Mnemonic is already lowercase in table
     int offset;
     if (hasConditionSuffix && conditionCode) {
-        // Check if mnemonic already ends with a dot (like "B.")
-        std::string mnemonicStr(lowercaseMnemonic);
+        // Check if mnemonic already ends with a dot (like "b.")
+        std::string mnemonicStr(entry->mnemonic);
         if (!mnemonicStr.empty() && mnemonicStr.back() == '.') {
             // Already has dot, just append condition
             offset = snprintf(buffer, bufferSize, "   %-9s",
@@ -889,7 +883,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                              (mnemonicStr + "." + conditionCode).c_str());
         }
     } else {
-        offset = snprintf(buffer, bufferSize, "   %-9s", lowercaseMnemonic);
+        offset = snprintf(buffer, bufferSize, "   %-9s", entry->mnemonic);
     }
     if (offset < 0 || (size_t)offset >= bufferSize)
         return;
