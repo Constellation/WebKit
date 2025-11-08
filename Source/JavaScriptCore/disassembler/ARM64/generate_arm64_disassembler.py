@@ -712,7 +712,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         switch (op.type) {
         // GP Registers
         case 0: // REG_GPR_X
-            offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+            if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
+            else
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
             break;
 
         case 1: // REG_GPR_W
@@ -723,6 +728,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 3: // REG_GPR_XSP
             if (field1_val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
+            else if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
             break;
@@ -737,6 +746,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 5: // REG_GPR_XZR
             if (field1_val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "xzr");
+            else if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
             break;
