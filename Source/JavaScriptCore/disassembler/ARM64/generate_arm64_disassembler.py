@@ -460,6 +460,59 @@ class ARM64InstructionParser:
                                 i += 3
                                 continue
 
+                # Check for UMOV-style indexed element: Vn followed by ".D[" or ".B[" etc. in text
+                # Pattern: Vn operand + text with ".[BHSD][" + index operand + "]"
+                link_base = re.sub(r'__\d+$', '', link_lower)
+                if link_base in ['vd', 'vn', 'vm', 'vt', 'va'] and i + 1 < len(parts):
+                    if parts[i + 1][0] == 'text':
+                        next_text = parts[i + 1][1]
+                        # Check if text contains element size + bracket: .B[, .H[, .S[, .D[
+                        elem_match = re.search(r'\.([BHSD])\[', next_text)
+                        if elem_match:
+                            # This is UMOV-style indexed element with hardcoded size
+                            # Look for index operand after the bracket
+                            if i + 2 < len(parts) and parts[i + 2][0] == 'operand':
+                                index_link = parts[i + 2][1].lower()
+                                index_hover = parts[i + 2][2]
+
+                                # Extract register field
+                                reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', hover)
+                                register_field = reg_fields[0] if reg_fields else 'Rn'
+
+                                # Extract index field
+                                index_fields = re.findall(r'"([A-Za-z0-9_:]+)(?:<[^>]+>)?"', index_hover)
+                                if not index_fields:
+                                    # Try simpler pattern without angle brackets
+                                    index_fields = re.findall(r'"([A-Za-z0-9_:]+)"', index_hover)
+                                # Extract just the field name (before any <bits> specifier)
+                                index_field_raw = index_fields[0] if index_fields else 'imm5'
+                                # Remove any bit specifiers like <4> or <4:0>
+                                index_field = re.sub(r'<[^>]+>', '', index_field_raw)
+
+                                # Element size from the matched text
+                                elem_size_char = elem_match.group(1)
+                                # Map to subtype: B=0, H=1, S=2, D=3 for hardcoded size
+                                elem_size_map = {'B': 0, 'H': 1, 'S': 2, 'D': 3}
+                                subtype = elem_size_map.get(elem_size_char, 3)  # subtype encodes hardcoded size
+
+                                # Create indexed element operand
+                                # subtype >= 10 means hardcoded element size (not from imm5)
+                                # subtype = 10+size where size: B=0, H=1, S=2, D=3
+                                operand = Operand('REG_SIMD_ELEMENT', 10 + subtype, register_field,
+                                                index_field, False, f"SIMD {register_field} indexed with hardcoded size")
+                                operands.append(operand)
+
+                                # Skip past: text with ".[X][", index operand, and find "]"
+                                skip_to = i + 3
+                                while skip_to < len(parts):
+                                    if parts[skip_to][0] == 'text' and ']' in parts[skip_to][1]:
+                                        i = skip_to + 1
+                                        break
+                                    skip_to += 1
+                                else:
+                                    i = skip_to
+                                continue
+
                 # Look ahead for memory operand pattern: operand followed by ", ["
                 if i + 1 < len(parts) and parts[i + 1][0] == 'text':
                     next_text = parts[i + 1][1]
@@ -1450,12 +1503,34 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 18: // REG_SIMD_ELEMENT (indexed element like v1.b[0])
             // field1 = register number (Rd, Rn, etc.)
             // field2 = index field (usually imm5 or imm4)
-            // subtype: 0 = imm5-based (lowest set bit determines size), 1 = size field
+            // subtype: 0 = imm5-based (lowest set bit determines size)
+            //          1 = size field-based
+            //          10+ = hardcoded size (UMOV-style: 10=B, 11=H, 12=S, 13=D)
             {
                 const char* elem_size = "?";
                 unsigned index = 0;
 
-                if (op.subtype == 0 && op.field2_width >= 4) {
+                if (op.subtype >= 10) {
+                    // Hardcoded element size (UMOV-style)
+                    // subtype encodes size: 10=B, 11=H, 12=S, 13=D
+                    const char* sizes[] = {"b", "h", "s", "d"};
+                    unsigned size_idx = op.subtype - 10;
+                    if (size_idx < 4) {
+                        elem_size = sizes[size_idx];
+                    }
+                    // Index is in upper bits of field2 (imm5), position depends on element size
+                    // B (size=0): index = imm5[4:1] (4 bits)
+                    // H (size=1): index = imm5[4:2] (3 bits)
+                    // S (size=2): index = imm5[4:3] (2 bits)
+                    // D (size=3): index = imm5[4] (1 bit)
+                    if (size_idx < 4 && op.field2_width >= 4) {
+                        unsigned shift = size_idx + 1;  // shift = size + 1
+                        unsigned mask = (1U << (op.field2_width - shift)) - 1;
+                        index = (field2_val >> shift) & mask;
+                    } else {
+                        index = field2_val;  // Fallback
+                    }
+                } else if (op.subtype == 0 && op.field2_width >= 4) {
                     // imm5-based encoding (common for INS, DUP, etc.)
                     // Element size determined by lowest set bit position in imm5[3:0]
                     // Index in upper bits
