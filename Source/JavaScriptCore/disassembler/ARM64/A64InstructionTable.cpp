@@ -10784,9 +10784,9 @@ const OperandDesc g_operandTable[] = {
     { 5, 0, 16, 5, 255, 0 },
     { 51, 0, 22, 2, 255, 0 },
     { 6, 0, 0, 5, 255, 0 },
-    { 30, 0, 255, 0, 255, 0 },
+    { 30, 0, 5, 16, 21, 2 },
     { 5, 0, 0, 5, 255, 0 },
-    { 30, 0, 255, 0, 255, 0 },
+    { 30, 0, 5, 16, 21, 2 },
     { 6, 0, 0, 5, 255, 0 },
     { 6, 0, 5, 5, 255, 0 },
     { 6, 0, 16, 5, 255, 0 },
@@ -10804,9 +10804,9 @@ const OperandDesc g_operandTable[] = {
     { 5, 0, 16, 5, 255, 0 },
     { 51, 0, 22, 2, 255, 0 },
     { 6, 0, 0, 5, 255, 0 },
-    { 30, 0, 255, 0, 255, 0 },
+    { 30, 0, 5, 16, 21, 2 },
     { 5, 0, 0, 5, 255, 0 },
-    { 30, 0, 255, 0, 255, 0 },
+    { 30, 0, 5, 16, 21, 2 },
     { 6, 0, 0, 5, 255, 0 },
     { 6, 0, 5, 5, 255, 0 },
     { 6, 0, 16, 5, 255, 0 },
@@ -15199,7 +15199,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Immediates
         case 30: // IMM_UINT
-            offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
+            // Check if this is a MOV-style immediate with hw shift field
+            if (op.field2_width > 0 && op.field2_start < 32) {
+                // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift
+                // hw specifies shift amount: hw * 16 bits
+                uint64_t shifted_imm = (uint64_t)field1_val << (field2_val * 16);
+                offset += snprintf(buffer + offset, bufferSize - offset,
+                                 "#0x%llx", (unsigned long long)shifted_imm);
+            } else {
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
+            }
             break;
 
         case 31: { // IMM_SINT

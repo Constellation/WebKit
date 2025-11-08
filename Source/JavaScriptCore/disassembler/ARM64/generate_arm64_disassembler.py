@@ -461,7 +461,14 @@ class ARM64InstructionParser:
         if any(p in link_lower for p in ['pd', 'pn', 'pm', 'pg']): return Operand('REG_SVE_P', None, primary_field or 'Pd', None, is_optional, hover)
 
         # Immediates
-        if 'imm' in link_lower:
+        if 'imm' in link_lower or 'hw_imm' in link_lower:
+            # Special handling for composite immediates like hw_imm16 (MOV/MOVZ)
+            # These have link patterns like "hw_imm16__4" and hover like "imm16:hw"
+            if 'hw_imm' in link_lower or ('imm16' in hover_lower and 'hw' in hover_lower):
+                # This is a MOV-style immediate combining imm16 and hw (shift) fields
+                # imm16 is the main immediate, hw is the shift amount
+                return Operand('IMM_UINT', None, 'imm16', 'hw', is_optional, hover)
+
             if 'logical' in hover_lower:
                 return Operand('IMM_LOGICAL', None, primary_field or 'imm', 'N', is_optional, hover)
             elif 'shift' in hover_lower:
@@ -996,7 +1003,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Immediates
         case 30: // IMM_UINT
-            offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
+            // Check if this is a MOV-style immediate with hw shift field
+            if (op.field2_width > 0 && op.field2_start < 32) {
+                // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift
+                // hw specifies shift amount: hw * 16 bits
+                uint64_t shifted_imm = (uint64_t)field1_val << (field2_val * 16);
+                offset += snprintf(buffer + offset, bufferSize - offset,
+                                 "#0x%llx", (unsigned long long)shifted_imm);
+            } else {
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
+            }
             break;
 
         case 31: { // IMM_SINT
