@@ -952,8 +952,70 @@ class CodeGenerator:
         self.field_metadata = field_metadata
         self.output_dir = output_dir
 
-        # Sort by specificity
-        self.instructions.sort(key=lambda x: bin(x.mask).count('1'), reverse=True)
+        # Define systematic alias precedence based on condition specificity
+        # Analysis of 187 alias relationships from ARM64 XML files shows these patterns:
+        #
+        # Precedence principles (highest to lowest):
+        # 1. Arithmetic equality (most specific): field1 + constant == field2
+        # 2. Function-based checks: BFXPreferred(), etc.
+        # 3. Simple equality: field1 == field2
+        # 4. Inequality with negation: !(condition)
+        # 5. Comparison: <, >=, <=, >
+        # 6. Unconditional (least specific, implicit constraints in encoding)
+        # 7. Base instructions (non-aliases)
+        #
+        # For bitfield instructions (UBFM, SBFM, BFM):
+        #   - LSL: imms + 1 == immr (arithmetic equality - most specific)
+        #   - LSR/ASR: unconditional (but constrained by imms field values)
+        #   - UBFX/SBFX: BFXPreferred() function check
+        #   - UBFIZ/SBFIZ: imms < immr (comparison)
+        #   - UXTB/UXTH/SXTB/SXTH/SXTW: unconditional (specific field values)
+        #   - BFI/BFC: imms < immr (comparison)
+        #   - BFXIL: imms >= immr (comparison)
+
+        self.alias_priority = {
+            # Bitfield shift aliases (arithmetic equality - highest priority)
+            'lsl': 0,      # imms + 1 == immr
+
+            # Function-based checks
+            'ubfx': 10,    # BFXPreferred()
+            'sbfx': 10,    # BFXPreferred()
+
+            # Simple shifts (unconditional but specific encoding)
+            'lsr': 20,     # Unconditional (imms == 31/63)
+            'asr': 20,     # Unconditional (imms == 31/63)
+
+            # Comparison-based (less specific)
+            'ubfiz': 40,   # imms < immr
+            'sbfiz': 40,   # imms < immr
+            'bfi': 40,     # imms < immr
+            'bfc': 40,     # imms < immr (with Rn==11111)
+            'bfxil': 45,   # imms >= immr
+
+            # Extension aliases (unconditional, specific field values)
+            'uxtb': 50,    # Unconditional (specific imms/immr)
+            'uxth': 50,    # Unconditional (specific imms/immr)
+            'sxtb': 50,    # Unconditional (specific imms/immr)
+            'sxth': 50,    # Unconditional (specific imms/immr)
+            'sxtw': 50,    # Unconditional (specific imms/immr)
+
+            # SIMD extension aliases (Q-bit controlled)
+            'sxtl': 0,     # High priority for Q-bit controlled variant
+            'uxtl': 0,     # High priority for Q-bit controlled variant
+
+            # Base instructions (lowest priority)
+            'ubfm': 100,
+            'sbfm': 100,
+            'bfm': 100,
+        }
+
+        # Sort by specificity (bit count), then by alias priority
+        def sort_key(instr):
+            mask_bits = bin(instr.mask).count('1')
+            priority = self.alias_priority.get(instr.mnemonic.lower(), 50)  # Default priority 50
+            return (-mask_bits, priority)  # Negative for reverse sort on mask_bits
+
+        self.instructions.sort(key=sort_key)
 
         # Build indices
         self.field_names = sorted(field_metadata.keys())
@@ -1295,6 +1357,27 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     if (offset < 0 || (size_t)offset >= bufferSize)
         return;
 
+    // Special handling for bitfield shift aliases (LSL, LSR, ASR)
+    // These compute shift amount from immr field: shift = (width - immr) % width
+    bool isLslLsrAsr = false;
+    uint32_t computedShift = 0;
+    if (strcmp(entry->mnemonic, "lsl") == 0 ||
+        strcmp(entry->mnemonic, "lsr") == 0 ||
+        strcmp(entry->mnemonic, "asr") == 0) {
+        // Extract immr field (bits 21-16 for UBFM/SBFM)
+        uint32_t immr = extractBits(opcode, 16, 6);
+        // Determine width from sf bit (bit 31)
+        uint32_t sf = extractBits(opcode, 31, 1);
+        uint32_t width = sf ? 64 : 32;
+        // Compute shift: for LSL: width - immr, for LSR/ASR: immr
+        if (strcmp(entry->mnemonic, "lsl") == 0) {
+            computedShift = (width - immr) % width;
+        } else {
+            computedShift = immr;
+        }
+        isLslLsrAsr = true;
+    }
+
     // Format each operand (skip first if it was a condition code)
     unsigned startOperand = hasConditionSuffix ? 1 : 0;
     for (unsigned i = startOperand; i < entry->operandCount; i++) {
@@ -1617,8 +1700,13 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Immediates
         case 30: // IMM_UINT
+            // Special handling for LSL/LSR/ASR shift amount (third operand)
+            if (isLslLsrAsr && i == (startOperand + 2)) {
+                // This is the shift operand for LSL/LSR/ASR - use computed value
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", computedShift);
+            }
             // Check if this is a bit position (TBNZ/TBZ style: b40 + b5*32)
-            if (op.field1_width == 5 && op.field1_start == 19 &&
+            else if (op.field1_width == 5 && op.field1_start == 19 &&
                 op.field2_width == 1 && op.field2_start == 31) {
                 // Bit position: field1=b40 (bits 19-23), field2=b5 (bit 31)
                 // position = b5 * 32 + b40
@@ -1947,6 +2035,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         default:
             offset += snprintf(buffer + offset, bufferSize - offset, "?");
             break;
+        }
+    }
+
+    // For LSL/LSR/ASR with only 2 operands, append the shift amount
+    if (isLslLsrAsr && entry->operandCount == 2 + (hasConditionSuffix ? 1 : 0)) {
+        // Add separator and shift amount
+        if (offset > 0 && (size_t)offset < bufferSize) {
+            offset += snprintf(buffer + offset, bufferSize - offset, ", #%u", computedShift);
         }
     }
 }
