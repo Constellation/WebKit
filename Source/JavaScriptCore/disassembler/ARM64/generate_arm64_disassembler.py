@@ -637,8 +637,12 @@ class ARM64InstructionParser:
 
                 if fixed_bits:
                     binary_str = ''.join(fixed_bits).replace('x', '0')
-                    if all(c in '01' for c in binary_str):
-                        fixed_value = int(binary_str, 2)
+                    if all(c in '01x' for c in binary_str):
+                        # Valid binary pattern
+                        fixed_value = int(binary_str.replace('x', '0'), 2)
+                    else:
+                        # Non-binary content (like "!= 0000") means variable field
+                        is_fixed = False
 
             if name and usename:
                 fields.append(BitField(name, bit_start, width, is_fixed, fixed_value if is_fixed else 0))
