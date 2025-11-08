@@ -249,11 +249,20 @@ class ARM64InstructionParser:
 
         # Parse operands with memory grouping
         i = 0
+        last_r_option = None  # Track R_option (width specifier) for next register
+
         while i < len(parts):
             part = parts[i]
 
             if part[0] == 'operand':
                 link, hover = part[1], part[2]
+
+                # Check if this is R_option (width specifier)
+                if link.lower() in ['r_option', 'r_option__2', 'r_option__3']:
+                    # Store hover to determine width for next operand
+                    last_r_option = hover
+                    i += 1
+                    continue
 
                 # Look ahead for memory operand pattern: operand followed by ", ["
                 if i + 1 < len(parts) and parts[i + 1][0] == 'text':
@@ -262,9 +271,10 @@ class ARM64InstructionParser:
                     # Check if this starts a memory operand
                     if ', [' in next_text or ',[' in next_text:
                         # This operand is not part of memory, add it normally
-                        operand = self._infer_operand(link, hover, field_map, is_64bit)
+                        operand = self._infer_operand(link, hover, field_map, is_64bit, last_r_option)
                         if operand:
                             operands.append(operand)
+                            last_r_option = None  # Reset after use
                         i += 1
                         continue
 
@@ -288,9 +298,10 @@ class ARM64InstructionParser:
                                 continue
 
                 # Regular operand (not part of memory)
-                operand = self._infer_operand(link, hover, field_map, is_64bit)
+                operand = self._infer_operand(link, hover, field_map, is_64bit, last_r_option)
                 if operand:
                     operands.append(operand)
+                    last_r_option = None  # Reset after use
 
             i += 1
 
@@ -387,7 +398,7 @@ class ARM64InstructionParser:
                       f"Memory: {mem_type}")
 
     def _infer_operand(self, link: str, hover: str, field_map: Dict,
-                      is_64bit: bool) -> Optional[Operand]:
+                      is_64bit: bool, r_option_hover: Optional[str] = None) -> Optional[Operand]:
         """Infer operand type with field mapping"""
         field_names = re.findall(r'"([A-Za-z0-9_]+)"', hover)
         primary_field = field_names[0] if field_names else None
@@ -397,20 +408,45 @@ class ARM64InstructionParser:
         link_lower = link.lower()
         hover_lower = hover.lower()
 
-        # GP registers
-        if any(p in link_lower for p in ['xd', 'xn', 'xm', 'xa', 'xt', 'xs']):
+        # GP registers - check for specific register patterns at word boundaries
+        # Use more specific checks to avoid false matches like 'xn' in 'extend_option'
+        if link_lower.startswith(('xd', 'xn', 'xm', 'xa', 'xt', 'xs')) or \
+           any(link_lower.startswith(p + '_') or link_lower.startswith(p + 'or') for p in ['xd', 'xn', 'xm', 'xa', 'xt', 'xs']):
             if 'sp' in link_lower:
                 return Operand('REG_GPR_XSP', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             elif 'zr' in link_lower:
                 return Operand('REG_GPR_XZR', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             return Operand('REG_GPR_X', None, primary_field or 'Rd', secondary_field, is_optional, hover)
 
-        if any(p in link_lower for p in ['wd', 'wn', 'wm', 'wa', 'wt', 'ws']):
+        if link_lower.startswith(('wd', 'wn', 'wm', 'wa', 'wt', 'ws')) or \
+           any(link_lower.startswith(p + '_') or link_lower.startswith(p + 'or') for p in ['wd', 'wn', 'wm', 'wa', 'wt', 'ws']):
             if 'sp' in link_lower:
                 return Operand('REG_GPR_WSP', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             elif 'zr' in link_lower:
                 return Operand('REG_GPR_WZR', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             return Operand('REG_GPR_W', None, primary_field or 'Rd', secondary_field, is_optional, hover)
+
+        # Register number with width specifier (Rm_option, Rn_option, etc.)
+        # These come after R_option (width specifier) and specify the register number
+        # Check if there's R_option context, or look ahead for extend operand
+        if link_lower in ['rm_option', 'rn_option', 'rd_option', 'ra_option', 'rs_option', 'rt_option']:
+            # For extended register addressing (like ADD with extend),
+            # the register is typically W when followed by an extend operand
+            # Check if R_option indicates W register
+            is_w_register = False
+            if r_option_hover and ('<w' in r_option_hover.lower() or '32-bit' in r_option_hover.lower()):
+                is_w_register = True
+
+            # Return the appropriate register type
+            if is_w_register:
+                return Operand('REG_GPR_W', None, primary_field or 'Rm', secondary_field, is_optional, hover)
+            else:
+                # For Rm_option specifically, default to W for extended register instructions
+                # ARM64 extended register instructions use W registers (Wm) not X registers
+                if link_lower == 'rm_option' and r_option_hover:
+                    # If we have R_option context, default to W for Rm
+                    return Operand('REG_GPR_W', None, primary_field or 'Rm', secondary_field, is_optional, hover)
+                return Operand('REG_GPR_X', None, primary_field or 'Rm', secondary_field, is_optional, hover)
 
         # FP registers
         if any(p in link_lower for p in ['bd', 'bn']): return Operand('REG_FP_B', None, primary_field or 'Rd', None, is_optional, hover)
@@ -445,9 +481,9 @@ class ARM64InstructionParser:
             return Operand('CONDITION', None, 'cond', None, is_optional, hover)
 
         # Shift/extend
-        if 'shift' in link_lower:
+        if 'shift' in link_lower or 'shift_option' in link_lower:
             return Operand('SHIFT_TYPE', None, 'shift', 'amount', is_optional, hover)
-        if 'extend' in link_lower:
+        if 'extend' in link_lower or 'extend_option' in link_lower:
             return Operand('EXTEND_TYPE', None, 'option', 'imm3', is_optional, hover)
 
         # Memory
