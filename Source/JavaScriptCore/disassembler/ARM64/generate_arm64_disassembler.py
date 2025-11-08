@@ -461,7 +461,7 @@ class ARM64InstructionParser:
         if any(p in link_lower for p in ['pd', 'pn', 'pm', 'pg']): return Operand('REG_SVE_P', None, primary_field or 'Pd', None, is_optional, hover)
 
         # Immediates
-        if 'imm' in link_lower or 'hw_imm' in link_lower:
+        if 'imm' in link_lower or 'hw_imm' in link_lower or (link_lower.startswith('shift__')):
             # Special handling for composite immediates like hw_imm16 (MOV/MOVZ)
             # These have link patterns like "hw_imm16__4" and hover like "imm16:hw"
             if 'hw_imm' in link_lower or ('imm16' in hover_lower and 'hw' in hover_lower):
@@ -469,12 +469,23 @@ class ARM64InstructionParser:
                 # imm16 is the main immediate, hw is the shift amount
                 return Operand('IMM_UINT', None, 'imm16', 'hw', is_optional, hover)
 
+            # Handle shift amounts (like shift__8 in MOVK) as immediates
+            # These are encoded in the hw field and represent shift amounts
+            if link_lower.startswith('shift__'):
+                # This is a shift amount, typically encoded in hw field
+                # Check hover for field name
+                if 'hw' in hover_lower:
+                    return Operand('IMM_UINT', None, 'hw', None, is_optional, hover)
+                return Operand('IMM_UINT', None, primary_field or 'shift', None, is_optional, hover)
+
             if 'logical' in hover_lower:
                 return Operand('IMM_LOGICAL', None, primary_field or 'imm', 'N', is_optional, hover)
             elif 'shift' in hover_lower:
                 return Operand('IMM_SHIFTED', None, primary_field or 'imm', 'sh', is_optional, hover)
             elif 'float' in hover_lower or 'fp' in hover_lower:
                 return Operand('IMM_FLOAT', None, primary_field or 'imm', None, is_optional, hover)
+            elif 'unsigned' in hover_lower:
+                return Operand('IMM_UINT', None, primary_field or 'imm', None, is_optional, hover)
             elif 'signed' in hover_lower or 'offset' in hover_lower:
                 return Operand('IMM_SINT', None, primary_field or 'imm', None, is_optional, hover)
             return Operand('IMM_UINT', None, primary_field or 'imm', None, is_optional, hover)
@@ -488,7 +499,8 @@ class ARM64InstructionParser:
             return Operand('CONDITION', None, 'cond', None, is_optional, hover)
 
         # Shift/extend
-        if 'shift' in link_lower or 'shift_option' in link_lower:
+        # Be specific: shift_option/shift_type are shift types, plain shift__N are shift amounts
+        if 'shift_option' in link_lower or 'shift_type' in link_lower:
             return Operand('SHIFT_TYPE', None, 'shift', 'amount', is_optional, hover)
         if 'extend' in link_lower or 'extend_option' in link_lower:
             return Operand('EXTEND_TYPE', None, 'option', 'imm3', is_optional, hover)
@@ -1005,11 +1017,29 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 30: // IMM_UINT
             // Check if this is a MOV-style immediate with hw shift field
             if (op.field2_width > 0 && op.field2_start < 32) {
-                // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift
-                // hw specifies shift amount: hw * 16 bits
-                uint64_t shifted_imm = (uint64_t)field1_val << (field2_val * 16);
+                // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift (composite operand)
+                // Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
                 offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "#0x%llx", (unsigned long long)shifted_imm);
+                                 "#0x%x", field1_val);
+                // Add shift if non-zero
+                if (field2_val != 0) {
+                    unsigned shift_amount = field2_val * 16;
+                    offset += snprintf(buffer + offset, bufferSize - offset,
+                                     ", lsl #%u", shift_amount);
+                }
+            } else if (op.field1_start == 21 && op.field1_width == 2) {
+                // This is a standalone hw field (shift amount in MOVK/MOVN as separate operand)
+                // Main loop already adds ", " separator, so just output "lsl #<amount>"
+                if (field1_val != 0) {
+                    unsigned shift_amount = field1_val * 16;
+                    offset += snprintf(buffer + offset, bufferSize - offset,
+                                     "lsl #%u", shift_amount);
+                }
+                // If zero, don't display anything (it's optional)
+            } else if (op.field1_start == 5 && op.field1_width == 16) {
+                // This is a standalone imm16 field (in MOVK/MOVN as separate operand)
+                // Format as hex for consistency with MOV/MOVZ
+                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1_val);
             } else {
                 offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
             }

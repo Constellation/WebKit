@@ -41,8 +41,8 @@ int main() {
         const char* description;
     } tests[] = {
         { opcode1, "mov      x8, #0x8103", "MOV x8, #0x8103 (no shift)" },
-        { opcode2, "mov      x9, #0x12340000", "MOV x9, #0x1234, LSL #16" },
-        { opcode3, "mov      x10, #0xabcd00000000", "MOV x10, #0xabcd, LSL #32" },
+        { opcode2, "mov      x9, #0x1234, lsl #16", "MOV x9, #0x1234, LSL #16" },
+        { opcode3, "mov      x10, #0xabcd, lsl #32", "MOV x10, #0xabcd, LSL #32" },
     };
 
     int passed = 0;
