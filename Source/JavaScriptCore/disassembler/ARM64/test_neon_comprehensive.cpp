@@ -34,8 +34,13 @@ int main() {
     test_opcode(0x6E0C4C21, "mov      v1.d[1], v1.d[1]");
 
     printf("--- DUP (Duplicate Element to Vector) ---\n");
-    test_opcode(0x0E040420, "dup      v0.8b, v1.b[0]");
-    test_opcode(0x4E080420, "dup      v0.16b, v1.b[0]");
+    test_opcode(0x0E010420, "dup      v0.8b, v1.b[0]");
+    test_opcode(0x4E010420, "dup      v0.16b, v1.b[0]");
+    test_opcode(0x0E020420, "dup      v0.4h, v1.h[0]");
+    test_opcode(0x4E020420, "dup      v0.8h, v1.h[0]");
+    test_opcode(0x0E040420, "dup      v0.2s, v1.s[0]");
+    test_opcode(0x4E040420, "dup      v0.4s, v1.s[0]");
+    test_opcode(0x4E080420, "dup      v0.2d, v1.d[0]");
 
     printf("--- ADD/SUB (Vector) ---\n");
     test_opcode(0x0E228420, "add      v0.8b, v1.8b, v2.8b");

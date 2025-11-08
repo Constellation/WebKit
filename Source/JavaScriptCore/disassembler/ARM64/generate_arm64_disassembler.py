@@ -275,22 +275,30 @@ class ARM64InstructionParser:
                             reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', next_hover)
                             reg_field = reg_fields[0] if reg_fields else 'Rn'
 
-                            # Determine register width from R_option hover
-                            is_64bit = 'x' in last_r_option.lower() or '64' in last_r_option or 'X' in last_r_option
-
-                            # Create appropriate register operand
-                            if is_64bit:
-                                # Check for ZR variant
-                                if 'zr' in last_r_option.lower():
-                                    operand = Operand('REG_GPR_XZR', None, reg_field, None, False, next_hover)
-                                else:
-                                    operand = Operand('REG_GPR_X', None, reg_field, None, False, next_hover)
+                            # Check if width is encoded in imm5 (like INS instruction)
+                            # Look for "imm5" in the hover text or check if imm5 field exists
+                            if 'imm5' in last_r_option.lower() or 'imm5' in field_map:
+                                # Width is determined by imm5 at runtime (bit 3: D=X, else W)
+                                # Create REG_GPR_SIZED operand
+                                # field1 = register number, field2 = imm5 (size field)
+                                operand = Operand('REG_GPR_SIZED', None, reg_field, 'imm5', False, next_hover)
                             else:
-                                # W register
-                                if 'zr' in last_r_option.lower() or 'wzr' in last_r_option.lower():
-                                    operand = Operand('REG_GPR_WZR', None, reg_field, None, False, next_hover)
+                                # Determine register width from R_option hover
+                                is_64bit = 'x' in last_r_option.lower() or '64' in last_r_option or 'X' in last_r_option
+
+                                # Create appropriate register operand
+                                if is_64bit:
+                                    # Check for ZR variant
+                                    if 'zr' in last_r_option.lower():
+                                        operand = Operand('REG_GPR_XZR', None, reg_field, None, False, next_hover)
+                                    else:
+                                        operand = Operand('REG_GPR_X', None, reg_field, None, False, next_hover)
                                 else:
-                                    operand = Operand('REG_GPR_W', None, reg_field, None, False, next_hover)
+                                    # W register
+                                    if 'zr' in last_r_option.lower() or 'wzr' in last_r_option.lower():
+                                        operand = Operand('REG_GPR_WZR', None, reg_field, None, False, next_hover)
+                                    else:
+                                        operand = Operand('REG_GPR_W', None, reg_field, None, False, next_hover)
 
                             operands.append(operand)
                             i += 1  # Skip the Rn_option we just processed
@@ -421,8 +429,14 @@ class ARM64InstructionParser:
                                         # Source arrangement - typically immh:Q for shift ops
                                         arrangement_field = 'immh:Q'
                                     elif 't' in arrangement_link and '_option' in arrangement_link:
-                                        # Generic arrangement - try size:Q for arithmetic ops
-                                        arrangement_field = 'size:Q'
+                                        # Generic arrangement - try size:Q for arithmetic ops, or imm5:Q for DUP-style ops
+                                        # Check which field exists in this instruction
+                                        if 'size' in field_map:
+                                            arrangement_field = 'size:Q'
+                                        elif 'imm5' in field_map:
+                                            arrangement_field = 'imm5:Q'
+                                        else:
+                                            arrangement_field = 'size:Q'  # fallback
                                     else:
                                         # Fallback
                                         arrangement_field = 'size:Q'
@@ -764,7 +778,8 @@ class ARM64InstructionParser:
         # Shift/extend
         # Be specific: shift_option/shift_type are shift types, plain shift__N are shift amounts
         if 'shift_option' in link_lower or 'shift_type' in link_lower:
-            return Operand('SHIFT_TYPE', None, 'shift', 'amount', is_optional, hover)
+            # The shift amount field is typically 'imm6' for shifted register operations
+            return Operand('SHIFT_TYPE', None, 'shift', 'imm6', is_optional, hover)
         if 'extend' in link_lower or 'extend_option' in link_lower:
             return Operand('EXTEND_TYPE', None, 'option', 'imm3', is_optional, hover)
 
@@ -839,6 +854,7 @@ class CodeGenerator:
         'REG_GPR_X': 0, 'REG_GPR_W': 1, 'REG_GPR_SP': 2,
         'REG_GPR_XSP': 3, 'REG_GPR_WSP': 4,
         'REG_GPR_XZR': 5, 'REG_GPR_WZR': 6,
+        'REG_GPR_SIZED': 7,  # GP register with width determined by field (like imm5 in INS)
         'REG_FP_B': 10, 'REG_FP_H': 11, 'REG_FP_S': 12,
         'REG_FP_D': 13, 'REG_FP_Q': 14, 'REG_SIMD_V': 15,
         'REG_SIMD_SIZED': 16,  # SIMD register with size determined by field
@@ -1262,6 +1278,32 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                 offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1_val);
+            break;
+
+        case 7: // REG_GPR_SIZED
+            // field1 = register number, field2 = size field (typically imm5)
+            // For INS: imm5 bit 3 determines W (0) vs X (1)
+            // Pattern: x1000 = D element = X register, else = W register
+            {
+                bool use_x_reg = false;
+                if (op.field2_width > 0 && op.field2_start < 32) {
+                    // Check if bit 3 of the size field is set (D element)
+                    use_x_reg = (field2_val & 0x8) != 0;
+                }
+
+                if (use_x_reg) {
+                    // X register
+                    if (field1_val == 29)
+                        offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+                    else if (field1_val == 30)
+                        offset += snprintf(buffer + offset, bufferSize - offset, "lr");
+                    else
+                        offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                } else {
+                    // W register
+                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1_val);
+                }
+            }
             break;
 
         // FP Registers
