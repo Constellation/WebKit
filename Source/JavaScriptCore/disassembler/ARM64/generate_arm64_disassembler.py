@@ -398,14 +398,14 @@ class ARM64InstructionParser:
         hover_lower = hover.lower()
 
         # GP registers
-        if any(p in link_lower for p in ['xd', 'xn', 'xm', 'xa', 'xt']):
+        if any(p in link_lower for p in ['xd', 'xn', 'xm', 'xa', 'xt', 'xs']):
             if 'sp' in link_lower:
                 return Operand('REG_GPR_XSP', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             elif 'zr' in link_lower:
                 return Operand('REG_GPR_XZR', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             return Operand('REG_GPR_X', None, primary_field or 'Rd', secondary_field, is_optional, hover)
 
-        if any(p in link_lower for p in ['wd', 'wn', 'wm', 'wa', 'wt']):
+        if any(p in link_lower for p in ['wd', 'wn', 'wm', 'wa', 'wt', 'ws']):
             if 'sp' in link_lower:
                 return Operand('REG_GPR_WSP', None, primary_field or 'Rd', secondary_field, is_optional, hover)
             elif 'zr' in link_lower:
@@ -841,8 +841,17 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     // Format mnemonic (with optional condition suffix)
     int offset;
     if (hasConditionSuffix && conditionCode) {
-        offset = snprintf(buffer, bufferSize, "   %-9s",
-                         (std::string(lowercaseMnemonic) + "." + conditionCode).c_str());
+        // Check if mnemonic already ends with a dot (like "B.")
+        std::string mnemonicStr(lowercaseMnemonic);
+        if (!mnemonicStr.empty() && mnemonicStr.back() == '.') {
+            // Already has dot, just append condition
+            offset = snprintf(buffer, bufferSize, "   %-9s",
+                             (mnemonicStr + conditionCode).c_str());
+        } else {
+            // Add dot before condition
+            offset = snprintf(buffer, bufferSize, "   %-9s",
+                             (mnemonicStr + "." + conditionCode).c_str());
+        }
     } else {
         offset = snprintf(buffer, bufferSize, "   %-9s", lowercaseMnemonic);
     }
