@@ -15410,8 +15410,40 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
 
-            // Add offset if present
-            if (field2_val && op.field2_width > 0) {
+            // Check if field2 is a register offset (load/store register offset addressing)
+            // Register offset: field2 is Rm at bits 16-20 (width=5)
+            // Immediate offset: field2 is various immediate fields
+            if (op.field2_width == 5 && op.field2_start == 16) {
+                // This is register offset addressing
+                // Extract extend type from bits 13-15 (option field)
+                uint32_t option = extractBits(opcode, 13, 3);
+                uint32_t shift = extractBits(opcode, 12, 1);  // S bit
+
+                // Determine if offset register is W or X based on option<0>
+                bool use_w_reg = (option & 1) == 0;
+
+                offset += snprintf(buffer + offset, bufferSize - offset, ", ");
+                if (use_w_reg)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field2_val);
+                else
+                    offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field2_val);
+
+                // Format extend type
+                const char* extend_names[] = {
+                    "uxtb", "uxth", "uxtw", "lsl",  // option 0-3
+                    "sxtb", "sxth", "sxtw", "sxtx"  // option 4-7
+                };
+                offset += snprintf(buffer + offset, bufferSize - offset, ", %s", extend_names[option & 0x7]);
+
+                // Add shift if present (S=1 means shift by log2(size))
+                if (shift) {
+                    // Determine shift amount from instruction size (bits 30-31)
+                    uint32_t size = extractBits(opcode, 30, 2);
+                    offset += snprintf(buffer + offset, bufferSize - offset, " #%u", size);
+                }
+            }
+            // Add immediate offset if present
+            else if (field2_val && op.field2_width > 0) {
                 int32_t imm_offset = signExtend(field2_val, op.field2_width);
 
                 // Apply scaling for certain immediate fields
