@@ -400,7 +400,13 @@ class ARM64InstructionParser:
     def _infer_operand(self, link: str, hover: str, field_map: Dict,
                       is_64bit: bool, r_option_hover: Optional[str] = None) -> Optional[Operand]:
         """Infer operand type with field mapping"""
-        field_names = re.findall(r'"([A-Za-z0-9_]+)"', hover)
+        # Extract field names from quotes, handling compound fields like "imms:immr" or "N:imms:immr"
+        quoted_strings = re.findall(r'"([A-Za-z0-9_:]+)"', hover)
+        field_names = []
+        for qs in quoted_strings:
+            # Split on colon to handle compound field names
+            field_names.extend(qs.split(':'))
+
         primary_field = field_names[0] if field_names else None
         secondary_field = field_names[1] if len(field_names) > 1 else None
         is_optional = '{' in link or 'optional' in hover.lower()
@@ -460,6 +466,18 @@ class ARM64InstructionParser:
         if any(p in link_lower for p in ['zd', 'zn', 'zm', 'za']): return Operand('REG_SVE_Z', None, primary_field or 'Zd', None, is_optional, hover)
         if any(p in link_lower for p in ['pd', 'pn', 'pm', 'pg']): return Operand('REG_SVE_P', None, primary_field or 'Pd', None, is_optional, hover)
 
+        # Bit position (for TBNZ/TBZ)
+        if 'bit' in hover_lower and ('number' in hover_lower or 'position' in hover_lower):
+            # Bit position operand like b40_b5 in TBNZ
+            # Encoded as b5 (high bit) and b40 (low 5 bits): position = b5 * 32 + b40
+            # After colon split, fields are in order: b5, b40
+            # We want field1=b40 (base), field2=b5 (multiplier), so swap them
+            return Operand('IMM_UINT', None, secondary_field or 'b40', primary_field or 'b5', is_optional, hover)
+
+        # Labels (check before immediates since links like "imm14_offset" contain "imm")
+        if 'label' in link_lower or 'label' in hover_lower or ('offset' in hover_lower and 'pc' in hover_lower):
+            return Operand('LABEL_PCREL', None, primary_field or 'imm', None, is_optional, hover)
+
         # Immediates
         if 'imm' in link_lower or 'hw_imm' in link_lower or (link_lower.startswith('shift__')):
             # Special handling for composite immediates like hw_imm16 (MOV/MOVZ)
@@ -478,8 +496,8 @@ class ARM64InstructionParser:
                     return Operand('IMM_UINT', None, 'hw', None, is_optional, hover)
                 return Operand('IMM_UINT', None, primary_field or 'shift', None, is_optional, hover)
 
-            if 'logical' in hover_lower:
-                return Operand('IMM_LOGICAL', None, primary_field or 'imm', 'N', is_optional, hover)
+            if 'logical' in hover_lower or 'bitmask' in hover_lower:
+                return Operand('IMM_LOGICAL', None, primary_field or 'imms', 'N', is_optional, hover)
             elif 'shift' in hover_lower:
                 return Operand('IMM_SHIFTED', None, primary_field or 'imm', 'sh', is_optional, hover)
             elif 'float' in hover_lower or 'fp' in hover_lower:
@@ -489,10 +507,6 @@ class ARM64InstructionParser:
             elif 'signed' in hover_lower or 'offset' in hover_lower:
                 return Operand('IMM_SINT', None, primary_field or 'imm', None, is_optional, hover)
             return Operand('IMM_UINT', None, primary_field or 'imm', None, is_optional, hover)
-
-        # Labels
-        if 'label' in link_lower or ('offset' in hover_lower and 'pc' in hover_lower):
-            return Operand('LABEL_PCREL', None, primary_field or 'imm', None, is_optional, hover)
 
         # Condition
         if 'cond' in link_lower:
@@ -1015,8 +1029,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Immediates
         case 30: // IMM_UINT
+            // Check if this is a bit position (TBNZ/TBZ style: b40 + b5*32)
+            if (op.field1_width == 5 && op.field1_start == 19 &&
+                op.field2_width == 1 && op.field2_start == 31) {
+                // Bit position: field1=b40 (bits 19-23), field2=b5 (bit 31)
+                // position = b5 * 32 + b40
+                unsigned bit_pos = field2_val * 32 + field1_val;
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", bit_pos);
+            }
             // Check if this is a MOV-style immediate with hw shift field
-            if (op.field2_width > 0 && op.field2_start < 32) {
+            else if (op.field2_width > 0 && op.field2_start < 32) {
                 // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift (composite operand)
                 // Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
                 offset += snprintf(buffer + offset, bufferSize - offset,
@@ -1099,10 +1121,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             if (startPC && endPC && (uint32_t*)target >= startPC && (uint32_t*)target < endPC) {
                 unsigned byte_offset = ((uint32_t*)target - startPC) * 4;
                 offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "0x%p (<%u>)", (void*)target, byte_offset);
+                                 "%p (<%u>)", (void*)target, byte_offset);
             } else {
                 offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "0x%p", (void*)target);
+                                 "%p", (void*)target);
             }
             break;
         }
