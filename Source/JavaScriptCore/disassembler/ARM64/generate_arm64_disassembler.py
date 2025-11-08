@@ -23,7 +23,7 @@ import re
 # Data structures
 InstructionEncoding = namedtuple('InstructionEncoding', [
     'name', 'mnemonic', 'mask', 'pattern', 'fields', 'operands', 'xml_file',
-    'is_64bit_variant', 'aliases'
+    'is_64bit_variant', 'aliases', 'has_q_suffix'
 ])
 
 BitField = namedtuple('BitField', [
@@ -78,11 +78,16 @@ class ARM64InstructionParser:
         root = tree.getroot()
 
         mnemonic = None
+        alias_mnemonic = None
         docvars = root.find('.//docvars')
         if docvars is not None:
             mnemonic_elem = docvars.find("./docvar[@key='mnemonic']")
             if mnemonic_elem is not None:
                 mnemonic = mnemonic_elem.get('value')
+            # Check for alias mnemonic (like SXTL for SSHLL)
+            alias_elem = docvars.find("./docvar[@key='alias_mnemonic']")
+            if alias_elem is not None:
+                alias_mnemonic = alias_elem.get('value')
 
         for iclass in root.findall('.//iclass'):
             regdiagram = iclass.find('regdiagram')
@@ -92,14 +97,14 @@ class ARM64InstructionParser:
             for encoding in iclass.findall('.//encoding'):
                 try:
                     instr = self._parse_encoding(encoding, regdiagram, mnemonic,
-                                                 os.path.basename(xml_path), root)
+                                                 os.path.basename(xml_path), root, alias_mnemonic)
                     if instr:
                         self.instructions.append(instr)
                 except Exception as e:
                     self.errors.append(f"Error in {xml_path}: {e}")
 
     def _parse_encoding(self, encoding_elem, regdiagram, default_mnemonic: str,
-                       xml_file: str, root) -> Optional[InstructionEncoding]:
+                       xml_file: str, root, alias_mnemonic: Optional[str] = None) -> Optional[InstructionEncoding]:
         """Parse encoding with field position tracking"""
         encoding_name = encoding_elem.get('name')
         if not encoding_name:
@@ -173,13 +178,15 @@ class ARM64InstructionParser:
         is_64bit = self._is_64bit_variant(fields, encoding_elem)
 
         asmtemplate_elem = encoding_elem.find('.//asmtemplate')
-        mnemonic = default_mnemonic
+        mnemonic = alias_mnemonic or default_mnemonic  # Prefer alias if available
         operands = []
+        has_q_suffix = False
 
         if asmtemplate_elem is not None:
-            parsed_mnemonic, operands = self._parse_asmtemplate(
-                asmtemplate_elem, fields, is_64bit, encoding_elem)
-            if parsed_mnemonic:
+            parsed_mnemonic, operands, has_q_suffix = self._parse_asmtemplate(
+                asmtemplate_elem, fields, is_64bit, encoding_elem, alias_mnemonic)
+            if parsed_mnemonic and not alias_mnemonic:
+                # Only use parsed mnemonic if we don't have an alias
                 mnemonic = parsed_mnemonic
 
         aliases = self._parse_aliases(root, encoding_name)
@@ -194,7 +201,8 @@ class ARM64InstructionParser:
             operands=operands,
             xml_file=xml_file,
             is_64bit_variant=is_64bit,
-            aliases=aliases
+            aliases=aliases,
+            has_q_suffix=has_q_suffix
         )
 
     def _is_64bit_variant(self, fields: List[BitField], encoding_elem) -> bool:
@@ -218,11 +226,12 @@ class ARM64InstructionParser:
         return aliases
 
     def _parse_asmtemplate(self, asmtemplate_elem, fields: List[BitField],
-                          is_64bit: bool, encoding_elem) -> Tuple[str, List[Operand]]:
+                          is_64bit: bool, encoding_elem, alias_mnemonic: Optional[str] = None) -> Tuple[str, List[Operand], bool]:
         """Parse assembly template with proper memory operand detection"""
         mnemonic = None
         operands = []
         field_map = {f.name: f for f in fields}
+        has_q_suffix = False
 
         # Extract parts preserving order
         parts = []
@@ -237,15 +246,30 @@ class ARM64InstructionParser:
             if child.tail:
                 parts.append(('text', child.tail))
 
-        # Extract mnemonic
+        # Extract mnemonic and detect {2} pattern
         for i, part in enumerate(parts):
             if part[0] == 'text':
                 text = part[1].strip()
                 if i == 0 and not mnemonic:
-                    match = re.match(r'^([A-Z][A-Z0-9.]*)', text)
+                    # Check for {2} pattern (e.g., "SXTL{2}")
+                    match = re.match(r'^([A-Z][A-Z0-9.]*)\{2\}', text)
                     if match:
                         mnemonic = match.group(1)
-                        break
+                        has_q_suffix = True
+                    # Check for split {2} pattern: "SXTL{" + operand + "}"
+                    elif text.endswith('{') and i + 2 < len(parts):
+                        # Check if next is operand with "2_option" in link
+                        if parts[i + 1][0] == 'operand' and '2_option' in parts[i + 1][1].lower():
+                            # Check if part after that is "}"
+                            if parts[i + 2][0] == 'text' and parts[i + 2][1].strip().startswith('}'):
+                                # This is SXTL{2} pattern
+                                mnemonic = text.rstrip('{').strip()
+                                has_q_suffix = True
+                    else:
+                        match = re.match(r'^([A-Z][A-Z0-9.]*)', text)
+                        if match:
+                            mnemonic = match.group(1)
+                    break
 
         # Parse operands with memory grouping
         i = 0
@@ -558,7 +582,7 @@ class ARM64InstructionParser:
 
             i += 1
 
-        return mnemonic, operands
+        return mnemonic, operands, has_q_suffix
 
     def _collect_memory_operand(self, parts: List, start_index: int) -> Optional[Dict]:
         """Collect all parts of a memory operand"""
@@ -1135,7 +1159,8 @@ static const char* const g_extendNames[8] = {
 
         for i, instr in enumerate(self.instructions):
             start_offset, operand_count = self.instruction_operand_info[i]
-            flags = 1 if instr.is_64bit_variant else 0
+            # Flags: bit 0 = is_64bit_variant, bit 1 = has_q_suffix
+            flags = (1 if instr.is_64bit_variant else 0) | (2 if instr.has_q_suffix else 0)
 
             # Convert mnemonic to lowercase for table
             lowercase_mnemonic = instr.mnemonic.lower()
@@ -1234,12 +1259,27 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         }
     }
 
-    // Format mnemonic (with optional condition suffix)
+    // Check if this instruction has Q-bit controlled "2" suffix (like SXTL2/UXTL2)
+    bool hasQSuffix = (entry->flags & 2) != 0;
+    bool appendTwo = false;
+    if (hasQSuffix) {
+        // Check Q bit (bit 30)
+        uint32_t Q = extractBits(opcode, 30, 1);
+        appendTwo = (Q == 1);
+    }
+
+    // Format mnemonic (with optional "2" suffix and optional condition suffix)
     // Mnemonic is already lowercase in table
     int offset;
+    std::string mnemonicStr(entry->mnemonic);
+
+    // Add "2" suffix if needed (before condition suffix)
+    if (appendTwo) {
+        mnemonicStr += "2";
+    }
+
     if (hasConditionSuffix && conditionCode) {
         // Check if mnemonic already ends with a dot (like "b.")
-        std::string mnemonicStr(entry->mnemonic);
         if (!mnemonicStr.empty() && mnemonicStr.back() == '.') {
             // Already has dot, just append condition
             offset = snprintf(buffer, bufferSize, "   %-9s",
@@ -1250,7 +1290,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                              (mnemonicStr + "." + conditionCode).c_str());
         }
     } else {
-        offset = snprintf(buffer, bufferSize, "   %-9s", entry->mnemonic);
+        offset = snprintf(buffer, bufferSize, "   %-9s", mnemonicStr.c_str());
     }
     if (offset < 0 || (size_t)offset >= bufferSize)
         return;
