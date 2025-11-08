@@ -4581,7 +4581,6 @@
 		6514F21718B3E1670098FF8B /* Bytecodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Bytecodes.h; sourceTree = "<group>"; };
 		6514F21818B3E1670098FF8B /* InitBytecodes.asm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm.asm; path = InitBytecodes.asm; sourceTree = "<group>"; };
 		652A3A201651C66100A80AFE /* ARM64Disassembler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ARM64Disassembler.cpp; path = disassembler/ARM64Disassembler.cpp; sourceTree = "<group>"; };
-		652A3A221651C69700A80AFE /* A64DOpcode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = A64DOpcode.cpp; path = disassembler/ARM64/A64DOpcode.cpp; sourceTree = "<group>"; };
 		652A3A231651C69700A80AFE /* A64DOpcode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = A64DOpcode.h; path = disassembler/ARM64/A64DOpcode.h; sourceTree = "<group>"; };
 		65303D631447B9E100D3F904 /* ParserTokens.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ParserTokens.h; sourceTree = "<group>"; };
 		653BC43E26D013A600D8BE20 /* YarrJITRegisters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrJITRegisters.h; path = yarr/YarrJITRegisters.h; sourceTree = "<group>"; };
@@ -8018,7 +8017,6 @@
 		652A3A1A1651A92400A80AFE /* ARM64 */ = {
 			isa = PBXGroup;
 			children = (
-				652A3A221651C69700A80AFE /* A64DOpcode.cpp */,
 				652A3A231651C69700A80AFE /* A64DOpcode.h */,
 				E38CAA202EBF456C00FFC9D5 /* A64InstructionTable.cpp */,
 				E38CAA1F2EBF456C00FFC9D5 /* A64InstructionTable.h */,

@@ -467,7 +467,6 @@ disassembler/Disassembler.cpp
 disassembler/RISCV64Disassembler.cpp
 disassembler/X86Disassembler.cpp
 
-disassembler/ARM64/A64DOpcode.cpp
 disassembler/ARM64/A64InstructionTable.cpp
 
 disassembler/zydis/Zydis.c
