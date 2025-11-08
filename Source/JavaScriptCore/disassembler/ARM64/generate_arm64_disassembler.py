@@ -114,18 +114,57 @@ class ARM64InstructionParser:
                     field.name, field.bit_start, field.bit_width)
 
         # Override with encoding-specific boxes
-        encoding_boxes = encoding_elem.findall('box')
-        if encoding_boxes:
-            encoding_fields = self._parse_boxes(encoding_boxes)
+        # Use bitdiffs attribute to get correct fixed field values
+        bitdiffs = encoding_elem.get('bitdiffs', '')
+        if bitdiffs:
+            # Parse bitdiffs like "opc == 10" to extract field assignments
             field_dict = {f.name: f for f in fields}
-            for ef in encoding_fields:
-                if ef.name in field_dict:
-                    field_dict[ef.name] = ef
-                # Update metadata
-                if not ef.is_fixed and ef.name not in self.field_metadata:
-                    self.field_metadata[ef.name] = FieldMetadata(
-                        ef.name, ef.bit_start, ef.bit_width)
+            for assignment in bitdiffs.split('&&'):
+                assignment = assignment.strip()
+                if '==' in assignment:
+                    parts = assignment.split('==')
+                    if len(parts) == 2:
+                        field_name = parts[0].strip()
+                        value_str = parts[1].strip()
+                        # Convert binary string to integer
+                        try:
+                            if value_str.startswith('0b'):
+                                value = int(value_str, 2)
+                            else:
+                                # Assume it's a binary string like "10" or "00"
+                                if all(c in '01' for c in value_str):
+                                    value = int(value_str, 2)
+                                else:
+                                    continue
+
+                            # Update the field in field_dict
+                            if field_name in field_dict:
+                                old_field = field_dict[field_name]
+                                # Create new fixed field with correct value
+                                field_dict[field_name] = BitField(
+                                    old_field.name,
+                                    old_field.bit_start,
+                                    old_field.bit_width,
+                                    True,  # is_fixed
+                                    value
+                                )
+                        except ValueError:
+                            pass
             fields = list(field_dict.values())
+        else:
+            # Fallback to parsing encoding boxes
+            encoding_boxes = encoding_elem.findall('box')
+            if encoding_boxes:
+                encoding_fields = self._parse_boxes(encoding_boxes)
+                field_dict = {f.name: f for f in fields}
+                for ef in encoding_fields:
+                    if ef.name in field_dict:
+                        field_dict[ef.name] = ef
+                    # Update metadata
+                    if not ef.is_fixed and ef.name not in self.field_metadata:
+                        self.field_metadata[ef.name] = FieldMetadata(
+                            ef.name, ef.bit_start, ef.bit_width)
+                fields = list(field_dict.values())
 
         if not fields:
             return None
