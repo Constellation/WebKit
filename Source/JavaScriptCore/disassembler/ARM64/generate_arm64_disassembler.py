@@ -219,12 +219,12 @@ class ARM64InstructionParser:
 
     def _parse_asmtemplate(self, asmtemplate_elem, fields: List[BitField],
                           is_64bit: bool, encoding_elem) -> Tuple[str, List[Operand]]:
-        """Parse assembly template"""
+        """Parse assembly template with proper memory operand detection"""
         mnemonic = None
         operands = []
         field_map = {f.name: f for f in fields}
 
-        # Extract parts
+        # Extract parts preserving order
         parts = []
         if asmtemplate_elem.text:
             parts.append(('text', asmtemplate_elem.text))
@@ -237,7 +237,7 @@ class ARM64InstructionParser:
             if child.tail:
                 parts.append(('text', child.tail))
 
-        # Parse
+        # Extract mnemonic
         for i, part in enumerate(parts):
             if part[0] == 'text':
                 text = part[1].strip()
@@ -245,13 +245,146 @@ class ARM64InstructionParser:
                     match = re.match(r'^([A-Z][A-Z0-9.]*)', text)
                     if match:
                         mnemonic = match.group(1)
-            elif part[0] == 'operand':
+                        break
+
+        # Parse operands with memory grouping
+        i = 0
+        while i < len(parts):
+            part = parts[i]
+
+            if part[0] == 'operand':
                 link, hover = part[1], part[2]
+
+                # Look ahead for memory operand pattern: operand followed by ", ["
+                if i + 1 < len(parts) and parts[i + 1][0] == 'text':
+                    next_text = parts[i + 1][1]
+
+                    # Check if this starts a memory operand
+                    if ', [' in next_text or ',[' in next_text:
+                        # This operand is not part of memory, add it normally
+                        operand = self._infer_operand(link, hover, field_map, is_64bit)
+                        if operand:
+                            operands.append(operand)
+                        i += 1
+                        continue
+
+                    # Check if we're inside a memory operand (previous was "[" or ", #")
+                    if i > 0:
+                        prev_text = None
+                        for j in range(i - 1, -1, -1):
+                            if parts[j][0] == 'text':
+                                prev_text = parts[j][1]
+                                break
+
+                        if prev_text and ('[' in prev_text or ', #' in prev_text or ',#' in prev_text):
+                            # We're building a memory operand
+                            # Collect all operands until we hit "]", "]!" or end
+                            memory_parts = self._collect_memory_operand(parts, i)
+                            if memory_parts:
+                                mem_operand = self._build_memory_operand(memory_parts, field_map, is_64bit)
+                                if mem_operand:
+                                    operands.append(mem_operand)
+                                i = memory_parts['end_index']
+                                continue
+
+                # Regular operand (not part of memory)
                 operand = self._infer_operand(link, hover, field_map, is_64bit)
                 if operand:
                     operands.append(operand)
 
+            i += 1
+
         return mnemonic, operands
+
+    def _collect_memory_operand(self, parts: List, start_index: int) -> Optional[Dict]:
+        """Collect all parts of a memory operand"""
+        # Find the opening bracket before this operand
+        bracket_start = None
+        for i in range(start_index - 1, -1, -1):
+            if parts[i][0] == 'text' and '[' in parts[i][1]:
+                bracket_start = i
+                break
+
+        if bracket_start is None:
+            return None
+
+        # Find the closing bracket
+        bracket_end = None
+        has_writeback = False
+        for i in range(start_index, len(parts)):
+            if parts[i][0] == 'text':
+                text = parts[i][1]
+                if ']!' in text:
+                    bracket_end = i
+                    has_writeback = True
+                    break
+                elif ']' in text:
+                    bracket_end = i
+                    break
+
+        if bracket_end is None:
+            return None
+
+        # Collect operands within brackets
+        operands_in_brackets = []
+        for i in range(bracket_start + 1, bracket_end + 1):
+            if parts[i][0] == 'operand':
+                operands_in_brackets.append((i, parts[i][1], parts[i][2]))
+
+        # Determine memory operand type
+        mem_type = 'MEMORY_BASE'
+
+        # Check for post-indexed: ], #imm (bracket closes, then comma and immediate)
+        if bracket_end + 1 < len(parts):
+            text_after = parts[bracket_end][1] if parts[bracket_end][0] == 'text' else ''
+            if ']' in text_after and not ']!' in text_after:
+                # Check if there's a ", #" after the bracket
+                for i in range(bracket_end + 1, len(parts)):
+                    if parts[i][0] == 'text' and (', #' in parts[i][1] or ',#' in parts[i][1]):
+                        mem_type = 'MEMORY_POSTIDX'
+                        # Include the operand after "],"
+                        if i + 1 < len(parts) and parts[i + 1][0] == 'operand':
+                            operands_in_brackets.append((i + 1, parts[i + 1][1], parts[i + 1][2]))
+                            bracket_end = i + 1
+                        break
+
+        # Check for pre-indexed: [Xn, #imm]!
+        if has_writeback:
+            mem_type = 'MEMORY_PREIDX'
+        elif len(operands_in_brackets) > 1:
+            # Check if second operand is immediate (offset)
+            mem_type = 'MEMORY_OFFSET'
+
+        return {
+            'type': mem_type,
+            'operands': operands_in_brackets,
+            'start_index': bracket_start,
+            'end_index': bracket_end + 1,
+            'has_writeback': has_writeback
+        }
+
+    def _build_memory_operand(self, memory_parts: Dict, field_map: Dict, is_64bit: bool) -> Optional[Operand]:
+        """Build a memory operand from collected parts"""
+        operands = memory_parts['operands']
+        mem_type = memory_parts['type']
+
+        if not operands:
+            return None
+
+        # First operand is always the base register
+        base_link, base_hover = operands[0][1], operands[0][2]
+        base_fields = re.findall(r'"([A-Za-z0-9_]+)"', base_hover)
+        base_field = base_fields[0] if base_fields else 'Rn'
+
+        # Second operand (if exists) is offset/index register
+        offset_field = None
+        if len(operands) > 1:
+            offset_link, offset_hover = operands[1][1], operands[1][2]
+            offset_fields = re.findall(r'"([A-Za-z0-9_]+)"', offset_hover)
+            offset_field = offset_fields[0] if offset_fields else 'imm'
+
+        return Operand(mem_type, None, base_field, offset_field, False,
+                      f"Memory: {mem_type}")
 
     def _infer_operand(self, link: str, hover: str, field_map: Dict,
                       is_64bit: bool) -> Optional[Operand]:
@@ -444,8 +577,10 @@ struct InstructionEntry {
 struct OperandDesc {
     uint8_t type;
     uint8_t subtype;
-    uint8_t field1;
-    uint8_t field2;
+    uint8_t field1_start;
+    uint8_t field1_width;
+    uint8_t field2_start;
+    uint8_t field2_width;
 };
 
 // Field metadata
@@ -574,17 +709,18 @@ static const char* const g_extendNames[8] = {
 
             if instr.operands:
                 for op in instr.operands:
-                    field1_idx = self.field_index.get(op.field_name, 255)
-                    field2_idx = self.field_index.get(op.field_name2, 255) if op.field_name2 else 255
+                    # Get bit positions from instruction's field dict
+                    field1_start, field1_width = instr.fields.get(op.field_name, (255, 0))
+                    field2_start, field2_width = instr.fields.get(op.field_name2, (255, 0)) if op.field_name2 else (255, 0)
                     op_type_val = self.OP_TYPES.get(op.type, 0)
 
-                    code += f"    {{ {op_type_val}, 0, {field1_idx}, {field2_idx} }},\n"
+                    code += f"    {{ {op_type_val}, 0, {field1_start}, {field1_width}, {field2_start}, {field2_width} }},\n"
                     operand_offset += 1
 
             self.instruction_operand_info.append((start_offset, operand_count))
 
         if operand_offset == 0:
-            code += "    { 0, 0, 255, 255 }\n"
+            code += "    { 0, 0, 255, 0, 255, 0 }\n"
 
         code += "};\n\n"
         return code
@@ -695,9 +831,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         const auto& firstOp = g_operandTable[entry->operandOffset];
         if (firstOp.type == 50) { // CONDITION
             hasConditionSuffix = true;
-            if (firstOp.field1 < g_fieldMetadataSize) {
-                const auto& field = g_fieldMetadata[firstOp.field1];
-                uint32_t cond = extractBits(opcode, field.bitStart, field.bitWidth);
+            if (firstOp.field1_width > 0 && firstOp.field1_start < 32) {
+                uint32_t cond = extractBits(opcode, firstOp.field1_start, firstOp.field1_width);
                 conditionCode = g_conditionNames[cond & 0xf];
             }
         }
@@ -731,14 +866,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         uint32_t field1_val = 0;
         uint32_t field2_val = 0;
 
-        if (op.field1 < g_fieldMetadataSize) {
-            const auto& field1 = g_fieldMetadata[op.field1];
-            field1_val = extractBits(opcode, field1.bitStart, field1.bitWidth);
+        if (op.field1_width > 0 && op.field1_start < 32) {
+            field1_val = extractBits(opcode, op.field1_start, op.field1_width);
         }
 
-        if (op.field2 < g_fieldMetadataSize) {
-            const auto& field2 = g_fieldMetadata[op.field2];
-            field2_val = extractBits(opcode, field2.bitStart, field2.bitWidth);
+        if (op.field2_width > 0 && op.field2_start < 32) {
+            field2_val = extractBits(opcode, op.field2_start, op.field2_width);
         }
 
         // Format based on operand type
@@ -828,7 +961,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             break;
 
         case 31: { // IMM_SINT
-            int32_t signed_val = signExtend(field1_val, g_fieldMetadata[op.field1].bitWidth);
+            int32_t signed_val = signExtend(field1_val, op.field1_width);
             offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signed_val);
             break;
         }
@@ -863,7 +996,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 35: { // IMM_SHIFTED
             offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
             // Add shift if present
-            if (field2_val && op.field2 < g_fieldMetadataSize) {
+            if (field2_val && op.field2_width > 0) {
                 unsigned shift_amount = field2_val * 16; // Common pattern
                 offset += snprintf(buffer + offset, bufferSize - offset,
                                  ", lsl #%u", shift_amount);
@@ -873,8 +1006,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // PC-relative label
         case 40: { // LABEL_PCREL
-            int32_t signed_offset = signExtend(field1_val,
-                                              g_fieldMetadata[op.field1].bitWidth);
+            int32_t signed_offset = signExtend(field1_val, op.field1_width);
             // PC-relative in ARM64 is in instructions (4 bytes each)
             int64_t target = (int64_t)pc + (signed_offset * 4);
 
@@ -900,7 +1032,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         case 51: // SHIFT_TYPE
             offset += snprintf(buffer + offset, bufferSize - offset, "%s",
                              g_shiftNames[field1_val & 0x3]);
-            if (field2_val && op.field2 < g_fieldMetadataSize) {
+            if (field2_val && op.field2_width > 0) {
                 offset += snprintf(buffer + offset, bufferSize - offset,
                                  " #%u", field2_val);
             }
@@ -918,16 +1050,31 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Memory addressing modes
         case 60: // MEMORY_BASE
+        case 61: // MEMORY_OFFSET
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1_val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
+            else if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
 
             // Add offset if present
-            if (field2_val && op.field2 < g_fieldMetadataSize) {
-                int32_t imm_offset = signExtend(field2_val,
-                                                g_fieldMetadata[op.field2].bitWidth);
+            if (field2_val && op.field2_width > 0) {
+                int32_t imm_offset = signExtend(field2_val, op.field2_width);
+
+                // Apply scaling for certain immediate fields
+                // imm7 is used in load/store pair and needs scaling
+                // Check if this is a 7-bit immediate (load/store pair)
+                if (op.field2_width == 7) {
+                    // Scale by 4 for 32-bit, 8 for 64-bit
+                    int scale = (entry->flags & 1) ? 8 : 4;
+                    imm_offset *= scale;
+                }
+                // imm9 (9-bit) is unscaled, no multiplication needed
+
                 if (imm_offset != 0) {
                     offset += snprintf(buffer + offset, bufferSize - offset,
                                      ", #%d", imm_offset);
@@ -940,6 +1087,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1_val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
+            else if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
 
@@ -952,12 +1103,22 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1_val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
+            else if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
 
-            if (op.field2 < g_fieldMetadataSize) {
-                int32_t imm_offset = signExtend(field2_val,
-                                                g_fieldMetadata[op.field2].bitWidth);
+            if (op.field2_width > 0) {
+                int32_t imm_offset = signExtend(field2_val, op.field2_width);
+
+                // Apply scaling for imm7 (load/store pair)
+                if (op.field2_width == 7) {
+                    int scale = (entry->flags & 1) ? 8 : 4;
+                    imm_offset *= scale;
+                }
+
                 offset += snprintf(buffer + offset, bufferSize - offset,
                                  ", #%d", imm_offset);
             }
@@ -968,13 +1129,23 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1_val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
+            else if (field1_val == 29)
+                offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+            else if (field1_val == 30)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
             offset += snprintf(buffer + offset, bufferSize - offset, "]");
 
-            if (op.field2 < g_fieldMetadataSize) {
-                int32_t imm_offset = signExtend(field2_val,
-                                                g_fieldMetadata[op.field2].bitWidth);
+            if (op.field2_width > 0) {
+                int32_t imm_offset = signExtend(field2_val, op.field2_width);
+
+                // Apply scaling for imm7 (load/store pair)
+                if (op.field2_width == 7) {
+                    int scale = (entry->flags & 1) ? 8 : 4;
+                    imm_offset *= scale;
+                }
+
                 offset += snprintf(buffer + offset, bufferSize - offset,
                                  ", #%d", imm_offset);
             }

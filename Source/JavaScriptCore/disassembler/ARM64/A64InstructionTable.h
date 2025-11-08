@@ -52,8 +52,10 @@ struct InstructionEntry {
 struct OperandDesc {
     uint8_t type;
     uint8_t subtype;
-    uint8_t field1;
-    uint8_t field2;
+    uint8_t field1_start;
+    uint8_t field1_width;
+    uint8_t field2_start;
+    uint8_t field2_width;
 };
 
 // Field metadata
