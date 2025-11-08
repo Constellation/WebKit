@@ -2062,6 +2062,7 @@
 		E386FD7F26E867B800E4C28B /* TemporalPlainTimePrototype.h in Headers */ = {isa = PBXBuildFile; fileRef = E386FD7926E867B800E4C28B /* TemporalPlainTimePrototype.h */; };
 		E389D854291226BC0085C3DC /* PageCount.h in Headers */ = {isa = PBXBuildFile; fileRef = E389D852291226BC0085C3DC /* PageCount.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E38CA06F2E614C0C00041A0C /* WasmCallProfile.h in Headers */ = {isa = PBXBuildFile; fileRef = E38CA06E2E614C0C00041A0C /* WasmCallProfile.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E38CAA222EBF456C00FFC9D5 /* A64InstructionTable.h in Headers */ = {isa = PBXBuildFile; fileRef = E38CAA1F2EBF456C00FFC9D5 /* A64InstructionTable.h */; };
 		E38DAB532A95D23A0050B7A8 /* PerfLog.h in Headers */ = {isa = PBXBuildFile; fileRef = E38DAB512A95D23A0050B7A8 /* PerfLog.h */; };
 		E38DB2E727F588F80027BD3F /* ScriptExecutableInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E38DB2E627F588F70027BD3F /* ScriptExecutableInlines.h */; };
 		E38DE55C2C4A11C700EF7055 /* CharacterPropertyDataGenerator.h in Headers */ = {isa = PBXBuildFile; fileRef = E38DE55A2C4A11AD00EF7055 /* CharacterPropertyDataGenerator.h */; };
@@ -5910,6 +5911,8 @@
 		E389D852291226BC0085C3DC /* PageCount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PageCount.h; sourceTree = "<group>"; };
 		E38C72C32EA05F84009CD28C /* WasmCallProfile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WasmCallProfile.cpp; sourceTree = "<group>"; };
 		E38CA06E2E614C0C00041A0C /* WasmCallProfile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmCallProfile.h; sourceTree = "<group>"; };
+		E38CAA1F2EBF456C00FFC9D5 /* A64InstructionTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = A64InstructionTable.h; path = disassembler/ARM64/A64InstructionTable.h; sourceTree = "<group>"; };
+		E38CAA202EBF456C00FFC9D5 /* A64InstructionTable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = A64InstructionTable.cpp; path = disassembler/ARM64/A64InstructionTable.cpp; sourceTree = "<group>"; };
 		E38D060B1F8E814100649CF2 /* JSScriptFetchParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSScriptFetchParameters.h; sourceTree = "<group>"; };
 		E38D060C1F8E814100649CF2 /* ScriptFetchParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptFetchParameters.h; sourceTree = "<group>"; };
 		E38D060D1F8E814100649CF2 /* JSScriptFetchParameters.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSScriptFetchParameters.cpp; sourceTree = "<group>"; };
@@ -8017,6 +8020,8 @@
 			children = (
 				652A3A221651C69700A80AFE /* A64DOpcode.cpp */,
 				652A3A231651C69700A80AFE /* A64DOpcode.h */,
+				E38CAA202EBF456C00FFC9D5 /* A64InstructionTable.cpp */,
+				E38CAA1F2EBF456C00FFC9D5 /* A64InstructionTable.h */,
 			);
 			name = ARM64;
 			sourceTree = "<group>";
@@ -10588,6 +10593,7 @@
 			files = (
 				BC18C4140E16F5CD00B34460 /* JavaScriptCore.h in Headers */,
 				0FFA549816B8835300B3A982 /* A64DOpcode.h in Headers */,
+				E38CAA222EBF456C00FFC9D5 /* A64InstructionTable.h in Headers */,
 				0F1FE51C1922A3BC006987C5 /* AbortReason.h in Headers */,
 				860161E30F3A83C100F84710 /* AbstractMacroAssembler.h in Headers */,
 				AD4937C41DDBE6140077C807 /* AbstractModuleRecord.h in Headers */,
