@@ -37,6 +37,7 @@
 #include "A64InstructionTable.h"
 #include <stdio.h>
 #include <string.h>
+#include <string>
 
 namespace JSC { namespace ARM64Disassembler {
 
@@ -15049,17 +15050,49 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         return;
     }
 
-    // Format mnemonic
-    int offset = snprintf(buffer, bufferSize, "   %-9s", entry->mnemonic);
+    // Convert mnemonic to lowercase
+    char lowercaseMnemonic[32];
+    const char* src = entry->mnemonic;
+    char* dst = lowercaseMnemonic;
+    while (*src && (dst - lowercaseMnemonic) < 31) {
+        *dst++ = (*src >= 'A' && *src <= 'Z') ? (*src + 32) : *src;
+        src++;
+    }
+    *dst = '\0';
+
+    // Check if first operand is a condition code for conditional branches
+    bool hasConditionSuffix = false;
+    const char* conditionCode = nullptr;
+    if (entry->operandCount > 0) {
+        const auto& firstOp = g_operandTable[entry->operandOffset];
+        if (firstOp.type == 50) { // CONDITION
+            hasConditionSuffix = true;
+            if (firstOp.field1 < g_fieldMetadataSize) {
+                const auto& field = g_fieldMetadata[firstOp.field1];
+                uint32_t cond = extractBits(opcode, field.bitStart, field.bitWidth);
+                conditionCode = g_conditionNames[cond & 0xf];
+            }
+        }
+    }
+
+    // Format mnemonic (with optional condition suffix)
+    int offset;
+    if (hasConditionSuffix && conditionCode) {
+        offset = snprintf(buffer, bufferSize, "   %-9s",
+                         (std::string(lowercaseMnemonic) + "." + conditionCode).c_str());
+    } else {
+        offset = snprintf(buffer, bufferSize, "   %-9s", lowercaseMnemonic);
+    }
     if (offset < 0 || (size_t)offset >= bufferSize)
         return;
 
-    // Format each operand
-    for (unsigned i = 0; i < entry->operandCount; i++) {
+    // Format each operand (skip first if it was a condition code)
+    unsigned startOperand = hasConditionSuffix ? 1 : 0;
+    for (unsigned i = startOperand; i < entry->operandCount; i++) {
         const auto& op = g_operandTable[entry->operandOffset + i];
 
         // Add separator
-        if (i > 0 && offset > 0 && (size_t)offset < bufferSize) {
+        if (i > startOperand && offset > 0 && (size_t)offset < bufferSize) {
             offset += snprintf(buffer + offset, bufferSize - offset, ", ");
         }
 
