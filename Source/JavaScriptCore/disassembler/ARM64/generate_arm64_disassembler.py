@@ -518,12 +518,33 @@ class ARM64InstructionParser:
                 return Operand('REG_GPR_X', None, primary_field or 'Rm', secondary_field, is_optional, hover)
 
         # FP registers
-        if any(p in link_lower for p in ['bd', 'bn']): return Operand('REG_FP_B', None, primary_field or 'Rd', None, is_optional, hover)
-        if any(p in link_lower for p in ['hd', 'hn']): return Operand('REG_FP_H', None, primary_field or 'Rd', None, is_optional, hover)
-        if any(p in link_lower for p in ['sd', 'sn']): return Operand('REG_FP_S', None, primary_field or 'Rd', None, is_optional, hover)
-        if any(p in link_lower for p in ['dd', 'dn']): return Operand('REG_FP_D', None, primary_field or 'Rd', None, is_optional, hover)
-        if any(p in link_lower for p in ['qd', 'qn']): return Operand('REG_FP_Q', None, primary_field or 'Rd', None, is_optional, hover)
-        if any(p in link_lower for p in ['vd', 'vn', 'vm']): return Operand('REG_SIMD_V', None, primary_field or 'Rd', None, is_optional, hover)
+        # Support d/n/m/t/a suffixes (destination/source1/source2/transfer/accumulator)
+        # 't' suffix is used for load/store instructions (Rt = transfer register)
+        # For 't' patterns, field is typically 'Rt'; for 'd' patterns, typically 'Rd'
+        if any(p in link_lower for p in ['bd', 'bn']):
+            return Operand('REG_FP_B', None, primary_field or 'Rd', None, is_optional, hover)
+        if any(p in link_lower for p in ['bt']):
+            return Operand('REG_FP_B', None, primary_field or 'Rt', None, is_optional, hover)
+        if any(p in link_lower for p in ['hd', 'hn']):
+            return Operand('REG_FP_H', None, primary_field or 'Rd', None, is_optional, hover)
+        if any(p in link_lower for p in ['ht']):
+            return Operand('REG_FP_H', None, primary_field or 'Rt', None, is_optional, hover)
+        if any(p in link_lower for p in ['sd', 'sn']):
+            return Operand('REG_FP_S', None, primary_field or 'Rd', None, is_optional, hover)
+        if any(p in link_lower for p in ['st']):
+            return Operand('REG_FP_S', None, primary_field or 'Rt', None, is_optional, hover)
+        if any(p in link_lower for p in ['dd', 'dn']):
+            return Operand('REG_FP_D', None, primary_field or 'Rd', None, is_optional, hover)
+        if any(p in link_lower for p in ['dt']):
+            return Operand('REG_FP_D', None, primary_field or 'Rt', None, is_optional, hover)
+        if any(p in link_lower for p in ['qd', 'qn']):
+            return Operand('REG_FP_Q', None, primary_field or 'Rd', None, is_optional, hover)
+        if any(p in link_lower for p in ['qt']):
+            return Operand('REG_FP_Q', None, primary_field or 'Rt', None, is_optional, hover)
+        if any(p in link_lower for p in ['vd', 'vn', 'vm']):
+            return Operand('REG_SIMD_V', None, primary_field or 'Rd', None, is_optional, hover)
+        if any(p in link_lower for p in ['vt']):
+            return Operand('REG_SIMD_V', None, primary_field or 'Rt', None, is_optional, hover)
 
         # SVE
         if any(p in link_lower for p in ['zd', 'zn', 'zm', 'za']): return Operand('REG_SVE_Z', None, primary_field or 'Zd', None, is_optional, hover)
