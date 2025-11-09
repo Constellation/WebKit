@@ -42,13 +42,15 @@ class FieldMetadata:
         self.bit_width = bit_width
 
 class ARM64InstructionParser:
-    """Enhanced parser with complete field tracking"""
+    """Enhanced parser with complete field tracking and explanation parsing"""
 
     def __init__(self, xml_directory: str):
         self.xml_directory = xml_directory
         self.instructions: List[InstructionEncoding] = []
         self.errors: List[str] = []
         self.field_metadata: Dict[str, FieldMetadata] = {}
+        # Map: (encoding_name, symbol_link) -> field encoding
+        self.operand_explanations: Dict[Tuple[str, str], str] = {}
 
     def parse_all(self) -> List[InstructionEncoding]:
         """Parse all XML files"""
@@ -77,6 +79,9 @@ class ARM64InstructionParser:
         tree = ET.parse(xml_path)
         root = tree.getroot()
 
+        # Parse explanations first to get field encodings for operands
+        self._parse_explanations(root)
+
         mnemonic = None
         alias_mnemonic = None
         docvars = root.find('.//docvars')
@@ -102,6 +107,39 @@ class ARM64InstructionParser:
                         self.instructions.append(instr)
                 except Exception as e:
                     self.errors.append(f"Error in {xml_path}: {e}")
+
+    def _parse_explanations(self, root):
+        """Parse explanation sections to extract operand field encodings"""
+        for explanation in root.findall('.//explanation'):
+            symbol_elem = explanation.find('.//symbol')
+            if symbol_elem is None:
+                continue
+
+            symbol_link = symbol_elem.get('link', '')
+            if not symbol_link:
+                continue
+
+            # Check for enclist attribute to know which encodings this applies to
+            enclist = explanation.get('enclist', '')
+            encoding_names = [e.strip() for e in enclist.split(',')] if enclist else []
+
+            # Check for account/definition with encodedin attribute
+            account = explanation.find('.//account[@encodedin]')
+            definition = explanation.find('.//definition[@encodedin]')
+
+            encoding_elem = account if account is not None else definition
+            if encoding_elem is not None:
+                encodedin = encoding_elem.get('encodedin', '')
+
+                # Store for each encoding in enclist
+                if encoding_names:
+                    for enc_name in encoding_names:
+                        key = (enc_name, symbol_link)
+                        self.operand_explanations[key] = encodedin
+                else:
+                    # No enclist, store with empty encoding name (applies to all)
+                    key = ('', symbol_link)
+                    self.operand_explanations[key] = encodedin
 
     def _parse_encoding(self, encoding_elem, regdiagram, default_mnemonic: str,
                        xml_file: str, root, alias_mnemonic: Optional[str] = None) -> Optional[InstructionEncoding]:
@@ -184,7 +222,7 @@ class ARM64InstructionParser:
 
         if asmtemplate_elem is not None:
             parsed_mnemonic, operands, has_q_suffix = self._parse_asmtemplate(
-                asmtemplate_elem, fields, is_64bit, encoding_elem, alias_mnemonic)
+                asmtemplate_elem, fields, is_64bit, encoding_elem, alias_mnemonic, encoding_name)
             if parsed_mnemonic and not alias_mnemonic:
                 # Only use parsed mnemonic if we don't have an alias
                 mnemonic = parsed_mnemonic
@@ -226,12 +264,43 @@ class ARM64InstructionParser:
         return aliases
 
     def _parse_asmtemplate(self, asmtemplate_elem, fields: List[BitField],
-                          is_64bit: bool, encoding_elem, alias_mnemonic: Optional[str] = None) -> Tuple[str, List[Operand], bool]:
+                          is_64bit: bool, encoding_elem, alias_mnemonic: Optional[str] = None,
+                          encoding_name: str = '') -> Tuple[str, List[Operand], bool]:
         """Parse assembly template with proper memory operand detection"""
         mnemonic = None
         operands = []
         field_map = {f.name: f for f in fields}
         has_q_suffix = False
+
+        # Helper to get field encoding from explanation
+        def get_field_encoding(symbol_link: str) -> Optional[str]:
+            """Get field encoding for a symbol from explanation data
+
+            Note: symbol_link may be lowercase but explanations are stored with original case.
+            Try both.
+            """
+            # Try with specific encoding name first
+            key = (encoding_name, symbol_link)
+            if key in self.operand_explanations:
+                return self.operand_explanations[key]
+
+            # Try with empty encoding name (applies to all)
+            key = ('', symbol_link)
+            if key in self.operand_explanations:
+                return self.operand_explanations[key]
+
+            # Try case-insensitive match for encoding-specific
+            if encoding_name:
+                for (enc, sym), field in self.operand_explanations.items():
+                    if enc == encoding_name and sym.lower() == symbol_link.lower():
+                        return field
+
+            # Try case-insensitive match for global
+            for (enc, sym), field in self.operand_explanations.items():
+                if enc == '' and sym.lower() == symbol_link.lower():
+                    return field
+
+            return None
 
         # Extract parts preserving order
         parts = []
@@ -436,15 +505,15 @@ class ARM64InstructionParser:
                             elif '_option' in arrangement_link:
                                 # Non-indexed arrangement specifier
                                 # This is a SIMD register with arrangement
-                                # Extract arrangement field(s) from hover
-                                arr_fields = re.findall(r'"([A-Za-z0-9_:]+)"', arrangement_hover)
-                                arrangement_field = arr_fields[0] if arr_fields else None
+                                # Get field encoding from explanation
+                                arrangement_field = get_field_encoding(arrangement_link)
 
-                                # If no field found in hover, use common defaults
-                                # Common SIMD instruction patterns:
-                                # - Ta_option/Tb_option with immh field (shift operations)
-                                # - Arrangement with size field (arithmetic operations)
-                                # - Arrangement with imm5 field (DUP operations)
+                                # If no explanation found, try to extract from hover
+                                if not arrangement_field:
+                                    arr_fields = re.findall(r'"([A-Za-z0-9_:]+)"', arrangement_hover)
+                                    arrangement_field = arr_fields[0] if arr_fields else None
+
+                                # If still no field found, use heuristics based on link pattern
                                 if not arrangement_field:
                                     if arrangement_link.startswith('ta_'):
                                         # Destination arrangement - typically immh for shift ops
@@ -460,10 +529,10 @@ class ARM64InstructionParser:
                                         elif 'imm5' in field_map:
                                             arrangement_field = 'imm5:Q'
                                         else:
-                                            arrangement_field = 'size:Q'  # fallback
+                                            arrangement_field = 'Q'  # fallback to just Q
                                     else:
                                         # Fallback
-                                        arrangement_field = 'size:Q'
+                                        arrangement_field = 'Q'
 
                                 # Get register field from current operand hover
                                 reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', hover)
@@ -536,6 +605,25 @@ class ARM64InstructionParser:
                                 else:
                                     i = skip_to
                                 continue
+
+                # Check if we're inside a register list (previous was "{ ")
+                if i > 0:
+                    prev_text = None
+                    for j in range(i - 1, -1, -1):
+                        if parts[j][0] == 'text':
+                            prev_text = parts[j][1]
+                            break
+
+                    if prev_text and (', { ' in prev_text or ',{ ' in prev_text or '{ ' in prev_text):
+                        # We're building a register list
+                        # Collect all operands until we hit "}", "], " or end
+                        reglist_parts = self._collect_register_list(parts, i)
+                        if reglist_parts:
+                            reglist_operand = self._build_register_list_operand(reglist_parts, field_map, encoding_elem)
+                            if reglist_operand:
+                                operands.append(reglist_operand)
+                            i = reglist_parts['end_index']
+                            continue
 
                 # Look ahead for memory operand pattern: operand followed by ", ["
                 if i + 1 < len(parts) and parts[i + 1][0] == 'text':
@@ -673,6 +761,132 @@ class ARM64InstructionParser:
 
         return Operand(mem_type, None, base_field, offset_field, False,
                       f"Memory: {mem_type}")
+
+    def _collect_register_list(self, parts: List, start_index: int) -> Optional[Dict]:
+        """Collect all parts of a register list with hardcoded or variable arrangements"""
+        # Find the opening brace before this operand
+        brace_start = None
+        for i in range(start_index - 1, -1, -1):
+            if parts[i][0] == 'text' and '{' in parts[i][1]:
+                brace_start = i
+                break
+
+        if brace_start is None:
+            return None
+
+        # Find the closing brace
+        brace_end = None
+        hardcoded_arrangement = None
+        for i in range(start_index, len(parts)):
+            if parts[i][0] == 'text':
+                text = parts[i][1]
+                if '}' in text:
+                    brace_end = i
+                    # Extract hardcoded arrangement like ".16B" from ".16B }, "
+                    match = re.search(r'\.(\d+[BHSDQ])', text)
+                    if match:
+                        hardcoded_arrangement = match.group(1)
+                    break
+
+        if brace_end is None:
+            return None
+
+        # Collect all register and arrangement operands within braces
+        # Pattern 1 (TBL): { <Vn> TEXT(.16B) }
+        # Pattern 2 (LD1): { <Vt> TEXT(.) <T_option> }
+        registers = []
+        arrangement_operand = None  # For variable arrangements (LD1 style)
+
+        i = brace_start + 1
+        while i < brace_end + 1:
+            if parts[i][0] == 'operand':
+                link, hover = parts[i][1], parts[i][2]
+                # Check if this is a register operand (Vn, Vt, VnPlus1, etc.)
+                if any(x in link.lower() for x in ['vn', 'vt', 'vnplus', 'vtplus']):
+                    registers.append((i, link, hover))
+
+                    # Check if next is TEXT with just "." followed by arrangement operand
+                    if i + 2 < len(parts):
+                        if parts[i + 1][0] == 'text' and '.' in parts[i + 1][1]:
+                            # Check if following part is an arrangement operand
+                            if parts[i + 2][0] == 'operand':
+                                arr_link = parts[i + 2][1].lower()
+                                if '_option' in arr_link and ('t_' in arr_link or 'ta_' in arr_link or 'tb_' in arr_link):
+                                    # This is a variable arrangement operand (like T_option)
+                                    arr_hover = parts[i + 2][2]
+                                    arrangement_operand = (parts[i + 2][1], arr_hover)
+                                    # Skip past the dot and arrangement operand
+                                    i += 2
+            i += 1
+
+        return {
+            'registers': registers,
+            'hardcoded_arrangement': hardcoded_arrangement,
+            'arrangement_operand': arrangement_operand,  # (link, hover) or None
+            'start_index': brace_start,
+            'end_index': brace_end + 1
+        }
+
+    def _build_register_list_operand(self, reglist_parts: Dict, field_map: Dict, encoding_elem) -> Optional[Operand]:
+        """Build a register list operand from collected parts (hardcoded or variable arrangements)"""
+        registers = reglist_parts['registers']
+        hardcoded_arrangement = reglist_parts['hardcoded_arrangement']
+        arrangement_operand = reglist_parts.get('arrangement_operand')  # (link, hover) or None
+
+        if not registers:
+            return None
+
+        # First register is the base
+        base_link, base_hover = registers[0][1], registers[0][2]
+        base_fields = re.findall(r'"([A-Za-z0-9_]+)"', base_hover)
+        base_field = base_fields[0] if base_fields else 'Rn'
+
+        # Store the actual count of registers from the template
+        num_registers = len(registers)
+
+        # Determine arrangement encoding
+        if arrangement_operand:
+            # Variable arrangement (LD1 style): arrangement comes from a field at runtime
+            arr_link, arr_hover = arrangement_operand
+
+            # Extract field name from hover or use explanation data
+            arr_fields = re.findall(r'"([A-Za-z0-9_:]+)"', arr_hover)
+            arrangement_field = arr_fields[0] if arr_fields else None
+
+            # If not found, try to get from explanations
+            if not arrangement_field:
+                # Try lowercase link
+                arr_link_lower = arr_link.lower()
+                # Check common patterns
+                if 't_option' in arr_link_lower:
+                    # Default patterns for T_option
+                    if 'size' in field_map and 'Q' in field_map:
+                        arrangement_field = 'size:Q'
+                    elif 'size' in field_map:
+                        arrangement_field = 'size'
+                    else:
+                        arrangement_field = 'Q'
+
+            # Use special marker (15) in low bits to indicate variable arrangement
+            # subtype = (num_regs << 4) | 15 (variable marker)
+            combined_subtype = (num_registers << 4) | 15
+
+            return Operand('REG_LIST', combined_subtype, base_field, arrangement_field, False,
+                          f"Register list: {num_registers} registers with variable arrangement {arrangement_field}")
+        else:
+            # Hardcoded arrangement (TBL style): arrangement is fixed in the template
+            arrangement_map = {
+                '16B': 0, '8B': 1, '4S': 2, '2S': 3, '8H': 4, '4H': 5,
+                '2D': 6, '1D': 7, '16b': 0, '8b': 1, '4s': 2, '2s': 3,
+                '8h': 4, '4h': 5, '2d': 6, '1d': 7
+            }
+            subtype = arrangement_map.get(hardcoded_arrangement, 0) if hardcoded_arrangement else 0
+
+            # subtype = (num_regs << 4) | arrangement_type
+            combined_subtype = (num_registers << 4) | subtype
+
+            return Operand('REG_LIST', combined_subtype, base_field, None, False,
+                          f"Register list: {num_registers} registers with {hardcoded_arrangement}")
 
     def _infer_operand(self, link: str, hover: str, field_map: Dict,
                       is_64bit: bool, r_option_hover: Optional[str] = None,
@@ -937,6 +1151,7 @@ class CodeGenerator:
         'REG_SIMD_SIZED': 16,  # SIMD register with size determined by field
         'REG_SIMD_ARRANGED': 17,  # SIMD register with arrangement specifier
         'REG_SIMD_ELEMENT': 18,  # SIMD register with indexed element (v1.b[0])
+        'REG_LIST': 19,  # Register list with hardcoded arrangement (e.g., { v0.16b, v1.16b })
         'REG_SVE_Z': 20, 'REG_SVE_P': 21,
         'IMM_UINT': 30, 'IMM_SINT': 31, 'IMM_HEX': 32,
         'IMM_FLOAT': 33, 'IMM_LOGICAL': 34, 'IMM_SHIFTED': 35,
@@ -1616,6 +1831,11 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     else if (imm5_low & 0x2) arrangement = Q ? "8h" : "4h";   // half
                     else if (imm5_low & 0x4) arrangement = Q ? "4s" : "2s";   // single
                     else if (imm5_low & 0x8) arrangement = Q ? "2d" : "1d";   // double
+                } else if (op.field2_start == 30 && op.field2_width == 1) {
+                    // Q bit only (TBL/TBX type, bit 30)
+                    // Q=0 → 8B, Q=1 → 16B (byte elements for table operations)
+                    uint32_t Q = field2_val & 0x1;
+                    arrangement = Q ? "16b" : "8b";
                 }
                 // Add more patterns as needed
 
@@ -1687,6 +1907,58 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
                 offset += snprintf(buffer + offset, bufferSize - offset,
                                  "v%u.%s[%u]", field1_val, elem_size, index);
+            }
+            break;
+
+        case 19: // REG_LIST (register list with hardcoded or variable arrangement)
+            // field1 = base register number (Rn/Rt)
+            // field2 = arrangement field (for variable) or UNUSED (for hardcoded)
+            // subtype = (num_regs << 4) | arrangement_type
+            //   - High 4 bits: number of registers (1-4)
+            //   - Low 4 bits: arrangement type (0-14 = hardcoded, 15 = variable from field2)
+            {
+                const char* hardcoded_arrangements[] = {"16b", "8b", "4s", "2s", "8h", "4h", "2d", "1d"};
+
+                // Decode subtype
+                unsigned num_regs = (op.subtype >> 4) & 0xF;
+                unsigned arrangement_type = op.subtype & 0xF;
+
+                const char* arrangement = "16b";
+
+                if (arrangement_type == 15) {
+                    // Variable arrangement - decode from field2
+                    // Common pattern: size:Q (bits 23-22 for size, bit 30 for Q)
+                    if (op.field2_width > 0 && op.field2_start < 32) {
+                        // Extract field value - for compound fields like "size:Q", field2_start points to first field
+                        // Assume size field (2 bits) + Q bit (1 bit)
+                        // For LD1: size at bits 11-10, Q at bit 30
+                        uint32_t size = extractBits(opcode, 10, 2);  // size field
+                        uint32_t Q = extractBits(opcode, 30, 1);     // Q bit
+
+                        // Decode arrangement from size and Q
+                        // size=00: 8-bit, size=01: 16-bit, size=10: 32-bit, size=11: 64-bit
+                        if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit elements
+                        else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit elements
+                        else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit elements
+                        else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit elements
+                    }
+                } else {
+                    // Hardcoded arrangement
+                    if (arrangement_type < 8) {
+                        arrangement = hardcoded_arrangements[arrangement_type];
+                    }
+                }
+
+                // Format register list
+                offset += snprintf(buffer + offset, bufferSize - offset, "{ ");
+                for (unsigned r = 0; r < num_regs; r++) {
+                    if (r > 0) {
+                        offset += snprintf(buffer + offset, bufferSize - offset, ", ");
+                    }
+                    unsigned reg_num = (field1_val + r) & 0x1F;  // Wrap around at 32
+                    offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", reg_num, arrangement);
+                }
+                offset += snprintf(buffer + offset, bufferSize - offset, " }");
             }
             break;
 
