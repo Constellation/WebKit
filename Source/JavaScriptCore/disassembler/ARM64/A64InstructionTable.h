@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-namespace JSC { namespace ARM64Disassembler {
+namespace JSC::ARM64Disassembler {
 
 // Instruction entry
 struct InstructionEntry {
@@ -52,10 +52,10 @@ struct InstructionEntry {
 struct OperandDesc {
     uint8_t type;
     uint8_t subtype;
-    uint8_t field1_start;
-    uint8_t field1_width;
-    uint8_t field2_start;
-    uint8_t field2_width;
+    uint8_t field1Start;
+    uint8_t field1Width;
+    uint8_t field2Start;
+    uint8_t field2Width;
 };
 
 // Field metadata
@@ -74,8 +74,6 @@ extern const size_t g_fieldMetadataSize;
 
 // API
 const InstructionEntry* findInstruction(uint32_t opcode);
-void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
-                      uint32_t* pc, uint32_t* startPC, uint32_t* endPC,
-                      char* buffer, size_t bufferSize);
+void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t* pc, uint32_t* startPC, uint32_t* endPC, char* buffer, size_t bufferSize);
 
-}} // namespace JSC::ARM64Disassembler
+} // namespace JSC::ARM64Disassembler

@@ -39,25 +39,28 @@
 #include <string.h>
 #include <string>
 
-namespace JSC { namespace ARM64Disassembler {
+namespace JSC::ARM64Disassembler {
 
 // Helper functions
-static inline uint32_t extractBits(uint32_t value, unsigned start, unsigned width) {
+static inline uint32_t extractBits(uint32_t value, unsigned start, unsigned width)
+{
     return (value >> start) & ((1U << width) - 1);
 }
 
-static inline int32_t signExtend(uint32_t value, unsigned bits) {
+static inline int32_t signExtend(uint32_t value, unsigned bits)
+{
     if (bits == 0 || bits >= 32) return (int32_t)value;
-    uint32_t sign_bit = 1U << (bits - 1);
-    if (value & sign_bit)
+    uint32_t signBit = 1U << (bits - 1);
+    if (value & signBit)
         return (int32_t)(value | (~0U << bits));
     return (int32_t)value;
 }
 
-static inline int64_t signExtend64(uint64_t value, unsigned bits) {
+static inline int64_t signExtend64(uint64_t value, unsigned bits)
+{
     if (bits == 0 || bits >= 64) return (int64_t)value;
-    uint64_t sign_bit = 1ULL << (bits - 1);
-    if (value & sign_bit)
+    uint64_t signBit = 1ULL << (bits - 1);
+    if (value & signBit)
         return (int64_t)(value | (~0ULL << bits));
     return (int64_t)value;
 }
@@ -15612,8 +15615,8 @@ const size_t g_instructionTableSize = 4013;
 
 // Decode ARM64 logical immediate
 // Based on ARM Architecture Reference Manual, pseudocode for DecodeBitMasks
-static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms,
-                                   bool is64bit, uint64_t* result) {
+static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms, bool is64bit, uint64_t* result)
+{
     // Determine element size
     unsigned len = 31 - __builtin_clz((n << 6) | (~imms & 0x3f));
     if (len < 1)
@@ -15652,7 +15655,8 @@ static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms,
 }
 
 
-const InstructionEntry* findInstruction(uint32_t opcode) {
+const InstructionEntry* findInstruction(uint32_t opcode)
+{
     // Linear search (optimized to binary search later)
     for (size_t i = 0; i < g_instructionTableSize; i++) {
         const auto& entry = g_instructionTable[i];
@@ -15663,9 +15667,8 @@ const InstructionEntry* findInstruction(uint32_t opcode) {
 }
 
 
-void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
-                      uint32_t* pc, uint32_t* startPC, uint32_t* endPC,
-                      char* buffer, size_t bufferSize) {
+void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t* pc, uint32_t* startPC, uint32_t* endPC, char* buffer, size_t bufferSize)
+{
     if (!entry) {
         snprintf(buffer, bufferSize, "   .long      0x%08x", opcode);
         return;
@@ -15678,8 +15681,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         const auto& firstOp = g_operandTable[entry->operandOffset];
         if (firstOp.type == 50) { // CONDITION
             hasConditionSuffix = true;
-            if (firstOp.field1_width > 0 && firstOp.field1_start < 32) {
-                uint32_t cond = extractBits(opcode, firstOp.field1_start, firstOp.field1_width);
+            if (firstOp.field1Width > 0 && firstOp.field1Start < 32) {
+                uint32_t cond = extractBits(opcode, firstOp.field1Start, firstOp.field1Width);
                 conditionCode = g_conditionNames[cond & 0xf];
             }
         }
@@ -15690,8 +15693,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     bool appendTwo = false;
     if (hasQSuffix) {
         // Check Q bit (bit 30)
-        uint32_t Q = extractBits(opcode, 30, 1);
-        appendTwo = (Q == 1);
+        uint32_t q = extractBits(opcode, 30, 1);
+        appendTwo = (q == 1);
     }
 
     // Format mnemonic (with optional "2" suffix and optional condition suffix)
@@ -15754,96 +15757,90 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
         if (op.type == 51) { // SHIFT_TYPE
             bool skip = false;
 
-            if (op.field1_width == 0 && op.field2_width == 0) {
+            if (op.field1Width == 0 && op.field2Width == 0) {
                 // Case 1: ADD/SUB immediate with sh bit
                 uint32_t sh = extractBits(opcode, 22, 1);
-                if (sh == 0) {
+                if (sh == 0)
                     skip = true;  // No shift, skip operand
-                }
-            } else if (op.field2_width > 0 && op.field2_start < 32) {
+            } else if (op.field2Width > 0 && op.field2Start < 32) {
                 // Case 2: Shifted register with imm6 field
-                uint32_t imm6 = extractBits(opcode, op.field2_start, op.field2_width);
-                if (imm6 == 0) {
+                uint32_t imm6 = extractBits(opcode, op.field2Start, op.field2Width);
+                if (imm6 == 0)
                     skip = true;  // Shift amount is 0, skip operand
-                }
             }
 
-            if (skip) {
+            if (skip)
                 continue;  // Skip this operand entirely
-            }
         }
 
         // Add separator
-        if (i > startOperand && offset > 0 && (size_t)offset < bufferSize) {
+        if (i > startOperand && offset > 0 && (size_t)offset < bufferSize)
             offset += snprintf(buffer + offset, bufferSize - offset, ", ");
-        }
 
         if (offset < 0 || (size_t)offset >= bufferSize)
             return;
 
         // Extract field values
-        uint32_t field1_val = 0;
-        uint32_t field2_val = 0;
+        uint32_t field1Val = 0;
+        uint32_t field2Val = 0;
 
-        if (op.field1_width > 0 && op.field1_start < 32) {
-            field1_val = extractBits(opcode, op.field1_start, op.field1_width);
-        }
+        if (op.field1Width > 0 && op.field1Start < 32)
+            field1Val = extractBits(opcode, op.field1Start, op.field1Width);
 
-        if (op.field2_width > 0 && op.field2_start < 32) {
-            field2_val = extractBits(opcode, op.field2_start, op.field2_width);
-        }
+        if (op.field2Width > 0 && op.field2Start < 32)
+            field2Val = extractBits(opcode, op.field2Start, op.field2Width);
 
         // Format based on operand type
         switch (op.type) {
         // GP Registers
         case 0: // REG_GPR_X
-            if (field1_val == 29)
+            if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             break;
 
         case 1: // REG_GPR_W
-            offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
             break;
 
         case 2: // REG_GPR_SP
         case 3: // REG_GPR_XSP
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
-            else if (field1_val == 29)
+            else if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             break;
 
         case 4: // REG_GPR_WSP
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "wsp");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
             break;
 
         case 5: // REG_GPR_XZR
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "xzr");
-            else if (field1_val == 29)
+            else if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             break;
 
         case 6: // REG_GPR_WZR
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
             break;
 
         case 7: // REG_GPR_SIZED
@@ -15852,44 +15849,44 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             // Pattern: x1000 = D element = X register, else = W register
             {
                 bool use_x_reg = false;
-                if (op.field2_width > 0 && op.field2_start < 32) {
+                if (op.field2Width > 0 && op.field2Start < 32) {
                     // Check if bit 3 of the size field is set (D element)
-                    use_x_reg = (field2_val & 0x8) != 0;
+                    use_x_reg = (field2Val & 0x8) != 0;
                 }
 
                 if (use_x_reg) {
                     // X register
-                    if (field1_val == 29)
+                    if (field1Val == 29)
                         offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-                    else if (field1_val == 30)
+                    else if (field1Val == 30)
                         offset += snprintf(buffer + offset, bufferSize - offset, "lr");
                     else
-                        offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                        offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
                 } else {
                     // W register
-                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1_val);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
                 }
             }
             break;
 
         // FP Registers
         case 10: // REG_FP_B
-            offset += snprintf(buffer + offset, bufferSize - offset, "b%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "b%u", field1Val);
             break;
         case 11: // REG_FP_H
-            offset += snprintf(buffer + offset, bufferSize - offset, "h%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "h%u", field1Val);
             break;
         case 12: // REG_FP_S
-            offset += snprintf(buffer + offset, bufferSize - offset, "s%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "s%u", field1Val);
             break;
         case 13: // REG_FP_D
-            offset += snprintf(buffer + offset, bufferSize - offset, "d%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "d%u", field1Val);
             break;
         case 14: // REG_FP_Q
-            offset += snprintf(buffer + offset, bufferSize - offset, "q%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "q%u", field1Val);
             break;
         case 15: // REG_SIMD_V
-            offset += snprintf(buffer + offset, bufferSize - offset, "v%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "v%u", field1Val);
             break;
         case 16: // REG_SIMD_SIZED (size determined by field2)
             // field1 = register number (Rd, Rn, etc.)
@@ -15903,12 +15900,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
                 // Try to determine from context: if field2 is "size" at bits 22-23 (width 2),
                 // and Q bit is present, output full arrangement
-                bool output_arrangement = (op.field2_width == 2 && op.field2_start == 22);
+                bool output_arrangement = (op.field2Width == 2 && op.field2Start == 22);
 
                 if (output_arrangement) {
                     // Output full arrangement (like DUP destination)
                     uint32_t Q = extractBits(opcode, 30, 1);
-                    uint32_t size = field2_val & 0x3;
+                    uint32_t size = field2Val & 0x3;
                     const char* arrangement = "???";
 
                     if (size == 0) arrangement = Q ? "16b" : "8b";
@@ -15916,7 +15913,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     else if (size == 2) arrangement = Q ? "4s" : "2s";
                     else if (size == 3) arrangement = Q ? "2d" : "1d";
 
-                    offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1_val, arrangement);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1Val, arrangement);
                 } else {
                     // Output register with size prefix (original behavior)
                     char prefix;
@@ -15924,24 +15921,24 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     // 1-bit sz: 0=S, 1=D
                     // 2-bit size: 00=B, 01=H, 10=S, 11=D
                     // 1-bit Q: 0=D, 1=Q
-                    if (op.field2_width == 1) {
+                    if (op.field2Width == 1) {
                         // 1-bit field: sz or Q
-                        if (op.field2_start == 30) {
+                        if (op.field2Start == 30) {
                             // Q bit (bit 30) determines scalar size
-                            prefix = field2_val ? 'q' : 'd';
+                            prefix = field2Val ? 'q' : 'd';
                         } else {
                             // sz bit determines FP size
-                            prefix = field2_val ? 'd' : 's';
+                            prefix = field2Val ? 'd' : 's';
                         }
-                    } else if (op.field2_width == 2) {
+                    } else if (op.field2Width == 2) {
                         // 2-bit size field
-                        const char size_map[] = {'b', 'h', 's', 'd'};
-                        prefix = size_map[field2_val & 3];
+                        const char sizeMap[] = {'b', 'h', 's', 'd'};
+                        prefix = sizeMap[field2Val & 3];
                     } else {
                         // Default to 's' if unknown
                         prefix = 's';
                     }
-                    offset += snprintf(buffer + offset, bufferSize - offset, "%c%u", prefix, field1_val);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "%c%u", prefix, field1Val);
                 }
             }
             break;
@@ -15970,75 +15967,75 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                 const char* arrangement = "???";
 
                 // Check pattern based on field position and width
-                if (op.field2_start == 19 && op.field2_width == 4) {
+                if (op.field2Start == 19 && op.field2Width == 4) {
                     // immh field (bits 22-19) - SXTL/SSHLL type
-                    uint32_t immh_low = field2_val & 0x7;
+                    uint32_t immhLow = field2Val & 0x7;
 
                     if (op.subtype == 0) {
                         // Simple: destination with larger elements
-                        if (immh_low & 0x4) arrangement = "2d";
-                        else if (immh_low & 0x2) arrangement = "4s";
-                        else if (immh_low & 0x1) arrangement = "8h";
+                        if (immhLow & 0x4) arrangement = "2d";
+                        else if (immhLow & 0x2) arrangement = "4s";
+                        else if (immhLow & 0x1) arrangement = "8h";
                     } else {
                         // Compound: source with Q bit
                         uint32_t Q = extractBits(opcode, 30, 1);
-                        if (immh_low & 0x4) arrangement = Q ? "4s" : "2s";
-                        else if (immh_low & 0x2) arrangement = Q ? "8h" : "4h";
-                        else if (immh_low & 0x1) arrangement = Q ? "16b" : "8b";
+                        if (immhLow & 0x4) arrangement = Q ? "4s" : "2s";
+                        else if (immhLow & 0x2) arrangement = Q ? "8h" : "4h";
+                        else if (immhLow & 0x1) arrangement = Q ? "16b" : "8b";
                     }
-                } else if (op.field2_start == 22 && op.field2_width == 2) {
+                } else if (op.field2Start == 22 && op.field2Width == 2) {
                     // size field (bits 23-22) - ADD/MUL/SUB type
                     uint32_t Q = extractBits(opcode, 30, 1);
-                    uint32_t size = field2_val & 0x3;
+                    uint32_t size = field2Val & 0x3;
 
                     // Element count based on Q and size
                     if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
                     else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
                     else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
                     else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
-                } else if (op.field2_start == 16 && op.field2_width == 5) {
+                } else if (op.field2Start == 16 && op.field2Width == 5) {
                     // imm5 field (bits 20-16) - DUP type
                     // Element size from lowest set bit, arrangement from Q bit
                     uint32_t Q = extractBits(opcode, 30, 1);
-                    uint32_t imm5_low = field2_val & 0xF;
+                    uint32_t imm5Low = field2Val & 0xF;
 
-                    if (imm5_low & 0x1) arrangement = Q ? "16b" : "8b";       // byte
-                    else if (imm5_low & 0x2) arrangement = Q ? "8h" : "4h";   // half
-                    else if (imm5_low & 0x4) arrangement = Q ? "4s" : "2s";   // single
-                    else if (imm5_low & 0x8) arrangement = Q ? "2d" : "1d";   // double
-                } else if (op.field2_start == 30 && op.field2_width == 1) {
+                    if (imm5Low & 0x1) arrangement = Q ? "16b" : "8b";       // byte
+                    else if (imm5Low & 0x2) arrangement = Q ? "8h" : "4h";   // half
+                    else if (imm5Low & 0x4) arrangement = Q ? "4s" : "2s";   // single
+                    else if (imm5Low & 0x8) arrangement = Q ? "2d" : "1d";   // double
+                } else if (op.field2Start == 30 && op.field2Width == 1) {
                     // Q bit only - used by 107+ instruction families
                     // Comprehensive element size inference from opcode bits
-                    uint32_t Q = field2_val & 0x1;
+                    uint32_t Q = field2Val & 0x1;
 
                     // Key bit ranges for classification:
-                    uint32_t bits31_29 = extractBits(opcode, 29, 3);  // Top-level class
-                    uint32_t bits23_21 = extractBits(opcode, 21, 3);  // Type/size indicator
-                    uint32_t bits15_12 = extractBits(opcode, 12, 4);  // Opcode
-                    uint32_t bits11_10 = extractBits(opcode, 10, 2);  // Sometimes size
+                    uint32_t bits3129 = extractBits(opcode, 29, 3);  // Top-level class
+                    uint32_t bits2321 = extractBits(opcode, 21, 3);  // Type/size indicator
+                    uint32_t bits1512 = extractBits(opcode, 12, 4);  // Opcode
+                    uint32_t bits1110 = extractBits(opcode, 10, 2);  // Sometimes size
 
                     // Category 1: FP16 (half-precision) instructions
                     // Pattern: bits[23:21] = 010 OR bits[23:21] = x11 (FP16 suffix)
-                    if (bits23_21 == 0b010 || (bits23_21 & 0b011) == 0b011) {
+                    if (bits2321 == 0b010 || (bits2321 & 0b011) == 0b011) {
                         // FP16 operations: .4H/.8H
                         arrangement = Q ? "8h" : "4h";
                     }
                     // Category 2: Table lookup (TBL/TBX) - always bytes
                     // Pattern: bits[31:29] = 001 or 000, bits[15:12] = 0000 or 0001, bits[23:21] = 000
-                    else if (bits23_21 == 0b000 && (bits15_12 == 0b0000 || bits15_12 == 0b0001)) {
+                    else if (bits2321 == 0b000 && (bits1512 == 0b0000 || bits1512 == 0b0001)) {
                         arrangement = Q ? "16b" : "8b";
                     }
                     // Category 3: Logical operations - always bytes
                     // Pattern: bits[15:12] indicates logical ops (various values)
                     // AND, ORR, EOR, BIC, BIT, BIF, BSL, NOT, MVN, ORN
                     // Check bits[23:21] for common logical patterns
-                    else if (bits23_21 == 0b001 || bits23_21 == 0b011 || bits23_21 == 0b101 || bits23_21 == 0b111) {
+                    else if (bits2321 == 0b001 || bits2321 == 0b011 || bits2321 == 0b101 || bits2321 == 0b111) {
                         // Check if it's a logical op (bits[15:12] typically 0001 for 3-reg same)
-                        if (bits15_12 == 0b0001 || bits15_12 == 0b0101 || bits15_12 == 0b0110 || bits15_12 == 0b0111) {
+                        if (bits1512 == 0b0001 || bits1512 == 0b0101 || bits1512 == 0b0110 || bits1512 == 0b0111) {
                             arrangement = Q ? "16b" : "8b";
                         }
                         // FP conversion/rounding with FP16 (bits[23:21] = x11)
-                        else if ((bits23_21 & 0b011) == 0b011 && bits15_12 >= 0b1000) {
+                        else if ((bits2321 & 0b011) == 0b011 && bits1512 >= 0b1000) {
                             arrangement = Q ? "8h" : "4h";
                         }
                         // Default byte
@@ -16048,13 +16045,13 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     }
                     // Category 4: Immediate value instructions (MOVI, MVNI, ORR, BIC, FMOV)
                     // Pattern: bits[31:29] = 000, 001, or 010, bits[15:12] = 0000 (MOVI), 0001 (ORR/BIC), 1111 (FMOV)
-                    else if ((bits31_29 == 0b000 || bits31_29 == 0b001 || bits31_29 == 0b010) &&
-                             (bits15_12 == 0b0000 || bits15_12 == 0b0001 || bits15_12 == 0b1111)) {
+                    else if ((bits3129 == 0b000 || bits3129 == 0b001 || bits3129 == 0b010) &&
+                             (bits1512 == 0b0000 || bits1512 == 0b0001 || bits1512 == 0b1111)) {
                         // MOVI/MVNI/ORR/BIC typically use bytes
                         // FMOV uses H or S based on bits[11:10]
-                        if (bits15_12 == 0b1111) {
+                        if (bits1512 == 0b1111) {
                             // FMOV - check bits[11:10] for size
-                            if (bits11_10 == 0b11) {
+                            if (bits1110 == 0b11) {
                                 arrangement = Q ? "8h" : "4h";  // FP16
                             } else {
                                 arrangement = Q ? "4s" : "2s";  // FP32
@@ -16065,19 +16062,19 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     }
                     // Category 5: DOT products and special ops
                     // Pattern: bits[15:12] = 1001 (DOT), 1100/1110 (FMLAL/FMLSL), etc.
-                    else if (bits15_12 == 0b1001 || bits15_12 == 0b1100 || bits15_12 == 0b1110 ||
-                             bits15_12 == 0b1111 || bits15_12 == 0b0000) {
+                    else if (bits1512 == 0b1001 || bits1512 == 0b1100 || bits1512 == 0b1110 ||
+                             bits1512 == 0b1111 || bits1512 == 0b0000) {
                         // DOT products typically use bytes or specific element sizes
                         // FDOT, SDOT, UDOT → bytes
                         // FMLAL/FMLSL → half-words
                         // Check bits[23:21] to distinguish
-                        if (bits23_21 == 0b000 || bits23_21 == 0b100) {
+                        if (bits2321 == 0b000 || bits2321 == 0b100) {
                             // FDOT/DOT variants - bytes
                             arrangement = Q ? "16b" : "8b";
-                        } else if (bits23_21 == 0b001) {
+                        } else if (bits2321 == 0b001) {
                             // FMLAL variants - half-words
                             arrangement = Q ? "8h" : "4h";
-                        } else if (bits23_21 == 0b010) {
+                        } else if (bits2321 == 0b010) {
                             // BFDOT, FCVTN - half-words
                             arrangement = Q ? "8h" : "4h";
                         } else {
@@ -16085,18 +16082,18 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                         }
                     }
                     // Category 6: EXT (extract) - always bytes
-                    else if (bits15_12 == 0b0000 && bits23_21 == 0b000 && bits31_29 == 0b010) {
+                    else if (bits1512 == 0b0000 && bits2321 == 0b000 && bits3129 == 0b010) {
                         arrangement = Q ? "16b" : "8b";
                     }
                     // Default: byte arrangement (safest default)
                     else {
                         arrangement = Q ? "16b" : "8b";
                     }
-                } else if (op.field2_start == 22 && op.field2_width == 1) {
+                } else if (op.field2Start == 22 && op.field2Width == 1) {
                     // sz field (bit 22) - FMUL/FABS/etc. floating-point type
                     // Could be standalone or with Q bit - check if Q varies
                     uint32_t Q = extractBits(opcode, 30, 1);
-                    uint32_t sz = field2_val & 0x1;
+                    uint32_t sz = field2Val & 0x1;
 
                     // For sz:Q compound field:
                     // sz=0, Q=0 → 2S  (32-bit, 64-bit vector)
@@ -16109,17 +16106,17 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                         // sz == 1
                         arrangement = Q ? "2d" : "1d";  // Q=0 would be reserved but handle gracefully
                     }
-                } else if (op.field2_start == 11 && op.field2_width == 2) {
+                } else if (op.field2Start == 11 && op.field2Width == 2) {
                     // size field at different position (bits 11-12) - LD1R/ST1R type
                     // Can be standalone or with Q
                     uint32_t Q = extractBits(opcode, 30, 1);
-                    uint32_t size = field2_val & 0x3;
+                    uint32_t size = field2Val & 0x3;
 
                     if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
                     else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
                     else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
                     else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
-                } else if (op.field2_width == 0) {
+                } else if (op.field2Width == 0) {
                     // No arrangement field encoded - this shouldn't happen for REG_SIMD_ARRANGED
                     // Default to Q bit if present
                     uint32_t Q = extractBits(opcode, 30, 1);
@@ -16131,9 +16128,9 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
                     // If we have a field but don't recognize the pattern, try heuristics
                     // based on field position
-                    if (op.field2_start >= 10 && op.field2_start <= 12 && op.field2_width == 2) {
+                    if (op.field2Start >= 10 && op.field2Start <= 12 && op.field2Width == 2) {
                         // Likely a size field at unusual position
-                        uint32_t size = field2_val & 0x3;
+                        uint32_t size = field2Val & 0x3;
                         if (size == 0) arrangement = Q ? "16b" : "8b";
                         else if (size == 1) arrangement = Q ? "8h" : "4h";
                         else if (size == 2) arrangement = Q ? "4s" : "2s";
@@ -16144,7 +16141,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     }
                 }
 
-                offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1_val, arrangement);
+                offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1Val, arrangement);
             }
             break;
 
@@ -16155,86 +16152,85 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             //          1 = size field-based
             //          10+ = hardcoded size (UMOV-style: 10=B, 11=H, 12=S, 13=D)
             {
-                const char* elem_size = "?";
+                const char* elemSize = "?";
                 unsigned index = 0;
 
                 if (op.subtype >= 10) {
                     // Hardcoded element size (UMOV-style)
                     // subtype encodes size: 10=B, 11=H, 12=S, 13=D
                     const char* sizes[] = {"b", "h", "s", "d"};
-                    unsigned size_idx = op.subtype - 10;
-                    if (size_idx < 4) {
-                        elem_size = sizes[size_idx];
-                    }
+                    unsigned sizeIdx = op.subtype - 10;
+                    if (sizeIdx < 4)
+                        elemSize = sizes[sizeIdx];
+
                     // Index is in upper bits of field2 (imm5), position depends on element size
                     // B (size=0): index = imm5[4:1] (4 bits)
                     // H (size=1): index = imm5[4:2] (3 bits)
                     // S (size=2): index = imm5[4:3] (2 bits)
                     // D (size=3): index = imm5[4] (1 bit)
-                    if (size_idx < 4 && op.field2_width >= 4) {
-                        unsigned shift = size_idx + 1;  // shift = size + 1
-                        unsigned mask = (1U << (op.field2_width - shift)) - 1;
-                        index = (field2_val >> shift) & mask;
-                    } else {
-                        index = field2_val;  // Fallback
-                    }
-                } else if (op.subtype == 0 && op.field2_width >= 4) {
+                    if (sizeIdx < 4 && op.field2Width >= 4) {
+                        unsigned shift = sizeIdx + 1;  // shift = size + 1
+                        unsigned mask = (1U << (op.field2Width - shift)) - 1;
+                        index = (field2Val >> shift) & mask;
+                    } else
+                        index = field2Val;  // Fallback
+                } else if (op.subtype == 0 && op.field2Width >= 4) {
                     // imm5-based encoding (common for INS, DUP, etc.)
                     // Element size determined by lowest set bit position in imm5[3:0]
                     // Index in upper bits
-                    uint32_t imm5_low = field2_val & 0xF;  // imm5[3:0]
+                    uint32_t imm5Low = field2Val & 0xF;  // imm5[3:0]
 
-                    if (imm5_low & 0x1) {
+                    if (imm5Low & 0x1) {
                         // Bit 0 set → byte (8-bit)
-                        elem_size = "b";
-                        index = (field2_val >> 1) & ((1U << (op.field2_width - 1)) - 1);  // imm5[4:1]
-                    } else if (imm5_low & 0x2) {
+                        elemSize = "b";
+                        index = (field2Val >> 1) & ((1U << (op.field2Width - 1)) - 1);  // imm5[4:1]
+                    } else if (imm5Low & 0x2) {
                         // Bit 1 set → halfword (16-bit)
-                        elem_size = "h";
-                        index = (field2_val >> 2) & ((1U << (op.field2_width - 2)) - 1);  // imm5[4:2]
-                    } else if (imm5_low & 0x4) {
+                        elemSize = "h";
+                        index = (field2Val >> 2) & ((1U << (op.field2Width - 2)) - 1);  // imm5[4:2]
+                    } else if (imm5Low & 0x4) {
                         // Bit 2 set → single (32-bit)
-                        elem_size = "s";
-                        index = (field2_val >> 3) & ((1U << (op.field2_width - 3)) - 1);  // imm5[4:3]
-                    } else if (imm5_low & 0x8) {
+                        elemSize = "s";
+                        index = (field2Val >> 3) & ((1U << (op.field2Width - 3)) - 1);  // imm5[4:3]
+                    } else if (imm5Low & 0x8) {
                         // Bit 3 set → double (64-bit)
-                        elem_size = "d";
-                        index = (field2_val >> 4) & ((1U << (op.field2_width - 4)) - 1);  // imm5[4]
+                        elemSize = "d";
+                        index = (field2Val >> 4) & ((1U << (op.field2Width - 4)) - 1);  // imm5[4]
                     }
                 } else if (op.subtype == 1) {
                     // size field-based encoding (2-bit size field)
                     // Would need additional logic based on specific instruction
                     // For now, handle common cases
                     const char* sizes[] = {"b", "h", "s", "d"};
-                    elem_size = sizes[field2_val & 0x3];
+                    elemSize = sizes[field2Val & 0x3];
                     index = 0;  // Would need separate index field
                 }
 
                 offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "v%u.%s[%u]", field1_val, elem_size, index);
+                                 "v%u.%s[%u]", field1Val, elemSize, index);
             }
             break;
 
         case 19: // REG_LIST (register list with hardcoded or variable arrangement)
             // field1 = base register number (Rn/Rt)
             // field2 = arrangement field (for variable) or UNUSED (for hardcoded)
-            // subtype = (num_regs << 4) | arrangement_type
+            // subtype = (numRegs << 4) | arrangementType
             //   - High 4 bits: number of registers (1-4)
             //   - Low 4 bits: arrangement type (0-14 = hardcoded, 15 = variable from field2)
             {
-                const char* hardcoded_arrangements[] = {"16b", "8b", "4s", "2s", "8h", "4h", "2d", "1d"};
+                const char* hardcodedArrangements[] = {"16b", "8b", "4s", "2s", "8h", "4h", "2d", "1d"};
 
                 // Decode subtype
-                unsigned num_regs = (op.subtype >> 4) & 0xF;
-                unsigned arrangement_type = op.subtype & 0xF;
+                unsigned numRegs = (op.subtype >> 4) & 0xF;
+                unsigned arrangementType = op.subtype & 0xF;
 
                 const char* arrangement = "16b";
 
-                if (arrangement_type == 15) {
+                if (arrangementType == 15) {
                     // Variable arrangement - decode from field2
                     // Common pattern: size:Q (bits 23-22 for size, bit 30 for Q)
-                    if (op.field2_width > 0 && op.field2_start < 32) {
-                        // Extract field value - for compound fields like "size:Q", field2_start points to first field
+                    if (op.field2Width > 0 && op.field2Start < 32) {
+                        // Extract field value - for compound fields like "size:Q", field2Start points to first field
                         // Assume size field (2 bits) + Q bit (1 bit)
                         // For LD1: size at bits 11-10, Q at bit 30
                         uint32_t size = extractBits(opcode, 10, 2);  // size field
@@ -16249,19 +16245,17 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     }
                 } else {
                     // Hardcoded arrangement
-                    if (arrangement_type < 8) {
-                        arrangement = hardcoded_arrangements[arrangement_type];
-                    }
+                    if (arrangementType < 8)
+                        arrangement = hardcodedArrangements[arrangementType];
                 }
 
                 // Format register list
                 offset += snprintf(buffer + offset, bufferSize - offset, "{ ");
-                for (unsigned r = 0; r < num_regs; r++) {
-                    if (r > 0) {
+                for (unsigned r = 0; r < numRegs; r++) {
+                    if (r > 0)
                         offset += snprintf(buffer + offset, bufferSize - offset, ", ");
-                    }
-                    unsigned reg_num = (field1_val + r) & 0x1F;  // Wrap around at 32
-                    offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", reg_num, arrangement);
+                    unsigned regNum = (field1Val + r) & 0x1F;  // Wrap around at 32
+                    offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", regNum, arrangement);
                 }
                 offset += snprintf(buffer + offset, bufferSize - offset, " }");
             }
@@ -16269,10 +16263,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // SVE Registers
         case 20: // REG_SVE_Z
-            offset += snprintf(buffer + offset, bufferSize - offset, "z%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "z%u", field1Val);
             break;
         case 21: // REG_SVE_P
-            offset += snprintf(buffer + offset, bufferSize - offset, "p%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "p%u", field1Val);
             break;
 
         // Immediates
@@ -16283,51 +16277,48 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                 offset += snprintf(buffer + offset, bufferSize - offset, "#%u", computedShift);
             }
             // Check if this is a bit position (TBNZ/TBZ style: b40 + b5*32)
-            else if (op.field1_width == 5 && op.field1_start == 19 &&
-                op.field2_width == 1 && op.field2_start == 31) {
+            else if (op.field1Width == 5 && op.field1Start == 19 &&
+                op.field2Width == 1 && op.field2Start == 31) {
                 // Bit position: field1=b40 (bits 19-23), field2=b5 (bit 31)
                 // position = b5 * 32 + b40
-                unsigned bit_pos = field2_val * 32 + field1_val;
-                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", bit_pos);
+                unsigned bitPos = field2Val * 32 + field1Val;
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", bitPos);
             }
             // Check if this is a MOV-style immediate with hw shift field
-            else if (op.field2_width > 0 && op.field2_start < 32) {
+            else if (op.field2Width > 0 && op.field2Start < 32) {
                 // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift (composite operand)
                 // Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "#0x%x", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
                 // Add shift if non-zero
-                if (field2_val != 0) {
-                    unsigned shift_amount = field2_val * 16;
-                    offset += snprintf(buffer + offset, bufferSize - offset,
-                                     ", lsl #%u", shift_amount);
+                if (field2Val != 0) {
+                    unsigned shiftAmount = field2Val * 16;
+                    offset += snprintf(buffer + offset, bufferSize - offset, ", lsl #%u", shiftAmount);
                 }
-            } else if (op.field1_start == 21 && op.field1_width == 2) {
+            } else if (op.field1Start == 21 && op.field1Width == 2) {
                 // This is a standalone hw field (shift amount in MOVK/MOVN as separate operand)
                 // Main loop already adds ", " separator, so just output "lsl #<amount>"
-                if (field1_val != 0) {
-                    unsigned shift_amount = field1_val * 16;
-                    offset += snprintf(buffer + offset, bufferSize - offset,
-                                     "lsl #%u", shift_amount);
+                if (field1Val != 0) {
+                    unsigned shiftAmount = field1Val * 16;
+                    offset += snprintf(buffer + offset, bufferSize - offset, "lsl #%u", shiftAmount);
                 }
                 // If zero, don't display anything (it's optional)
-            } else if (op.field1_start == 5 && op.field1_width == 16) {
+            } else if (op.field1Start == 5 && op.field1Width == 16) {
                 // This is a standalone imm16 field (in MOVK/MOVN as separate operand)
                 // Format as hex for consistency with MOV/MOVZ
-                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
             } else {
-                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1Val);
             }
             break;
 
         case 31: { // IMM_SINT
-            int32_t signed_val = signExtend(field1_val, op.field1_width);
-            offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signed_val);
+            int32_t signedVal = signExtend(field1Val, op.field1Width);
+            offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signedVal);
             break;
         }
 
         case 32: // IMM_HEX
-            offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
             break;
 
         case 33: { // IMM_FLOAT
@@ -16337,7 +16328,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             //   Single (32-bit): a[NOT(b)]bbbbbbcd efgh0000000000000000000
             //   Double (64-bit): a[NOT(b)]bbbbbbbbbcd efgh000000000000000000000000000000000000000000000000
 
-            uint32_t imm8 = field1_val & 0xFF;
+            uint32_t imm8 = field1Val & 0xFF;
             uint32_t a = (imm8 >> 7) & 1;  // Sign bit
             uint32_t b = (imm8 >> 6) & 1;
             uint32_t c = (imm8 >> 5) & 1;
@@ -16349,21 +16340,21 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
             // Determine precision from opcode bits 22-23 (type/ftype field)
             uint32_t ftype = extractBits(opcode, 22, 2);
-            bool is_double = (ftype & 1) == 1;  // bit 22: 0=single, 1=double
+            bool isDouble = (ftype & 1) == 1;  // bit 22: 0=single, 1=double
 
-            if (is_double) {
+            if (isDouble) {
                 // Double precision (64-bit)
                 // Format: a [NOT(b):b:b:b:b:b:b:b:b:b:b:c:d] [e:f:g:h:0...0]
                 //         ↑  ←------- 11 bits -------→        ←-- 52 bits -→
                 uint64_t sign = (uint64_t)a << 63;
 
                 // Build 11-bit exponent: [NOT(b)]:b:b:b:b:b:b:b:b:b:b:c:d
-                uint64_t exp_bits = ((uint64_t)(b ? 0 : 1) << 10) |  // NOT(b)
+                uint64_t expBits = ((uint64_t)(b ? 0 : 1) << 10) |  // NOT(b)
                                     ((uint64_t)b << 9) | ((uint64_t)b << 8) | ((uint64_t)b << 7) |
                                     ((uint64_t)b << 6) | ((uint64_t)b << 5) | ((uint64_t)b << 4) |
                                     ((uint64_t)b << 3) | ((uint64_t)b << 2) | ((uint64_t)b << 1) |
                                     (uint64_t)b | ((uint64_t)c << 1) | (uint64_t)d;
-                uint64_t exp = exp_bits << 52;  // Shift to exponent position
+                uint64_t exp = expBits << 52;  // Shift to exponent position
 
                 // Build mantissa: e:f:g:h in upper 4 bits, rest zeros
                 uint64_t mant = ((uint64_t)e << 51) | ((uint64_t)f << 50) |
@@ -16380,10 +16371,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                 uint32_t sign = a << 31;
 
                 // Build 8-bit exponent: [NOT(b)]:b:b:b:b:b:c:d
-                uint32_t exp_bits = ((b ? 0 : 1) << 7) |  // NOT(b)
+                uint32_t expBits = ((b ? 0 : 1) << 7) |  // NOT(b)
                                     (b << 6) | (b << 5) | (b << 4) | (b << 3) | (b << 2) |
                                     (c << 1) | d;
-                uint32_t exp = exp_bits << 23;  // Shift to exponent position
+                uint32_t exp = expBits << 23;  // Shift to exponent position
 
                 // Build mantissa: e:f:g:h in upper 4 bits, rest zeros
                 uint32_t mant = (e << 22) | (f << 21) | (g << 20) | (h << 19);
@@ -16398,60 +16389,52 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         case 34: { // IMM_LOGICAL
             // Decode logical immediate
-            uint64_t decoded_imm;
+            uint64_t decodedImm;
             bool is64 = (entry->flags & 1) != 0;
 
             // Extract N, immr, imms fields
-            uint32_t n = field2_val; // N field
+            uint32_t n = field2Val; // N field
             uint32_t immr = extractBits(opcode, 16, 6); // immr
-            uint32_t imms = field1_val; // imms
+            uint32_t imms = field1Val; // imms
 
-            if (decodeLogicalImmediate(n, immr, imms, is64, &decoded_imm)) {
+            if (decodeLogicalImmediate(n, immr, imms, is64, &decodedImm)) {
                 if (is64)
-                    offset += snprintf(buffer + offset, bufferSize - offset,
-                                     "#0x%llx", (unsigned long long)decoded_imm);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", (unsigned long long)decodedImm);
                 else
-                    offset += snprintf(buffer + offset, bufferSize - offset,
-                                     "#0x%x", (uint32_t)decoded_imm);
-            } else {
+                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", (uint32_t)decodedImm);
+            } else
                 offset += snprintf(buffer + offset, bufferSize - offset, "#?");
-            }
             break;
         }
 
         case 35: { // IMM_SHIFTED
-            offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1Val);
             // Add shift if present
-            if (field2_val && op.field2_width > 0) {
-                unsigned shift_amount = field2_val * 16; // Common pattern
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 ", lsl #%u", shift_amount);
+            if (field2Val && op.field2Width > 0) {
+                unsigned shiftAmount = field2Val * 16; // Common pattern
+                offset += snprintf(buffer + offset, bufferSize - offset, ", lsl #%u", shiftAmount);
             }
             break;
         }
 
         // PC-relative label
         case 40: { // LABEL_PCREL
-            int32_t signed_offset = signExtend(field1_val, op.field1_width);
+            int32_t signedOffset = signExtend(field1Val, op.field1Width);
             // PC-relative in ARM64 is in instructions (4 bytes each)
-            int64_t target = (int64_t)pc + (signed_offset * 4);
+            int64_t target = (int64_t)pc + (signedOffset * 4);
 
             // Format based on whether target is in range
             if (startPC && endPC && (uint32_t*)target >= startPC && (uint32_t*)target < endPC) {
                 unsigned byte_offset = ((uint32_t*)target - startPC) * 4;
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "%p (<%u>)", (void*)target, byte_offset);
-            } else {
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 "%p", (void*)target);
-            }
+                offset += snprintf(buffer + offset, bufferSize - offset, "%p (<%u>)", (void*)target, byte_offset);
+            } else
+                offset += snprintf(buffer + offset, bufferSize - offset, "%p", (void*)target);
             break;
         }
 
         // Condition code
         case 50: // CONDITION
-            offset += snprintf(buffer + offset, bufferSize - offset, "%s",
-                             g_conditionNames[field1_val & 0xf]);
+            offset += snprintf(buffer + offset, bufferSize - offset, "%s", g_conditionNames[field1Val & 0xf]);
             break;
 
         // Shift type
@@ -16460,62 +16443,56 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
             // Two patterns:
             // 1. ADD/SUB immediate (no field bindings): sh bit determines lsl #12
             // 2. Shifted register (has field bindings): shift type + amount from fields
-            if (op.field1_width == 0 && op.field2_width == 0) {
+            if (op.field1Width == 0 && op.field2Width == 0) {
                 // Pattern 1: ADD/SUB immediate - sh=1 means lsl #12
                 // (sh=0 already filtered out, so we only reach here if sh=1)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lsl #12");
             } else {
                 // Pattern 2: Shifted register - show shift type and amount
                 // (imm6=0 already filtered out, so shift amount is non-zero)
-                offset += snprintf(buffer + offset, bufferSize - offset, "%s",
-                                 g_shiftNames[field1_val & 0x3]);
-                if (field2_val) {
-                    offset += snprintf(buffer + offset, bufferSize - offset,
-                                     " #%u", field2_val);
-                }
+                offset += snprintf(buffer + offset, bufferSize - offset, "%s", g_shiftNames[field1Val & 0x3]);
+                if (field2Val)
+                    offset += snprintf(buffer + offset, bufferSize - offset, " #%u", field2Val);
             }
             break;
 
         // Extend type
         case 52: // EXTEND_TYPE
-            offset += snprintf(buffer + offset, bufferSize - offset, "%s",
-                             g_extendNames[field1_val & 0x7]);
-            if (field2_val) {
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 " #%u", field2_val);
-            }
+            offset += snprintf(buffer + offset, bufferSize - offset, "%s", g_extendNames[field1Val & 0x7]);
+            if (field2Val)
+                offset += snprintf(buffer + offset, bufferSize - offset, " #%u", field2Val);
             break;
 
         // Memory addressing modes
         case 60: // MEMORY_BASE
         case 61: // MEMORY_OFFSET
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
-            else if (field1_val == 29)
+            else if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
 
             // Check if field2 is a register offset (load/store register offset addressing)
             // Register offset: field2 is Rm at bits 16-20 (width=5)
             // Immediate offset: field2 is various immediate fields
-            if (op.field2_width == 5 && op.field2_start == 16) {
+            if (op.field2Width == 5 && op.field2Start == 16) {
                 // This is register offset addressing
                 // Extract extend type from bits 13-15 (option field)
                 uint32_t option = extractBits(opcode, 13, 3);
                 uint32_t shift = extractBits(opcode, 12, 1);  // S bit
 
                 // Determine if offset register is W or X based on option<0>
-                bool use_w_reg = (option & 1) == 0;
+                bool useWReg = (option & 1) == 0;
 
                 offset += snprintf(buffer + offset, bufferSize - offset, ", ");
-                if (use_w_reg)
-                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field2_val);
+                if (useWReg)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field2Val);
                 else
-                    offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field2_val);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field2Val);
 
                 // Format extend/shift type
                 // Rules for ARM64 load/store register offset:
@@ -16523,120 +16500,114 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                 // - X register with LSL and shift>0: Show "lsl #N"
                 // - W register with any extend: Always show (uxtw, sxtw, etc.)
                 // - Any extend with shift>0: Show shift amount
-                const char* extend_names[] = {
+                const char* extendNames[] = {
                     "uxtb", "uxth", "uxtw", "lsl",  // option 0-3
                     "sxtb", "sxth", "sxtw", "sxtx"  // option 4-7
                 };
 
                 // Calculate actual shift amount first
                 // shift amount = instruction size (bits 30-31): 0=byte, 1=half, 2=word, 3=double
-                uint32_t shift_amount = 0;
-                if (shift) {
-                    shift_amount = extractBits(opcode, 30, 2);
-                }
+                uint32_t shiftAmount = 0;
+                if (shift)
+                    shiftAmount = extractBits(opcode, 30, 2);
 
                 // Check if this is LSL with X register and no actual shift
                 // option=3 (LSL) or option=7 (SXTX, effectively LSL for X regs)
-                // No shift means: S=0 OR calculated shift_amount is 0
-                bool is_x_lsl_no_shift = !use_w_reg && (option == 3 || option == 7) && (shift_amount == 0);
+                // No shift means: S=0 OR calculated shiftAmount is 0
+                bool isXLslNoShift = !useWReg && (option == 3 || option == 7) && (shiftAmount == 0);
 
                 // Only output extend/shift if NOT (X register LSL without shift)
-                if (!is_x_lsl_no_shift) {
-                    offset += snprintf(buffer + offset, bufferSize - offset, ", %s", extend_names[option & 0x7]);
+                if (!isXLslNoShift) {
+                    offset += snprintf(buffer + offset, bufferSize - offset, ", %s", extendNames[option & 0x7]);
 
                     // Add shift amount if non-zero
-                    if (shift_amount > 0) {
-                        offset += snprintf(buffer + offset, bufferSize - offset, " #%u", shift_amount);
-                    }
+                    if (shiftAmount > 0)
+                        offset += snprintf(buffer + offset, bufferSize - offset, " #%u", shiftAmount);
                 }
             }
             // Add immediate offset if present
-            else if (field2_val && op.field2_width > 0) {
-                int32_t imm_offset = signExtend(field2_val, op.field2_width);
+            else if (field2Val && op.field2Width > 0) {
+                int32_t immOffset = signExtend(field2Val, op.field2Width);
 
                 // Apply scaling for certain immediate fields
                 // imm7 is used in load/store pair and needs scaling
                 // Check if this is a 7-bit immediate (load/store pair)
-                if (op.field2_width == 7) {
+                if (op.field2Width == 7) {
                     // Scale by 4 for 32-bit, 8 for 64-bit
                     int scale = (entry->flags & 1) ? 8 : 4;
-                    imm_offset *= scale;
+                    immOffset *= scale;
                 }
                 // imm9 (9-bit) is unscaled, no multiplication needed
 
-                if (imm_offset != 0) {
-                    offset += snprintf(buffer + offset, bufferSize - offset,
-                                     ", #%d", imm_offset);
-                }
+                if (immOffset != 0)
+                    offset += snprintf(buffer + offset, bufferSize - offset, ", #%d", immOffset);
             }
             offset += snprintf(buffer + offset, bufferSize - offset, "]");
             break;
 
         case 62: // MEMORY_REG
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
-            else if (field1_val == 29)
+            else if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
 
             offset += snprintf(buffer + offset, bufferSize - offset, ", ");
-            offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field2_val);
+            offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field2Val);
             offset += snprintf(buffer + offset, bufferSize - offset, "]");
             break;
 
         case 63: // MEMORY_PREIDX
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
-            else if (field1_val == 29)
+            else if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
 
-            if (op.field2_width > 0) {
-                int32_t imm_offset = signExtend(field2_val, op.field2_width);
+            if (op.field2Width > 0) {
+                int32_t immOffset = signExtend(field2Val, op.field2Width);
 
                 // Apply scaling for imm7 (load/store pair)
-                if (op.field2_width == 7) {
+                if (op.field2Width == 7) {
                     int scale = (entry->flags & 1) ? 8 : 4;
-                    imm_offset *= scale;
+                    immOffset *= scale;
                 }
 
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 ", #%d", imm_offset);
+                offset += snprintf(buffer + offset, bufferSize - offset, ", #%d", immOffset);
             }
             offset += snprintf(buffer + offset, bufferSize - offset, "]!");
             break;
 
         case 64: // MEMORY_POSTIDX
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
-            if (field1_val == 31)
+            if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
-            else if (field1_val == 29)
+            else if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
-            else if (field1_val == 30)
+            else if (field1Val == 30)
                 offset += snprintf(buffer + offset, bufferSize - offset, "lr");
             else
-                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1_val);
+                offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             offset += snprintf(buffer + offset, bufferSize - offset, "]");
 
-            if (op.field2_width > 0) {
-                int32_t imm_offset = signExtend(field2_val, op.field2_width);
+            if (op.field2Width > 0) {
+                int32_t immOffset = signExtend(field2Val, op.field2Width);
 
                 // Apply scaling for imm7 (load/store pair)
-                if (op.field2_width == 7) {
+                if (op.field2Width == 7) {
                     int scale = (entry->flags & 1) ? 8 : 4;
-                    imm_offset *= scale;
+                    immOffset *= scale;
                 }
 
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 ", #%d", imm_offset);
+                offset += snprintf(buffer + offset, bufferSize - offset, ", #%d", immOffset);
             }
             break;
 
@@ -16649,13 +16620,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     // For LSL/LSR/ASR with only 2 operands, append the shift amount
     if (isLslLsrAsr && entry->operandCount == 2 + (hasConditionSuffix ? 1 : 0)) {
         // Add separator and shift amount
-        if (offset > 0 && (size_t)offset < bufferSize) {
+        if (offset > 0 && (size_t)offset < bufferSize)
             offset += snprintf(buffer + offset, bufferSize - offset, ", #%u", computedShift);
-        }
     }
 }
 
 
-}} // namespace JSC::ARM64Disassembler
+} // namespace JSC::ARM64Disassembler
 
 #endif // ENABLE(ARM64_DISASSEMBLER)
