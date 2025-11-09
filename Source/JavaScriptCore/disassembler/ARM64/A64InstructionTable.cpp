@@ -15747,6 +15747,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     for (unsigned i = startOperand; i < entry->operandCount; i++) {
         const auto& op = g_operandTable[entry->operandOffset + i];
 
+        // Pre-check: Skip SHIFT_TYPE operands with no bindings when sh=0
+        // (ADD/SUB immediate with no shift should not show shift operand)
+        if (op.type == 51 && op.field1_width == 0 && op.field2_width == 0) {
+            uint32_t sh = extractBits(opcode, 22, 1);
+            if (sh == 0) {
+                // No shift, skip this operand entirely
+                continue;
+            }
+        }
+
         // Add separator
         if (i > startOperand && offset > 0 && (size_t)offset < bufferSize) {
             offset += snprintf(buffer + offset, bufferSize - offset, ", ");
@@ -16430,11 +16440,25 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Shift type
         case 51: // SHIFT_TYPE
-            offset += snprintf(buffer + offset, bufferSize - offset, "%s",
-                             g_shiftNames[field1_val & 0x3]);
-            if (field2_val && op.field2_width > 0) {
-                offset += snprintf(buffer + offset, bufferSize - offset,
-                                 " #%u", field2_val);
+            // Special case: ADD/SUB immediate instructions with no field bindings
+            // These have an implicit LSL shift, with sh bit (bit 22) determining amount:
+            // sh=0 → no shift (omit this operand), sh=1 → lsl #12
+            if (op.field1_width == 0 && op.field2_width == 0) {
+                // No field bindings - check if this is ADD/SUB immediate (sh bit at position 22)
+                uint32_t sh = extractBits(opcode, 22, 1);
+                if (sh) {
+                    // sh=1 means LSL #12
+                    offset += snprintf(buffer + offset, bufferSize - offset, "lsl #12");
+                }
+                // sh=0 means no shift, don't output anything
+            } else {
+                // Normal shift operand with field bindings
+                offset += snprintf(buffer + offset, bufferSize - offset, "%s",
+                                 g_shiftNames[field1_val & 0x3]);
+                if (field2_val && op.field2_width > 0) {
+                    offset += snprintf(buffer + offset, bufferSize - offset,
+                                     " #%u", field2_val);
+                }
             }
             break;
 
