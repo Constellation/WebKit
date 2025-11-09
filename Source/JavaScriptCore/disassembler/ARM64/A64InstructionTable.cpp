@@ -15700,27 +15700,25 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     // Format mnemonic (with optional "2" suffix and optional condition suffix)
     // Mnemonic is already lowercase in table
     int offset;
+    size_t mnemonicLength = strlen(entry->mnemonic);
     std::string mnemonicStr(entry->mnemonic);
 
     // Add "2" suffix if needed (before condition suffix)
-    if (appendTwo) {
+    if (appendTwo)
         mnemonicStr += "2";
-    }
 
     if (hasConditionSuffix && conditionCode) {
         // Check if mnemonic already ends with a dot (like "b.")
-        if (!mnemonicStr.empty() && mnemonicStr.back() == '.') {
+        if (mnemonicLength && entry->mnemonic[mnemonicLength - 1] == '.') {
             // Already has dot, just append condition
-            offset = snprintf(buffer, bufferSize, "   %-9s",
-                             (mnemonicStr + conditionCode).c_str());
+            offset = snprintf(buffer, bufferSize, "   %-9s", (mnemonicStr + conditionCode).c_str());
         } else {
             // Add dot before condition
-            offset = snprintf(buffer, bufferSize, "   %-9s",
-                             (mnemonicStr + "." + conditionCode).c_str());
+            offset = snprintf(buffer, bufferSize, "   %-9s", (mnemonicStr + "." + conditionCode).c_str());
         }
-    } else {
+    } else
         offset = snprintf(buffer, bufferSize, "   %-9s", mnemonicStr.c_str());
-    }
+
     if (offset < 0 || (size_t)offset >= bufferSize)
         return;
 
