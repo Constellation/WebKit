@@ -16517,18 +16517,31 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                 else
                     offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field2_val);
 
-                // Format extend type
+                // Format extend/shift type
+                // Rules for ARM64 load/store register offset:
+                // - X register with LSL and S=0: Don't show (default/natural alignment)
+                // - X register with LSL and S=1: Show "lsl #N"
+                // - W register with any extend: Always show (uxtw, sxtw, etc.)
+                // - Any extend with S=1: Show shift amount
                 const char* extend_names[] = {
                     "uxtb", "uxth", "uxtw", "lsl",  // option 0-3
                     "sxtb", "sxth", "sxtw", "sxtx"  // option 4-7
                 };
-                offset += snprintf(buffer + offset, bufferSize - offset, ", %s", extend_names[option & 0x7]);
 
-                // Add shift if present (S=1 means shift by log2(size))
-                if (shift) {
-                    // Determine shift amount from instruction size (bits 30-31)
-                    uint32_t size = extractBits(opcode, 30, 2);
-                    offset += snprintf(buffer + offset, bufferSize - offset, " #%u", size);
+                // Check if this is LSL with X register and no shift
+                // option=3 (LSL) or option=7 (SXTX, effectively LSL for X regs)
+                bool is_x_lsl_no_shift = !use_w_reg && (option == 3 || option == 7) && (shift == 0);
+
+                // Only output extend/shift if NOT (X register LSL without shift)
+                if (!is_x_lsl_no_shift) {
+                    offset += snprintf(buffer + offset, bufferSize - offset, ", %s", extend_names[option & 0x7]);
+
+                    // Add shift amount if S=1
+                    if (shift) {
+                        // Determine shift amount from instruction size (bits 30-31)
+                        uint32_t size = extractBits(opcode, 30, 2);
+                        offset += snprintf(buffer + offset, bufferSize - offset, " #%u", size);
+                    }
                 }
             }
             // Add immediate offset if present
