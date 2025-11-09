@@ -436,8 +436,27 @@ class ARM64InstructionParser:
                 # Note: links may have suffixes like Vn__2, so check with startswith
                 link_base = re.sub(r'__\d+$', '', link_lower)  # Remove __N suffix
                 if link_base in ['vd', 'vn', 'vm', 'vt', 'va'] and i + 2 < len(parts):
+                    # IMPORTANT: Check for register list FIRST before processing as standalone arrangement
+                    # Pattern: { <Vt>.<T> } → register list (like LD1R)
+                    # vs: <Vt>.<T> → standalone arranged register (like FMUL)
+
+                    is_in_register_list = False
+                    if i > 0:
+                        prev_text = None
+                        for j in range(i - 1, -1, -1):
+                            if parts[j][0] == 'text':
+                                prev_text = parts[j][1]
+                                break
+
+                        if prev_text and ('{ ' in prev_text or ',{ ' in prev_text or ', { ' in prev_text):
+                            is_in_register_list = True
+
+                    # If inside register list, skip standalone arrangement handling
+                    if is_in_register_list:
+                        # Don't process here - will be handled by register list logic below
+                        pass
                     # Check if next is "." and then an arrangement option
-                    if parts[i + 1][0] == 'text' and '.' in parts[i + 1][1]:
+                    elif parts[i + 1][0] == 'text' and '.' in parts[i + 1][1]:
                         if parts[i + 2][0] == 'operand':
                             arrangement_link = parts[i + 2][1].lower()
                             arrangement_hover = parts[i + 2][2]
@@ -1832,12 +1851,85 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
                     else if (imm5_low & 0x4) arrangement = Q ? "4s" : "2s";   // single
                     else if (imm5_low & 0x8) arrangement = Q ? "2d" : "1d";   // double
                 } else if (op.field2_start == 30 && op.field2_width == 1) {
-                    // Q bit only (TBL/TBX type, bit 30)
-                    // Q=0 → 8B, Q=1 → 16B (byte elements for table operations)
+                    // Q bit only - used by multiple instruction families
+                    // Need to infer element size from other opcode bits
                     uint32_t Q = field2_val & 0x1;
+
+                    // Check bits 22-23 to determine element size context:
+                    // - FMUL half-precision (asimdsamefp16): bits 22-21 = 10
+                    // - TBL/TBX: bits 15-12 = 0000 or 0001
+                    // - General SIMD: bits 23-22 (size field)
+
+                    uint32_t bits22_23 = extractBits(opcode, 22, 2);
+                    uint32_t bits15_12 = extractBits(opcode, 12, 4);
+                    uint32_t bits23_21 = extractBits(opcode, 21, 3);
+
+                    (void)(bits22_23);
+
+                    // Check if this is FMUL half-precision or similar FP16 instruction
+                    // Pattern: bits 22-21 = 10, bit 23 = 0 → half-precision (H elements)
+                    if (bits23_21 == 0b010) {  // bits 23-21 = 010 → half-precision
+                        arrangement = Q ? "8h" : "4h";
+                    }
+                    // Check if this is TBL/TBX (bits 15-12 = 0000 or 0001 or 0100)
+                    else if (bits15_12 <= 4) {
+                        arrangement = Q ? "16b" : "8b";
+                    }
+                    // Default: byte arrangement
+                    else {
+                        arrangement = Q ? "16b" : "8b";
+                    }
+                } else if (op.field2_start == 22 && op.field2_width == 1) {
+                    // sz field (bit 22) - FMUL/FABS/etc. floating-point type
+                    // Could be standalone or with Q bit - check if Q varies
+                    uint32_t Q = extractBits(opcode, 30, 1);
+                    uint32_t sz = field2_val & 0x1;
+
+                    // For sz:Q compound field:
+                    // sz=0, Q=0 → 2S  (32-bit, 64-bit vector)
+                    // sz=0, Q=1 → 4S  (32-bit, 128-bit vector)
+                    // sz=1, Q=0 → RESERVED
+                    // sz=1, Q=1 → 2D  (64-bit, 128-bit vector)
+                    if (sz == 0) {
+                        arrangement = Q ? "4s" : "2s";
+                    } else {
+                        // sz == 1
+                        arrangement = Q ? "2d" : "1d";  // Q=0 would be reserved but handle gracefully
+                    }
+                } else if (op.field2_start == 11 && op.field2_width == 2) {
+                    // size field at different position (bits 11-12) - LD1R/ST1R type
+                    // Can be standalone or with Q
+                    uint32_t Q = extractBits(opcode, 30, 1);
+                    uint32_t size = field2_val & 0x3;
+
+                    if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
+                    else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
+                    else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
+                    else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
+                } else if (op.field2_width == 0) {
+                    // No arrangement field encoded - this shouldn't happen for REG_SIMD_ARRANGED
+                    // Default to Q bit if present
+                    uint32_t Q = extractBits(opcode, 30, 1);
                     arrangement = Q ? "16b" : "8b";
                 }
-                // Add more patterns as needed
+                // Additional fallback: try to infer from Q bit alone if field metadata is missing
+                else {
+                    uint32_t Q = extractBits(opcode, 30, 1);
+
+                    // If we have a field but don't recognize the pattern, try heuristics
+                    // based on field position
+                    if (op.field2_start >= 10 && op.field2_start <= 12 && op.field2_width == 2) {
+                        // Likely a size field at unusual position
+                        uint32_t size = field2_val & 0x3;
+                        if (size == 0) arrangement = Q ? "16b" : "8b";
+                        else if (size == 1) arrangement = Q ? "8h" : "4h";
+                        else if (size == 2) arrangement = Q ? "4s" : "2s";
+                        else if (size == 3) arrangement = Q ? "2d" : "1d";
+                    } else {
+                        // Last resort: default based on Q
+                        arrangement = Q ? "16b" : "8b";
+                    }
+                }
 
                 offset += snprintf(buffer + offset, bufferSize - offset, "v%u.%s", field1_val, arrangement);
             }
