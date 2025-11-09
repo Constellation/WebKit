@@ -15747,13 +15747,29 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
     for (unsigned i = startOperand; i < entry->operandCount; i++) {
         const auto& op = g_operandTable[entry->operandOffset + i];
 
-        // Pre-check: Skip SHIFT_TYPE operands with no bindings when sh=0
-        // (ADD/SUB immediate with no shift should not show shift operand)
-        if (op.type == 51 && op.field1_width == 0 && op.field2_width == 0) {
-            uint32_t sh = extractBits(opcode, 22, 1);
-            if (sh == 0) {
-                // No shift, skip this operand entirely
-                continue;
+        // Pre-check: Skip SHIFT_TYPE operands when shift amount is 0
+        // Two cases:
+        // 1. ADD/SUB immediate (no field bindings): Check sh bit (bit 22)
+        // 2. Shifted register (has field bindings): Check imm6 field (field2)
+        if (op.type == 51) { // SHIFT_TYPE
+            bool skip = false;
+
+            if (op.field1_width == 0 && op.field2_width == 0) {
+                // Case 1: ADD/SUB immediate with sh bit
+                uint32_t sh = extractBits(opcode, 22, 1);
+                if (sh == 0) {
+                    skip = true;  // No shift, skip operand
+                }
+            } else if (op.field2_width > 0 && op.field2_start < 32) {
+                // Case 2: Shifted register with imm6 field
+                uint32_t imm6 = extractBits(opcode, op.field2_start, op.field2_width);
+                if (imm6 == 0) {
+                    skip = true;  // Shift amount is 0, skip operand
+                }
+            }
+
+            if (skip) {
+                continue;  // Skip this operand entirely
             }
         }
 
@@ -16440,22 +16456,20 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode,
 
         // Shift type
         case 51: // SHIFT_TYPE
-            // Special case: ADD/SUB immediate instructions with no field bindings
-            // These have an implicit LSL shift, with sh bit (bit 22) determining amount:
-            // sh=0 → no shift (omit this operand), sh=1 → lsl #12
+            // Note: Zero-shift cases are already filtered in pre-check above
+            // Two patterns:
+            // 1. ADD/SUB immediate (no field bindings): sh bit determines lsl #12
+            // 2. Shifted register (has field bindings): shift type + amount from fields
             if (op.field1_width == 0 && op.field2_width == 0) {
-                // No field bindings - check if this is ADD/SUB immediate (sh bit at position 22)
-                uint32_t sh = extractBits(opcode, 22, 1);
-                if (sh) {
-                    // sh=1 means LSL #12
-                    offset += snprintf(buffer + offset, bufferSize - offset, "lsl #12");
-                }
-                // sh=0 means no shift, don't output anything
+                // Pattern 1: ADD/SUB immediate - sh=1 means lsl #12
+                // (sh=0 already filtered out, so we only reach here if sh=1)
+                offset += snprintf(buffer + offset, bufferSize - offset, "lsl #12");
             } else {
-                // Normal shift operand with field bindings
+                // Pattern 2: Shifted register - show shift type and amount
+                // (imm6=0 already filtered out, so shift amount is non-zero)
                 offset += snprintf(buffer + offset, bufferSize - offset, "%s",
                                  g_shiftNames[field1_val & 0x3]);
-                if (field2_val && op.field2_width > 0) {
+                if (field2_val) {
                     offset += snprintf(buffer + offset, bufferSize - offset,
                                      " #%u", field2_val);
                 }
