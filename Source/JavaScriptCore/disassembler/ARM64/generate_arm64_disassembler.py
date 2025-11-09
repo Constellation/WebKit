@@ -1178,6 +1178,7 @@ class CodeGenerator:
         'CONDITION': 50, 'SHIFT_TYPE': 51, 'EXTEND_TYPE': 52,
         'MEMORY_BASE': 60, 'MEMORY_OFFSET': 61, 'MEMORY_REG': 62,
         'MEMORY_PREIDX': 63, 'MEMORY_POSTIDX': 64,
+        'UNKNOWN': 127,
     }
 
     def __init__(self, instructions: List[InstructionEncoding],
@@ -1276,6 +1277,8 @@ class CodeGenerator:
 
 namespace JSC::ARM64Disassembler {
 
+enum class OperandType : uint8_t;
+
 // Instruction entry
 struct InstructionEntry {
     const char* name;
@@ -1289,7 +1292,7 @@ struct InstructionEntry {
 
 // Operand descriptor
 struct OperandDesc {
-    uint8_t type;
+    OperandType type;
     uint8_t subtype;
     uint8_t field1Start;
     uint8_t field1Width;
@@ -1376,6 +1379,9 @@ static const char* const g_extendNames[8] = {
 
 """)
 
+            # Generate opcode type enums
+            f.write(self._generate_op_type_enum())
+
             # Generate field metadata table
             f.write(self._generate_field_metadata())
 
@@ -1396,6 +1402,18 @@ static const char* const g_extendNames[8] = {
 
             f.write("\n} // namespace JSC::ARM64Disassembler\n\n")
             f.write("#endif // ENABLE(ARM64_DISASSEMBLER)\n")
+
+    def _generate_op_type_enum(self) -> str:
+        """Generate opcode type enum"""
+        code = "enum class OperandType : uint8_t {\n"
+
+        for key, value in self.OP_TYPES.items():
+            code += f'    {key} = {value},\n'
+
+        code += "};\n\n"
+        code += "using enum OperandType;\n\n"
+        return code
+
 
     def _generate_field_metadata(self) -> str:
         """Generate field metadata table"""
@@ -1435,7 +1453,9 @@ static const char* const g_extendNames[8] = {
                     else:
                         field2Start, field2Width = instr.fields.get(op.field_name2, (255, 0)) if op.field_name2 else (255, 0)
 
-                    op_type_val = self.OP_TYPES.get(op.type, 0)
+                    op_type_val = op.type
+                    if op_type_val not in self.OP_TYPES:
+                        raise ValueError(f"{op_type_val} is not registered")
                     op_subtype = op.subtype if op.subtype is not None else 0
 
                     code += f"    {{ {op_type_val}, {op_subtype}, {field1Start}, {field1Width}, {field2Start}, {field2Width} }},\n"
@@ -1444,7 +1464,7 @@ static const char* const g_extendNames[8] = {
             self.instruction_operand_info.append((start_offset, operand_count))
 
         if operand_offset == 0:
-            code += "    { 0, 0, 255, 0, 255, 0 }\n"
+            code += "    { UNKNOWN, 0, 255, 0, 255, 0 }\n"
 
         code += "};\n\n"
         return code
@@ -1547,7 +1567,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     const char* conditionCode = nullptr;
     if (entry->operandCount > 0) {
         const auto& firstOp = g_operandTable[entry->operandOffset];
-        if (firstOp.type == 50) { // CONDITION
+        if (firstOp.type == CONDITION) {
             hasConditionSuffix = true;
             if (firstOp.field1Width > 0 && firstOp.field1Start < 32) {
                 uint32_t cond = extractBits(opcode, firstOp.field1Start, firstOp.field1Width);
@@ -1620,7 +1640,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
         // Two cases:
         // 1. ADD/SUB immediate (no field bindings): Check sh bit (bit 22)
         // 2. Shifted register (has field bindings): Check imm6 field (field2)
-        if (op.type == 51) { // SHIFT_TYPE
+        if (op.type == SHIFT_TYPE) {
             bool skip = false;
 
             if (op.field1Width == 0 && op.field2Width == 0) {
@@ -1658,8 +1678,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
         // Format based on operand type
         switch (op.type) {
-        // GP Registers
-        case 0: // REG_GPR_X
+        // GP registers
+        case REG_GPR_X:
             if (field1Val == 29)
                 offset += snprintf(buffer + offset, bufferSize - offset, "fp");
             else if (field1Val == 30)
@@ -1668,12 +1688,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             break;
 
-        case 1: // REG_GPR_W
+        case REG_GPR_W:
             offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
             break;
 
-        case 2: // REG_GPR_SP
-        case 3: // REG_GPR_XSP
+        case REG_GPR_SP:
+        case REG_GPR_XSP:
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
             else if (field1Val == 29)
@@ -1684,14 +1704,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             break;
 
-        case 4: // REG_GPR_WSP
+        case REG_GPR_WSP:
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "wsp");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
             break;
 
-        case 5: // REG_GPR_XZR
+        case REG_GPR_XZR:
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "xzr");
             else if (field1Val == 29)
@@ -1702,14 +1722,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 offset += snprintf(buffer + offset, bufferSize - offset, "x%u", field1Val);
             break;
 
-        case 6: // REG_GPR_WZR
+        case REG_GPR_WZR:
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
             break;
 
-        case 7: // REG_GPR_SIZED
+        case REG_GPR_SIZED:
             // field1 = register number, field2 = size field (typically imm5)
             // For INS: imm5 bit 3 determines W (0) vs X (1)
             // Pattern: x1000 = D element = X register, else = W register
@@ -1736,25 +1756,25 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             break;
 
         // FP Registers
-        case 10: // REG_FP_B
+        case REG_FP_B:
             offset += snprintf(buffer + offset, bufferSize - offset, "b%u", field1Val);
             break;
-        case 11: // REG_FP_H
+        case REG_FP_H:
             offset += snprintf(buffer + offset, bufferSize - offset, "h%u", field1Val);
             break;
-        case 12: // REG_FP_S
+        case REG_FP_S:
             offset += snprintf(buffer + offset, bufferSize - offset, "s%u", field1Val);
             break;
-        case 13: // REG_FP_D
+        case REG_FP_D:
             offset += snprintf(buffer + offset, bufferSize - offset, "d%u", field1Val);
             break;
-        case 14: // REG_FP_Q
+        case REG_FP_Q:
             offset += snprintf(buffer + offset, bufferSize - offset, "q%u", field1Val);
             break;
-        case 15: // REG_SIMD_V
+        case REG_SIMD_V:
             offset += snprintf(buffer + offset, bufferSize - offset, "v%u", field1Val);
             break;
-        case 16: // REG_SIMD_SIZED (size determined by field2)
+        case REG_SIMD_SIZED: // size determined by field2
             // field1 = register number (Rd, Rn, etc.)
             // field2 = size field (sz, size, Q, etc.)
             // Map size field value to register prefix OR full arrangement
@@ -1809,7 +1829,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             }
             break;
 
-        case 17: // REG_SIMD_ARRANGED (SIMD register with arrangement specifier)
+        case REG_SIMD_ARRANGED: // SIMD register with arrangement specifier
             // field1 = register number (Rd, Rn, etc.)
             // field2 = arrangement field (immh, size, etc.) - determines element size and count
             // subtype: 0 = simple arrangement (Ta), 1 = compound arrangement (Ta:Q or Tb:Q or size:Q)
@@ -2011,7 +2031,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             }
             break;
 
-        case 18: // REG_SIMD_ELEMENT (indexed element like v1.b[0])
+        case REG_SIMD_ELEMENT: // indexed element like v1.b[0]
             // field1 = register number (Rd, Rn, etc.)
             // field2 = index field (usually imm5 or imm4)
             // subtype: 0 = imm5-based (lowest set bit determines size)
@@ -2077,7 +2097,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             }
             break;
 
-        case 19: // REG_LIST (register list with hardcoded or variable arrangement)
+        case REG_LIST: // register list with hardcoded or variable arrangement
             // field1 = base register number (Rn/Rt)
             // field2 = arrangement field (for variable) or UNUSED (for hardcoded)
             // subtype = (numRegs << 4) | arrangementType
@@ -2128,15 +2148,15 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             break;
 
         // SVE Registers
-        case 20: // REG_SVE_Z
+        case REG_SVE_Z:
             offset += snprintf(buffer + offset, bufferSize - offset, "z%u", field1Val);
             break;
-        case 21: // REG_SVE_P
+        case REG_SVE_P:
             offset += snprintf(buffer + offset, bufferSize - offset, "p%u", field1Val);
             break;
 
         // Immediates
-        case 30: // IMM_UINT
+        case IMM_UINT:
             // Special handling for LSL/LSR/ASR shift amount (third operand)
             if (isLslLsrAsr && i == (startOperand + 2)) {
                 // This is the shift operand for LSL/LSR/ASR - use computed value
@@ -2177,17 +2197,17 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             }
             break;
 
-        case 31: { // IMM_SINT
+        case IMM_SINT: {
             int32_t signedVal = signExtend(field1Val, op.field1Width);
             offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signedVal);
             break;
         }
 
-        case 32: // IMM_HEX
+        case IMM_HEX:
             offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
             break;
 
-        case 33: { // IMM_FLOAT
+        case IMM_FLOAT: {
             // Decode ARM64 floating-point immediate (8-bit encoding)
             // imm8 = abcdefgh
             // Expanded format:
@@ -2253,7 +2273,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             break;
         }
 
-        case 34: { // IMM_LOGICAL
+        case IMM_LOGICAL: {
             // Decode logical immediate
             uint64_t decodedImm;
             bool is64 = (entry->flags & 1) != 0;
@@ -2273,7 +2293,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             break;
         }
 
-        case 35: { // IMM_SHIFTED
+        case IMM_SHIFTED: {
             offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1Val);
             // Add shift if present
             if (field2Val && op.field2Width > 0) {
@@ -2284,7 +2304,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
         }
 
         // PC-relative label
-        case 40: { // LABEL_PCREL
+        case LABEL_PCREL: {
             int32_t signedOffset = signExtend(field1Val, op.field1Width);
             // PC-relative in ARM64 is in instructions (4 bytes each)
             int64_t target = (int64_t)pc + (signedOffset * 4);
@@ -2299,12 +2319,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
         }
 
         // Condition code
-        case 50: // CONDITION
+        case CONDITION:
             offset += snprintf(buffer + offset, bufferSize - offset, "%s", g_conditionNames[field1Val & 0xf]);
             break;
 
         // Shift type
-        case 51: // SHIFT_TYPE
+        case SHIFT_TYPE:
             // Note: Zero-shift cases are already filtered in pre-check above
             // Two patterns:
             // 1. ADD/SUB immediate (no field bindings): sh bit determines lsl #12
@@ -2323,15 +2343,15 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             break;
 
         // Extend type
-        case 52: // EXTEND_TYPE
+        case EXTEND_TYPE:
             offset += snprintf(buffer + offset, bufferSize - offset, "%s", g_extendNames[field1Val & 0x7]);
             if (field2Val)
                 offset += snprintf(buffer + offset, bufferSize - offset, " #%u", field2Val);
             break;
 
         // Memory addressing modes
-        case 60: // MEMORY_BASE
-        case 61: // MEMORY_OFFSET
+        case MEMORY_BASE:
+        case MEMORY_OFFSET:
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
@@ -2411,7 +2431,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             offset += snprintf(buffer + offset, bufferSize - offset, "]");
             break;
 
-        case 62: // MEMORY_REG
+        case MEMORY_REG:
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
@@ -2427,7 +2447,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             offset += snprintf(buffer + offset, bufferSize - offset, "]");
             break;
 
-        case 63: // MEMORY_PREIDX
+        case MEMORY_PREIDX:
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
@@ -2452,7 +2472,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             offset += snprintf(buffer + offset, bufferSize - offset, "]!");
             break;
 
-        case 64: // MEMORY_POSTIDX
+        case MEMORY_POSTIDX:
             offset += snprintf(buffer + offset, bufferSize - offset, "[");
             if (field1Val == 31)
                 offset += snprintf(buffer + offset, bufferSize - offset, "sp");
@@ -2477,7 +2497,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             }
             break;
 
-        default:
+        case UNKNOWN:
             offset += snprintf(buffer + offset, bufferSize - offset, "?");
             break;
         }
@@ -2563,8 +2583,8 @@ def main():
     print(f"Field metadata: {len(generator.field_names)} unique fields")
     print(f"Output written to: {output_dir}")
     print("\nGenerated files:")
-    print("  - A64InstructionTableV3.h (API)")
-    print("  - A64InstructionTableV3.cpp (Complete implementation)")
+    print("  - A64InstructionTable.h (API)")
+    print("  - A64InstructionTable.cpp (Complete implementation)")
 
 if __name__ == '__main__':
     main()

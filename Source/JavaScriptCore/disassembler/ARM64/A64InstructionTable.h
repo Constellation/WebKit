@@ -37,6 +37,8 @@
 
 namespace JSC::ARM64Disassembler {
 
+enum class OperandType : uint8_t;
+
 // Instruction entry
 struct InstructionEntry {
     const char* name;
@@ -50,7 +52,7 @@ struct InstructionEntry {
 
 // Operand descriptor
 struct OperandDesc {
-    uint8_t type;
+    OperandType type;
     uint8_t subtype;
     uint8_t field1Start;
     uint8_t field1Width;
