@@ -1069,7 +1069,12 @@ class ARM64InstructionParser:
                 return Operand('IMM_UINT', None, primary_field or 'shift', None, is_optional, hover)
 
             if 'logical' in hover_lower or 'bitmask' in hover_lower:
-                return Operand('IMM_LOGICAL', None, primary_field or 'imms', 'N', is_optional, hover)
+                # For logical immediates encoded as "N:imms:immr" or "imms:immr"
+                # field_name should be 'imms', field_name2 should be 'N'
+                # But primary_field may be 'N' if encoded as "N:imms:immr"
+                imms_field = secondary_field if primary_field == 'N' else (primary_field or 'imms')
+                n_field = primary_field if primary_field == 'N' else 'N'
+                return Operand('IMM_LOGICAL', None, imms_field, n_field, is_optional, hover)
             elif 'shift' in hover_lower:
                 return Operand('IMM_SHIFTED', None, primary_field or 'imm', 'sh', is_optional, hover)
             elif 'float' in hover_lower or 'fp' in hover_lower:
@@ -1270,6 +1275,11 @@ class CodeGenerator:
             # SIMD logical operations and aliases
             'orr': 30,     # Base instruction
             'mov': 60,     # Alias of ORR with Rm==Rn condition (lower priority)
+
+            # Move-wide base instructions (lower priority than MOV alias)
+            'movz': 70,    # Base instruction for move wide immediate
+            'movn': 70,    # Base instruction
+            'movk': 70,    # Base instruction
 
             # Base instructions (lowest priority)
             'ubfm': 100,
@@ -1709,7 +1719,9 @@ static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms, boo
     // Rotate right
     if (r) {
         welem = (welem >> r) | (welem << (esize - r));
-        welem &= ((1ULL << esize) - 1);
+        // Avoid undefined behavior: (1ULL << 64) is undefined
+        if (esize < 64)
+            welem &= ((1ULL << esize) - 1);
     }
 
     // Replicate
@@ -1879,6 +1891,15 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
             if (skip)
                 continue;  // Skip this operand entirely
+        }
+
+        // Pre-check: Skip IMM_UINT hw field (MOV/MOVZ/MOVN shift) when it's 0
+        // The hw field is at bits 21-22 with width 2 and encodes LSL shift amount (hw * 16)
+        // When hw=0, there's no shift and the operand should be omitted
+        if (op.type == IMM_UINT && op.field1Start == 21 && op.field1Width == 2) {
+            uint32_t hw = extractBits(opcode, 21, 2);
+            if (hw == 0)
+                continue;  // Skip this operand (no shift)
         }
 
         // Add separator
@@ -2549,12 +2570,39 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             // Check if this is a MOV-style immediate with hw shift field
             else if (op.field2Width > 0 && op.field2Start < 32) {
                 // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift (composite operand)
-                // Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
-                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
-                // Add shift if non-zero
-                if (field2Val != 0) {
-                    unsigned shiftAmount = field2Val * 16;
-                    offset += snprintf(buffer + offset, bufferSize - offset, ", lsl #%u", shiftAmount);
+                // For MOVN (opc=00), need to display inverted value: ~(imm16 << (hw*16))
+                // For MOVZ (opc=10) and others, display as-is
+
+                // Check if this is MOVN by examining opc field (bits 29-30)
+                uint32_t opc = extractBits(opcode, 29, 2);
+                bool isMovn = (opc == 0);  // MOVN has opc=00
+
+                if (isMovn) {
+                    // MOVN: compute ~(imm16 << (hw * 16))
+                    uint64_t shiftedImm = (uint64_t)field1Val << (field2Val * 16);
+                    bool is64 = (entry->flags & 1) != 0;
+                    uint64_t invertedImm = ~shiftedImm;
+                    if (!is64)
+                        invertedImm &= 0xFFFFFFFFULL;
+
+                    // Display as signed if it's -1, -2, etc (common case)
+                    if (is64 && invertedImm > 0x7FFFFFFFFFFFFFFFULL) {
+                        int64_t signedVal = (int64_t)invertedImm;
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#%lld", (long long)signedVal);
+                    } else if (!is64 && (invertedImm & 0xFFFFFFFF) > 0x7FFFFFFF) {
+                        int32_t signedVal = (int32_t)invertedImm;
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signedVal);
+                    } else {
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", (unsigned long long)invertedImm);
+                    }
+                } else {
+                    // MOVZ/MOVK/MOV: Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
+                    // Add shift if non-zero
+                    if (field2Val != 0) {
+                        unsigned shiftAmount = field2Val * 16;
+                        offset += snprintf(buffer + offset, bufferSize - offset, ", lsl #%u", shiftAmount);
+                    }
                 }
             } else if (op.field1Start == 21 && op.field1Width == 2) {
                 // This is a standalone hw field (shift amount in MOVK/MOVN as separate operand)

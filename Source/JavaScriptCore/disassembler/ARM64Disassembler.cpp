@@ -52,7 +52,7 @@ bool tryToDisassemble(const CodePtr<DisassemblyPtrTag>& codePtr, size_t size, vo
             snprintf(pcInfo, sizeof(pcInfo) - 1, "<%u> %#llx", pcOffset, static_cast<unsigned long long>(std::bit_cast<uintptr_t>(currentPC)));
         else
             snprintf(pcInfo, sizeof(pcInfo) - 1, "%#llx", static_cast<unsigned long long>(std::bit_cast<uintptr_t>(currentPC)));
-        out.printf("%s%24s: %s", prefix, pcInfo, arm64Opcode.disassemble(currentPC));
+        out.printf("%s%24s: (%#lx) %s", prefix, pcInfo, static_cast<unsigned long>(*currentPC), arm64Opcode.disassemble(currentPC));
         if (auto str = AssemblyCommentRegistry::singleton().comment(currentPC))
             out.printf("; %s\n", str->ascii().data());
         else

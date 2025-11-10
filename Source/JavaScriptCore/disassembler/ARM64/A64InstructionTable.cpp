@@ -318,11 +318,11 @@ const OperandDesc g_operandTable[] = {
     { LABEL_PCREL, 0, 5, 16, 255, 0 },
     { REG_FP_D, 0, 255, 0, 255, 0 },
     { IMM_LOGICAL, 0, 10, 6, 255, 0 },
-    { IMM_LOGICAL, 0, 22, 1, 22, 1 },
+    { IMM_LOGICAL, 0, 10, 6, 22, 1 },
     { IMM_UINT, 0, 255, 0, 10, 6 },
+    { IMM_UINT, 0, 5, 16, 21, 2 },
     { IMM_UINT, 0, 5, 16, 255, 0 },
     { IMM_UINT, 0, 21, 2, 255, 0 },
-    { IMM_UINT, 0, 5, 16, 21, 2 },
     { REG_FP_S, 0, 255, 0, 255, 0 },
     { IMM_UINT, 0, 8, 4, 255, 0 },
     { REG_GPR_X, 0, 0, 5, 0, 5 },
@@ -382,7 +382,7 @@ const uint8_t g_operandIndices[] = {
 106, 189, 106, 116, 106, 117, 187, 190, 96, 179, 191, 106, 179, 191, 116, 192, 
 118, 192, 117, 193, 119, 193, 96, 116, 95, 194, 106, 117, 105, 194, 96, 183, 
 106, 183, 96, 116, 179, 106, 117, 179, 96, 116, 179, 191, 106, 117, 179, 191, 
-118, 116, 192, 96, 116, 192, 96, 116, 187, 194, 106, 117, 187, 194, 119, 117, 193, 96, 195, 196, 106, 195, 196, 106, 117, 193, 96, 197, 106, 197, 198, 198, 199, 103, 200, 106, 103, 201, 189, 96, 189, 202, 117, 119, 103, 203, 204, 95, 2, 105, 2, 96, 205, 106, 205, 106, 105, 2, 96, 95, 2, 96, 95, 205, 
+118, 116, 192, 96, 116, 192, 96, 116, 187, 194, 106, 117, 187, 194, 119, 117, 193, 106, 117, 193, 96, 195, 106, 195, 96, 196, 197, 106, 196, 197, 198, 198, 199, 103, 200, 106, 103, 201, 189, 96, 189, 202, 117, 119, 103, 203, 204, 95, 2, 105, 2, 96, 205, 106, 205, 106, 105, 2, 96, 95, 2, 96, 95, 205, 
 106, 105, 205, 2, 206, 50, 96, 50, 106, 50, 179, 105, 2, 106, 207, 117, 
 208, 117, 105, 96, 209, 106, 209, 96, 2, 210, 96, 211, 2, 206, 209, 119, 2, 210, 119, 211, 119, 209, 106, 2, 210, 106, 211, 106, 89, 96, 212, 106, 212, 2, 206, 212, 39, 206, 189, 96, 213, 106, 213, 114, 214, 96, 116, 105, 
 119, 114, 105, 106, 117, 214, 106, 114, 105, 106, 114, 214, 106, 116, 95, 117, 215, 116, 95, 213, 117, 105, 213, 116, 88, 213, 117, 88, 213, 96, 116, 95, 213, 106, 117, 105, 213, 106, 117, 105, 108, 106, 116, 95, 108, 96, 116, 95, 107, 216, 50, 216, 209, 217, 209, 129, 209, 62, 209, 132, 209, 217, 50, 129, 50, 62, 50, 132, 50, 216, 2, 210, 217, 2, 210, 129, 2, 210, 62, 2, 210, 132, 2, 210, 216, 211, 217, 211, 129, 211, 62, 211, 132, 211, 216, 212, 
@@ -3136,19 +3136,19 @@ const InstructionEntry g_instructionTable[] = {
     { "sbfm", 0xffc00000U, 0x13000000U, 1078, Mnemonic::ARM64_SBFM, 4, 0 }, // SBFM_32M_bitfield
     { "sbfm", 0xffc00000U, 0x93400000U, 1082, Mnemonic::ARM64_SBFM, 4, 1 }, // SBFM_64M_bitfield
     { "orr", 0xff800000U, 0xb2000000U, 1086, Mnemonic::ARM64_ORR, 3, 1 }, // ORR_64_log_imm
-    { "movz", 0xff800000U, 0x52800000U, 1089, Mnemonic::ARM64_MOVZ, 3, 0 }, // MOVZ_32_movewide
-    { "movz", 0xff800000U, 0xd2800000U, 1092, Mnemonic::ARM64_MOVZ, 3, 1 }, // MOVZ_64_movewide
-    { "movn", 0xff800000U, 0x12800000U, 1089, Mnemonic::ARM64_MOVN, 3, 0 }, // MOVN_32_movewide
-    { "movn", 0xff800000U, 0x92800000U, 1092, Mnemonic::ARM64_MOVN, 3, 1 }, // MOVN_64_movewide
-    { "movk", 0xff800000U, 0x72800000U, 1089, Mnemonic::ARM64_MOVK, 3, 0 }, // MOVK_32_movewide
-    { "movk", 0xff800000U, 0xf2800000U, 1092, Mnemonic::ARM64_MOVK, 3, 1 }, // MOVK_64_movewide
     { "eor", 0xff800000U, 0xd2000000U, 1086, Mnemonic::ARM64_EOR, 3, 1 }, // EOR_64_log_imm
-    { "ands", 0xff800000U, 0xf2000000U, 1095, Mnemonic::ARM64_ANDS, 3, 1 }, // ANDS_64S_log_imm
+    { "ands", 0xff800000U, 0xf2000000U, 1089, Mnemonic::ARM64_ANDS, 3, 1 }, // ANDS_64S_log_imm
     { "and", 0xff800000U, 0x92000000U, 1086, Mnemonic::ARM64_AND, 3, 1 }, // AND_64_log_imm
-    { "mov", 0xff800000U, 0x52800000U, 1098, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVZ_32_movewide
-    { "mov", 0xff800000U, 0xd2800000U, 1100, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVZ_64_movewide
-    { "mov", 0xff800000U, 0x12800000U, 1098, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVN_32_movewide
-    { "mov", 0xff800000U, 0x92800000U, 1100, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVN_64_movewide
+    { "mov", 0xff800000U, 0x52800000U, 1092, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVZ_32_movewide
+    { "mov", 0xff800000U, 0xd2800000U, 1094, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVZ_64_movewide
+    { "mov", 0xff800000U, 0x12800000U, 1092, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVN_32_movewide
+    { "mov", 0xff800000U, 0x92800000U, 1094, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVN_64_movewide
+    { "movz", 0xff800000U, 0x52800000U, 1096, Mnemonic::ARM64_MOVZ, 3, 0 }, // MOVZ_32_movewide
+    { "movz", 0xff800000U, 0xd2800000U, 1099, Mnemonic::ARM64_MOVZ, 3, 1 }, // MOVZ_64_movewide
+    { "movn", 0xff800000U, 0x12800000U, 1096, Mnemonic::ARM64_MOVN, 3, 0 }, // MOVN_32_movewide
+    { "movn", 0xff800000U, 0x92800000U, 1099, Mnemonic::ARM64_MOVN, 3, 1 }, // MOVN_64_movewide
+    { "movk", 0xff800000U, 0x72800000U, 1096, Mnemonic::ARM64_MOVK, 3, 0 }, // MOVK_32_movewide
+    { "movk", 0xff800000U, 0xf2800000U, 1099, Mnemonic::ARM64_MOVK, 3, 1 }, // MOVK_64_movewide
     { "tsb", 0xffffffffU, 0xd503225fU, 0, Mnemonic::ARM64_TSB, 0, 0 }, // TSB_HC_hints
     { "pssbb", 0xffffffffU, 0xd503349fU, 0, Mnemonic::ARM64_PSSBB, 0, 0 }, // PSSBB_DSB_BO_barriers
     { "sevl", 0xffffffffU, 0xd50320bfU, 0, Mnemonic::ARM64_SEVL, 0, 0 }, // SEVL_HI_hints
@@ -3214,19 +3214,19 @@ const InstructionEntry g_instructionTable[] = {
     { "at", 0xfff8fe00U, 0xd5087800U, 671, Mnemonic::ARM64_AT, 1, 0 }, // AT_SYS_CR_systeminstrs
     { "dc", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_DC, 1, 0 }, // DC_SYS_CR_systeminstrs
     { "ic", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_IC, 1, 0 }, // IC_SYS_CR_systeminstrs
-    { "smc", 0xffe0001fU, 0xd4000003U, 1090, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
+    { "smc", 0xffe0001fU, 0xd4000003U, 1097, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
     { "retaasppc", 0xffe0001fU, 0x5500001fU, 1031, Mnemonic::ARM64_RETAASPPC, 1, 0 }, // RETAASPPC_only_miscbranch
     { "retabsppc", 0xffe0001fU, 0x5520001fU, 1031, Mnemonic::ARM64_RETABSPPC, 1, 0 }, // RETABSPPC_only_miscbranch
-    { "hlt", 0xffe0001fU, 0xd4400000U, 1090, Mnemonic::ARM64_HLT, 1, 0 }, // HLT_EX_exception
+    { "hlt", 0xffe0001fU, 0xd4400000U, 1097, Mnemonic::ARM64_HLT, 1, 0 }, // HLT_EX_exception
     { "tlbi", 0xfff8e000U, 0xd5088000U, 671, Mnemonic::ARM64_TLBI, 1, 0 }, // TLBI_SYS_CR_systeminstrs
-    { "brk", 0xffe0001fU, 0xd4200000U, 1090, Mnemonic::ARM64_BRK, 1, 0 }, // BRK_EX_exception
-    { "tcancel", 0xffe0001fU, 0xd4600000U, 1090, Mnemonic::ARM64_TCANCEL, 1, 0 }, // TCANCEL_EX_exception
+    { "brk", 0xffe0001fU, 0xd4200000U, 1097, Mnemonic::ARM64_BRK, 1, 0 }, // BRK_EX_exception
+    { "tcancel", 0xffe0001fU, 0xd4600000U, 1097, Mnemonic::ARM64_TCANCEL, 1, 0 }, // TCANCEL_EX_exception
     { "tlbip", 0xfff8e000U, 0xd5488000U, 1105, Mnemonic::ARM64_TLBIP, 2, 0 }, // TLBIP_SYSP_CR_syspairinstrs
-    { "hvc", 0xffe0001fU, 0xd4000002U, 1090, Mnemonic::ARM64_HVC, 1, 0 }, // HVC_EX_exception
-    { "svc", 0xffe0001fU, 0xd4000001U, 1090, Mnemonic::ARM64_SVC, 1, 0 }, // SVC_EX_exception
-    { "dcps1", 0xffe0001fU, 0xd4a00001U, 1090, Mnemonic::ARM64_DCPS1, 1, 0 }, // DCPS1_DC_exception
-    { "dcps3", 0xffe0001fU, 0xd4a00003U, 1090, Mnemonic::ARM64_DCPS3, 1, 0 }, // DCPS3_DC_exception
-    { "dcps2", 0xffe0001fU, 0xd4a00002U, 1090, Mnemonic::ARM64_DCPS2, 1, 0 }, // DCPS2_DC_exception
+    { "hvc", 0xffe0001fU, 0xd4000002U, 1097, Mnemonic::ARM64_HVC, 1, 0 }, // HVC_EX_exception
+    { "svc", 0xffe0001fU, 0xd4000001U, 1097, Mnemonic::ARM64_SVC, 1, 0 }, // SVC_EX_exception
+    { "dcps1", 0xffe0001fU, 0xd4a00001U, 1097, Mnemonic::ARM64_DCPS1, 1, 0 }, // DCPS1_DC_exception
+    { "dcps3", 0xffe0001fU, 0xd4a00003U, 1097, Mnemonic::ARM64_DCPS3, 1, 0 }, // DCPS3_DC_exception
+    { "dcps2", 0xffe0001fU, 0xd4a00002U, 1097, Mnemonic::ARM64_DCPS2, 1, 0 }, // DCPS2_DC_exception
     { "sysp", 0xfff80000U, 0xd5480000U, 1105, Mnemonic::ARM64_SYSP, 2, 0 }, // SYSP_CR_syspairinstrs
     { "sys", 0xfff80000U, 0xd5080000U, 671, Mnemonic::ARM64_SYS, 1, 0 }, // SYS_CR_systeminstrs
     { "sysl", 0xfff80000U, 0xd5280000U, 671, Mnemonic::ARM64_SYSL, 1, 0 }, // SYSL_RC_systeminstrs
@@ -4460,7 +4460,9 @@ static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms, boo
     // Rotate right
     if (r) {
         welem = (welem >> r) | (welem << (esize - r));
-        welem &= ((1ULL << esize) - 1);
+        // Avoid undefined behavior: (1ULL << 64) is undefined
+        if (esize < 64)
+            welem &= ((1ULL << esize) - 1);
     }
 
     // Replicate
@@ -4622,6 +4624,15 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
             if (skip)
                 continue;  // Skip this operand entirely
+        }
+
+        // Pre-check: Skip IMM_UINT hw field (MOV/MOVZ/MOVN shift) when it's 0
+        // The hw field is at bits 21-22 with width 2 and encodes LSL shift amount (hw * 16)
+        // When hw=0, there's no shift and the operand should be omitted
+        if (op.type == IMM_UINT && op.field1Start == 21 && op.field1Width == 2) {
+            uint32_t hw = extractBits(opcode, 21, 2);
+            if (hw == 0)
+                continue;  // Skip this operand (no shift)
         }
 
         // Add separator
@@ -5292,12 +5303,39 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             // Check if this is a MOV-style immediate with hw shift field
             else if (op.field2Width > 0 && op.field2Start < 32) {
                 // MOV/MOVZ/MOVK/MOVN style: imm16 with hw shift (composite operand)
-                // Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
-                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
-                // Add shift if non-zero
-                if (field2Val != 0) {
-                    unsigned shiftAmount = field2Val * 16;
-                    offset += snprintf(buffer + offset, bufferSize - offset, ", lsl #%u", shiftAmount);
+                // For MOVN (opc=00), need to display inverted value: ~(imm16 << (hw*16))
+                // For MOVZ (opc=10) and others, display as-is
+
+                // Check if this is MOVN by examining opc field (bits 29-30)
+                uint32_t opc = extractBits(opcode, 29, 2);
+                bool isMovn = (opc == 0);  // MOVN has opc=00
+
+                if (isMovn) {
+                    // MOVN: compute ~(imm16 << (hw * 16))
+                    uint64_t shiftedImm = (uint64_t)field1Val << (field2Val * 16);
+                    bool is64 = (entry->flags & 1) != 0;
+                    uint64_t invertedImm = ~shiftedImm;
+                    if (!is64)
+                        invertedImm &= 0xFFFFFFFFULL;
+
+                    // Display as signed if it's -1, -2, etc (common case)
+                    if (is64 && invertedImm > 0x7FFFFFFFFFFFFFFFULL) {
+                        int64_t signedVal = (int64_t)invertedImm;
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#%lld", (long long)signedVal);
+                    } else if (!is64 && (invertedImm & 0xFFFFFFFF) > 0x7FFFFFFF) {
+                        int32_t signedVal = (int32_t)invertedImm;
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signedVal);
+                    } else {
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", (unsigned long long)invertedImm);
+                    }
+                } else {
+                    // MOVZ/MOVK/MOV: Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
+                    // Add shift if non-zero
+                    if (field2Val != 0) {
+                        unsigned shiftAmount = field2Val * 16;
+                        offset += snprintf(buffer + offset, bufferSize - offset, ", lsl #%u", shiftAmount);
+                    }
                 }
             } else if (op.field1Start == 21 && op.field1Width == 2) {
                 // This is a standalone hw field (shift amount in MOVK/MOVN as separate operand)
