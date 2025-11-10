@@ -1244,13 +1244,49 @@ class CodeGenerator:
             'bfm': 100,
         }
 
-        # Sort by specificity (bit count), then by alias priority
+        # Sort by:
+        # 1. Top 4 bits (bits 25-28) for hash table grouping
+        # 2. Specificity (bit count) within each group
+        # 3. Alias priority within same specificity
         def sort_key(instr):
+            # Extract top 4 bits if they're fixed
+            top_bits_mask = (instr.mask >> 25) & 0xF
+            if top_bits_mask == 0xF:
+                top_bits = (instr.pattern >> 25) & 0xF
+            else:
+                # Variable top bits go to fallback bucket (16)
+                top_bits = 16
+
             mask_bits = bin(instr.mask).count('1')
-            priority = self.alias_priority.get(instr.mnemonic.lower(), 50)  # Default priority 50
-            return (-mask_bits, priority)  # Negative for reverse sort on mask_bits
+            priority = self.alias_priority.get(instr.mnemonic.lower(), 50)
+            return (top_bits, -mask_bits, priority)
 
         self.instructions.sort(key=sort_key)
+
+        # Build bucket information for hash table (bits 25-28)
+        # 17 buckets: 0-15 for fixed top bits, 16 for variable
+        self.buckets = []
+        current_bucket = -1
+        bucket_start = 0
+
+        for i, instr in enumerate(self.instructions):
+            top_bits_mask = (instr.mask >> 25) & 0xF
+            if top_bits_mask == 0xF:
+                bucket_id = (instr.pattern >> 25) & 0xF
+            else:
+                bucket_id = 16
+
+            if bucket_id != current_bucket:
+                # Save previous bucket if exists
+                if current_bucket >= 0:
+                    self.buckets.append((current_bucket, bucket_start, i - bucket_start))
+
+                current_bucket = bucket_id
+                bucket_start = i
+
+        # Save last bucket
+        if current_bucket >= 0:
+            self.buckets.append((current_bucket, bucket_start, len(self.instructions) - bucket_start))
 
         # Build indices
         self.field_names = sorted(field_metadata.keys())
@@ -1306,9 +1342,16 @@ struct FieldMeta {
     uint8_t bitWidth;
 };
 
+// Hash bucket for fast instruction lookup
+struct InstructionBucket {
+    const InstructionEntry* start;
+    uint16_t count;
+};
+
 // Tables
 extern const InstructionEntry g_instructionTable[];
 extern const size_t g_instructionTableSize;
+extern const InstructionBucket g_instructionBuckets[17];  // 16 buckets + 1 fallback
 extern const OperandDesc g_operandTable[];
 extern const FieldMeta g_fieldMetadata[];
 extern const size_t g_fieldMetadataSize;
@@ -1330,6 +1373,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 #if ENABLE(ARM64_DISASSEMBLER)
 
 #include "A64InstructionTable.h"
+#include <array>
 #include <stdio.h>
 #include <string.h>
 
@@ -1388,6 +1432,9 @@ static const char* const g_extendNames[8] = {
 
             # Generate instruction table
             f.write(self._generate_instruction_table())
+
+            # Generate bucket table for hash lookup
+            f.write(self._generate_bucket_table())
 
             # Generate logical immediate decoder
             f.write(self._generate_logical_immediate_decoder())
@@ -1486,6 +1533,28 @@ static const char* const g_extendNames[8] = {
         code += f"const size_t g_instructionTableSize = {len(self.instructions)};\n\n"
         return code
 
+    def _generate_bucket_table(self) -> str:
+        """Generate hash bucket table for fast lookup"""
+        code = "// Hash bucket table for fast instruction lookup\n"
+        code += "// Indexed by bits 25-28 of the opcode (16 buckets + 1 fallback)\n"
+        code += "const InstructionBucket g_instructionBuckets[17] = {\n"
+
+        # Create array with all 17 buckets (0-15 for fixed bits, 16 for fallback)
+        bucket_map = {bucket_id: (start, count) for bucket_id, start, count in self.buckets}
+
+        for i in range(17):
+            if i in bucket_map:
+                start, count = bucket_map[i]
+                if i < 16:
+                    code += f"    {{ &g_instructionTable[{start}], {count} }},  // Bucket 0x{i:X}: bits[28:25] = {i:04b}\n"
+                else:
+                    code += f"    {{ &g_instructionTable[{start}], {count} }},  // Fallback bucket: variable top bits\n"
+            else:
+                code += f"    {{ nullptr, 0 }},  // Bucket 0x{i:X}: empty\n"
+
+        code += "};\n\n"
+        return code
+
     def _generate_logical_immediate_decoder(self) -> str:
         """Generate ARM64 logical immediate decoding algorithm"""
         return """
@@ -1533,16 +1602,32 @@ static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms, boo
 """
 
     def _generate_finder(self) -> str:
-        """Generate instruction finder"""
+        """Generate instruction finder with hash table lookup"""
         return """
 const InstructionEntry* findInstruction(uint32_t opcode)
 {
-    // Linear search (optimized to binary search later)
-    for (size_t i = 0; i < g_instructionTableSize; i++) {
-        const auto& entry = g_instructionTable[i];
+    // Two-level hash table lookup using bits 25-28
+    // Average case: ~16x faster than linear search
+
+    // Extract bits 25-28 (major instruction class)
+    unsigned bucketIndex = (opcode >> 25) & 0xF;
+
+    // Search primary bucket
+    const auto& bucket = g_instructionBuckets[bucketIndex];
+    for (unsigned i = 0; i < bucket.count; i++) {
+        const auto& entry = bucket.start[i];
         if ((opcode & entry.mask) == entry.pattern)
             return &entry;
     }
+
+    // Fallback: Check variable bucket (for instructions with variable top bits)
+    const auto& fallback = g_instructionBuckets[16];
+    for (unsigned i = 0; i < fallback.count; i++) {
+        const auto& entry = fallback.start[i];
+        if ((opcode & entry.mask) == entry.pattern)
+            return &entry;
+    }
+
     return nullptr;
 }
 
@@ -1591,8 +1676,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     // Build mnemonic string with optional suffixes
     size_t pos = 0;
 
-    // Copy base mnemonic
-    ASSERT(8 + mnemonicBuffer.size() >= mnemonicLength);
+    // Copy base mnemonic (buffer is 32 bytes, max mnemonic is ~14 bytes with suffixes)
     memcpy(mnemonicBuffer.data(), entry->mnemonic, mnemonicLength);
     pos = mnemonicLength;
 

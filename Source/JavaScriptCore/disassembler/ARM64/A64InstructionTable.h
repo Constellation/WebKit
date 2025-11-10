@@ -66,9 +66,16 @@ struct FieldMeta {
     uint8_t bitWidth;
 };
 
+// Hash bucket for fast instruction lookup
+struct InstructionBucket {
+    const InstructionEntry* start;
+    uint16_t count;
+};
+
 // Tables
 extern const InstructionEntry g_instructionTable[];
 extern const size_t g_instructionTableSize;
+extern const InstructionBucket g_instructionBuckets[17];  // 16 buckets + 1 fallback
 extern const OperandDesc g_operandTable[];
 extern const FieldMeta g_fieldMetadata[];
 extern const size_t g_fieldMetadataSize;

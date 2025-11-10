@@ -1,89 +1,97 @@
-#!/usr/bin/env python3
-"""
-Analyze generated instruction table to find instructions with missing/incorrect operands
-"""
+#\!/usr/bin/env python3
+"""Analyze instruction table for optimization opportunities"""
 
 import re
+from collections import defaultdict
 
-# Read the generated table
-with open('A64InstructionTable.cpp', 'r') as f:
-    table_content = f.read()
+def analyze_instruction_table():
+    """Analyze A64InstructionTable.cpp to find optimization opportunities"""
 
-# Extract instruction entries
-instruction_pattern = r'\{\s*"([^"]+)",\s*"([^"]+)",\s*0x([0-9a-fA-F]+)U,\s*0x([0-9a-fA-F]+)U,\s*(\d+),\s*(\d+),\s*(\d+)\s*\}'
+    with open('A64InstructionTable.cpp', 'r') as f:
+        content = f.read()
 
-instructions = []
-for match in re.finditer(instruction_pattern, table_content):
-    name, mnemonic, mask, pattern, operand_offset, operand_count, flags = match.groups()
-    instructions.append({
-        'name': name,
-        'mnemonic': mnemonic,
-        'mask': mask,
-        'pattern': pattern,
-        'operand_offset': int(operand_offset),
-        'operand_count': int(operand_count),
-        'flags': int(flags)
-    })
+    # Extract instruction entries
+    # Format: { "mnemonic", 0xmask, 0xpattern, offset, count, flags }
+    pattern = r'\{\s*"([^"]+)",\s*0x([0-9a-fA-F]+)U,\s*0x([0-9a-fA-F]+)U,'
+    entries = re.findall(pattern, content)
 
-print(f"Total instructions: {len(instructions)}\n")
+    print(f"Total instructions: {len(entries)}")
+    print()
 
-# Group by operand count
-by_count = {}
-for instr in instructions:
-    count = instr['operand_count']
-    if count not in by_count:
-        by_count[count] = []
-    by_count[count].append(instr)
+    # Analyze by top bits (bits 25-28: major instruction class)
+    by_top_bits = defaultdict(list)
+    for mnemonic, mask, pattern in entries:
+        mask_val = int(mask, 16)
+        pattern_val = int(pattern, 16)
 
-print("=" * 80)
-print("INSTRUCTIONS BY OPERAND COUNT")
-print("=" * 80)
-for count in sorted(by_count.keys()):
-    print(f"\n{count} operands: {len(by_count[count])} instructions")
-    if count == 0:
-        # Show examples of instructions with no operands (likely parsing failures)
-        print("  Examples (likely missing operand detection):")
-        for instr in by_count[count][:20]:
-            print(f"    - {instr['mnemonic']:10s} ({instr['name']})")
-        if len(by_count[count]) > 20:
-            print(f"    ... and {len(by_count[count]) - 20} more")
+        # Extract bits 25-28 if they're fixed
+        top_bits_mask = (mask_val >> 25) & 0xF
+        if top_bits_mask == 0xF:  # All 4 bits are fixed
+            top_bits = (pattern_val >> 25) & 0xF
+            by_top_bits[top_bits].append((mnemonic, mask_val, pattern_val))
+        else:
+            by_top_bits['variable'].append((mnemonic, mask_val, pattern_val))
 
-# Find common patterns in zero-operand instructions
-zero_operands = by_count.get(0, [])
-print(f"\n\n=" * 40)
-print(f"ANALYSIS OF {len(zero_operands)} INSTRUCTIONS WITH ZERO OPERANDS")
-print("=" * 80)
+    print("Distribution by top 4 bits (bits 25-28):")
+    for key in sorted(by_top_bits.keys(), key=lambda x: (x == 'variable', x)):
+        count = len(by_top_bits[key])
+        if key == 'variable':
+            print(f"  Variable: {count}")
+        else:
+            print(f"  0x{key:X}: {count}")
+    print()
 
-# Group by mnemonic prefix
-prefixes = {}
-for instr in zero_operands:
-    prefix = instr['mnemonic'][:3]
-    if prefix not in prefixes:
-        prefixes[prefix] = []
-    prefixes[prefix].append(instr)
+    # Analyze duplicate patterns (same mask and pattern but different mnemonics)
+    pattern_groups = defaultdict(list)
+    for mnemonic, mask, pattern in entries:
+        mask_val = int(mask, 16)
+        pattern_val = int(pattern, 16)
+        key = (mask_val, pattern_val)
+        pattern_groups[key].append(mnemonic)
 
-print("\nBy mnemonic prefix (top 20):")
-for prefix in sorted(prefixes.keys(), key=lambda p: len(prefixes[p]), reverse=True)[:20]:
-    print(f"  {prefix}*: {len(prefixes[prefix]):4d} instructions")
+    duplicates = {k: v for k, v in pattern_groups.items() if len(v) > 1}
+    print(f"Unique mask/pattern combinations: {len(pattern_groups)}")
+    print(f"Duplicate combinations: {len(duplicates)}")
+    print()
 
-# Check if these are likely SVE/advanced SIMD
-sve_count = sum(1 for i in zero_operands if any(x in i['name'].lower() for x in ['sve', 'sme', '_z_', '_p_']))
-simd_count = sum(1 for i in zero_operands if any(x in i['name'].lower() for x in ['advsimd', 'simd', '_v']))
+    if duplicates:
+        print("Sample duplicates (same mask/pattern, different mnemonics):")
+        for i, (key, mnemonics) in enumerate(list(duplicates.items())[:10]):
+            mask_val, pattern_val = key
+            print(f"  0x{mask_val:08x} / 0x{pattern_val:08x}: {', '.join(mnemonics[:5])}")
+            if i >= 9:
+                break
+    print()
 
-print(f"\nLikely SVE/SME instructions: {sve_count}")
-print(f"Likely SIMD instructions: {simd_count}")
-print(f"Other: {len(zero_operands) - sve_count - simd_count}")
+    # Estimate hash table size
+    print("Hash table strategy analysis:")
+    print(f"  Using bits 25-28 (4 bits, 16 buckets):")
+    max_bucket = max(len(v) for k, v in by_top_bits.items() if k \!= 'variable')
+    avg_bucket = sum(len(v) for k, v in by_top_bits.items() if k \!= 'variable') / 15
+    print(f"    Max bucket size: {max_bucket}")
+    print(f"    Avg bucket size: {avg_bucket:.1f}")
+    print(f"    Variable (need fallback): {len(by_top_bits.get('variable', []))}")
 
-print("\n" + "=" * 80)
-print("RECOMMENDATIONS")
-print("=" * 80)
-print("""
-1. Focus on non-SVE instructions with zero operands first
-2. SVE/SME instructions (sa_* patterns) are less critical for JavaScript
-3. Basic SIMD (NEON) instructions should have operands parsed
+    # Analyze by bits 21-28 (8 bits, 256 buckets)
+    by_top_8bits = defaultdict(int)
+    for mnemonic, mask, pattern in entries:
+        mask_val = int(mask, 16)
+        pattern_val = int(pattern, 16)
 
-Next steps:
-- Extract XML for common zero-operand instructions
-- Identify missing link patterns
-- Add parser support for those patterns
-""")
+        top_8_mask = (mask_val >> 21) & 0xFF
+        if top_8_mask == 0xFF:  # All 8 bits are fixed
+            top_8 = (pattern_val >> 21) & 0xFF
+            by_top_8bits[top_8] += 1
+
+    if by_top_8bits:
+        max_8bit_bucket = max(by_top_8bits.values())
+        avg_8bit_bucket = sum(by_top_8bits.values()) / len(by_top_8bits)
+        coverage = sum(by_top_8bits.values()) / len(entries) * 100
+        print(f"\n  Using bits 21-28 (8 bits, 256 buckets):")
+        print(f"    Max bucket size: {max_8bit_bucket}")
+        print(f"    Avg bucket size: {avg_8bit_bucket:.1f}")
+        print(f"    Coverage: {coverage:.1f}% of instructions")
+        print(f"    Buckets used: {len(by_top_8bits)}/256")
+
+if __name__ == '__main__':
+    analyze_instruction_table()
