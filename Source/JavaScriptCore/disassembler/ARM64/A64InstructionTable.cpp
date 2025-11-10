@@ -5332,6 +5332,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 // This is the shift operand for LSL/LSR/ASR - use computed value
                 offset += snprintf(buffer + offset, bufferSize - offset, "#%u", computedShift);
             }
+            // Check if this is ADDG/SUBG uimm6 field (needs *16 scaling)
+            // uimm6 is at bits 21-16 (width 6, start 16) and represents multiples of 16
+            else if ((entry->mnemonicEnum == Mnemonic::ARM64_ADDG || entry->mnemonicEnum == Mnemonic::ARM64_SUBG) &&
+                     op.field1Width == 6 && op.field1Start == 16) {
+                // Scale by 16 (uimm6 represents multiples of 16)
+                unsigned scaled = field1Val * 16;
+                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", scaled);
+            }
             // Check if this is a bit position (TBNZ/TBZ style: b40 + b5*32)
             else if (op.field1Width == 5 && op.field1Start == 19 &&
                 op.field2Width == 1 && op.field2Start == 31) {
