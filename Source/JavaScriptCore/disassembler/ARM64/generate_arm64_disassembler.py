@@ -1177,6 +1177,15 @@ class CodeGenerator:
         self.instructions = instructions
         self.output_dir = output_dir
 
+        # Collect unique mnemonics for enum generation
+        unique_mnemonics = sorted(set(instr.mnemonic.lower() for instr in instructions))
+
+        # Build mnemonic enum mapping (mnemonic_string -> enum_value)
+        self.mnemonic_enum = {mnemonic: idx for idx, mnemonic in enumerate(unique_mnemonics)}
+        self.mnemonic_names = unique_mnemonics  # For enum generation
+
+        print(f"Found {len(unique_mnemonics)} unique mnemonics")
+
         # Define systematic alias precedence based on condition specificity
         # Analysis of 187 alias relationships from ARM64 XML files shows these patterns:
         #
@@ -1301,14 +1310,25 @@ namespace JSC::ARM64Disassembler {
 
 enum class OperandType : uint8_t;
 
+enum class Mnemonic : uint16_t {
+""")
+            # Generate enum values
+            for i, mnemonic in enumerate(self.mnemonic_names):
+                # Convert to valid C++ identifier (replace dots, etc.)
+                enum_name = mnemonic.upper().replace('.', '_')
+                f.write(f"    ARM64_{enum_name} = {i},\n")
+
+            f.write("""};
+
 // Instruction entry
 struct InstructionEntry {
-    const char* mnemonic;
-    uint32_t mask;
-    uint32_t pattern;
-    uint16_t operandOffset;
-    uint8_t operandCount;
-    uint8_t flags;
+    const char* mnemonic;       // Lowercase mnemonic string
+    uint32_t mask;              // Instruction mask
+    uint32_t pattern;           // Instruction pattern
+    uint16_t operandOffset;     // Offset into operand table
+    Mnemonic mnemonicEnum;      // Mnemonic enum value (for fast comparisons)
+    uint8_t operandCount;       // Number of operands
+    uint8_t flags;              // Instruction flags
 };
 
 // Operand descriptor
@@ -1595,7 +1615,11 @@ static const char* const g_extendNames[8] = {
             # Convert mnemonic to lowercase for table
             lowercase_mnemonic = instr.mnemonic.lower()
 
-            code += f"    {{ \"{lowercase_mnemonic}\", 0x{instr.mask:08x}U, 0x{instr.pattern:08x}U, {start_offset}, {operand_count}, {flags} }}, // {instr.name}\n"
+            # Get mnemonic enum value
+            mnemonic_enum_value = self.mnemonic_enum[lowercase_mnemonic]
+            mnemonic_enum_name = lowercase_mnemonic.upper().replace('.', '_')
+
+            code += f"    {{ \"{lowercase_mnemonic}\", 0x{instr.mask:08x}U, 0x{instr.pattern:08x}U, {start_offset}, Mnemonic::ARM64_{mnemonic_enum_name}, {operand_count}, {flags} }}, // {instr.name}\n"
 
         code += "};\n\n"
         code += f"const size_t g_instructionTableSize = {len(self.instructions)};\n\n"
@@ -1780,16 +1804,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     // These compute shift amount from immr field: shift = (width - immr) % width
     bool isLslLsrAsr = false;
     uint32_t computedShift = 0;
-    if (strcmp(entry->mnemonic, "lsl") == 0 ||
-        strcmp(entry->mnemonic, "lsr") == 0 ||
-        strcmp(entry->mnemonic, "asr") == 0) {
+    if (entry->mnemonicEnum == Mnemonic::ARM64_LSL ||
+        entry->mnemonicEnum == Mnemonic::ARM64_LSR ||
+        entry->mnemonicEnum == Mnemonic::ARM64_ASR) {
         // Extract immr field (bits 21-16 for UBFM/SBFM)
         uint32_t immr = extractBits(opcode, 16, 6);
         // Determine width from sf bit (bit 31)
         uint32_t sf = extractBits(opcode, 31, 1);
         uint32_t width = sf ? 64 : 32;
         // Compute shift: for LSL: width - immr, for LSR/ASR: immr
-        if (strcmp(entry->mnemonic, "lsl") == 0) {
+        if (entry->mnemonicEnum == Mnemonic::ARM64_LSL) {
             computedShift = (width - immr) % width;
         } else {
             computedShift = immr;
@@ -2394,12 +2418,11 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 // For load/store (ld*/st*), size is in the mnemonic itself (ld1b, ld1h, ld1w, ld1d)
                 const char* sizeStr = ".b";  // default
 
-                // Check if this is a load/store instruction
-                bool isLoadStore = (strncmp(entry->mnemonic, "ld", 2) == 0 || strncmp(entry->mnemonic, "st", 2) == 0);
+                // Check if this is a load/store instruction (cache mnemonic prefix check)
+                size_t mnemonicLen = strlen(entry->mnemonic);
+                bool isLoadStore = mnemonicLen >= 2 && ((entry->mnemonic[0] == 'l' && entry->mnemonic[1] == 'd') || (entry->mnemonic[0] == 's' && entry->mnemonic[1] == 't'));
 
                 if (isLoadStore) {
-                    // Size determined by mnemonic suffix
-                    size_t mnemonicLen = strlen(entry->mnemonic);
                     if (mnemonicLen > 0) {
                         char lastChar = entry->mnemonic[mnemonicLen - 1];
                         // Check last character: ld1b/st1b → .b, ld1h/st1h → .h, etc.
@@ -2439,11 +2462,12 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 const char* modifier = "";
 
                 // Check if this is a load instruction (uses /z)
-                if (strncmp(entry->mnemonic, "ld", 2) == 0) {
+                size_t mnemonicLen = strlen(entry->mnemonic);
+                if (mnemonicLen >= 2 && entry->mnemonic[0] == 'l' && entry->mnemonic[1] == 'd') {
                     modifier = "/z";
                 }
                 // Stores use no modifier
-                else if (strncmp(entry->mnemonic, "st", 2) == 0) {
+                else if (mnemonicLen >= 2 && entry->mnemonic[0] == 's' && entry->mnemonic[1] == 't') {
                     modifier = "";
                 }
                 // Arithmetic/logical operations use /m
