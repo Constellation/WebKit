@@ -1424,14 +1424,17 @@ static const char* const g_extendNames[8] = {
         return code
 
     def _generate_operand_table(self) -> str:
-        """Generate compressed operand table with deduplication"""
+        """Generate compressed operand table with sequence deduplication and subspan detection"""
 
-        # First pass: collect all operand descriptors and build unique table
-        all_operands = []
+        # First pass: collect all operand descriptors and build unique operand table
         unique_operands = []
         operand_to_index = {}
 
+        # Collect operand sequences for each instruction
+        instruction_sequences = []
+
         for instr in self.instructions:
+            sequence = []
             if instr.operands:
                 for op in instr.operands:
                     # Get bit positions from instruction's field dict
@@ -1458,13 +1461,72 @@ static const char* const g_extendNames[8] = {
                         operand_to_index[op_desc] = len(unique_operands)
                         unique_operands.append(op_desc)
 
-                    all_operands.append(operand_to_index[op_desc])
+                    sequence.append(operand_to_index[op_desc])
+
+            instruction_sequences.append(tuple(sequence))
+
+        # Second pass: deduplicate sequences with subspan detection
+        # Build unique sequence table and find optimal sharing
+        unique_sequences = []
+        sequence_to_offset = {}
+
+        def find_subspan(target_seq):
+            """Find if target_seq exists as a subspan in any existing sequence"""
+            if not target_seq:
+                return None
+
+            for offset, existing_seq in enumerate(unique_sequences):
+                # Try to find target as a contiguous subspan
+                target_len = len(target_seq)
+                existing_len = len(existing_seq)
+
+                if target_len > existing_len:
+                    continue
+
+                for start_pos in range(existing_len - target_len + 1):
+                    if existing_seq[start_pos:start_pos + target_len] == target_seq:
+                        # Found as subspan at position start_pos in sequence at offset
+                        return (offset, start_pos)
+
+            return None
+
+        # Track where each sequence is stored (offset into g_operandIndices)
+        sequence_storage = {}
+        current_offset = 0
+
+        for seq in instruction_sequences:
+            if not seq:
+                # Empty sequence
+                sequence_storage[seq] = (0, 0)  # offset=0, count=0
+                continue
+
+            if seq in sequence_to_offset:
+                # Already stored this exact sequence
+                sequence_storage[seq] = sequence_to_offset[seq]
+                continue
+
+            # Check if this sequence is a subspan of an existing sequence
+            subspan = find_subspan(seq)
+            if subspan is not None:
+                # Found as subspan - calculate offset in flattened array
+                base_seq_idx, position = subspan
+                # Find the offset of the base sequence in the flattened array
+                base_offset = 0
+                for i in range(base_seq_idx):
+                    base_offset += len(unique_sequences[i])
+                actual_offset = base_offset + position
+                sequence_storage[seq] = (actual_offset, len(seq))
+                sequence_to_offset[seq] = (actual_offset, len(seq))
+            else:
+                # New unique sequence - add to table
+                sequence_to_offset[seq] = (current_offset, len(seq))
+                sequence_storage[seq] = (current_offset, len(seq))
+                unique_sequences.append(seq)
+                current_offset += len(seq)
 
         # Generate unique operand table
-        code = "// Unique operand descriptors (deduplicated)\n"
-        code += f"// Original: {len(all_operands)} entries, Unique: {len(unique_operands)} patterns\n"
-        code += f"// Compression: {len(unique_operands) * 6} bytes vs {len(all_operands) * 6} bytes "
-        code += f"({(1 - len(unique_operands) * 6 / max(len(all_operands) * 6, 1)) * 100:.1f}% reduction)\n"
+        code = f"// Unique operand descriptors (deduplicated)\n"
+        code += f"// Total unique patterns: {len(unique_operands)}\n"
         code += "const OperandDesc g_operandTable[] = {\n"
 
         for op_desc in unique_operands:
@@ -1475,29 +1537,37 @@ static const char* const g_extendNames[8] = {
 
         code += "};\n\n"
 
-        # Generate operand index table (maps instruction operands to unique table)
-        code += "// Operand index table (indices into g_operandTable)\n"
+        # Generate deduplicated sequence table
+        total_sequences = len(instruction_sequences)
+        unique_seq_count = len(unique_sequences)
+        total_indices = sum(len(seq) for seq in unique_sequences)
+
+        code += f"// Operand sequences (deduplicated with subspan sharing)\n"
+        code += f"// Total instructions: {total_sequences}, Unique sequences: {unique_seq_count}\n"
+        code += f"// Compression: {total_indices} indices vs {sum(len(seq) for seq in instruction_sequences)} original "
+        code += f"({(1 - total_indices/max(sum(len(seq) for seq in instruction_sequences), 1))*100:.1f}% reduction)\n"
         code += "const uint8_t g_operandIndices[] = {\n"
 
-        if all_operands:
-            for i, idx in enumerate(all_operands):
-                if i > 0 and i % 16 == 0:
+        if unique_sequences:
+            idx_count = 0
+            for seq in unique_sequences:
+                if idx_count > 0 and idx_count % 16 == 0:
                     code += "\n"
-                code += f"{idx}, "
+                for idx in seq:
+                    code += f"{idx}, "
+                    idx_count += 1
             code += "\n"
         else:
             code += "    0\n"
 
         code += "};\n\n"
 
-        # Build instruction operand info (now references index table)
+        # Build instruction operand info (offset and count into deduplicated sequence table)
         self.instruction_operand_info = []
-        index_offset = 0
 
-        for instr in self.instructions:
-            operand_count = len(instr.operands) if instr.operands else 0
-            self.instruction_operand_info.append((index_offset, operand_count))
-            index_offset += operand_count
+        for seq in instruction_sequences:
+            offset, count = sequence_storage[seq]
+            self.instruction_operand_info.append((offset, count))
 
         return code
 

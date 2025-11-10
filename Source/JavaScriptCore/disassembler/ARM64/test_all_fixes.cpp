@@ -55,7 +55,7 @@ int main() {
     test(0x6E044401, "mov      v1.s[0], v0.s[0]");
     printf("\n");
     
-    printf("=== All Tests Complete\! ===\n");
+    printf("=== All Tests Complete! ===\n");
     printf("✅ 4 major issues fixed:\n");
     printf("   1. Shift amounts in shifted register operations\n");
     printf("   2. UMOV indexed element syntax\n");
