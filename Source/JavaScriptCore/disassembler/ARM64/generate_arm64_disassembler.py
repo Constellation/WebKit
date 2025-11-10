@@ -1353,6 +1353,7 @@ extern const InstructionEntry g_instructionTable[];
 extern const size_t g_instructionTableSize;
 extern const InstructionBucket g_instructionBuckets[17];  // 16 buckets + 1 fallback
 extern const OperandDesc g_operandTable[];
+extern const uint8_t g_operandIndices[];  // Indices into g_operandTable
 extern const FieldMeta g_fieldMetadata[];
 extern const size_t g_fieldMetadataSize;
 
@@ -1474,17 +1475,14 @@ static const char* const g_extendNames[8] = {
         return code
 
     def _generate_operand_table(self) -> str:
-        """Generate operand table"""
-        code = "// Operand table\n"
-        code += "const OperandDesc g_operandTable[] = {\n"
+        """Generate compressed operand table with deduplication"""
 
-        operand_offset = 0
-        self.instruction_operand_info = []
+        # First pass: collect all operand descriptors and build unique table
+        all_operands = []
+        unique_operands = []
+        operand_to_index = {}
 
         for instr in self.instructions:
-            start_offset = operand_offset
-            operand_count = len(instr.operands) if instr.operands else 0
-
             if instr.operands:
                 for op in instr.operands:
                     # Get bit positions from instruction's field dict
@@ -1503,15 +1501,55 @@ static const char* const g_extendNames[8] = {
                         raise ValueError(f"{op_type_val} is not registered")
                     op_subtype = op.subtype if op.subtype is not None else 0
 
-                    code += f"    {{ {op_type_val}, {op_subtype}, {field1Start}, {field1Width}, {field2Start}, {field2Width} }},\n"
-                    operand_offset += 1
+                    # Create operand descriptor tuple
+                    op_desc = (op_type_val, op_subtype, field1Start, field1Width, field2Start, field2Width)
 
-            self.instruction_operand_info.append((start_offset, operand_count))
+                    # Add to unique table if not seen before
+                    if op_desc not in operand_to_index:
+                        operand_to_index[op_desc] = len(unique_operands)
+                        unique_operands.append(op_desc)
 
-        if operand_offset == 0:
+                    all_operands.append(operand_to_index[op_desc])
+
+        # Generate unique operand table
+        code = "// Unique operand descriptors (deduplicated)\n"
+        code += f"// Original: {len(all_operands)} entries, Unique: {len(unique_operands)} patterns\n"
+        code += f"// Compression: {len(unique_operands) * 6} bytes vs {len(all_operands) * 6} bytes "
+        code += f"({(1 - len(unique_operands) * 6 / max(len(all_operands) * 6, 1)) * 100:.1f}% reduction)\n"
+        code += "const OperandDesc g_operandTable[] = {\n"
+
+        for op_desc in unique_operands:
+            code += f"    {{ {op_desc[0]}, {op_desc[1]}, {op_desc[2]}, {op_desc[3]}, {op_desc[4]}, {op_desc[5]} }},\n"
+
+        if not unique_operands:
             code += "    { UNKNOWN, 0, 255, 0, 255, 0 }\n"
 
         code += "};\n\n"
+
+        # Generate operand index table (maps instruction operands to unique table)
+        code += "// Operand index table (indices into g_operandTable)\n"
+        code += "const uint8_t g_operandIndices[] = {\n"
+
+        if all_operands:
+            for i, idx in enumerate(all_operands):
+                if i > 0 and i % 16 == 0:
+                    code += "\n"
+                code += f"{idx}, "
+            code += "\n"
+        else:
+            code += "    0\n"
+
+        code += "};\n\n"
+
+        # Build instruction operand info (now references index table)
+        self.instruction_operand_info = []
+        index_offset = 0
+
+        for instr in self.instructions:
+            operand_count = len(instr.operands) if instr.operands else 0
+            self.instruction_operand_info.append((index_offset, operand_count))
+            index_offset += operand_count
+
         return code
 
     def _generate_instruction_table(self) -> str:
@@ -1647,7 +1685,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     bool hasConditionSuffix = false;
     const char* conditionCode = nullptr;
     if (entry->operandCount > 0) {
-        const auto& firstOp = g_operandTable[entry->operandOffset];
+        uint8_t firstOpIdx = g_operandIndices[entry->operandOffset];
+        const auto& firstOp = g_operandTable[firstOpIdx];
         if (firstOp.type == CONDITION) {
             hasConditionSuffix = true;
             if (firstOp.field1Width > 0 && firstOp.field1Start < 32) {
@@ -1731,7 +1770,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     // Format each operand (skip first if it was a condition code)
     unsigned startOperand = hasConditionSuffix ? 1 : 0;
     for (unsigned i = startOperand; i < entry->operandCount; i++) {
-        const auto& op = g_operandTable[entry->operandOffset + i];
+        uint8_t opIdx = g_operandIndices[entry->operandOffset + i];
+        const auto& op = g_operandTable[opIdx];
 
         // Pre-check: Skip SHIFT_TYPE operands when shift amount is 0
         // Two cases:
