@@ -1108,6 +1108,7 @@ class ARM64InstructionParser:
             name = box.get('name')
             usename = box.get('usename') == '1'
             settings = box.get('settings')
+            psbits = box.get('psbits', '')
             is_fixed = settings is not None
             fixed_value = 0
 
@@ -1118,10 +1119,32 @@ class ARM64InstructionParser:
                         fixed_bits.append(child.text.strip())
 
                 if fixed_bits:
-                    binary_str = ''.join(fixed_bits).replace('x', '0')
-                    if all(c in '01x' for c in binary_str):
-                        # Valid binary pattern
-                        fixed_value = int(binary_str.replace('x', '0'), 2)
+                    pattern = ''.join(fixed_bits)
+
+                    # Check if pattern contains 'x' - means partially fixed
+                    if 'x' in pattern.lower():
+                        # Partially fixed field (e.g., "1x" means bit[23]=1, bit[22]=variable)
+                        # We need to create multiple BitField entries - one for each actually-fixed bit
+                        for i, bit_char in enumerate(pattern):
+                            bit_pos = hibit - i
+                            if bit_char in ('0', '1'):
+                                # This bit is fixed
+                                fields.append(BitField(
+                                    f"_fixed_{bit_pos}",
+                                    bit_pos,
+                                    1,
+                                    True,
+                                    int(bit_char)
+                                ))
+                        # Also add the field as a whole for operand extraction (not fixed)
+                        if name and usename:
+                            fields.append(BitField(name, bit_start, width, False, 0))
+                        continue  # Don't process further
+
+                    # Fully fixed field - all bits are 0 or 1
+                    binary_str = pattern
+                    if all(c in '01' for c in binary_str):
+                        fixed_value = int(binary_str, 2)
                     else:
                         # Non-binary content (like "!= 0000") means variable field
                         is_fixed = False
@@ -2106,12 +2129,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                             // size=10 → half-precision FP16 operations
                             arrangement = Q ? "8h" : "4h";
                         } else if (size == 3) {
-                            // size=11 → need to distinguish between half and single
+                            // size=11 → need to distinguish between half, single, and double
                             // Check bits[15:10] to distinguish operation class
                             uint32_t bits1510 = extractBits(opcode, 10, 6);
                             if (bits1510 == 0x07) {
                                 // FAMAX/FAMIN half-precision (bits[15:10]=000111)
                                 arrangement = Q ? "8h" : "4h";
+                            } else if (bits1510 == 0x37) {
+                                // FAMAX/FAMIN double-precision (bits[15:10]=110111=0x37)
+                                // Q=0 is UNDEFINED per ARM spec, but handle Q=1
+                                arrangement = Q ? "2d" : "1d";
                             } else {
                                 // Other operations - typically single-precision
                                 arrangement = Q ? "4s" : "2s";
@@ -2256,10 +2283,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                             // size=11 → distinguish based on bits[15:10]
                             uint32_t bits1510 = extractBits(opcode, 10, 6);
                             if (bits1510 == 0x07) {
-                                // FAMAX/FAMIN half-precision
+                                // FAMAX/FAMIN half-precision (opcode=000111)
                                 arrangement = Q ? "8h" : "4h";
+                            } else if (bits1510 == 0x37) {
+                                // FAMAX/FAMIN double-precision (opcode=110111=0x37)
+                                // Q=0 is UNDEFINED per ARM spec, but handle Q=1
+                                arrangement = Q ? "2d" : "1d";
                             } else {
-                                // Other FP ops - might be half or other
+                                // Other FP ops - default to half-precision
                                 arrangement = Q ? "8h" : "4h";
                             }
                         } else {

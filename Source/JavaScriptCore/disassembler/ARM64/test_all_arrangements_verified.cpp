@@ -34,10 +34,10 @@ int main() {
         // FAMIN single - size<0>:Q (size=10, U=1)
         {"FAMIN single", 0x2ea1dc00, 0x6ea1dc00, "2s", "4s"},
 
-        // NOTE: FAMAX/FAMIN double-precision (size=11, .2D) are missing from instruction table
-        // See FAMAX_FAMIN_DOUBLE_MISSING.md for details
-        // {"FAMAX double", 0x4ee1dc00, "skip", "2d"},  // NOT IN TABLE
-        // {"FAMIN double", 0x6ee1dc00, "skip", "2d"},  // NOT IN TABLE
+        // FAMAX double - size<0>:Q (size=11, Q=1 only)
+        {"FAMAX double", 0x0ee1dc00, 0x4ee1dc00, "skip", "2d"},
+        // FAMIN double - size<0>:Q (size=11, Q=1 only, U=1)
+        {"FAMIN double", 0x2ee1dc00, 0x6ee1dc00, "skip", "2d"},
         
         // Logical - always bytes
         {"AND", 0x0e201c00, 0x4e201c00, "8b", "16b"},

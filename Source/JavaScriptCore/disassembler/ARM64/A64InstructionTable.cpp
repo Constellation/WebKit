@@ -260,8 +260,6 @@ const OperandDesc g_operandTable[] = {
     { REG_FP_Q, 0, 0, 5, 255, 0 },
     { REG_FP_Q, 0, 10, 5, 255, 0 },
     { REG_SIMD_V, 0, 5, 5, 255, 0 },
-    { REG_SIMD_ELEMENT, 12, 5, 5, 255, 0 },
-    { REG_SIMD_ELEMENT, 13, 5, 5, 255, 0 },
     { REG_SIMD_ARRANGED, 0, 0, 5, 30, 1 },
     { REG_SIMD_ARRANGED, 0, 5, 5, 30, 1 },
     { REG_SIMD_ARRANGED, 1, 0, 5, 22, 1 },
@@ -274,18 +272,16 @@ const OperandDesc g_operandTable[] = {
     { REG_SIMD_SIZED, 0, 0, 5, 22, 2 },
     { REG_SIMD_ARRANGED, 0, 0, 5, 22, 2 },
     { SHIFT_TYPE, 0, 255, 0, 255, 0 },
+    { REG_SIMD_ELEMENT, 12, 5, 5, 16, 5 },
+    { REG_SIMD_ELEMENT, 13, 5, 5, 16, 5 },
     { REG_SIMD_ARRANGED, 0, 0, 5, 19, 4 },
     { REG_SIMD_ARRANGED, 1, 5, 5, 19, 4 },
     { REG_SIMD_ELEMENT, 0, 5, 5, 16, 5 },
-    { REG_SIMD_ELEMENT, 13, 5, 5, 16, 5 },
     { REG_SIMD_V, 0, 16, 5, 255, 0 },
     { REG_FP_Q, 0, 5, 5, 255, 0 },
     { REG_SIMD_ELEMENT, 0, 0, 5, 16, 5 },
     { REG_GPR_SIZED, 0, 5, 5, 16, 5 },
     { REG_SIMD_ARRANGED, 0, 16, 5, 30, 1 },
-    { REG_SIMD_ARRANGED, 1, 0, 5, 255, 0 },
-    { REG_SIMD_ARRANGED, 1, 5, 5, 255, 0 },
-    { REG_SIMD_ARRANGED, 1, 16, 5, 255, 0 },
     { REG_LIST, 16, 5, 5, 255, 0 },
     { REG_LIST, 32, 5, 5, 255, 0 },
     { REG_LIST, 48, 5, 5, 255, 0 },
@@ -294,6 +290,9 @@ const OperandDesc g_operandTable[] = {
     { REG_FP_B, 0, 255, 0, 255, 0 },
     { REG_SIMD_ARRANGED, 1, 16, 5, 22, 1 },
     { REG_SIMD_ELEMENT, 0, 5, 5, 12, 2 },
+    { REG_SIMD_ARRANGED, 1, 0, 5, 255, 0 },
+    { REG_SIMD_ARRANGED, 1, 5, 5, 255, 0 },
+    { REG_SIMD_ARRANGED, 1, 16, 5, 255, 0 },
     { REG_SIMD_ELEMENT, 0, 5, 5, 255, 0 },
     { MEMORY_BASE, 0, 13, 2, 255, 0 },
     { REG_LIST, 36, 5, 5, 255, 0 },
@@ -352,6 +351,7 @@ const OperandDesc g_operandTable[] = {
     { REG_SIMD_SIZED, 0, 5, 5, 255, 0 },
     { REG_SIMD_SIZED, 0, 5, 5, 22, 2 },
     { IMM_FLOAT, 0, 13, 8, 255, 0 },
+    { IMM_SHIFTED, 0, 19, 4, 255, 0 },
     { REG_SIMD_SIZED, 0, 16, 5, 255, 0 },
     { REG_SIMD_SIZED, 0, 16, 5, 22, 2 },
     { LABEL_PCREL, 0, 0, 26, 255, 0 },
@@ -359,7 +359,7 @@ const OperandDesc g_operandTable[] = {
 
 // Operand sequences (deduplicated with subspan sharing)
 // Total instructions: 4013, Unique sequences: 478
-// Compression: 1455 indices vs 12135 original (88.0% reduction)
+// Compression: 1456 indices vs 12135 original (88.0% reduction)
 const uint8_t g_operandIndices[] = {
 0, 1, 2, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 7, 8, 4, 4, 9, 4, 4, 10, 11, 4, 4, 12, 13, 
 14, 14, 14, 14, 3, 5, 5, 4, 4, 15, 1, 5, 5, 16, 0, 5, 5, 17, 13, 5, 5, 8, 8, 8, 18, 0, 5, 5, 5, 5, 14, 14, 19, 4, 4, 20, 13, 21, 13, 5, 5, 14, 14, 15, 17, 17, 17, 17, 17, 17, 1, 5, 5, 5, 5, 14, 14, 22, 9, 14, 14, 23, 11, 14, 14, 20, 13, 24, 1, 5, 5, 25, 0, 5, 5, 3, 5, 5, 5, 5, 
@@ -375,19 +375,23 @@ const uint8_t g_operandIndices[] = {
 116, 95, 115, 117, 105, 115, 118, 112, 95, 113, 119, 114, 97, 113, 96, 112, 95, 113, 106, 114, 97, 113, 96, 116, 95, 115, 106, 117, 105, 115, 120, 2, 
 121, 2, 122, 2, 123, 2, 124, 2, 125, 2, 126, 2, 127, 2, 124, 2, 128, 125, 2, 128, 126, 2, 128, 127, 2, 128, 120, 2, 101, 121, 2, 101, 
 122, 2, 101, 123, 2, 101, 124, 2, 101, 125, 2, 101, 126, 2, 101, 127, 2, 101, 129, 130, 111, 62, 131, 111, 132, 133, 111, 129, 130, 2, 109, 62, 131, 2, 109, 132, 133, 2, 109, 129, 130, 110, 62, 131, 110, 132, 133, 110, 
-73, 134, 96, 135, 106, 136, 137, 138, 137, 134, 73, 138, 139, 140, 141, 140, 
-139, 142, 143, 144, 143, 145, 146, 144, 147, 144, 148, 149, 150, 96, 151, 106, 152, 73, 134, 153, 106, 151, 132, 154, 153, 155, 156, 137, 138, 157, 158, 159, 160, 137, 134, 153, 137, 161, 157, 137, 162, 157, 137, 163, 157, 137, 164, 157, 
-165, 151, 166, 73, 134, 153, 165, 156, 139, 140, 167, 73, 168, 73, 169, 73, 161, 153, 170, 73, 161, 153, 2, 73, 171, 153, 170, 143, 144, 172, 173, 150, 174, 147, 144, 172, 173, 175, 174, 149, 150, 174, 143, 145, 176, 73, 177, 153, 2, 147, 145, 172, 137, 138, 2, 137, 138, 178, 2, 137, 138, 179, 173, 150, 180, 166, 73, 181, 182, 183, 2, 155, 151, 143, 144, 73, 2, 147, 144, 73, 2, 137, 138, 157, 180, 73, 134, 153, 184, 143, 144, 2, 112, 185, 148, 114, 185, 148, 96, 116, 186, 106, 117, 186, 96, 116, 187, 106, 117, 187, 119, 114, 188, 189, 118, 112, 185, 148, 119, 114, 185, 148, 96, 112, 185, 148, 106, 114, 185, 148, 106, 190, 106, 116, 106, 117, 188, 191, 96, 180, 192, 106, 180, 192, 
-116, 193, 118, 193, 117, 194, 119, 194, 96, 116, 95, 195, 106, 117, 105, 195, 
-96, 184, 106, 184, 96, 116, 180, 106, 117, 180, 96, 116, 180, 192, 106, 117, 180, 192, 118, 116, 193, 96, 116, 193, 96, 116, 188, 195, 106, 117, 188, 195, 
-96, 196, 106, 196, 119, 117, 194, 96, 197, 198, 106, 197, 198, 106, 117, 194, 
-199, 199, 200, 103, 201, 106, 103, 202, 190, 96, 190, 203, 117, 119, 103, 204, 205, 95, 2, 105, 2, 96, 206, 106, 206, 180, 105, 2, 106, 105, 2, 96, 95, 2, 96, 95, 206, 106, 105, 206, 2, 207, 50, 96, 50, 106, 50, 106, 208, 117, 209, 117, 105, 96, 210, 106, 210, 96, 2, 211, 96, 212, 2, 207, 210, 119, 2, 211, 119, 212, 119, 210, 106, 2, 211, 106, 212, 106, 89, 96, 213, 106, 213, 2, 207, 213, 39, 207, 190, 96, 214, 106, 214, 114, 215, 96, 116, 105, 119, 114, 105, 106, 117, 215, 106, 114, 105, 106, 114, 215, 106, 116, 95, 117, 216, 116, 95, 214, 117, 105, 214, 116, 87, 214, 117, 87, 214, 96, 116, 95, 214, 106, 117, 105, 214, 106, 117, 105, 108, 106, 116, 95, 108, 96, 116, 95, 107, 217, 50, 217, 210, 218, 210, 129, 210, 62, 210, 132, 210, 218, 50, 129, 50, 62, 50, 132, 50, 217, 2, 211, 218, 2, 211, 129, 2, 211, 
-62, 2, 211, 132, 2, 211, 217, 212, 218, 212, 129, 212, 62, 212, 132, 212, 
-217, 213, 218, 213, 129, 213, 62, 213, 132, 213, 129, 190, 62, 190, 132, 190, 
-218, 219, 129, 220, 62, 221, 96, 219, 106, 219, 96, 220, 106, 220, 96, 221, 
-106, 221, 218, 220, 218, 116, 129, 116, 62, 116, 218, 117, 129, 117, 62, 117, 
-129, 219, 62, 219, 62, 220, 218, 221, 129, 221, 222, 106, 134, 223, 224, 223, 142, 146, 225, 73, 134, 174, 218, 226, 129, 226, 62, 226, 132, 220, 153, 223, 151, 223, 224, 227, 96, 219, 195, 106, 219, 195, 96, 220, 195, 106, 220, 195, 
-96, 221, 195, 106, 221, 195, 218, 116, 195, 218, 117, 195, 129, 116, 195, 129, 117, 195, 62, 116, 195, 62, 117, 195, 146, 225, 228, 218, 219, 179, 223, 224, 174, 223, 224, 180, 219, 214, 220, 214, 221, 214, 223, 224, 2, 146, 225, 73, 2, 218, 219, 214, 129, 220, 214, 62, 221, 214, 73, 134, 73, 2, 229, 
+73, 134, 135, 136, 135, 134, 73, 136, 137, 138, 139, 138, 137, 140, 141, 142, 
+141, 143, 144, 142, 145, 142, 146, 96, 147, 106, 148, 149, 150, 96, 151, 73, 134, 152, 106, 151, 132, 153, 152, 154, 155, 135, 136, 156, 135, 134, 152, 135, 157, 156, 135, 158, 156, 135, 159, 156, 135, 160, 156, 161, 151, 162, 73, 134, 152, 161, 155, 137, 138, 163, 73, 164, 165, 166, 167, 73, 168, 73, 157, 152, 169, 73, 157, 152, 2, 73, 170, 152, 169, 141, 142, 171, 172, 150, 173, 145, 142, 171, 172, 174, 173, 149, 150, 173, 141, 143, 175, 73, 176, 152, 2, 145, 143, 171, 135, 136, 2, 135, 136, 177, 2, 135, 136, 178, 172, 150, 179, 162, 73, 180, 181, 182, 2, 154, 151, 141, 142, 73, 2, 145, 142, 73, 2, 135, 136, 156, 179, 73, 134, 152, 183, 141, 142, 2, 112, 184, 146, 114, 184, 146, 
+96, 116, 185, 106, 117, 185, 96, 116, 186, 106, 117, 186, 119, 114, 187, 188, 
+118, 112, 184, 146, 119, 114, 184, 146, 96, 112, 184, 146, 106, 114, 184, 146, 
+106, 189, 106, 116, 106, 117, 187, 190, 96, 179, 191, 106, 179, 191, 116, 192, 
+118, 192, 117, 193, 119, 193, 96, 116, 95, 194, 106, 117, 105, 194, 96, 183, 
+106, 183, 96, 116, 179, 106, 117, 179, 96, 116, 179, 191, 106, 117, 179, 191, 
+118, 116, 192, 96, 116, 192, 96, 116, 187, 194, 106, 117, 187, 194, 96, 195, 
+106, 195, 119, 117, 193, 96, 196, 197, 106, 196, 197, 106, 117, 193, 198, 198, 199, 103, 200, 106, 103, 201, 189, 96, 189, 202, 117, 119, 103, 203, 204, 95, 2, 105, 2, 96, 205, 106, 205, 106, 105, 2, 96, 95, 2, 96, 95, 205, 
+106, 105, 205, 2, 206, 50, 96, 50, 106, 50, 179, 105, 2, 106, 207, 117, 
+208, 117, 105, 96, 209, 106, 209, 96, 2, 210, 96, 211, 2, 206, 209, 119, 2, 210, 119, 211, 119, 209, 106, 2, 210, 106, 211, 106, 89, 96, 212, 106, 212, 2, 206, 212, 39, 206, 189, 96, 213, 106, 213, 114, 214, 96, 116, 105, 
+119, 114, 105, 106, 117, 214, 106, 114, 105, 106, 114, 214, 106, 116, 95, 117, 215, 116, 95, 213, 117, 105, 213, 116, 87, 213, 117, 87, 213, 96, 116, 95, 213, 106, 117, 105, 213, 106, 117, 105, 108, 106, 116, 95, 108, 96, 116, 95, 107, 216, 50, 216, 209, 217, 209, 129, 209, 62, 209, 132, 209, 217, 50, 129, 50, 62, 50, 132, 50, 216, 2, 210, 217, 2, 210, 129, 2, 210, 62, 2, 210, 132, 2, 210, 216, 211, 217, 211, 129, 211, 62, 211, 132, 211, 216, 212, 
+217, 212, 129, 212, 62, 212, 132, 212, 129, 189, 62, 189, 132, 189, 217, 218, 
+129, 219, 62, 220, 96, 218, 106, 218, 96, 219, 106, 219, 96, 220, 106, 220, 
+217, 219, 217, 116, 129, 116, 62, 116, 217, 117, 129, 117, 62, 117, 129, 218, 
+62, 218, 62, 219, 217, 220, 129, 220, 221, 106, 134, 222, 223, 222, 140, 144, 224, 217, 225, 129, 225, 62, 225, 132, 219, 152, 222, 151, 73, 134, 226, 222, 223, 227, 96, 218, 194, 106, 218, 194, 96, 219, 194, 106, 219, 194, 96, 220, 194, 106, 220, 194, 217, 116, 194, 217, 117, 194, 129, 116, 194, 129, 117, 194, 
+62, 116, 194, 62, 117, 194, 144, 224, 228, 73, 134, 173, 217, 218, 178, 222, 223, 173, 222, 223, 179, 218, 213, 219, 213, 220, 213, 222, 223, 2, 144, 224, 73, 2, 217, 218, 213, 129, 219, 213, 62, 220, 213, 73, 134, 73, 2, 229, 
 };
 
 // Instruction table
@@ -2644,8 +2648,6 @@ const InstructionEntry g_instructionTable[] = {
     { "aesd", 0xfffffc00U, 0x4e285800U, 832, Mnemonic::ARM64_AESD, 2, 0 }, // AESD_B_cryptoaes
     { "sm4e", 0xfffffc00U, 0xcec08400U, 832, Mnemonic::ARM64_SM4E, 2, 0 }, // SM4E_VV4_cryptosha512_2
     { "fmaxnmv", 0xfffffc00U, 0x6e30c800U, 832, Mnemonic::ARM64_FMAXNMV, 2, 0 }, // FMAXNMV_asimdall_only_SD
-    { "mov", 0xfffffc00U, 0x0e003c00U, 834, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_W_w
-    { "mov", 0xfffffc00U, 0x4e003c00U, 836, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_X_x
     { "aesimc", 0xfffffc00U, 0x4e287800U, 832, Mnemonic::ARM64_AESIMC, 2, 0 }, // AESIMC_B_cryptoaes
     { "aese", 0xfffffc00U, 0x4e284800U, 832, Mnemonic::ARM64_AESE, 2, 0 }, // AESE_B_cryptoaes
     { "aesmc", 0xfffffc00U, 0x4e286800U, 832, Mnemonic::ARM64_AESMC, 2, 0 }, // AESMC_B_cryptoaes
@@ -2653,504 +2655,505 @@ const InstructionEntry g_instructionTable[] = {
     { "fminv", 0xfffffc00U, 0x6eb0f800U, 832, Mnemonic::ARM64_FMINV, 2, 0 }, // FMINV_asimdall_only_SD
     { "sha512su0", 0xfffffc00U, 0xcec08000U, 832, Mnemonic::ARM64_SHA512SU0, 2, 0 }, // SHA512SU0_VV2_cryptosha512_2
     { "fminnmv", 0xfffffc00U, 0x6eb0c800U, 832, Mnemonic::ARM64_FMINNMV, 2, 0 }, // FMINNMV_asimdall_only_SD
-    { "fabs", 0xbffffc00U, 0x0ef8f800U, 838, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_asimdmiscfp16_R
-    { "frinti", 0xbffffc00U, 0x2ef99800U, 838, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_asimdmiscfp16_R
-    { "frsqrte", 0xbffffc00U, 0x2ef9d800U, 838, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asimdmiscfp16_R
-    { "fcvtxn", 0xbffffc00U, 0x2e616800U, 840, Mnemonic::ARM64_FCVTXN, 2, 2 }, // FCVTXN_asimdmisc_N
-    { "fcvtpu", 0xbffffc00U, 0x2ef9a800U, 838, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asimdmiscfp16_R
-    { "frintz", 0xbffffc00U, 0x0ef99800U, 838, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_asimdmiscfp16_R
-    { "fcvtnu", 0xbffffc00U, 0x2e79a800U, 838, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asimdmiscfp16_R
-    { "fneg", 0xbffffc00U, 0x2ef8f800U, 838, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_asimdmiscfp16_R
-    { "frintp", 0xbffffc00U, 0x0ef98800U, 838, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_asimdmiscfp16_R
-    { "fcmle", 0xbffffc00U, 0x2ef8d800U, 838, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asimdmiscfp16_FZ
-    { "fcvtps", 0xbffffc00U, 0x0ef9a800U, 838, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asimdmiscfp16_R
-    { "fmaxnmv", 0xbffffc00U, 0x0e30c800U, 842, Mnemonic::ARM64_FMAXNMV, 2, 0 }, // FMAXNMV_asimdall_only_H
-    { "fcvtns", 0xbffffc00U, 0x0e79a800U, 838, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asimdmiscfp16_R
-    { "rbit", 0xbffffc00U, 0x2e605800U, 838, Mnemonic::ARM64_RBIT, 2, 0 }, // RBIT_asimdmisc_R
-    { "not", 0xbffffc00U, 0x2e205800U, 838, Mnemonic::ARM64_NOT, 2, 0 }, // NOT_asimdmisc_R
-    { "fsqrt", 0xbffffc00U, 0x2ef9f800U, 838, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_asimdmiscfp16_R
-    { "bf1cvtl", 0xbffffc00U, 0x2ea17800U, 842, Mnemonic::ARM64_BF1CVTL, 2, 2 }, // BF1CVTL_asimdmisc_V
-    { "bf2cvtl", 0xbffffc00U, 0x2ee17800U, 842, Mnemonic::ARM64_BF2CVTL, 2, 2 }, // BF2CVTL_asimdmisc_V
-    { "bfcvtn", 0xbffffc00U, 0x0ea16800U, 840, Mnemonic::ARM64_BFCVTN, 2, 2 }, // BFCVTN_asimdmisc_4S
-    { "frintm", 0xbffffc00U, 0x0e799800U, 838, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_asimdmiscfp16_R
-    { "fcmeq", 0xbffffc00U, 0x0ef8d800U, 838, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asimdmiscfp16_FZ
-    { "fcmgt", 0xbffffc00U, 0x0ef8c800U, 838, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asimdmiscfp16_FZ
-    { "fcvtzs", 0xbffffc00U, 0x0ef9b800U, 838, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asimdmiscfp16_R
-    { "fcvtms", 0xbffffc00U, 0x0e79b800U, 838, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asimdmiscfp16_R
-    { "frinta", 0xbffffc00U, 0x2e798800U, 838, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_asimdmiscfp16_R
-    { "fcmlt", 0xbffffc00U, 0x0ef8e800U, 838, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asimdmiscfp16_FZ
-    { "fcvtau", 0xbffffc00U, 0x2e79c800U, 838, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asimdmiscfp16_R
-    { "mvn", 0xbffffc00U, 0x2e205800U, 838, Mnemonic::ARM64_MVN, 2, 0 }, // MVN_NOT_asimdmisc_R
-    { "fmaxv", 0xbffffc00U, 0x0e30f800U, 842, Mnemonic::ARM64_FMAXV, 2, 0 }, // FMAXV_asimdall_only_H
-    { "fminv", 0xbffffc00U, 0x0eb0f800U, 842, Mnemonic::ARM64_FMINV, 2, 0 }, // FMINV_asimdall_only_H
-    { "scvtf", 0xbffffc00U, 0x0e79d800U, 838, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asimdmiscfp16_R
-    { "fcmge", 0xbffffc00U, 0x2ef8c800U, 838, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asimdmiscfp16_FZ
-    { "f1cvtl", 0xbffffc00U, 0x2e217800U, 842, Mnemonic::ARM64_F1CVTL, 2, 2 }, // F1CVTL_asimdmisc_V
-    { "f2cvtl", 0xbffffc00U, 0x2e617800U, 842, Mnemonic::ARM64_F2CVTL, 2, 2 }, // F2CVTL_asimdmisc_V
-    { "fcvtmu", 0xbffffc00U, 0x2e79b800U, 838, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asimdmiscfp16_R
-    { "frintx", 0xbffffc00U, 0x2e799800U, 838, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_asimdmiscfp16_R
-    { "fcvtzu", 0xbffffc00U, 0x2ef9b800U, 838, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asimdmiscfp16_R
-    { "frintn", 0xbffffc00U, 0x0e798800U, 838, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_asimdmiscfp16_R
-    { "fminnmv", 0xbffffc00U, 0x0eb0c800U, 842, Mnemonic::ARM64_FMINNMV, 2, 0 }, // FMINNMV_asimdall_only_H
-    { "ucvtf", 0xbffffc00U, 0x2e79d800U, 838, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asimdmiscfp16_R
-    { "frecpe", 0xbffffc00U, 0x0ef9d800U, 838, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asimdmiscfp16_R
-    { "fcvtas", 0xbffffc00U, 0x0e79c800U, 838, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asimdmiscfp16_R
-    { "fabs", 0xbfbffc00U, 0x0ea0f800U, 844, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_asimdmisc_R
-    { "frinti", 0xbfbffc00U, 0x2ea19800U, 844, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_asimdmisc_R
-    { "frsqrte", 0xbfbffc00U, 0x2ea1d800U, 844, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asimdmisc_R
-    { "urecpe", 0xbfbffc00U, 0x0ea1c800U, 844, Mnemonic::ARM64_URECPE, 2, 0 }, // URECPE_asimdmisc_R
-    { "fcvtpu", 0xbfbffc00U, 0x2ea1a800U, 844, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asimdmisc_R
-    { "frintz", 0xbfbffc00U, 0x0ea19800U, 844, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_asimdmisc_R
-    { "fcvtnu", 0xbfbffc00U, 0x2e21a800U, 844, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asimdmisc_R
-    { "fcvtl", 0xbfbffc00U, 0x0e217800U, 846, Mnemonic::ARM64_FCVTL, 2, 2 }, // FCVTL_asimdmisc_L
-    { "fneg", 0xbfbffc00U, 0x2ea0f800U, 844, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_asimdmisc_R
-    { "frintp", 0xbfbffc00U, 0x0ea18800U, 844, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_asimdmisc_R
-    { "fcmle", 0xbfbffc00U, 0x2ea0d800U, 844, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asimdmisc_FZ
-    { "fcvtps", 0xbfbffc00U, 0x0ea1a800U, 844, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asimdmisc_R
-    { "fcvtns", 0xbfbffc00U, 0x0e21a800U, 844, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asimdmisc_R
-    { "frint64x", 0xbfbffc00U, 0x2e21f800U, 844, Mnemonic::ARM64_FRINT64X, 2, 0 }, // FRINT64X_asimdmisc_R
-    { "fsqrt", 0xbfbffc00U, 0x2ea1f800U, 844, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_asimdmisc_R
-    { "frint32z", 0xbfbffc00U, 0x0e21e800U, 844, Mnemonic::ARM64_FRINT32Z, 2, 0 }, // FRINT32Z_asimdmisc_R
-    { "frintm", 0xbfbffc00U, 0x0e219800U, 844, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_asimdmisc_R
-    { "fcmeq", 0xbfbffc00U, 0x0ea0d800U, 844, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asimdmisc_FZ
-    { "fcmgt", 0xbfbffc00U, 0x0ea0c800U, 844, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asimdmisc_FZ
-    { "fcvtzs", 0xbfbffc00U, 0x0ea1b800U, 844, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asimdmisc_R
-    { "fcvtms", 0xbfbffc00U, 0x0e21b800U, 844, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asimdmisc_R
-    { "frinta", 0xbfbffc00U, 0x2e218800U, 844, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_asimdmisc_R
-    { "fcmlt", 0xbfbffc00U, 0x0ea0e800U, 844, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asimdmisc_FZ
-    { "fcvtau", 0xbfbffc00U, 0x2e21c800U, 844, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asimdmisc_R
-    { "frint64z", 0xbfbffc00U, 0x0e21f800U, 844, Mnemonic::ARM64_FRINT64Z, 2, 0 }, // FRINT64Z_asimdmisc_R
-    { "frint32x", 0xbfbffc00U, 0x2e21e800U, 844, Mnemonic::ARM64_FRINT32X, 2, 0 }, // FRINT32X_asimdmisc_R
-    { "ursqrte", 0xbfbffc00U, 0x2ea1c800U, 844, Mnemonic::ARM64_URSQRTE, 2, 0 }, // URSQRTE_asimdmisc_R
-    { "scvtf", 0xbfbffc00U, 0x0e21d800U, 844, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asimdmisc_R
-    { "fcmge", 0xbfbffc00U, 0x2ea0c800U, 844, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asimdmisc_FZ
-    { "fcvtmu", 0xbfbffc00U, 0x2e21b800U, 844, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asimdmisc_R
-    { "frintx", 0xbfbffc00U, 0x2e219800U, 844, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_asimdmisc_R
-    { "fcvtzu", 0xbfbffc00U, 0x2ea1b800U, 844, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asimdmisc_R
-    { "fcvtn", 0xbfbffc00U, 0x0e216800U, 848, Mnemonic::ARM64_FCVTN, 2, 2 }, // FCVTN_asimdmisc_N
-    { "frintn", 0xbfbffc00U, 0x0e218800U, 844, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_asimdmisc_R
-    { "ucvtf", 0xbfbffc00U, 0x2e21d800U, 844, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asimdmisc_R
-    { "frecpe", 0xbfbffc00U, 0x0ea1d800U, 844, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asimdmisc_R
-    { "fcvtas", 0xbfbffc00U, 0x0e21c800U, 844, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asimdmisc_R
-    { "cmeq", 0xbf3ffc00U, 0x0e209800U, 850, Mnemonic::ARM64_CMEQ, 2, 0 }, // CMEQ_asimdmisc_Z
-    { "clz", 0xbf3ffc00U, 0x2e204800U, 850, Mnemonic::ARM64_CLZ, 2, 0 }, // CLZ_asimdmisc_R
-    { "cnt", 0xbf3ffc00U, 0x0e205800U, 850, Mnemonic::ARM64_CNT, 2, 0 }, // CNT_asimdmisc_R
-    { "uqxtn", 0xbf3ffc00U, 0x2e214800U, 852, Mnemonic::ARM64_UQXTN, 2, 2 }, // UQXTN_asimdmisc_N
-    { "saddlv", 0xbf3ffc00U, 0x0e303800U, 854, Mnemonic::ARM64_SADDLV, 2, 0 }, // SADDLV_asimdall_only
-    { "cls", 0xbf3ffc00U, 0x0e204800U, 850, Mnemonic::ARM64_CLS, 2, 0 }, // CLS_asimdmisc_R
-    { "uadalp", 0xbf3ffc00U, 0x2e206800U, 850, Mnemonic::ARM64_UADALP, 2, 0 }, // UADALP_asimdmisc_P
-    { "sqxtun", 0xbf3ffc00U, 0x2e212800U, 852, Mnemonic::ARM64_SQXTUN, 2, 2 }, // SQXTUN_asimdmisc_N
-    { "neg", 0xbf3ffc00U, 0x2e20b800U, 850, Mnemonic::ARM64_NEG, 2, 0 }, // NEG_asimdmisc_R
-    { "cmgt", 0xbf3ffc00U, 0x0e208800U, 850, Mnemonic::ARM64_CMGT, 2, 0 }, // CMGT_asimdmisc_Z
-    { "shll", 0xbf3ffc00U, 0x2e213800U, 856, Mnemonic::ARM64_SHLL, 3, 2 }, // SHLL_asimdmisc_S
-    { "cmge", 0xbf3ffc00U, 0x2e208800U, 850, Mnemonic::ARM64_CMGE, 2, 0 }, // CMGE_asimdmisc_Z
+    { "fabs", 0xbffffc00U, 0x0ef8f800U, 834, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_asimdmiscfp16_R
+    { "frinti", 0xbffffc00U, 0x2ef99800U, 834, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_asimdmiscfp16_R
+    { "frsqrte", 0xbffffc00U, 0x2ef9d800U, 834, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asimdmiscfp16_R
+    { "fcvtxn", 0xbffffc00U, 0x2e616800U, 836, Mnemonic::ARM64_FCVTXN, 2, 2 }, // FCVTXN_asimdmisc_N
+    { "fcvtpu", 0xbffffc00U, 0x2ef9a800U, 834, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asimdmiscfp16_R
+    { "frintz", 0xbffffc00U, 0x0ef99800U, 834, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_asimdmiscfp16_R
+    { "fcvtnu", 0xbffffc00U, 0x2e79a800U, 834, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asimdmiscfp16_R
+    { "fneg", 0xbffffc00U, 0x2ef8f800U, 834, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_asimdmiscfp16_R
+    { "frintp", 0xbffffc00U, 0x0ef98800U, 834, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_asimdmiscfp16_R
+    { "fcmle", 0xbffffc00U, 0x2ef8d800U, 834, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asimdmiscfp16_FZ
+    { "fcvtps", 0xbffffc00U, 0x0ef9a800U, 834, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asimdmiscfp16_R
+    { "fmaxnmv", 0xbffffc00U, 0x0e30c800U, 838, Mnemonic::ARM64_FMAXNMV, 2, 0 }, // FMAXNMV_asimdall_only_H
+    { "fcvtns", 0xbffffc00U, 0x0e79a800U, 834, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asimdmiscfp16_R
+    { "rbit", 0xbffffc00U, 0x2e605800U, 834, Mnemonic::ARM64_RBIT, 2, 0 }, // RBIT_asimdmisc_R
+    { "not", 0xbffffc00U, 0x2e205800U, 834, Mnemonic::ARM64_NOT, 2, 0 }, // NOT_asimdmisc_R
+    { "fsqrt", 0xbffffc00U, 0x2ef9f800U, 834, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_asimdmiscfp16_R
+    { "bf1cvtl", 0xbffffc00U, 0x2ea17800U, 838, Mnemonic::ARM64_BF1CVTL, 2, 2 }, // BF1CVTL_asimdmisc_V
+    { "bf2cvtl", 0xbffffc00U, 0x2ee17800U, 838, Mnemonic::ARM64_BF2CVTL, 2, 2 }, // BF2CVTL_asimdmisc_V
+    { "bfcvtn", 0xbffffc00U, 0x0ea16800U, 836, Mnemonic::ARM64_BFCVTN, 2, 2 }, // BFCVTN_asimdmisc_4S
+    { "frintm", 0xbffffc00U, 0x0e799800U, 834, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_asimdmiscfp16_R
+    { "fcmeq", 0xbffffc00U, 0x0ef8d800U, 834, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asimdmiscfp16_FZ
+    { "fcmgt", 0xbffffc00U, 0x0ef8c800U, 834, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asimdmiscfp16_FZ
+    { "fcvtzs", 0xbffffc00U, 0x0ef9b800U, 834, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asimdmiscfp16_R
+    { "fcvtms", 0xbffffc00U, 0x0e79b800U, 834, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asimdmiscfp16_R
+    { "frinta", 0xbffffc00U, 0x2e798800U, 834, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_asimdmiscfp16_R
+    { "fcmlt", 0xbffffc00U, 0x0ef8e800U, 834, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asimdmiscfp16_FZ
+    { "fcvtau", 0xbffffc00U, 0x2e79c800U, 834, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asimdmiscfp16_R
+    { "mvn", 0xbffffc00U, 0x2e205800U, 834, Mnemonic::ARM64_MVN, 2, 0 }, // MVN_NOT_asimdmisc_R
+    { "fmaxv", 0xbffffc00U, 0x0e30f800U, 838, Mnemonic::ARM64_FMAXV, 2, 0 }, // FMAXV_asimdall_only_H
+    { "fminv", 0xbffffc00U, 0x0eb0f800U, 838, Mnemonic::ARM64_FMINV, 2, 0 }, // FMINV_asimdall_only_H
+    { "scvtf", 0xbffffc00U, 0x0e79d800U, 834, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asimdmiscfp16_R
+    { "fcmge", 0xbffffc00U, 0x2ef8c800U, 834, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asimdmiscfp16_FZ
+    { "f1cvtl", 0xbffffc00U, 0x2e217800U, 838, Mnemonic::ARM64_F1CVTL, 2, 2 }, // F1CVTL_asimdmisc_V
+    { "f2cvtl", 0xbffffc00U, 0x2e617800U, 838, Mnemonic::ARM64_F2CVTL, 2, 2 }, // F2CVTL_asimdmisc_V
+    { "fcvtmu", 0xbffffc00U, 0x2e79b800U, 834, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asimdmiscfp16_R
+    { "frintx", 0xbffffc00U, 0x2e799800U, 834, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_asimdmiscfp16_R
+    { "fcvtzu", 0xbffffc00U, 0x2ef9b800U, 834, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asimdmiscfp16_R
+    { "frintn", 0xbffffc00U, 0x0e798800U, 834, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_asimdmiscfp16_R
+    { "fminnmv", 0xbffffc00U, 0x0eb0c800U, 838, Mnemonic::ARM64_FMINNMV, 2, 0 }, // FMINNMV_asimdall_only_H
+    { "ucvtf", 0xbffffc00U, 0x2e79d800U, 834, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asimdmiscfp16_R
+    { "frecpe", 0xbffffc00U, 0x0ef9d800U, 834, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asimdmiscfp16_R
+    { "fcvtas", 0xbffffc00U, 0x0e79c800U, 834, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asimdmiscfp16_R
+    { "fabs", 0xbfbffc00U, 0x0ea0f800U, 840, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_asimdmisc_R
+    { "frinti", 0xbfbffc00U, 0x2ea19800U, 840, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_asimdmisc_R
+    { "frsqrte", 0xbfbffc00U, 0x2ea1d800U, 840, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asimdmisc_R
+    { "urecpe", 0xbfbffc00U, 0x0ea1c800U, 840, Mnemonic::ARM64_URECPE, 2, 0 }, // URECPE_asimdmisc_R
+    { "fcvtpu", 0xbfbffc00U, 0x2ea1a800U, 840, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asimdmisc_R
+    { "frintz", 0xbfbffc00U, 0x0ea19800U, 840, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_asimdmisc_R
+    { "fcvtnu", 0xbfbffc00U, 0x2e21a800U, 840, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asimdmisc_R
+    { "fcvtl", 0xbfbffc00U, 0x0e217800U, 842, Mnemonic::ARM64_FCVTL, 2, 2 }, // FCVTL_asimdmisc_L
+    { "fneg", 0xbfbffc00U, 0x2ea0f800U, 840, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_asimdmisc_R
+    { "frintp", 0xbfbffc00U, 0x0ea18800U, 840, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_asimdmisc_R
+    { "fcmle", 0xbfbffc00U, 0x2ea0d800U, 840, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asimdmisc_FZ
+    { "fcvtps", 0xbfbffc00U, 0x0ea1a800U, 840, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asimdmisc_R
+    { "fcvtns", 0xbfbffc00U, 0x0e21a800U, 840, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asimdmisc_R
+    { "frint64x", 0xbfbffc00U, 0x2e21f800U, 840, Mnemonic::ARM64_FRINT64X, 2, 0 }, // FRINT64X_asimdmisc_R
+    { "fsqrt", 0xbfbffc00U, 0x2ea1f800U, 840, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_asimdmisc_R
+    { "frint32z", 0xbfbffc00U, 0x0e21e800U, 840, Mnemonic::ARM64_FRINT32Z, 2, 0 }, // FRINT32Z_asimdmisc_R
+    { "frintm", 0xbfbffc00U, 0x0e219800U, 840, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_asimdmisc_R
+    { "fcmeq", 0xbfbffc00U, 0x0ea0d800U, 840, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asimdmisc_FZ
+    { "fcmgt", 0xbfbffc00U, 0x0ea0c800U, 840, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asimdmisc_FZ
+    { "fcvtzs", 0xbfbffc00U, 0x0ea1b800U, 840, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asimdmisc_R
+    { "fcvtms", 0xbfbffc00U, 0x0e21b800U, 840, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asimdmisc_R
+    { "frinta", 0xbfbffc00U, 0x2e218800U, 840, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_asimdmisc_R
+    { "fcmlt", 0xbfbffc00U, 0x0ea0e800U, 840, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asimdmisc_FZ
+    { "fcvtau", 0xbfbffc00U, 0x2e21c800U, 840, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asimdmisc_R
+    { "frint64z", 0xbfbffc00U, 0x0e21f800U, 840, Mnemonic::ARM64_FRINT64Z, 2, 0 }, // FRINT64Z_asimdmisc_R
+    { "frint32x", 0xbfbffc00U, 0x2e21e800U, 840, Mnemonic::ARM64_FRINT32X, 2, 0 }, // FRINT32X_asimdmisc_R
+    { "ursqrte", 0xbfbffc00U, 0x2ea1c800U, 840, Mnemonic::ARM64_URSQRTE, 2, 0 }, // URSQRTE_asimdmisc_R
+    { "scvtf", 0xbfbffc00U, 0x0e21d800U, 840, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asimdmisc_R
+    { "fcmge", 0xbfbffc00U, 0x2ea0c800U, 840, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asimdmisc_FZ
+    { "fcvtmu", 0xbfbffc00U, 0x2e21b800U, 840, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asimdmisc_R
+    { "frintx", 0xbfbffc00U, 0x2e219800U, 840, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_asimdmisc_R
+    { "fcvtzu", 0xbfbffc00U, 0x2ea1b800U, 840, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asimdmisc_R
+    { "fcvtn", 0xbfbffc00U, 0x0e216800U, 844, Mnemonic::ARM64_FCVTN, 2, 2 }, // FCVTN_asimdmisc_N
+    { "frintn", 0xbfbffc00U, 0x0e218800U, 840, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_asimdmisc_R
+    { "ucvtf", 0xbfbffc00U, 0x2e21d800U, 840, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asimdmisc_R
+    { "frecpe", 0xbfbffc00U, 0x0ea1d800U, 840, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asimdmisc_R
+    { "fcvtas", 0xbfbffc00U, 0x0e21c800U, 840, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asimdmisc_R
+    { "cmeq", 0xbf3ffc00U, 0x0e209800U, 846, Mnemonic::ARM64_CMEQ, 2, 0 }, // CMEQ_asimdmisc_Z
+    { "clz", 0xbf3ffc00U, 0x2e204800U, 846, Mnemonic::ARM64_CLZ, 2, 0 }, // CLZ_asimdmisc_R
+    { "cnt", 0xbf3ffc00U, 0x0e205800U, 846, Mnemonic::ARM64_CNT, 2, 0 }, // CNT_asimdmisc_R
+    { "uqxtn", 0xbf3ffc00U, 0x2e214800U, 848, Mnemonic::ARM64_UQXTN, 2, 2 }, // UQXTN_asimdmisc_N
+    { "saddlv", 0xbf3ffc00U, 0x0e303800U, 850, Mnemonic::ARM64_SADDLV, 2, 0 }, // SADDLV_asimdall_only
+    { "cls", 0xbf3ffc00U, 0x0e204800U, 846, Mnemonic::ARM64_CLS, 2, 0 }, // CLS_asimdmisc_R
+    { "uadalp", 0xbf3ffc00U, 0x2e206800U, 846, Mnemonic::ARM64_UADALP, 2, 0 }, // UADALP_asimdmisc_P
+    { "sqxtun", 0xbf3ffc00U, 0x2e212800U, 848, Mnemonic::ARM64_SQXTUN, 2, 2 }, // SQXTUN_asimdmisc_N
+    { "neg", 0xbf3ffc00U, 0x2e20b800U, 846, Mnemonic::ARM64_NEG, 2, 0 }, // NEG_asimdmisc_R
+    { "cmgt", 0xbf3ffc00U, 0x0e208800U, 846, Mnemonic::ARM64_CMGT, 2, 0 }, // CMGT_asimdmisc_Z
+    { "shll", 0xbf3ffc00U, 0x2e213800U, 852, Mnemonic::ARM64_SHLL, 3, 2 }, // SHLL_asimdmisc_S
+    { "cmge", 0xbf3ffc00U, 0x2e208800U, 846, Mnemonic::ARM64_CMGE, 2, 0 }, // CMGE_asimdmisc_Z
     { "movi", 0xfff8fc00U, 0x2f00e400U, 378, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_D_ds
     { "movi", 0xfff8fc00U, 0x6f00e400U, 457, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_D2_d
-    { "sqxtn", 0xbf3ffc00U, 0x0e214800U, 852, Mnemonic::ARM64_SQXTN, 2, 2 }, // SQXTN_asimdmisc_N
-    { "suqadd", 0xbf3ffc00U, 0x0e203800U, 850, Mnemonic::ARM64_SUQADD, 2, 0 }, // SUQADD_asimdmisc_R
-    { "saddlp", 0xbf3ffc00U, 0x0e202800U, 850, Mnemonic::ARM64_SADDLP, 2, 0 }, // SADDLP_asimdmisc_P
-    { "cmle", 0xbf3ffc00U, 0x2e209800U, 850, Mnemonic::ARM64_CMLE, 2, 0 }, // CMLE_asimdmisc_Z
-    { "rev64", 0xbf3ffc00U, 0x0e200800U, 850, Mnemonic::ARM64_REV64, 2, 0 }, // REV64_asimdmisc_R
-    { "abs", 0xbf3ffc00U, 0x0e20b800U, 850, Mnemonic::ARM64_ABS, 2, 0 }, // ABS_asimdmisc_R
-    { "cmlt", 0xbf3ffc00U, 0x0e20a800U, 850, Mnemonic::ARM64_CMLT, 2, 0 }, // CMLT_asimdmisc_Z
-    { "sqabs", 0xbf3ffc00U, 0x0e207800U, 850, Mnemonic::ARM64_SQABS, 2, 0 }, // SQABS_asimdmisc_R
-    { "usqadd", 0xbf3ffc00U, 0x2e203800U, 850, Mnemonic::ARM64_USQADD, 2, 0 }, // USQADD_asimdmisc_R
-    { "xtn", 0xbf3ffc00U, 0x0e212800U, 852, Mnemonic::ARM64_XTN, 2, 2 }, // XTN_asimdmisc_N
-    { "rev16", 0xbf3ffc00U, 0x0e201800U, 850, Mnemonic::ARM64_REV16, 2, 0 }, // REV16_asimdmisc_R
-    { "uaddlv", 0xbf3ffc00U, 0x2e303800U, 854, Mnemonic::ARM64_UADDLV, 2, 0 }, // UADDLV_asimdall_only
-    { "sminv", 0xbf3ffc00U, 0x0e31a800U, 854, Mnemonic::ARM64_SMINV, 2, 0 }, // SMINV_asimdall_only
-    { "smaxv", 0xbf3ffc00U, 0x0e30a800U, 854, Mnemonic::ARM64_SMAXV, 2, 0 }, // SMAXV_asimdall_only
-    { "sadalp", 0xbf3ffc00U, 0x0e206800U, 850, Mnemonic::ARM64_SADALP, 2, 0 }, // SADALP_asimdmisc_P
-    { "rev32", 0xbf3ffc00U, 0x2e200800U, 850, Mnemonic::ARM64_REV32, 2, 0 }, // REV32_asimdmisc_R
-    { "sqneg", 0xbf3ffc00U, 0x2e207800U, 850, Mnemonic::ARM64_SQNEG, 2, 0 }, // SQNEG_asimdmisc_R
+    { "sqxtn", 0xbf3ffc00U, 0x0e214800U, 848, Mnemonic::ARM64_SQXTN, 2, 2 }, // SQXTN_asimdmisc_N
+    { "suqadd", 0xbf3ffc00U, 0x0e203800U, 846, Mnemonic::ARM64_SUQADD, 2, 0 }, // SUQADD_asimdmisc_R
+    { "saddlp", 0xbf3ffc00U, 0x0e202800U, 846, Mnemonic::ARM64_SADDLP, 2, 0 }, // SADDLP_asimdmisc_P
+    { "cmle", 0xbf3ffc00U, 0x2e209800U, 846, Mnemonic::ARM64_CMLE, 2, 0 }, // CMLE_asimdmisc_Z
+    { "rev64", 0xbf3ffc00U, 0x0e200800U, 846, Mnemonic::ARM64_REV64, 2, 0 }, // REV64_asimdmisc_R
+    { "abs", 0xbf3ffc00U, 0x0e20b800U, 846, Mnemonic::ARM64_ABS, 2, 0 }, // ABS_asimdmisc_R
+    { "mov", 0xffe3fc00U, 0x0e003c00U, 855, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_W_w
+    { "mov", 0xffe3fc00U, 0x4e003c00U, 857, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_X_x
+    { "cmlt", 0xbf3ffc00U, 0x0e20a800U, 846, Mnemonic::ARM64_CMLT, 2, 0 }, // CMLT_asimdmisc_Z
+    { "sqabs", 0xbf3ffc00U, 0x0e207800U, 846, Mnemonic::ARM64_SQABS, 2, 0 }, // SQABS_asimdmisc_R
+    { "usqadd", 0xbf3ffc00U, 0x2e203800U, 846, Mnemonic::ARM64_USQADD, 2, 0 }, // USQADD_asimdmisc_R
+    { "xtn", 0xbf3ffc00U, 0x0e212800U, 848, Mnemonic::ARM64_XTN, 2, 2 }, // XTN_asimdmisc_N
+    { "rev16", 0xbf3ffc00U, 0x0e201800U, 846, Mnemonic::ARM64_REV16, 2, 0 }, // REV16_asimdmisc_R
+    { "uaddlv", 0xbf3ffc00U, 0x2e303800U, 850, Mnemonic::ARM64_UADDLV, 2, 0 }, // UADDLV_asimdall_only
+    { "sminv", 0xbf3ffc00U, 0x0e31a800U, 850, Mnemonic::ARM64_SMINV, 2, 0 }, // SMINV_asimdall_only
+    { "smaxv", 0xbf3ffc00U, 0x0e30a800U, 850, Mnemonic::ARM64_SMAXV, 2, 0 }, // SMAXV_asimdall_only
+    { "sadalp", 0xbf3ffc00U, 0x0e206800U, 846, Mnemonic::ARM64_SADALP, 2, 0 }, // SADALP_asimdmisc_P
+    { "rev32", 0xbf3ffc00U, 0x2e200800U, 846, Mnemonic::ARM64_REV32, 2, 0 }, // REV32_asimdmisc_R
+    { "sqneg", 0xbf3ffc00U, 0x2e207800U, 846, Mnemonic::ARM64_SQNEG, 2, 0 }, // SQNEG_asimdmisc_R
     { "fmov", 0xfff8fc00U, 0x6f00f400U, 457, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_D2_d
-    { "uminv", 0xbf3ffc00U, 0x2e31a800U, 854, Mnemonic::ARM64_UMINV, 2, 0 }, // UMINV_asimdall_only
-    { "addv", 0xbf3ffc00U, 0x0e31b800U, 854, Mnemonic::ARM64_ADDV, 2, 0 }, // ADDV_asimdall_only
-    { "umaxv", 0xbf3ffc00U, 0x2e30a800U, 854, Mnemonic::ARM64_UMAXV, 2, 0 }, // UMAXV_asimdall_only
-    { "uaddlp", 0xbf3ffc00U, 0x2e202800U, 850, Mnemonic::ARM64_UADDLP, 2, 0 }, // UADDLP_asimdmisc_P
-    { "orr", 0xbff8fc00U, 0x0f001400U, 838, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_hl
-    { "orr", 0xbff8fc00U, 0x0f001400U, 838, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_sl
-    { "movi", 0xbff8fc00U, 0x0f00e400U, 838, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_N_b
-    { "bic", 0xbff8fc00U, 0x2f001400U, 838, Mnemonic::ARM64_BIC, 1, 0 }, // BIC_asimdimm_L_hl
-    { "bic", 0xbff8fc00U, 0x2f001400U, 838, Mnemonic::ARM64_BIC, 1, 0 }, // BIC_asimdimm_L_sl
-    { "fmov", 0xbff8fc00U, 0x0f00fc00U, 838, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_H_h
-    { "fmov", 0xbff8fc00U, 0x0f00f400U, 838, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_S_s
+    { "uminv", 0xbf3ffc00U, 0x2e31a800U, 850, Mnemonic::ARM64_UMINV, 2, 0 }, // UMINV_asimdall_only
+    { "addv", 0xbf3ffc00U, 0x0e31b800U, 850, Mnemonic::ARM64_ADDV, 2, 0 }, // ADDV_asimdall_only
+    { "umaxv", 0xbf3ffc00U, 0x2e30a800U, 850, Mnemonic::ARM64_UMAXV, 2, 0 }, // UMAXV_asimdall_only
+    { "uaddlp", 0xbf3ffc00U, 0x2e202800U, 846, Mnemonic::ARM64_UADDLP, 2, 0 }, // UADDLP_asimdmisc_P
+    { "movi", 0xbff8fc00U, 0x0f00e400U, 834, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_N_b
+    { "fmov", 0xbff8fc00U, 0x0f00fc00U, 834, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_H_h
+    { "fmov", 0xbff8fc00U, 0x0f00f400U, 834, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_S_s
     { "uxtl", 0xbf87fc00U, 0x2f00a400U, 859, Mnemonic::ARM64_UXTL, 2, 2 }, // UXTL_USHLL_asimdshf_L
     { "sxtl", 0xbf87fc00U, 0x0f00a400U, 859, Mnemonic::ARM64_SXTL, 2, 2 }, // SXTL_SSHLL_asimdshf_L
     { "umov", 0xffe0fc00U, 0x0e003c00U, 861, Mnemonic::ARM64_UMOV, 2, 0 }, // UMOV_asimdins_W_w
-    { "umov", 0xffe0fc00U, 0x4e003c00U, 863, Mnemonic::ARM64_UMOV, 2, 0 }, // UMOV_asimdins_X_x
-    { "sm3partw2", 0xffe0fc00U, 0xce60c400U, 865, Mnemonic::ARM64_SM3PARTW2, 3, 0 }, // SM3PARTW2_VVV4_cryptosha512_3
+    { "umov", 0xffe0fc00U, 0x4e003c00U, 857, Mnemonic::ARM64_UMOV, 2, 0 }, // UMOV_asimdins_X_x
+    { "sm3partw2", 0xffe0fc00U, 0xce60c400U, 863, Mnemonic::ARM64_SM3PARTW2, 3, 0 }, // SM3PARTW2_VVV4_cryptosha512_3
     { "smov", 0xffe0fc00U, 0x0e002c00U, 861, Mnemonic::ARM64_SMOV, 2, 0 }, // SMOV_asimdins_W_w
-    { "smov", 0xffe0fc00U, 0x4e002c00U, 868, Mnemonic::ARM64_SMOV, 2, 0 }, // SMOV_asimdins_X_x
-    { "fmlalb", 0xffe0fc00U, 0x0ec0fc00U, 865, Mnemonic::ARM64_FMLALB, 3, 0 }, // FMLALB_asimdsame2_J
-    { "fmlalt", 0xffe0fc00U, 0x4ec0fc00U, 865, Mnemonic::ARM64_FMLALT, 3, 0 }, // FMLALT_asimdsame2_J
-    { "rax1", 0xffe0fc00U, 0xce608c00U, 865, Mnemonic::ARM64_RAX1, 3, 0 }, // RAX1_VVV2_cryptosha512_3
-    { "sm4ekey", 0xffe0fc00U, 0xce60c800U, 865, Mnemonic::ARM64_SM4EKEY, 3, 0 }, // SM4EKEY_VVV4_cryptosha512_3
-    { "sha512su1", 0xffe0fc00U, 0xce608800U, 865, Mnemonic::ARM64_SHA512SU1, 3, 0 }, // SHA512SU1_VVV2_cryptosha512_3
-    { "ummla", 0xffe0fc00U, 0x6e80a400U, 865, Mnemonic::ARM64_UMMLA, 3, 0 }, // UMMLA_asimdsame2_G
-    { "smmla", 0xffe0fc00U, 0x4e80a400U, 865, Mnemonic::ARM64_SMMLA, 3, 0 }, // SMMLA_asimdsame2_G
-    { "usmmla", 0xffe0fc00U, 0x4e80ac00U, 865, Mnemonic::ARM64_USMMLA, 3, 0 }, // USMMLA_asimdsame2_G
-    { "sm3partw1", 0xffe0fc00U, 0xce60c000U, 865, Mnemonic::ARM64_SM3PARTW1, 3, 0 }, // SM3PARTW1_VVV4_cryptosha512_3
-    { "bfmmla", 0xffe0fc00U, 0x6e40ec00U, 865, Mnemonic::ARM64_BFMMLA, 3, 0 }, // BFMMLA_asimdsame2_E
-    { "sha512h", 0xffe0fc00U, 0xce608000U, 870, Mnemonic::ARM64_SHA512H, 3, 0 }, // SHA512H_QQV_cryptosha512_3
-    { "fmlallbb", 0xffe0fc00U, 0x0e00c400U, 865, Mnemonic::ARM64_FMLALLBB, 3, 0 }, // FMLALLBB_asimdsame2_G
-    { "fmlallbt", 0xffe0fc00U, 0x0e40c400U, 865, Mnemonic::ARM64_FMLALLBT, 3, 0 }, // FMLALLBT_asimdsame2_G
-    { "fmlalltb", 0xffe0fc00U, 0x4e00c400U, 865, Mnemonic::ARM64_FMLALLTB, 3, 0 }, // FMLALLTB_asimdsame2_G
-    { "fmlalltt", 0xffe0fc00U, 0x4e40c400U, 865, Mnemonic::ARM64_FMLALLTT, 3, 0 }, // FMLALLTT_asimdsame2_G
-    { "ins", 0xffe0fc00U, 0x4e001c00U, 873, Mnemonic::ARM64_INS, 2, 0 }, // INS_asimdins_IR_r
-    { "mov", 0xffe0fc00U, 0x4e001c00U, 873, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_INS_asimdins_IR_r
-    { "sha512h2", 0xffe0fc00U, 0xce608400U, 870, Mnemonic::ARM64_SHA512H2, 3, 0 }, // SHA512H2_QQV_cryptosha512_3
-    { "fmlal", 0xbfe0fc00U, 0x0e20ec00U, 875, Mnemonic::ARM64_FMLAL, 3, 0 }, // FMLAL_asimdsame_F
-    { "fmlal2", 0xbfe0fc00U, 0x2e20cc00U, 875, Mnemonic::ARM64_FMLAL2, 3, 0 }, // FMLAL2_asimdsame_F
-    { "faddp", 0xbfe0fc00U, 0x2e401400U, 875, Mnemonic::ARM64_FADDP, 3, 0 }, // FADDP_asimdsamefp16_only
-    { "facge", 0xbfe0fc00U, 0x2e402c00U, 875, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asimdsamefp16_only
-    { "fcmeq", 0xbfe0fc00U, 0x0e402400U, 875, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asimdsamefp16_only
-    { "frsqrts", 0xbfe0fc00U, 0x0ec03c00U, 875, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asimdsamefp16_only
-    { "famin", 0xbfe0fc00U, 0x2ec01c00U, 875, Mnemonic::ARM64_FAMIN, 3, 0 }, // FAMIN_asimdsamefp16_only
-    { "famin", 0xbfe0fc00U, 0x2ea0dc00U, 878, Mnemonic::ARM64_FAMIN, 3, 0 }, // FAMIN_asimdsame_only
-    { "mov", 0xbfe0fc00U, 0x0ea01c00U, 838, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ORR_asimdsame_only
-    { "bfdot", 0xbfe0fc00U, 0x2e40fc00U, 875, Mnemonic::ARM64_BFDOT, 3, 0 }, // BFDOT_asimdsame2_D
-    { "fmin", 0xbfe0fc00U, 0x0ec03400U, 875, Mnemonic::ARM64_FMIN, 3, 0 }, // FMIN_asimdsamefp16_only
-    { "bic", 0xbfe0fc00U, 0x0e601c00U, 875, Mnemonic::ARM64_BIC, 3, 0 }, // BIC_asimdsame_only
-    { "fcvtn", 0xbfe0fc00U, 0x0e00f400U, 881, Mnemonic::ARM64_FCVTN, 3, 2 }, // FCVTN_asimdsame2_H
-    { "fmaxp", 0xbfe0fc00U, 0x2e403400U, 875, Mnemonic::ARM64_FMAXP, 3, 0 }, // FMAXP_asimdsamefp16_only
-    { "fsub", 0xbfe0fc00U, 0x0ec01400U, 875, Mnemonic::ARM64_FSUB, 3, 0 }, // FSUB_asimdsamefp16_only
-    { "orn", 0xbfe0fc00U, 0x0ee01c00U, 875, Mnemonic::ARM64_ORN, 3, 0 }, // ORN_asimdsame_only
-    { "orr", 0xbfe0fc00U, 0x0ea01c00U, 875, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_asimdsame_only
-    { "fminnmp", 0xbfe0fc00U, 0x2ec00400U, 875, Mnemonic::ARM64_FMINNMP, 3, 0 }, // FMINNMP_asimdsamefp16_only
-    { "tbl", 0xbfe0fc00U, 0x0e000000U, 884, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L1_1
-    { "tbl", 0xbfe0fc00U, 0x0e002000U, 887, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L2_2
-    { "tbl", 0xbfe0fc00U, 0x0e004000U, 890, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L3_3
-    { "tbl", 0xbfe0fc00U, 0x0e006000U, 893, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L4_4
-    { "fcmgt", 0xbfe0fc00U, 0x2ec02400U, 875, Mnemonic::ARM64_FCMGT, 3, 0 }, // FCMGT_asimdsamefp16_only
-    { "fminp", 0xbfe0fc00U, 0x2ec03400U, 875, Mnemonic::ARM64_FMINP, 3, 0 }, // FMINP_asimdsamefp16_only
-    { "bif", 0xbfe0fc00U, 0x2ee01c00U, 875, Mnemonic::ARM64_BIF, 3, 0 }, // BIF_asimdsame_only
-    { "and", 0xbfe0fc00U, 0x0e201c00U, 875, Mnemonic::ARM64_AND, 3, 0 }, // AND_asimdsame_only
-    { "fdiv", 0xbfe0fc00U, 0x2e403c00U, 875, Mnemonic::ARM64_FDIV, 3, 0 }, // FDIV_asimdsamefp16_only
-    { "fmulx", 0xbfe0fc00U, 0x0e401c00U, 875, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdsamefp16_only
-    { "fadd", 0xbfe0fc00U, 0x0e401400U, 875, Mnemonic::ARM64_FADD, 3, 0 }, // FADD_asimdsamefp16_only
-    { "fmul", 0xbfe0fc00U, 0x2e401c00U, 875, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdsamefp16_only
-    { "fminnm", 0xbfe0fc00U, 0x0ec00400U, 875, Mnemonic::ARM64_FMINNM, 3, 0 }, // FMINNM_asimdsamefp16_only
-    { "famax", 0xbfe0fc00U, 0x0ec01c00U, 875, Mnemonic::ARM64_FAMAX, 3, 0 }, // FAMAX_asimdsamefp16_only
-    { "famax", 0xbfe0fc00U, 0x0ea0dc00U, 878, Mnemonic::ARM64_FAMAX, 3, 0 }, // FAMAX_asimdsame_only
-    { "fabd", 0xbfe0fc00U, 0x2ec01400U, 875, Mnemonic::ARM64_FABD, 3, 0 }, // FABD_asimdsamefp16_only
-    { "fmlsl", 0xbfe0fc00U, 0x0ea0ec00U, 875, Mnemonic::ARM64_FMLSL, 3, 0 }, // FMLSL_asimdsame_F
-    { "fmlsl2", 0xbfe0fc00U, 0x2ea0cc00U, 875, Mnemonic::ARM64_FMLSL2, 3, 0 }, // FMLSL2_asimdsame_F
-    { "dup", 0xbfe0fc00U, 0x0e000400U, 896, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asimdins_DV_v
-    { "fmax", 0xbfe0fc00U, 0x0e403400U, 875, Mnemonic::ARM64_FMAX, 3, 0 }, // FMAX_asimdsamefp16_only
-    { "fscale", 0xbfe0fc00U, 0x2ec03c00U, 875, Mnemonic::ARM64_FSCALE, 3, 0 }, // FSCALE_asimdsamefp16_only
-    { "fscale", 0xbfe0fc00U, 0x2ea0fc00U, 878, Mnemonic::ARM64_FSCALE, 3, 0 }, // FSCALE_asimdsame_only
-    { "eor", 0xbfe0fc00U, 0x2e201c00U, 875, Mnemonic::ARM64_EOR, 3, 0 }, // EOR_asimdsame_only
-    { "fcvtn", 0xbfe0fc00U, 0x0e40f400U, 875, Mnemonic::ARM64_FCVTN, 3, 0 }, // FCVTN_asimdsame2_D
-    { "fmaxnm", 0xbfe0fc00U, 0x0e400400U, 875, Mnemonic::ARM64_FMAXNM, 3, 0 }, // FMAXNM_asimdsamefp16_only
-    { "tbx", 0xbfe0fc00U, 0x0e001000U, 884, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L1_1
-    { "tbx", 0xbfe0fc00U, 0x0e003000U, 887, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L2_2
-    { "tbx", 0xbfe0fc00U, 0x0e005000U, 890, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L3_3
-    { "tbx", 0xbfe0fc00U, 0x0e007000U, 893, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L4_4
-    { "fmls", 0xbfe0fc00U, 0x0ec00c00U, 875, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdsamefp16_only
-    { "fdot", 0xbfe0fc00U, 0x0e40fc00U, 875, Mnemonic::ARM64_FDOT, 3, 0 }, // FDOT_asimdsame2_D
-    { "bfmlal", 0xbfe0fc00U, 0x2ec0fc00U, 898, Mnemonic::ARM64_BFMLAL, 4, 0 }, // BFMLAL_asimdsame2_F_
-    { "usdot", 0xbfe0fc00U, 0x0e809c00U, 875, Mnemonic::ARM64_USDOT, 3, 0 }, // USDOT_asimdsame2_D
-    { "fdot", 0xbfe0fc00U, 0x0e00fc00U, 875, Mnemonic::ARM64_FDOT, 3, 0 }, // FDOT_asimdsame2_DD
-    { "bit", 0xbfe0fc00U, 0x2ea01c00U, 875, Mnemonic::ARM64_BIT, 3, 0 }, // BIT_asimdsame_only
-    { "fmaxnmp", 0xbfe0fc00U, 0x2e400400U, 875, Mnemonic::ARM64_FMAXNMP, 3, 0 }, // FMAXNMP_asimdsamefp16_only
-    { "facgt", 0xbfe0fc00U, 0x2ec02c00U, 875, Mnemonic::ARM64_FACGT, 3, 0 }, // FACGT_asimdsamefp16_only
-    { "frecps", 0xbfe0fc00U, 0x0e403c00U, 875, Mnemonic::ARM64_FRECPS, 3, 0 }, // FRECPS_asimdsamefp16_only
-    { "bsl", 0xbfe0fc00U, 0x2e601c00U, 875, Mnemonic::ARM64_BSL, 3, 0 }, // BSL_asimdsame_only
-    { "fmla", 0xbfe0fc00U, 0x0e400c00U, 875, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdsamefp16_only
-    { "fcmge", 0xbfe0fc00U, 0x2e402400U, 875, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asimdsamefp16_only
-    { "dup", 0xbfe0fc00U, 0x0e000c00U, 902, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asimdins_DR_r
-    { "faddp", 0xbfa0fc00U, 0x2e20d400U, 904, Mnemonic::ARM64_FADDP, 3, 0 }, // FADDP_asimdsame_only
-    { "sm3tt2b", 0xffe0cc00U, 0xce408c00U, 907, Mnemonic::ARM64_SM3TT2B, 2, 0 }, // SM3TT2B_VVV_crypto3_imm2
-    { "facge", 0xbfa0fc00U, 0x2e20ec00U, 904, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asimdsame_only
-    { "fcmeq", 0xbfa0fc00U, 0x0e20e400U, 904, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asimdsame_only
-    { "frsqrts", 0xbfa0fc00U, 0x0ea0fc00U, 904, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asimdsame_only
-    { "fmlallbb", 0xffc0f400U, 0x2f008000U, 909, Mnemonic::ARM64_FMLALLBB, 2, 0 }, // FMLALLBB_asimdelem_J
-    { "fmlallbt", 0xffc0f400U, 0x2f408000U, 909, Mnemonic::ARM64_FMLALLBT, 2, 0 }, // FMLALLBT_asimdelem_J
-    { "fmlalltb", 0xffc0f400U, 0x6f008000U, 909, Mnemonic::ARM64_FMLALLTB, 2, 0 }, // FMLALLTB_asimdelem_J
-    { "fmlalltt", 0xffc0f400U, 0x6f408000U, 909, Mnemonic::ARM64_FMLALLTT, 2, 0 }, // FMLALLTT_asimdelem_J
-    { "luti2", 0xffe09c00U, 0x4e801000U, 911, Mnemonic::ARM64_LUTI2, 4, 0 }, // LUTI2_asimdtbl_L5
-    { "fmin", 0xbfa0fc00U, 0x0ea0f400U, 904, Mnemonic::ARM64_FMIN, 3, 0 }, // FMIN_asimdsame_only
-    { "fmaxp", 0xbfa0fc00U, 0x2e20f400U, 904, Mnemonic::ARM64_FMAXP, 3, 0 }, // FMAXP_asimdsame_only
-    { "fsub", 0xbfa0fc00U, 0x0ea0d400U, 904, Mnemonic::ARM64_FSUB, 3, 0 }, // FSUB_asimdsame_only
-    { "fminnmp", 0xbfa0fc00U, 0x2ea0c400U, 904, Mnemonic::ARM64_FMINNMP, 3, 0 }, // FMINNMP_asimdsame_only
-    { "fcmgt", 0xbfa0fc00U, 0x2ea0e400U, 904, Mnemonic::ARM64_FCMGT, 3, 0 }, // FCMGT_asimdsame_only
-    { "fminp", 0xbfa0fc00U, 0x2ea0f400U, 904, Mnemonic::ARM64_FMINP, 3, 0 }, // FMINP_asimdsame_only
-    { "sm3tt2a", 0xffe0cc00U, 0xce408800U, 907, Mnemonic::ARM64_SM3TT2A, 2, 0 }, // SM3TT2A_VVV4_crypto3_imm2
-    { "luti4", 0xffe09c00U, 0x4e400000U, 915, Mnemonic::ARM64_LUTI4, 4, 0 }, // LUTI4_asimdtbl_L5
-    { "luti4", 0xffe09c00U, 0x4e401000U, 919, Mnemonic::ARM64_LUTI4, 4, 0 }, // LUTI4_asimdtbl_L7
-    { "fdiv", 0xbfa0fc00U, 0x2e20fc00U, 904, Mnemonic::ARM64_FDIV, 3, 0 }, // FDIV_asimdsame_only
-    { "fmulx", 0xbfa0fc00U, 0x0e20dc00U, 904, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdsame_only
-    { "fadd", 0xbfa0fc00U, 0x0e20d400U, 904, Mnemonic::ARM64_FADD, 3, 0 }, // FADD_asimdsame_only
-    { "fmul", 0xbfa0fc00U, 0x2e20dc00U, 904, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdsame_only
-    { "fminnm", 0xbfa0fc00U, 0x0ea0c400U, 904, Mnemonic::ARM64_FMINNM, 3, 0 }, // FMINNM_asimdsame_only
-    { "fabd", 0xbfa0fc00U, 0x2ea0d400U, 904, Mnemonic::ARM64_FABD, 3, 0 }, // FABD_asimdsame_only
-    { "fmax", 0xbfa0fc00U, 0x0e20f400U, 904, Mnemonic::ARM64_FMAX, 3, 0 }, // FMAX_asimdsame_only
-    { "sm3tt1a", 0xffe0cc00U, 0xce408000U, 907, Mnemonic::ARM64_SM3TT1A, 2, 0 }, // SM3TT1A_VVV4_crypto3_imm2
-    { "fmaxnm", 0xbfa0fc00U, 0x0e20c400U, 904, Mnemonic::ARM64_FMAXNM, 3, 0 }, // FMAXNM_asimdsame_only
-    { "fmls", 0xbfa0fc00U, 0x0ea0cc00U, 904, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdsame_only
-    { "sm3tt1b", 0xffe0cc00U, 0xce408400U, 907, Mnemonic::ARM64_SM3TT1B, 2, 0 }, // SM3TT1B_VVV4_crypto3_imm2
-    { "fmaxnmp", 0xbfa0fc00U, 0x2e20c400U, 904, Mnemonic::ARM64_FMAXNMP, 3, 0 }, // FMAXNMP_asimdsame_only
-    { "facgt", 0xbfa0fc00U, 0x2ea0ec00U, 904, Mnemonic::ARM64_FACGT, 3, 0 }, // FACGT_asimdsame_only
-    { "frecps", 0xbfa0fc00U, 0x0e20fc00U, 904, Mnemonic::ARM64_FRECPS, 3, 0 }, // FRECPS_asimdsame_only
-    { "fmlalb", 0xffc0f400U, 0x0fc00000U, 909, Mnemonic::ARM64_FMLALB, 2, 0 }, // FMLALB_asimdelem_H
-    { "fmlalt", 0xffc0f400U, 0x4fc00000U, 909, Mnemonic::ARM64_FMLALT, 2, 0 }, // FMLALT_asimdelem_H
-    { "fmla", 0xbfa0fc00U, 0x0e20cc00U, 904, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdsame_only
-    { "fcmge", 0xbfa0fc00U, 0x2e20e400U, 904, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asimdsame_only
-    { "zip1", 0xbf20fc00U, 0x0e003800U, 923, Mnemonic::ARM64_ZIP1, 3, 0 }, // ZIP1_asimdperm_only
-    { "ushr", 0xbf80fc00U, 0x2f000400U, 926, Mnemonic::ARM64_USHR, 3, 0 }, // USHR_asimdshf_R
-    { "sqadd", 0xbf20fc00U, 0x0e200c00U, 923, Mnemonic::ARM64_SQADD, 3, 0 }, // SQADD_asimdsame_only
-    { "mla", 0xbf20fc00U, 0x0e209400U, 923, Mnemonic::ARM64_MLA, 3, 0 }, // MLA_asimdsame_only
-    { "ssubl", 0xbf20fc00U, 0x0e202000U, 929, Mnemonic::ARM64_SSUBL, 3, 2 }, // SSUBL_asimddiff_L
-    { "sqshrun", 0xbf80fc00U, 0x2f008400U, 932, Mnemonic::ARM64_SQSHRUN, 3, 2 }, // SQSHRUN_asimdshf_N
-    { "sdot", 0xbf20fc00U, 0x0e009400U, 875, Mnemonic::ARM64_SDOT, 3, 0 }, // SDOT_asimdsame2_D
-    { "sqrshrn", 0xbf80fc00U, 0x0f009c00U, 932, Mnemonic::ARM64_SQRSHRN, 3, 2 }, // SQRSHRN_asimdshf_N
-    { "sshll", 0xbf80fc00U, 0x0f00a400U, 935, Mnemonic::ARM64_SSHLL, 3, 2 }, // SSHLL_asimdshf_L
-    { "trn2", 0xbf20fc00U, 0x0e006800U, 923, Mnemonic::ARM64_TRN2, 3, 0 }, // TRN2_asimdperm_only
-    { "uhsub", 0xbf20fc00U, 0x2e202400U, 923, Mnemonic::ARM64_UHSUB, 3, 0 }, // UHSUB_asimdsame_only
-    { "umlal", 0xbf20fc00U, 0x2e208000U, 929, Mnemonic::ARM64_UMLAL, 3, 2 }, // UMLAL_asimddiff_L
-    { "rsubhn", 0xbf20fc00U, 0x2e206000U, 938, Mnemonic::ARM64_RSUBHN, 3, 2 }, // RSUBHN_asimddiff_N
-    { "smlal", 0xbf20fc00U, 0x0e208000U, 929, Mnemonic::ARM64_SMLAL, 3, 2 }, // SMLAL_asimddiff_L
-    { "shl", 0xbf80fc00U, 0x0f005400U, 926, Mnemonic::ARM64_SHL, 3, 0 }, // SHL_asimdshf_R
-    { "srshr", 0xbf80fc00U, 0x0f002400U, 926, Mnemonic::ARM64_SRSHR, 3, 0 }, // SRSHR_asimdshf_R
-    { "addhn", 0xbf20fc00U, 0x0e204000U, 938, Mnemonic::ARM64_ADDHN, 3, 2 }, // ADDHN_asimddiff_N
-    { "sshr", 0xbf80fc00U, 0x0f000400U, 926, Mnemonic::ARM64_SSHR, 3, 0 }, // SSHR_asimdshf_R
-    { "sqdmlal", 0xbf20fc00U, 0x0e209000U, 929, Mnemonic::ARM64_SQDMLAL, 3, 2 }, // SQDMLAL_asimddiff_L
-    { "luti2", 0xffe08c00U, 0x4ec00000U, 941, Mnemonic::ARM64_LUTI2, 4, 0 }, // LUTI2_asimdtbl_L6
-    { "sub", 0xbf20fc00U, 0x2e208400U, 923, Mnemonic::ARM64_SUB, 3, 0 }, // SUB_asimdsame_only
-    { "sabdl", 0xbf20fc00U, 0x0e207000U, 929, Mnemonic::ARM64_SABDL, 3, 2 }, // SABDL_asimddiff_L
-    { "mls", 0xbf20fc00U, 0x2e209400U, 923, Mnemonic::ARM64_MLS, 3, 0 }, // MLS_asimdsame_only
-    { "cmge", 0xbf20fc00U, 0x0e203c00U, 923, Mnemonic::ARM64_CMGE, 3, 0 }, // CMGE_asimdsame_only
-    { "sqshrn", 0xbf80fc00U, 0x0f009400U, 932, Mnemonic::ARM64_SQSHRN, 3, 2 }, // SQSHRN_asimdshf_N
-    { "uaddw", 0xbf20fc00U, 0x2e201000U, 945, Mnemonic::ARM64_UADDW, 3, 2 }, // UADDW_asimddiff_W
-    { "uabd", 0xbf20fc00U, 0x2e207400U, 923, Mnemonic::ARM64_UABD, 3, 0 }, // UABD_asimdsame_only
-    { "bfdot", 0xbfc0f400U, 0x0f40f000U, 948, Mnemonic::ARM64_BFDOT, 3, 0 }, // BFDOT_asimdelem_E
-    { "movi", 0xbff80c00U, 0x0f000400U, 838, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_L_hl
-    { "movi", 0xbff80c00U, 0x0f000400U, 838, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_L_sl
-    { "movi", 0xbff80c00U, 0x0f000400U, 838, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_M_sm
-    { "shsub", 0xbf20fc00U, 0x0e202400U, 923, Mnemonic::ARM64_SHSUB, 3, 0 }, // SHSUB_asimdsame_only
-    { "sqdmulh", 0xbf20fc00U, 0x0e20b400U, 923, Mnemonic::ARM64_SQDMULH, 3, 0 }, // SQDMULH_asimdsame_only
-    { "ushll", 0xbf80fc00U, 0x2f00a400U, 935, Mnemonic::ARM64_USHLL, 3, 2 }, // USHLL_asimdshf_L
-    { "subhn", 0xbf20fc00U, 0x0e206000U, 938, Mnemonic::ARM64_SUBHN, 3, 2 }, // SUBHN_asimddiff_N
-    { "umax", 0xbf20fc00U, 0x2e206400U, 923, Mnemonic::ARM64_UMAX, 3, 0 }, // UMAX_asimdsame_only
-    { "urhadd", 0xbf20fc00U, 0x2e201400U, 923, Mnemonic::ARM64_URHADD, 3, 0 }, // URHADD_asimdsame_only
-    { "usubl", 0xbf20fc00U, 0x2e202000U, 929, Mnemonic::ARM64_USUBL, 3, 2 }, // USUBL_asimddiff_L
-    { "saba", 0xbf20fc00U, 0x0e207c00U, 923, Mnemonic::ARM64_SABA, 3, 0 }, // SABA_asimdsame_only
-    { "uqadd", 0xbf20fc00U, 0x2e200c00U, 923, Mnemonic::ARM64_UQADD, 3, 0 }, // UQADD_asimdsame_only
-    { "sqrshl", 0xbf20fc00U, 0x0e205c00U, 923, Mnemonic::ARM64_SQRSHL, 3, 0 }, // SQRSHL_asimdsame_only
-    { "sqrdmlah", 0xbf20fc00U, 0x2e008400U, 923, Mnemonic::ARM64_SQRDMLAH, 3, 0 }, // SQRDMLAH_asimdsame2_only
-    { "saddw", 0xbf20fc00U, 0x0e201000U, 945, Mnemonic::ARM64_SADDW, 3, 2 }, // SADDW_asimddiff_W
-    { "mul", 0xbf20fc00U, 0x0e209c00U, 923, Mnemonic::ARM64_MUL, 3, 0 }, // MUL_asimdsame_only
-    { "uabdl", 0xbf20fc00U, 0x2e207000U, 929, Mnemonic::ARM64_UABDL, 3, 2 }, // UABDL_asimddiff_L
-    { "sabd", 0xbf20fc00U, 0x0e207400U, 923, Mnemonic::ARM64_SABD, 3, 0 }, // SABD_asimdsame_only
-    { "raddhn", 0xbf20fc00U, 0x2e204000U, 938, Mnemonic::ARM64_RADDHN, 3, 2 }, // RADDHN_asimddiff_N
-    { "fdot", 0xbfc0f400U, 0x0f400000U, 951, Mnemonic::ARM64_FDOT, 4, 0 }, // FDOT_asimdelem_G
-    { "trn1", 0xbf20fc00U, 0x0e002800U, 923, Mnemonic::ARM64_TRN1, 3, 0 }, // TRN1_asimdperm_only
-    { "fmlal", 0xbfc0f400U, 0x0f800000U, 955, Mnemonic::ARM64_FMLAL, 3, 0 }, // FMLAL_asimdelem_LH
-    { "fmlal2", 0xbfc0f400U, 0x2f808000U, 955, Mnemonic::ARM64_FMLAL2, 3, 0 }, // FMLAL2_asimdelem_LH
-    { "uaba", 0xbf20fc00U, 0x2e207c00U, 923, Mnemonic::ARM64_UABA, 3, 0 }, // UABA_asimdsame_only
-    { "uqrshrn", 0xbf80fc00U, 0x2f009c00U, 932, Mnemonic::ARM64_UQRSHRN, 3, 2 }, // UQRSHRN_asimdshf_N
-    { "urshr", 0xbf80fc00U, 0x2f002400U, 926, Mnemonic::ARM64_URSHR, 3, 0 }, // URSHR_asimdshf_R
-    { "udot", 0xbf20fc00U, 0x2e009400U, 875, Mnemonic::ARM64_UDOT, 3, 0 }, // UDOT_asimdsame2_D
-    { "zip2", 0xbf20fc00U, 0x0e007800U, 923, Mnemonic::ARM64_ZIP2, 3, 0 }, // ZIP2_asimdperm_only
-    { "smax", 0xbf20fc00U, 0x0e206400U, 923, Mnemonic::ARM64_SMAX, 3, 0 }, // SMAX_asimdsame_only
-    { "fmla", 0xbfc0f400U, 0x0f001000U, 955, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdelem_RH_H
-    { "smlsl", 0xbf20fc00U, 0x0e20a000U, 929, Mnemonic::ARM64_SMLSL, 3, 2 }, // SMLSL_asimddiff_L
-    { "ssubw", 0xbf20fc00U, 0x0e203000U, 945, Mnemonic::ARM64_SSUBW, 3, 2 }, // SSUBW_asimddiff_W
-    { "sqshlu", 0xbf80fc00U, 0x2f006400U, 926, Mnemonic::ARM64_SQSHLU, 3, 0 }, // SQSHLU_asimdshf_R
-    { "fcvtzs", 0xbf80fc00U, 0x0f00fc00U, 958, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_asimdshf_C
-    { "sqdmlsl", 0xbf20fc00U, 0x0e20b000U, 929, Mnemonic::ARM64_SQDMLSL, 3, 2 }, // SQDMLSL_asimddiff_L
-    { "cmhi", 0xbf20fc00U, 0x2e203400U, 923, Mnemonic::ARM64_CMHI, 3, 0 }, // CMHI_asimdsame_only
-    { "uabal", 0xbf20fc00U, 0x2e205000U, 929, Mnemonic::ARM64_UABAL, 3, 2 }, // UABAL_asimddiff_L
-    { "srshl", 0xbf20fc00U, 0x0e205400U, 923, Mnemonic::ARM64_SRSHL, 3, 0 }, // SRSHL_asimdsame_only
-    { "rshrn", 0xbf80fc00U, 0x0f008c00U, 932, Mnemonic::ARM64_RSHRN, 3, 2 }, // RSHRN_asimdshf_N
-    { "uqsub", 0xbf20fc00U, 0x2e202c00U, 923, Mnemonic::ARM64_UQSUB, 3, 0 }, // UQSUB_asimdsame_only
-    { "pmull", 0xbf20fc00U, 0x0e20e000U, 929, Mnemonic::ARM64_PMULL, 3, 2 }, // PMULL_asimddiff_L
-    { "uqshl", 0xbf80fc00U, 0x2f007400U, 926, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asimdshf_R
-    { "sshl", 0xbf20fc00U, 0x0e204400U, 923, Mnemonic::ARM64_SSHL, 3, 0 }, // SSHL_asimdsame_only
-    { "shadd", 0xbf20fc00U, 0x0e200400U, 923, Mnemonic::ARM64_SHADD, 3, 0 }, // SHADD_asimdsame_only
-    { "uqshrn", 0xbf80fc00U, 0x2f009400U, 932, Mnemonic::ARM64_UQSHRN, 3, 2 }, // UQSHRN_asimdshf_N
-    { "uminp", 0xbf20fc00U, 0x2e20ac00U, 923, Mnemonic::ARM64_UMINP, 3, 0 }, // UMINP_asimdsame_only
-    { "usdot", 0xbfc0f400U, 0x0f80f000U, 948, Mnemonic::ARM64_USDOT, 3, 0 }, // USDOT_asimdelem_D
-    { "cmgt", 0xbf20fc00U, 0x0e203400U, 923, Mnemonic::ARM64_CMGT, 3, 0 }, // CMGT_asimdsame_only
-    { "umaxp", 0xbf20fc00U, 0x2e20a400U, 923, Mnemonic::ARM64_UMAXP, 3, 0 }, // UMAXP_asimdsame_only
-    { "ursra", 0xbf80fc00U, 0x2f003400U, 926, Mnemonic::ARM64_URSRA, 3, 0 }, // URSRA_asimdshf_R
-    { "pmul", 0xbf20fc00U, 0x2e209c00U, 923, Mnemonic::ARM64_PMUL, 3, 0 }, // PMUL_asimdsame_only
-    { "fdot", 0xbfc0f400U, 0x0f000000U, 948, Mnemonic::ARM64_FDOT, 3, 0 }, // FDOT_asimdelem_D
-    { "sqshl", 0xbf80fc00U, 0x0f007400U, 926, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asimdshf_R
-    { "uzp2", 0xbf20fc00U, 0x0e005800U, 923, Mnemonic::ARM64_UZP2, 3, 0 }, // UZP2_asimdperm_only
-    { "ushl", 0xbf20fc00U, 0x2e204400U, 923, Mnemonic::ARM64_USHL, 3, 0 }, // USHL_asimdsame_only
-    { "fmls", 0xbfc0f400U, 0x0f005000U, 955, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdelem_RH_H
-    { "sqrshrun", 0xbf80fc00U, 0x2f008c00U, 932, Mnemonic::ARM64_SQRSHRUN, 3, 2 }, // SQRSHRUN_asimdshf_N
-    { "cmhs", 0xbf20fc00U, 0x2e203c00U, 923, Mnemonic::ARM64_CMHS, 3, 0 }, // CMHS_asimdsame_only
-    { "sqrdmulh", 0xbf20fc00U, 0x2e20b400U, 923, Mnemonic::ARM64_SQRDMULH, 3, 0 }, // SQRDMULH_asimdsame_only
-    { "bfmlal", 0xbfc0f400U, 0x0fc0f000U, 961, Mnemonic::ARM64_BFMLAL, 3, 0 }, // BFMLAL_asimdelem_F
-    { "umlsl", 0xbf20fc00U, 0x2e20a000U, 929, Mnemonic::ARM64_UMLSL, 3, 2 }, // UMLSL_asimddiff_L
-    { "uaddl", 0xbf20fc00U, 0x2e200000U, 929, Mnemonic::ARM64_UADDL, 3, 2 }, // UADDL_asimddiff_L
-    { "cmtst", 0xbf20fc00U, 0x0e208c00U, 923, Mnemonic::ARM64_CMTST, 3, 0 }, // CMTST_asimdsame_only
-    { "shrn", 0xbf80fc00U, 0x0f008400U, 932, Mnemonic::ARM64_SHRN, 3, 2 }, // SHRN_asimdshf_N
-    { "sqdmull", 0xbf20fc00U, 0x0e20d000U, 929, Mnemonic::ARM64_SQDMULL, 3, 2 }, // SQDMULL_asimddiff_L
-    { "uhadd", 0xbf20fc00U, 0x2e200400U, 923, Mnemonic::ARM64_UHADD, 3, 0 }, // UHADD_asimdsame_only
-    { "addp", 0xbf20fc00U, 0x0e20bc00U, 923, Mnemonic::ARM64_ADDP, 3, 0 }, // ADDP_asimdsame_only
-    { "urshl", 0xbf20fc00U, 0x2e205400U, 923, Mnemonic::ARM64_URSHL, 3, 0 }, // URSHL_asimdsame_only
-    { "uqshl", 0xbf20fc00U, 0x2e204c00U, 923, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asimdsame_only
-    { "smull", 0xbf20fc00U, 0x0e20c000U, 929, Mnemonic::ARM64_SMULL, 3, 2 }, // SMULL_asimddiff_L
-    { "sqsub", 0xbf20fc00U, 0x0e202c00U, 923, Mnemonic::ARM64_SQSUB, 3, 0 }, // SQSUB_asimdsame_only
-    { "cmeq", 0xbf20fc00U, 0x2e208c00U, 923, Mnemonic::ARM64_CMEQ, 3, 0 }, // CMEQ_asimdsame_only
-    { "umin", 0xbf20fc00U, 0x2e206c00U, 923, Mnemonic::ARM64_UMIN, 3, 0 }, // UMIN_asimdsame_only
-    { "uzp1", 0xbf20fc00U, 0x0e001800U, 923, Mnemonic::ARM64_UZP1, 3, 0 }, // UZP1_asimdperm_only
-    { "ucvtf", 0xbf80fc00U, 0x2f00e400U, 958, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_asimdshf_C
-    { "fmlsl", 0xbfc0f400U, 0x0f804000U, 955, Mnemonic::ARM64_FMLSL, 3, 0 }, // FMLSL_asimdelem_LH
-    { "fmlsl2", 0xbfc0f400U, 0x2f80c000U, 955, Mnemonic::ARM64_FMLSL2, 3, 0 }, // FMLSL2_asimdelem_LH
-    { "sabal", 0xbf20fc00U, 0x0e205000U, 929, Mnemonic::ARM64_SABAL, 3, 2 }, // SABAL_asimddiff_L
-    { "fcvtzu", 0xbf80fc00U, 0x2f00fc00U, 958, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_asimdshf_C
-    { "usubw", 0xbf20fc00U, 0x2e203000U, 945, Mnemonic::ARM64_USUBW, 3, 2 }, // USUBW_asimddiff_W
-    { "sli", 0xbf80fc00U, 0x2f005400U, 926, Mnemonic::ARM64_SLI, 3, 0 }, // SLI_asimdshf_R
-    { "usra", 0xbf80fc00U, 0x2f001400U, 926, Mnemonic::ARM64_USRA, 3, 0 }, // USRA_asimdshf_R
-    { "saddl", 0xbf20fc00U, 0x0e200000U, 929, Mnemonic::ARM64_SADDL, 3, 2 }, // SADDL_asimddiff_L
-    { "fmul", 0xbfc0f400U, 0x0f009000U, 955, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdelem_RH_H
-    { "sri", 0xbf80fc00U, 0x2f004400U, 926, Mnemonic::ARM64_SRI, 3, 0 }, // SRI_asimdshf_R
-    { "sudot", 0xbfc0f400U, 0x0f00f000U, 948, Mnemonic::ARM64_SUDOT, 3, 0 }, // SUDOT_asimdelem_D
-    { "mvni", 0xbff80c00U, 0x2f000400U, 838, Mnemonic::ARM64_MVNI, 1, 0 }, // MVNI_asimdimm_L_hl
-    { "mvni", 0xbff80c00U, 0x2f000400U, 838, Mnemonic::ARM64_MVNI, 1, 0 }, // MVNI_asimdimm_L_sl
-    { "mvni", 0xbff80c00U, 0x2f000400U, 838, Mnemonic::ARM64_MVNI, 1, 0 }, // MVNI_asimdimm_M_sm
-    { "scvtf", 0xbf80fc00U, 0x0f00e400U, 958, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_asimdshf_C
-    { "sqshl", 0xbf20fc00U, 0x0e204c00U, 923, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asimdsame_only
-    { "fmulx", 0xbfc0f400U, 0x2f009000U, 955, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdelem_RH_H
-    { "ssra", 0xbf80fc00U, 0x0f001400U, 926, Mnemonic::ARM64_SSRA, 3, 0 }, // SSRA_asimdshf_R
-    { "umull", 0xbf20fc00U, 0x2e20c000U, 929, Mnemonic::ARM64_UMULL, 3, 2 }, // UMULL_asimddiff_L
-    { "sminp", 0xbf20fc00U, 0x0e20ac00U, 923, Mnemonic::ARM64_SMINP, 3, 0 }, // SMINP_asimdsame_only
-    { "smin", 0xbf20fc00U, 0x0e206c00U, 923, Mnemonic::ARM64_SMIN, 3, 0 }, // SMIN_asimdsame_only
-    { "add", 0xbf20fc00U, 0x0e208400U, 923, Mnemonic::ARM64_ADD, 3, 0 }, // ADD_asimdsame_only
-    { "uqrshl", 0xbf20fc00U, 0x2e205c00U, 923, Mnemonic::ARM64_UQRSHL, 3, 0 }, // UQRSHL_asimdsame_only
-    { "sqrdmlsh", 0xbf20fc00U, 0x2e008c00U, 923, Mnemonic::ARM64_SQRDMLSH, 3, 0 }, // SQRDMLSH_asimdsame2_only
-    { "srsra", 0xbf80fc00U, 0x0f003400U, 926, Mnemonic::ARM64_SRSRA, 3, 0 }, // SRSRA_asimdshf_R
-    { "srhadd", 0xbf20fc00U, 0x0e201400U, 923, Mnemonic::ARM64_SRHADD, 3, 0 }, // SRHADD_asimdsame_only
-    { "smaxp", 0xbf20fc00U, 0x0e20a400U, 923, Mnemonic::ARM64_SMAXP, 3, 0 }, // SMAXP_asimdsame_only
-    { "fmla", 0xbf80f400U, 0x0f801000U, 964, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdelem_R_SD
-    { "mov", 0xffe08400U, 0x6e000400U, 967, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_INS_asimdins_IV_v
-    { "fcadd", 0xbf20ec00U, 0x2e00e400U, 923, Mnemonic::ARM64_FCADD, 3, 0 }, // FCADD_asimdsame2_C
-    { "fmls", 0xbf80f400U, 0x0f805000U, 964, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdelem_R_SD
-    { "fmul", 0xbf80f400U, 0x0f809000U, 964, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdelem_R_SD
-    { "ins", 0xffe08400U, 0x6e000400U, 967, Mnemonic::ARM64_INS, 2, 0 }, // INS_asimdins_IV_v
-    { "fmulx", 0xbf80f400U, 0x2f809000U, 964, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdelem_R_SD
-    { "udot", 0xbf00f400U, 0x2f00e000U, 948, Mnemonic::ARM64_UDOT, 3, 0 }, // UDOT_asimdelem_D
-    { "mul", 0xbf00f400U, 0x0f008000U, 969, Mnemonic::ARM64_MUL, 4, 0 }, // MUL_asimdelem_R
-    { "sqdmulh", 0xbf00f400U, 0x0f00c000U, 969, Mnemonic::ARM64_SQDMULH, 4, 0 }, // SQDMULH_asimdelem_R
-    { "sqrdmlah", 0xbf00f400U, 0x2f00d000U, 969, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // SQRDMLAH_asimdelem_R
-    { "mls", 0xbf00f400U, 0x2f004000U, 969, Mnemonic::ARM64_MLS, 4, 0 }, // MLS_asimdelem_R
-    { "eor3", 0xffe08000U, 0xce000000U, 865, Mnemonic::ARM64_EOR3, 3, 0 }, // EOR3_VVV16_crypto4
-    { "smlal", 0xbf00f400U, 0x0f002000U, 973, Mnemonic::ARM64_SMLAL, 4, 2 }, // SMLAL_asimdelem_L
-    { "sqdmlal", 0xbf00f400U, 0x0f003000U, 973, Mnemonic::ARM64_SQDMLAL, 4, 2 }, // SQDMLAL_asimdelem_L
-    { "umlal", 0xbf00f400U, 0x2f002000U, 973, Mnemonic::ARM64_UMLAL, 4, 2 }, // UMLAL_asimdelem_L
-    { "mla", 0xbf00f400U, 0x2f000000U, 969, Mnemonic::ARM64_MLA, 4, 0 }, // MLA_asimdelem_R
-    { "ext", 0xbfe08400U, 0x2e000000U, 977, Mnemonic::ARM64_EXT, 4, 0 }, // EXT_asimdext_only
-    { "fcmla", 0xbf20e400U, 0x2e00c400U, 923, Mnemonic::ARM64_FCMLA, 3, 0 }, // FCMLA_asimdsame2_C
-    { "sdot", 0xbf00f400U, 0x0f00e000U, 948, Mnemonic::ARM64_SDOT, 3, 0 }, // SDOT_asimdelem_D
-    { "umull", 0xbf00f400U, 0x2f00a000U, 973, Mnemonic::ARM64_UMULL, 4, 2 }, // UMULL_asimdelem_L
-    { "sqrdmlsh", 0xbf00f400U, 0x2f00f000U, 969, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // SQRDMLSH_asimdelem_R
-    { "bcax", 0xffe08000U, 0xce200000U, 865, Mnemonic::ARM64_BCAX, 3, 0 }, // BCAX_VVV16_crypto4
-    { "sqdmull", 0xbf00f400U, 0x0f00b000U, 973, Mnemonic::ARM64_SQDMULL, 4, 2 }, // SQDMULL_asimdelem_L
-    { "smull", 0xbf00f400U, 0x0f00a000U, 973, Mnemonic::ARM64_SMULL, 4, 2 }, // SMULL_asimdelem_L
-    { "sm3ss1", 0xffe08000U, 0xce400000U, 865, Mnemonic::ARM64_SM3SS1, 3, 0 }, // SM3SS1_VVV4_crypto4
-    { "sqrdmulh", 0xbf00f400U, 0x0f00d000U, 969, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // SQRDMULH_asimdelem_R
-    { "umlsl", 0xbf00f400U, 0x2f006000U, 973, Mnemonic::ARM64_UMLSL, 4, 2 }, // UMLSL_asimdelem_L
-    { "smlsl", 0xbf00f400U, 0x0f006000U, 973, Mnemonic::ARM64_SMLSL, 4, 2 }, // SMLSL_asimdelem_L
-    { "sqdmlsl", 0xbf00f400U, 0x0f007000U, 973, Mnemonic::ARM64_SQDMLSL, 4, 2 }, // SQDMLSL_asimdelem_L
-    { "xar", 0xffe00000U, 0xce800000U, 981, Mnemonic::ARM64_XAR, 4, 0 }, // XAR_VVV2_crypto3_imm6
-    { "fcmla", 0xbf009400U, 0x2f001000U, 985, Mnemonic::ARM64_FCMLA, 3, 0 }, // FCMLA_advsimd_elt
+    { "smov", 0xffe0fc00U, 0x4e002c00U, 866, Mnemonic::ARM64_SMOV, 2, 0 }, // SMOV_asimdins_X_x
+    { "fmlalb", 0xffe0fc00U, 0x0ec0fc00U, 863, Mnemonic::ARM64_FMLALB, 3, 0 }, // FMLALB_asimdsame2_J
+    { "fmlalt", 0xffe0fc00U, 0x4ec0fc00U, 863, Mnemonic::ARM64_FMLALT, 3, 0 }, // FMLALT_asimdsame2_J
+    { "rax1", 0xffe0fc00U, 0xce608c00U, 863, Mnemonic::ARM64_RAX1, 3, 0 }, // RAX1_VVV2_cryptosha512_3
+    { "sm4ekey", 0xffe0fc00U, 0xce60c800U, 863, Mnemonic::ARM64_SM4EKEY, 3, 0 }, // SM4EKEY_VVV4_cryptosha512_3
+    { "sha512su1", 0xffe0fc00U, 0xce608800U, 863, Mnemonic::ARM64_SHA512SU1, 3, 0 }, // SHA512SU1_VVV2_cryptosha512_3
+    { "ummla", 0xffe0fc00U, 0x6e80a400U, 863, Mnemonic::ARM64_UMMLA, 3, 0 }, // UMMLA_asimdsame2_G
+    { "smmla", 0xffe0fc00U, 0x4e80a400U, 863, Mnemonic::ARM64_SMMLA, 3, 0 }, // SMMLA_asimdsame2_G
+    { "usmmla", 0xffe0fc00U, 0x4e80ac00U, 863, Mnemonic::ARM64_USMMLA, 3, 0 }, // USMMLA_asimdsame2_G
+    { "sm3partw1", 0xffe0fc00U, 0xce60c000U, 863, Mnemonic::ARM64_SM3PARTW1, 3, 0 }, // SM3PARTW1_VVV4_cryptosha512_3
+    { "bfmmla", 0xffe0fc00U, 0x6e40ec00U, 863, Mnemonic::ARM64_BFMMLA, 3, 0 }, // BFMMLA_asimdsame2_E
+    { "sha512h", 0xffe0fc00U, 0xce608000U, 868, Mnemonic::ARM64_SHA512H, 3, 0 }, // SHA512H_QQV_cryptosha512_3
+    { "fmlallbb", 0xffe0fc00U, 0x0e00c400U, 863, Mnemonic::ARM64_FMLALLBB, 3, 0 }, // FMLALLBB_asimdsame2_G
+    { "fmlallbt", 0xffe0fc00U, 0x0e40c400U, 863, Mnemonic::ARM64_FMLALLBT, 3, 0 }, // FMLALLBT_asimdsame2_G
+    { "fmlalltb", 0xffe0fc00U, 0x4e00c400U, 863, Mnemonic::ARM64_FMLALLTB, 3, 0 }, // FMLALLTB_asimdsame2_G
+    { "fmlalltt", 0xffe0fc00U, 0x4e40c400U, 863, Mnemonic::ARM64_FMLALLTT, 3, 0 }, // FMLALLTT_asimdsame2_G
+    { "ins", 0xffe0fc00U, 0x4e001c00U, 871, Mnemonic::ARM64_INS, 2, 0 }, // INS_asimdins_IR_r
+    { "mov", 0xffe0fc00U, 0x4e001c00U, 871, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_INS_asimdins_IR_r
+    { "sha512h2", 0xffe0fc00U, 0xce608400U, 868, Mnemonic::ARM64_SHA512H2, 3, 0 }, // SHA512H2_QQV_cryptosha512_3
+    { "fmlal", 0xbfe0fc00U, 0x0e20ec00U, 873, Mnemonic::ARM64_FMLAL, 3, 0 }, // FMLAL_asimdsame_F
+    { "fmlal2", 0xbfe0fc00U, 0x2e20cc00U, 873, Mnemonic::ARM64_FMLAL2, 3, 0 }, // FMLAL2_asimdsame_F
+    { "faddp", 0xbfe0fc00U, 0x2e401400U, 873, Mnemonic::ARM64_FADDP, 3, 0 }, // FADDP_asimdsamefp16_only
+    { "facge", 0xbfe0fc00U, 0x2e402c00U, 873, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asimdsamefp16_only
+    { "fcmeq", 0xbfe0fc00U, 0x0e402400U, 873, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asimdsamefp16_only
+    { "frsqrts", 0xbfe0fc00U, 0x0ec03c00U, 873, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asimdsamefp16_only
+    { "famin", 0xbfe0fc00U, 0x2ec01c00U, 873, Mnemonic::ARM64_FAMIN, 3, 0 }, // FAMIN_asimdsamefp16_only
+    { "mov", 0xbfe0fc00U, 0x0ea01c00U, 834, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ORR_asimdsame_only
+    { "bfdot", 0xbfe0fc00U, 0x2e40fc00U, 873, Mnemonic::ARM64_BFDOT, 3, 0 }, // BFDOT_asimdsame2_D
+    { "fmin", 0xbfe0fc00U, 0x0ec03400U, 873, Mnemonic::ARM64_FMIN, 3, 0 }, // FMIN_asimdsamefp16_only
+    { "bic", 0xbfe0fc00U, 0x0e601c00U, 873, Mnemonic::ARM64_BIC, 3, 0 }, // BIC_asimdsame_only
+    { "fcvtn", 0xbfe0fc00U, 0x0e00f400U, 876, Mnemonic::ARM64_FCVTN, 3, 2 }, // FCVTN_asimdsame2_H
+    { "fmaxp", 0xbfe0fc00U, 0x2e403400U, 873, Mnemonic::ARM64_FMAXP, 3, 0 }, // FMAXP_asimdsamefp16_only
+    { "fsub", 0xbfe0fc00U, 0x0ec01400U, 873, Mnemonic::ARM64_FSUB, 3, 0 }, // FSUB_asimdsamefp16_only
+    { "orn", 0xbfe0fc00U, 0x0ee01c00U, 873, Mnemonic::ARM64_ORN, 3, 0 }, // ORN_asimdsame_only
+    { "orr", 0xbfe0fc00U, 0x0ea01c00U, 873, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_asimdsame_only
+    { "fminnmp", 0xbfe0fc00U, 0x2ec00400U, 873, Mnemonic::ARM64_FMINNMP, 3, 0 }, // FMINNMP_asimdsamefp16_only
+    { "tbl", 0xbfe0fc00U, 0x0e000000U, 879, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L1_1
+    { "tbl", 0xbfe0fc00U, 0x0e002000U, 882, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L2_2
+    { "tbl", 0xbfe0fc00U, 0x0e004000U, 885, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L3_3
+    { "tbl", 0xbfe0fc00U, 0x0e006000U, 888, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L4_4
+    { "fcmgt", 0xbfe0fc00U, 0x2ec02400U, 873, Mnemonic::ARM64_FCMGT, 3, 0 }, // FCMGT_asimdsamefp16_only
+    { "fminp", 0xbfe0fc00U, 0x2ec03400U, 873, Mnemonic::ARM64_FMINP, 3, 0 }, // FMINP_asimdsamefp16_only
+    { "bif", 0xbfe0fc00U, 0x2ee01c00U, 873, Mnemonic::ARM64_BIF, 3, 0 }, // BIF_asimdsame_only
+    { "and", 0xbfe0fc00U, 0x0e201c00U, 873, Mnemonic::ARM64_AND, 3, 0 }, // AND_asimdsame_only
+    { "fdiv", 0xbfe0fc00U, 0x2e403c00U, 873, Mnemonic::ARM64_FDIV, 3, 0 }, // FDIV_asimdsamefp16_only
+    { "fmulx", 0xbfe0fc00U, 0x0e401c00U, 873, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdsamefp16_only
+    { "fadd", 0xbfe0fc00U, 0x0e401400U, 873, Mnemonic::ARM64_FADD, 3, 0 }, // FADD_asimdsamefp16_only
+    { "fmul", 0xbfe0fc00U, 0x2e401c00U, 873, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdsamefp16_only
+    { "fminnm", 0xbfe0fc00U, 0x0ec00400U, 873, Mnemonic::ARM64_FMINNM, 3, 0 }, // FMINNM_asimdsamefp16_only
+    { "famax", 0xbfe0fc00U, 0x0ec01c00U, 873, Mnemonic::ARM64_FAMAX, 3, 0 }, // FAMAX_asimdsamefp16_only
+    { "fabd", 0xbfe0fc00U, 0x2ec01400U, 873, Mnemonic::ARM64_FABD, 3, 0 }, // FABD_asimdsamefp16_only
+    { "fmlsl", 0xbfe0fc00U, 0x0ea0ec00U, 873, Mnemonic::ARM64_FMLSL, 3, 0 }, // FMLSL_asimdsame_F
+    { "fmlsl2", 0xbfe0fc00U, 0x2ea0cc00U, 873, Mnemonic::ARM64_FMLSL2, 3, 0 }, // FMLSL2_asimdsame_F
+    { "dup", 0xbfe0fc00U, 0x0e000400U, 891, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asimdins_DV_v
+    { "fmax", 0xbfe0fc00U, 0x0e403400U, 873, Mnemonic::ARM64_FMAX, 3, 0 }, // FMAX_asimdsamefp16_only
+    { "fscale", 0xbfe0fc00U, 0x2ec03c00U, 873, Mnemonic::ARM64_FSCALE, 3, 0 }, // FSCALE_asimdsamefp16_only
+    { "eor", 0xbfe0fc00U, 0x2e201c00U, 873, Mnemonic::ARM64_EOR, 3, 0 }, // EOR_asimdsame_only
+    { "fcvtn", 0xbfe0fc00U, 0x0e40f400U, 873, Mnemonic::ARM64_FCVTN, 3, 0 }, // FCVTN_asimdsame2_D
+    { "fmaxnm", 0xbfe0fc00U, 0x0e400400U, 873, Mnemonic::ARM64_FMAXNM, 3, 0 }, // FMAXNM_asimdsamefp16_only
+    { "tbx", 0xbfe0fc00U, 0x0e001000U, 879, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L1_1
+    { "tbx", 0xbfe0fc00U, 0x0e003000U, 882, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L2_2
+    { "tbx", 0xbfe0fc00U, 0x0e005000U, 885, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L3_3
+    { "tbx", 0xbfe0fc00U, 0x0e007000U, 888, Mnemonic::ARM64_TBX, 3, 0 }, // TBX_asimdtbl_L4_4
+    { "fmls", 0xbfe0fc00U, 0x0ec00c00U, 873, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdsamefp16_only
+    { "fdot", 0xbfe0fc00U, 0x0e40fc00U, 873, Mnemonic::ARM64_FDOT, 3, 0 }, // FDOT_asimdsame2_D
+    { "bfmlal", 0xbfe0fc00U, 0x2ec0fc00U, 893, Mnemonic::ARM64_BFMLAL, 4, 0 }, // BFMLAL_asimdsame2_F_
+    { "usdot", 0xbfe0fc00U, 0x0e809c00U, 873, Mnemonic::ARM64_USDOT, 3, 0 }, // USDOT_asimdsame2_D
+    { "fdot", 0xbfe0fc00U, 0x0e00fc00U, 873, Mnemonic::ARM64_FDOT, 3, 0 }, // FDOT_asimdsame2_DD
+    { "bit", 0xbfe0fc00U, 0x2ea01c00U, 873, Mnemonic::ARM64_BIT, 3, 0 }, // BIT_asimdsame_only
+    { "fmaxnmp", 0xbfe0fc00U, 0x2e400400U, 873, Mnemonic::ARM64_FMAXNMP, 3, 0 }, // FMAXNMP_asimdsamefp16_only
+    { "facgt", 0xbfe0fc00U, 0x2ec02c00U, 873, Mnemonic::ARM64_FACGT, 3, 0 }, // FACGT_asimdsamefp16_only
+    { "frecps", 0xbfe0fc00U, 0x0e403c00U, 873, Mnemonic::ARM64_FRECPS, 3, 0 }, // FRECPS_asimdsamefp16_only
+    { "bsl", 0xbfe0fc00U, 0x2e601c00U, 873, Mnemonic::ARM64_BSL, 3, 0 }, // BSL_asimdsame_only
+    { "fmla", 0xbfe0fc00U, 0x0e400c00U, 873, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdsamefp16_only
+    { "fcmge", 0xbfe0fc00U, 0x2e402400U, 873, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asimdsamefp16_only
+    { "dup", 0xbfe0fc00U, 0x0e000c00U, 897, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asimdins_DR_r
+    { "faddp", 0xbfa0fc00U, 0x2e20d400U, 899, Mnemonic::ARM64_FADDP, 3, 0 }, // FADDP_asimdsame_only
+    { "sm3tt2b", 0xffe0cc00U, 0xce408c00U, 902, Mnemonic::ARM64_SM3TT2B, 2, 0 }, // SM3TT2B_VVV_crypto3_imm2
+    { "facge", 0xbfa0fc00U, 0x2e20ec00U, 899, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asimdsame_only
+    { "fcmeq", 0xbfa0fc00U, 0x0e20e400U, 899, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asimdsame_only
+    { "frsqrts", 0xbfa0fc00U, 0x0ea0fc00U, 899, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asimdsame_only
+    { "orr", 0xbff81c00U, 0x0f001400U, 834, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_hl
+    { "orr", 0xbff81c00U, 0x0f001400U, 834, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_sl
+    { "famin", 0xbfa0fc00U, 0x2ea0dc00U, 904, Mnemonic::ARM64_FAMIN, 3, 0 }, // FAMIN_asimdsame_only
+    { "fmlallbb", 0xffc0f400U, 0x2f008000U, 907, Mnemonic::ARM64_FMLALLBB, 2, 0 }, // FMLALLBB_asimdelem_J
+    { "fmlallbt", 0xffc0f400U, 0x2f408000U, 907, Mnemonic::ARM64_FMLALLBT, 2, 0 }, // FMLALLBT_asimdelem_J
+    { "fmlalltb", 0xffc0f400U, 0x6f008000U, 907, Mnemonic::ARM64_FMLALLTB, 2, 0 }, // FMLALLTB_asimdelem_J
+    { "fmlalltt", 0xffc0f400U, 0x6f408000U, 907, Mnemonic::ARM64_FMLALLTT, 2, 0 }, // FMLALLTT_asimdelem_J
+    { "luti2", 0xffe09c00U, 0x4e801000U, 909, Mnemonic::ARM64_LUTI2, 4, 0 }, // LUTI2_asimdtbl_L5
+    { "fmin", 0xbfa0fc00U, 0x0ea0f400U, 899, Mnemonic::ARM64_FMIN, 3, 0 }, // FMIN_asimdsame_only
+    { "fmaxp", 0xbfa0fc00U, 0x2e20f400U, 899, Mnemonic::ARM64_FMAXP, 3, 0 }, // FMAXP_asimdsame_only
+    { "fsub", 0xbfa0fc00U, 0x0ea0d400U, 899, Mnemonic::ARM64_FSUB, 3, 0 }, // FSUB_asimdsame_only
+    { "fminnmp", 0xbfa0fc00U, 0x2ea0c400U, 899, Mnemonic::ARM64_FMINNMP, 3, 0 }, // FMINNMP_asimdsame_only
+    { "bic", 0xbff81c00U, 0x2f001400U, 834, Mnemonic::ARM64_BIC, 1, 0 }, // BIC_asimdimm_L_hl
+    { "bic", 0xbff81c00U, 0x2f001400U, 834, Mnemonic::ARM64_BIC, 1, 0 }, // BIC_asimdimm_L_sl
+    { "fcmgt", 0xbfa0fc00U, 0x2ea0e400U, 899, Mnemonic::ARM64_FCMGT, 3, 0 }, // FCMGT_asimdsame_only
+    { "fminp", 0xbfa0fc00U, 0x2ea0f400U, 899, Mnemonic::ARM64_FMINP, 3, 0 }, // FMINP_asimdsame_only
+    { "sm3tt2a", 0xffe0cc00U, 0xce408800U, 902, Mnemonic::ARM64_SM3TT2A, 2, 0 }, // SM3TT2A_VVV4_crypto3_imm2
+    { "luti4", 0xffe09c00U, 0x4e400000U, 913, Mnemonic::ARM64_LUTI4, 4, 0 }, // LUTI4_asimdtbl_L5
+    { "luti4", 0xffe09c00U, 0x4e401000U, 917, Mnemonic::ARM64_LUTI4, 4, 0 }, // LUTI4_asimdtbl_L7
+    { "fdiv", 0xbfa0fc00U, 0x2e20fc00U, 899, Mnemonic::ARM64_FDIV, 3, 0 }, // FDIV_asimdsame_only
+    { "fmulx", 0xbfa0fc00U, 0x0e20dc00U, 899, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdsame_only
+    { "fadd", 0xbfa0fc00U, 0x0e20d400U, 899, Mnemonic::ARM64_FADD, 3, 0 }, // FADD_asimdsame_only
+    { "fmul", 0xbfa0fc00U, 0x2e20dc00U, 899, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdsame_only
+    { "fminnm", 0xbfa0fc00U, 0x0ea0c400U, 899, Mnemonic::ARM64_FMINNM, 3, 0 }, // FMINNM_asimdsame_only
+    { "famax", 0xbfa0fc00U, 0x0ea0dc00U, 904, Mnemonic::ARM64_FAMAX, 3, 0 }, // FAMAX_asimdsame_only
+    { "fabd", 0xbfa0fc00U, 0x2ea0d400U, 899, Mnemonic::ARM64_FABD, 3, 0 }, // FABD_asimdsame_only
+    { "fmax", 0xbfa0fc00U, 0x0e20f400U, 899, Mnemonic::ARM64_FMAX, 3, 0 }, // FMAX_asimdsame_only
+    { "fscale", 0xbfa0fc00U, 0x2ea0fc00U, 904, Mnemonic::ARM64_FSCALE, 3, 0 }, // FSCALE_asimdsame_only
+    { "sm3tt1a", 0xffe0cc00U, 0xce408000U, 902, Mnemonic::ARM64_SM3TT1A, 2, 0 }, // SM3TT1A_VVV4_crypto3_imm2
+    { "fmaxnm", 0xbfa0fc00U, 0x0e20c400U, 899, Mnemonic::ARM64_FMAXNM, 3, 0 }, // FMAXNM_asimdsame_only
+    { "fmls", 0xbfa0fc00U, 0x0ea0cc00U, 899, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdsame_only
+    { "sm3tt1b", 0xffe0cc00U, 0xce408400U, 902, Mnemonic::ARM64_SM3TT1B, 2, 0 }, // SM3TT1B_VVV4_crypto3_imm2
+    { "fmaxnmp", 0xbfa0fc00U, 0x2e20c400U, 899, Mnemonic::ARM64_FMAXNMP, 3, 0 }, // FMAXNMP_asimdsame_only
+    { "facgt", 0xbfa0fc00U, 0x2ea0ec00U, 899, Mnemonic::ARM64_FACGT, 3, 0 }, // FACGT_asimdsame_only
+    { "frecps", 0xbfa0fc00U, 0x0e20fc00U, 899, Mnemonic::ARM64_FRECPS, 3, 0 }, // FRECPS_asimdsame_only
+    { "fmlalb", 0xffc0f400U, 0x0fc00000U, 907, Mnemonic::ARM64_FMLALB, 2, 0 }, // FMLALB_asimdelem_H
+    { "fmlalt", 0xffc0f400U, 0x4fc00000U, 907, Mnemonic::ARM64_FMLALT, 2, 0 }, // FMLALT_asimdelem_H
+    { "fmla", 0xbfa0fc00U, 0x0e20cc00U, 899, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdsame_only
+    { "fcmge", 0xbfa0fc00U, 0x2e20e400U, 899, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asimdsame_only
+    { "zip1", 0xbf20fc00U, 0x0e003800U, 921, Mnemonic::ARM64_ZIP1, 3, 0 }, // ZIP1_asimdperm_only
+    { "ushr", 0xbf80fc00U, 0x2f000400U, 924, Mnemonic::ARM64_USHR, 3, 0 }, // USHR_asimdshf_R
+    { "sqadd", 0xbf20fc00U, 0x0e200c00U, 921, Mnemonic::ARM64_SQADD, 3, 0 }, // SQADD_asimdsame_only
+    { "mla", 0xbf20fc00U, 0x0e209400U, 921, Mnemonic::ARM64_MLA, 3, 0 }, // MLA_asimdsame_only
+    { "ssubl", 0xbf20fc00U, 0x0e202000U, 927, Mnemonic::ARM64_SSUBL, 3, 2 }, // SSUBL_asimddiff_L
+    { "sqshrun", 0xbf80fc00U, 0x2f008400U, 930, Mnemonic::ARM64_SQSHRUN, 3, 2 }, // SQSHRUN_asimdshf_N
+    { "sdot", 0xbf20fc00U, 0x0e009400U, 873, Mnemonic::ARM64_SDOT, 3, 0 }, // SDOT_asimdsame2_D
+    { "sqrshrn", 0xbf80fc00U, 0x0f009c00U, 930, Mnemonic::ARM64_SQRSHRN, 3, 2 }, // SQRSHRN_asimdshf_N
+    { "sshll", 0xbf80fc00U, 0x0f00a400U, 933, Mnemonic::ARM64_SSHLL, 3, 2 }, // SSHLL_asimdshf_L
+    { "trn2", 0xbf20fc00U, 0x0e006800U, 921, Mnemonic::ARM64_TRN2, 3, 0 }, // TRN2_asimdperm_only
+    { "uhsub", 0xbf20fc00U, 0x2e202400U, 921, Mnemonic::ARM64_UHSUB, 3, 0 }, // UHSUB_asimdsame_only
+    { "umlal", 0xbf20fc00U, 0x2e208000U, 927, Mnemonic::ARM64_UMLAL, 3, 2 }, // UMLAL_asimddiff_L
+    { "rsubhn", 0xbf20fc00U, 0x2e206000U, 936, Mnemonic::ARM64_RSUBHN, 3, 2 }, // RSUBHN_asimddiff_N
+    { "smlal", 0xbf20fc00U, 0x0e208000U, 927, Mnemonic::ARM64_SMLAL, 3, 2 }, // SMLAL_asimddiff_L
+    { "shl", 0xbf80fc00U, 0x0f005400U, 924, Mnemonic::ARM64_SHL, 3, 0 }, // SHL_asimdshf_R
+    { "srshr", 0xbf80fc00U, 0x0f002400U, 924, Mnemonic::ARM64_SRSHR, 3, 0 }, // SRSHR_asimdshf_R
+    { "addhn", 0xbf20fc00U, 0x0e204000U, 936, Mnemonic::ARM64_ADDHN, 3, 2 }, // ADDHN_asimddiff_N
+    { "sshr", 0xbf80fc00U, 0x0f000400U, 924, Mnemonic::ARM64_SSHR, 3, 0 }, // SSHR_asimdshf_R
+    { "sqdmlal", 0xbf20fc00U, 0x0e209000U, 927, Mnemonic::ARM64_SQDMLAL, 3, 2 }, // SQDMLAL_asimddiff_L
+    { "luti2", 0xffe08c00U, 0x4ec00000U, 939, Mnemonic::ARM64_LUTI2, 4, 0 }, // LUTI2_asimdtbl_L6
+    { "sub", 0xbf20fc00U, 0x2e208400U, 921, Mnemonic::ARM64_SUB, 3, 0 }, // SUB_asimdsame_only
+    { "sabdl", 0xbf20fc00U, 0x0e207000U, 927, Mnemonic::ARM64_SABDL, 3, 2 }, // SABDL_asimddiff_L
+    { "mls", 0xbf20fc00U, 0x2e209400U, 921, Mnemonic::ARM64_MLS, 3, 0 }, // MLS_asimdsame_only
+    { "cmge", 0xbf20fc00U, 0x0e203c00U, 921, Mnemonic::ARM64_CMGE, 3, 0 }, // CMGE_asimdsame_only
+    { "sqshrn", 0xbf80fc00U, 0x0f009400U, 930, Mnemonic::ARM64_SQSHRN, 3, 2 }, // SQSHRN_asimdshf_N
+    { "uaddw", 0xbf20fc00U, 0x2e201000U, 943, Mnemonic::ARM64_UADDW, 3, 2 }, // UADDW_asimddiff_W
+    { "uabd", 0xbf20fc00U, 0x2e207400U, 921, Mnemonic::ARM64_UABD, 3, 0 }, // UABD_asimdsame_only
+    { "bfdot", 0xbfc0f400U, 0x0f40f000U, 946, Mnemonic::ARM64_BFDOT, 3, 0 }, // BFDOT_asimdelem_E
+    { "movi", 0xbff80c00U, 0x0f000400U, 834, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_L_hl
+    { "movi", 0xbff80c00U, 0x0f000400U, 834, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_L_sl
+    { "movi", 0xbff80c00U, 0x0f000400U, 834, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_M_sm
+    { "shsub", 0xbf20fc00U, 0x0e202400U, 921, Mnemonic::ARM64_SHSUB, 3, 0 }, // SHSUB_asimdsame_only
+    { "sqdmulh", 0xbf20fc00U, 0x0e20b400U, 921, Mnemonic::ARM64_SQDMULH, 3, 0 }, // SQDMULH_asimdsame_only
+    { "ushll", 0xbf80fc00U, 0x2f00a400U, 933, Mnemonic::ARM64_USHLL, 3, 2 }, // USHLL_asimdshf_L
+    { "subhn", 0xbf20fc00U, 0x0e206000U, 936, Mnemonic::ARM64_SUBHN, 3, 2 }, // SUBHN_asimddiff_N
+    { "umax", 0xbf20fc00U, 0x2e206400U, 921, Mnemonic::ARM64_UMAX, 3, 0 }, // UMAX_asimdsame_only
+    { "urhadd", 0xbf20fc00U, 0x2e201400U, 921, Mnemonic::ARM64_URHADD, 3, 0 }, // URHADD_asimdsame_only
+    { "usubl", 0xbf20fc00U, 0x2e202000U, 927, Mnemonic::ARM64_USUBL, 3, 2 }, // USUBL_asimddiff_L
+    { "saba", 0xbf20fc00U, 0x0e207c00U, 921, Mnemonic::ARM64_SABA, 3, 0 }, // SABA_asimdsame_only
+    { "uqadd", 0xbf20fc00U, 0x2e200c00U, 921, Mnemonic::ARM64_UQADD, 3, 0 }, // UQADD_asimdsame_only
+    { "sqrshl", 0xbf20fc00U, 0x0e205c00U, 921, Mnemonic::ARM64_SQRSHL, 3, 0 }, // SQRSHL_asimdsame_only
+    { "sqrdmlah", 0xbf20fc00U, 0x2e008400U, 921, Mnemonic::ARM64_SQRDMLAH, 3, 0 }, // SQRDMLAH_asimdsame2_only
+    { "saddw", 0xbf20fc00U, 0x0e201000U, 943, Mnemonic::ARM64_SADDW, 3, 2 }, // SADDW_asimddiff_W
+    { "mul", 0xbf20fc00U, 0x0e209c00U, 921, Mnemonic::ARM64_MUL, 3, 0 }, // MUL_asimdsame_only
+    { "uabdl", 0xbf20fc00U, 0x2e207000U, 927, Mnemonic::ARM64_UABDL, 3, 2 }, // UABDL_asimddiff_L
+    { "sabd", 0xbf20fc00U, 0x0e207400U, 921, Mnemonic::ARM64_SABD, 3, 0 }, // SABD_asimdsame_only
+    { "raddhn", 0xbf20fc00U, 0x2e204000U, 936, Mnemonic::ARM64_RADDHN, 3, 2 }, // RADDHN_asimddiff_N
+    { "fdot", 0xbfc0f400U, 0x0f400000U, 949, Mnemonic::ARM64_FDOT, 4, 0 }, // FDOT_asimdelem_G
+    { "trn1", 0xbf20fc00U, 0x0e002800U, 921, Mnemonic::ARM64_TRN1, 3, 0 }, // TRN1_asimdperm_only
+    { "fmlal", 0xbfc0f400U, 0x0f800000U, 953, Mnemonic::ARM64_FMLAL, 3, 0 }, // FMLAL_asimdelem_LH
+    { "fmlal2", 0xbfc0f400U, 0x2f808000U, 953, Mnemonic::ARM64_FMLAL2, 3, 0 }, // FMLAL2_asimdelem_LH
+    { "uaba", 0xbf20fc00U, 0x2e207c00U, 921, Mnemonic::ARM64_UABA, 3, 0 }, // UABA_asimdsame_only
+    { "uqrshrn", 0xbf80fc00U, 0x2f009c00U, 930, Mnemonic::ARM64_UQRSHRN, 3, 2 }, // UQRSHRN_asimdshf_N
+    { "urshr", 0xbf80fc00U, 0x2f002400U, 924, Mnemonic::ARM64_URSHR, 3, 0 }, // URSHR_asimdshf_R
+    { "udot", 0xbf20fc00U, 0x2e009400U, 873, Mnemonic::ARM64_UDOT, 3, 0 }, // UDOT_asimdsame2_D
+    { "zip2", 0xbf20fc00U, 0x0e007800U, 921, Mnemonic::ARM64_ZIP2, 3, 0 }, // ZIP2_asimdperm_only
+    { "smax", 0xbf20fc00U, 0x0e206400U, 921, Mnemonic::ARM64_SMAX, 3, 0 }, // SMAX_asimdsame_only
+    { "fmla", 0xbfc0f400U, 0x0f001000U, 953, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdelem_RH_H
+    { "smlsl", 0xbf20fc00U, 0x0e20a000U, 927, Mnemonic::ARM64_SMLSL, 3, 2 }, // SMLSL_asimddiff_L
+    { "ssubw", 0xbf20fc00U, 0x0e203000U, 943, Mnemonic::ARM64_SSUBW, 3, 2 }, // SSUBW_asimddiff_W
+    { "sqshlu", 0xbf80fc00U, 0x2f006400U, 924, Mnemonic::ARM64_SQSHLU, 3, 0 }, // SQSHLU_asimdshf_R
+    { "fcvtzs", 0xbf80fc00U, 0x0f00fc00U, 956, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_asimdshf_C
+    { "sqdmlsl", 0xbf20fc00U, 0x0e20b000U, 927, Mnemonic::ARM64_SQDMLSL, 3, 2 }, // SQDMLSL_asimddiff_L
+    { "cmhi", 0xbf20fc00U, 0x2e203400U, 921, Mnemonic::ARM64_CMHI, 3, 0 }, // CMHI_asimdsame_only
+    { "uabal", 0xbf20fc00U, 0x2e205000U, 927, Mnemonic::ARM64_UABAL, 3, 2 }, // UABAL_asimddiff_L
+    { "srshl", 0xbf20fc00U, 0x0e205400U, 921, Mnemonic::ARM64_SRSHL, 3, 0 }, // SRSHL_asimdsame_only
+    { "rshrn", 0xbf80fc00U, 0x0f008c00U, 930, Mnemonic::ARM64_RSHRN, 3, 2 }, // RSHRN_asimdshf_N
+    { "uqsub", 0xbf20fc00U, 0x2e202c00U, 921, Mnemonic::ARM64_UQSUB, 3, 0 }, // UQSUB_asimdsame_only
+    { "pmull", 0xbf20fc00U, 0x0e20e000U, 927, Mnemonic::ARM64_PMULL, 3, 2 }, // PMULL_asimddiff_L
+    { "uqshl", 0xbf80fc00U, 0x2f007400U, 924, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asimdshf_R
+    { "sshl", 0xbf20fc00U, 0x0e204400U, 921, Mnemonic::ARM64_SSHL, 3, 0 }, // SSHL_asimdsame_only
+    { "shadd", 0xbf20fc00U, 0x0e200400U, 921, Mnemonic::ARM64_SHADD, 3, 0 }, // SHADD_asimdsame_only
+    { "uqshrn", 0xbf80fc00U, 0x2f009400U, 930, Mnemonic::ARM64_UQSHRN, 3, 2 }, // UQSHRN_asimdshf_N
+    { "uminp", 0xbf20fc00U, 0x2e20ac00U, 921, Mnemonic::ARM64_UMINP, 3, 0 }, // UMINP_asimdsame_only
+    { "usdot", 0xbfc0f400U, 0x0f80f000U, 946, Mnemonic::ARM64_USDOT, 3, 0 }, // USDOT_asimdelem_D
+    { "cmgt", 0xbf20fc00U, 0x0e203400U, 921, Mnemonic::ARM64_CMGT, 3, 0 }, // CMGT_asimdsame_only
+    { "umaxp", 0xbf20fc00U, 0x2e20a400U, 921, Mnemonic::ARM64_UMAXP, 3, 0 }, // UMAXP_asimdsame_only
+    { "ursra", 0xbf80fc00U, 0x2f003400U, 924, Mnemonic::ARM64_URSRA, 3, 0 }, // URSRA_asimdshf_R
+    { "pmul", 0xbf20fc00U, 0x2e209c00U, 921, Mnemonic::ARM64_PMUL, 3, 0 }, // PMUL_asimdsame_only
+    { "fdot", 0xbfc0f400U, 0x0f000000U, 946, Mnemonic::ARM64_FDOT, 3, 0 }, // FDOT_asimdelem_D
+    { "sqshl", 0xbf80fc00U, 0x0f007400U, 924, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asimdshf_R
+    { "uzp2", 0xbf20fc00U, 0x0e005800U, 921, Mnemonic::ARM64_UZP2, 3, 0 }, // UZP2_asimdperm_only
+    { "ushl", 0xbf20fc00U, 0x2e204400U, 921, Mnemonic::ARM64_USHL, 3, 0 }, // USHL_asimdsame_only
+    { "fmls", 0xbfc0f400U, 0x0f005000U, 953, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdelem_RH_H
+    { "sqrshrun", 0xbf80fc00U, 0x2f008c00U, 930, Mnemonic::ARM64_SQRSHRUN, 3, 2 }, // SQRSHRUN_asimdshf_N
+    { "cmhs", 0xbf20fc00U, 0x2e203c00U, 921, Mnemonic::ARM64_CMHS, 3, 0 }, // CMHS_asimdsame_only
+    { "sqrdmulh", 0xbf20fc00U, 0x2e20b400U, 921, Mnemonic::ARM64_SQRDMULH, 3, 0 }, // SQRDMULH_asimdsame_only
+    { "bfmlal", 0xbfc0f400U, 0x0fc0f000U, 959, Mnemonic::ARM64_BFMLAL, 3, 0 }, // BFMLAL_asimdelem_F
+    { "umlsl", 0xbf20fc00U, 0x2e20a000U, 927, Mnemonic::ARM64_UMLSL, 3, 2 }, // UMLSL_asimddiff_L
+    { "uaddl", 0xbf20fc00U, 0x2e200000U, 927, Mnemonic::ARM64_UADDL, 3, 2 }, // UADDL_asimddiff_L
+    { "cmtst", 0xbf20fc00U, 0x0e208c00U, 921, Mnemonic::ARM64_CMTST, 3, 0 }, // CMTST_asimdsame_only
+    { "shrn", 0xbf80fc00U, 0x0f008400U, 930, Mnemonic::ARM64_SHRN, 3, 2 }, // SHRN_asimdshf_N
+    { "sqdmull", 0xbf20fc00U, 0x0e20d000U, 927, Mnemonic::ARM64_SQDMULL, 3, 2 }, // SQDMULL_asimddiff_L
+    { "uhadd", 0xbf20fc00U, 0x2e200400U, 921, Mnemonic::ARM64_UHADD, 3, 0 }, // UHADD_asimdsame_only
+    { "addp", 0xbf20fc00U, 0x0e20bc00U, 921, Mnemonic::ARM64_ADDP, 3, 0 }, // ADDP_asimdsame_only
+    { "urshl", 0xbf20fc00U, 0x2e205400U, 921, Mnemonic::ARM64_URSHL, 3, 0 }, // URSHL_asimdsame_only
+    { "uqshl", 0xbf20fc00U, 0x2e204c00U, 921, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asimdsame_only
+    { "smull", 0xbf20fc00U, 0x0e20c000U, 927, Mnemonic::ARM64_SMULL, 3, 2 }, // SMULL_asimddiff_L
+    { "sqsub", 0xbf20fc00U, 0x0e202c00U, 921, Mnemonic::ARM64_SQSUB, 3, 0 }, // SQSUB_asimdsame_only
+    { "cmeq", 0xbf20fc00U, 0x2e208c00U, 921, Mnemonic::ARM64_CMEQ, 3, 0 }, // CMEQ_asimdsame_only
+    { "umin", 0xbf20fc00U, 0x2e206c00U, 921, Mnemonic::ARM64_UMIN, 3, 0 }, // UMIN_asimdsame_only
+    { "uzp1", 0xbf20fc00U, 0x0e001800U, 921, Mnemonic::ARM64_UZP1, 3, 0 }, // UZP1_asimdperm_only
+    { "ucvtf", 0xbf80fc00U, 0x2f00e400U, 956, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_asimdshf_C
+    { "fmlsl", 0xbfc0f400U, 0x0f804000U, 953, Mnemonic::ARM64_FMLSL, 3, 0 }, // FMLSL_asimdelem_LH
+    { "fmlsl2", 0xbfc0f400U, 0x2f80c000U, 953, Mnemonic::ARM64_FMLSL2, 3, 0 }, // FMLSL2_asimdelem_LH
+    { "sabal", 0xbf20fc00U, 0x0e205000U, 927, Mnemonic::ARM64_SABAL, 3, 2 }, // SABAL_asimddiff_L
+    { "fcvtzu", 0xbf80fc00U, 0x2f00fc00U, 956, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_asimdshf_C
+    { "usubw", 0xbf20fc00U, 0x2e203000U, 943, Mnemonic::ARM64_USUBW, 3, 2 }, // USUBW_asimddiff_W
+    { "sli", 0xbf80fc00U, 0x2f005400U, 924, Mnemonic::ARM64_SLI, 3, 0 }, // SLI_asimdshf_R
+    { "usra", 0xbf80fc00U, 0x2f001400U, 924, Mnemonic::ARM64_USRA, 3, 0 }, // USRA_asimdshf_R
+    { "saddl", 0xbf20fc00U, 0x0e200000U, 927, Mnemonic::ARM64_SADDL, 3, 2 }, // SADDL_asimddiff_L
+    { "fmul", 0xbfc0f400U, 0x0f009000U, 953, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdelem_RH_H
+    { "sri", 0xbf80fc00U, 0x2f004400U, 924, Mnemonic::ARM64_SRI, 3, 0 }, // SRI_asimdshf_R
+    { "sudot", 0xbfc0f400U, 0x0f00f000U, 946, Mnemonic::ARM64_SUDOT, 3, 0 }, // SUDOT_asimdelem_D
+    { "mvni", 0xbff80c00U, 0x2f000400U, 834, Mnemonic::ARM64_MVNI, 1, 0 }, // MVNI_asimdimm_L_hl
+    { "mvni", 0xbff80c00U, 0x2f000400U, 834, Mnemonic::ARM64_MVNI, 1, 0 }, // MVNI_asimdimm_L_sl
+    { "mvni", 0xbff80c00U, 0x2f000400U, 834, Mnemonic::ARM64_MVNI, 1, 0 }, // MVNI_asimdimm_M_sm
+    { "scvtf", 0xbf80fc00U, 0x0f00e400U, 956, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_asimdshf_C
+    { "sqshl", 0xbf20fc00U, 0x0e204c00U, 921, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asimdsame_only
+    { "fmulx", 0xbfc0f400U, 0x2f009000U, 953, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdelem_RH_H
+    { "ssra", 0xbf80fc00U, 0x0f001400U, 924, Mnemonic::ARM64_SSRA, 3, 0 }, // SSRA_asimdshf_R
+    { "umull", 0xbf20fc00U, 0x2e20c000U, 927, Mnemonic::ARM64_UMULL, 3, 2 }, // UMULL_asimddiff_L
+    { "sminp", 0xbf20fc00U, 0x0e20ac00U, 921, Mnemonic::ARM64_SMINP, 3, 0 }, // SMINP_asimdsame_only
+    { "smin", 0xbf20fc00U, 0x0e206c00U, 921, Mnemonic::ARM64_SMIN, 3, 0 }, // SMIN_asimdsame_only
+    { "add", 0xbf20fc00U, 0x0e208400U, 921, Mnemonic::ARM64_ADD, 3, 0 }, // ADD_asimdsame_only
+    { "uqrshl", 0xbf20fc00U, 0x2e205c00U, 921, Mnemonic::ARM64_UQRSHL, 3, 0 }, // UQRSHL_asimdsame_only
+    { "sqrdmlsh", 0xbf20fc00U, 0x2e008c00U, 921, Mnemonic::ARM64_SQRDMLSH, 3, 0 }, // SQRDMLSH_asimdsame2_only
+    { "srsra", 0xbf80fc00U, 0x0f003400U, 924, Mnemonic::ARM64_SRSRA, 3, 0 }, // SRSRA_asimdshf_R
+    { "srhadd", 0xbf20fc00U, 0x0e201400U, 921, Mnemonic::ARM64_SRHADD, 3, 0 }, // SRHADD_asimdsame_only
+    { "smaxp", 0xbf20fc00U, 0x0e20a400U, 921, Mnemonic::ARM64_SMAXP, 3, 0 }, // SMAXP_asimdsame_only
+    { "fmla", 0xbf80f400U, 0x0f801000U, 962, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdelem_R_SD
+    { "mov", 0xffe08400U, 0x6e000400U, 965, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_INS_asimdins_IV_v
+    { "fcadd", 0xbf20ec00U, 0x2e00e400U, 921, Mnemonic::ARM64_FCADD, 3, 0 }, // FCADD_asimdsame2_C
+    { "fmls", 0xbf80f400U, 0x0f805000U, 962, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdelem_R_SD
+    { "fmul", 0xbf80f400U, 0x0f809000U, 962, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdelem_R_SD
+    { "ins", 0xffe08400U, 0x6e000400U, 965, Mnemonic::ARM64_INS, 2, 0 }, // INS_asimdins_IV_v
+    { "fmulx", 0xbf80f400U, 0x2f809000U, 962, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdelem_R_SD
+    { "udot", 0xbf00f400U, 0x2f00e000U, 946, Mnemonic::ARM64_UDOT, 3, 0 }, // UDOT_asimdelem_D
+    { "mul", 0xbf00f400U, 0x0f008000U, 967, Mnemonic::ARM64_MUL, 4, 0 }, // MUL_asimdelem_R
+    { "sqdmulh", 0xbf00f400U, 0x0f00c000U, 967, Mnemonic::ARM64_SQDMULH, 4, 0 }, // SQDMULH_asimdelem_R
+    { "sqrdmlah", 0xbf00f400U, 0x2f00d000U, 967, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // SQRDMLAH_asimdelem_R
+    { "mls", 0xbf00f400U, 0x2f004000U, 967, Mnemonic::ARM64_MLS, 4, 0 }, // MLS_asimdelem_R
+    { "eor3", 0xffe08000U, 0xce000000U, 863, Mnemonic::ARM64_EOR3, 3, 0 }, // EOR3_VVV16_crypto4
+    { "smlal", 0xbf00f400U, 0x0f002000U, 971, Mnemonic::ARM64_SMLAL, 4, 2 }, // SMLAL_asimdelem_L
+    { "sqdmlal", 0xbf00f400U, 0x0f003000U, 971, Mnemonic::ARM64_SQDMLAL, 4, 2 }, // SQDMLAL_asimdelem_L
+    { "umlal", 0xbf00f400U, 0x2f002000U, 971, Mnemonic::ARM64_UMLAL, 4, 2 }, // UMLAL_asimdelem_L
+    { "mla", 0xbf00f400U, 0x2f000000U, 967, Mnemonic::ARM64_MLA, 4, 0 }, // MLA_asimdelem_R
+    { "ext", 0xbfe08400U, 0x2e000000U, 975, Mnemonic::ARM64_EXT, 4, 0 }, // EXT_asimdext_only
+    { "fcmla", 0xbf20e400U, 0x2e00c400U, 921, Mnemonic::ARM64_FCMLA, 3, 0 }, // FCMLA_asimdsame2_C
+    { "sdot", 0xbf00f400U, 0x0f00e000U, 946, Mnemonic::ARM64_SDOT, 3, 0 }, // SDOT_asimdelem_D
+    { "umull", 0xbf00f400U, 0x2f00a000U, 971, Mnemonic::ARM64_UMULL, 4, 2 }, // UMULL_asimdelem_L
+    { "sqrdmlsh", 0xbf00f400U, 0x2f00f000U, 967, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // SQRDMLSH_asimdelem_R
+    { "bcax", 0xffe08000U, 0xce200000U, 863, Mnemonic::ARM64_BCAX, 3, 0 }, // BCAX_VVV16_crypto4
+    { "sqdmull", 0xbf00f400U, 0x0f00b000U, 971, Mnemonic::ARM64_SQDMULL, 4, 2 }, // SQDMULL_asimdelem_L
+    { "smull", 0xbf00f400U, 0x0f00a000U, 971, Mnemonic::ARM64_SMULL, 4, 2 }, // SMULL_asimdelem_L
+    { "sm3ss1", 0xffe08000U, 0xce400000U, 863, Mnemonic::ARM64_SM3SS1, 3, 0 }, // SM3SS1_VVV4_crypto4
+    { "sqrdmulh", 0xbf00f400U, 0x0f00d000U, 967, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // SQRDMULH_asimdelem_R
+    { "umlsl", 0xbf00f400U, 0x2f006000U, 971, Mnemonic::ARM64_UMLSL, 4, 2 }, // UMLSL_asimdelem_L
+    { "smlsl", 0xbf00f400U, 0x0f006000U, 971, Mnemonic::ARM64_SMLSL, 4, 2 }, // SMLSL_asimdelem_L
+    { "sqdmlsl", 0xbf00f400U, 0x0f007000U, 971, Mnemonic::ARM64_SQDMLSL, 4, 2 }, // SQDMLSL_asimdelem_L
+    { "xar", 0xffe00000U, 0xce800000U, 979, Mnemonic::ARM64_XAR, 4, 0 }, // XAR_VVV2_crypto3_imm6
+    { "fcmla", 0xbf009400U, 0x2f001000U, 983, Mnemonic::ARM64_FCMLA, 3, 0 }, // FCMLA_advsimd_elt
     { "mov", 0xfffffc00U, 0x11000000U, 726, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ADD_32_addsub_imm
     { "mov", 0xfffffc00U, 0x91000000U, 730, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_ADD_64_addsub_imm
-    { "cmp", 0xff80001fU, 0x7100001fU, 988, Mnemonic::ARM64_CMP, 3, 0 }, // CMP_SUBS_32S_addsub_imm
-    { "cmp", 0xff80001fU, 0xf100001fU, 991, Mnemonic::ARM64_CMP, 3, 1 }, // CMP_SUBS_64S_addsub_imm
-    { "smin", 0xfffc0000U, 0x11c80000U, 994, Mnemonic::ARM64_SMIN, 3, 0 }, // SMIN_32_minmax_imm
-    { "smin", 0xfffc0000U, 0x91c80000U, 997, Mnemonic::ARM64_SMIN, 3, 1 }, // SMIN_64_minmax_imm
-    { "umax", 0xfffc0000U, 0x11c40000U, 1000, Mnemonic::ARM64_UMAX, 3, 0 }, // UMAX_32U_minmax_imm
-    { "umax", 0xfffc0000U, 0x91c40000U, 1003, Mnemonic::ARM64_UMAX, 3, 1 }, // UMAX_64U_minmax_imm
-    { "umin", 0xfffc0000U, 0x11cc0000U, 1000, Mnemonic::ARM64_UMIN, 3, 0 }, // UMIN_32U_minmax_imm
-    { "umin", 0xfffc0000U, 0x91cc0000U, 1003, Mnemonic::ARM64_UMIN, 3, 1 }, // UMIN_64U_minmax_imm
-    { "cmn", 0xff80001fU, 0x3100001fU, 988, Mnemonic::ARM64_CMN, 3, 0 }, // CMN_ADDS_32S_addsub_imm
-    { "cmn", 0xff80001fU, 0xb100001fU, 991, Mnemonic::ARM64_CMN, 3, 1 }, // CMN_ADDS_64S_addsub_imm
-    { "smax", 0xfffc0000U, 0x11c00000U, 994, Mnemonic::ARM64_SMAX, 3, 0 }, // SMAX_32_minmax_imm
-    { "smax", 0xfffc0000U, 0x91c00000U, 997, Mnemonic::ARM64_SMAX, 3, 1 }, // SMAX_64_minmax_imm
-    { "subg", 0xffc00000U, 0xd1800000U, 1006, Mnemonic::ARM64_SUBG, 4, 1 }, // SUBG_64_addsub_immtags
-    { "addg", 0xffc00000U, 0x91800000U, 1006, Mnemonic::ARM64_ADDG, 4, 1 }, // ADDG_64_addsub_immtags
-    { "add", 0xff800000U, 0x11000000U, 1010, Mnemonic::ARM64_ADD, 4, 0 }, // ADD_32_addsub_imm
-    { "add", 0xff800000U, 0x91000000U, 1014, Mnemonic::ARM64_ADD, 4, 1 }, // ADD_64_addsub_imm
-    { "sub", 0xff800000U, 0x51000000U, 1010, Mnemonic::ARM64_SUB, 4, 0 }, // SUB_32_addsub_imm
-    { "sub", 0xff800000U, 0xd1000000U, 1014, Mnemonic::ARM64_SUB, 4, 1 }, // SUB_64_addsub_imm
-    { "adds", 0xff800000U, 0x31000000U, 1018, Mnemonic::ARM64_ADDS, 4, 0 }, // ADDS_32S_addsub_imm
-    { "adds", 0xff800000U, 0xb1000000U, 1022, Mnemonic::ARM64_ADDS, 4, 1 }, // ADDS_64S_addsub_imm
-    { "subs", 0xff800000U, 0x71000000U, 1018, Mnemonic::ARM64_SUBS, 4, 0 }, // SUBS_32S_addsub_imm
-    { "subs", 0xff800000U, 0xf1000000U, 1022, Mnemonic::ARM64_SUBS, 4, 1 }, // SUBS_64S_addsub_imm
-    { "adr", 0x9f000000U, 0x10000000U, 1026, Mnemonic::ARM64_ADR, 2, 0 }, // ADR_only_pcreladdr
-    { "adrp", 0x9f000000U, 0x90000000U, 1026, Mnemonic::ARM64_ADRP, 2, 0 }, // ADRP_only_pcreladdr
-    { "sxtw", 0xfffffc00U, 0x93407c00U, 1028, Mnemonic::ARM64_SXTW, 2, 1 }, // SXTW_SBFM_64M_bitfield
+    { "cmp", 0xff80001fU, 0x7100001fU, 986, Mnemonic::ARM64_CMP, 3, 0 }, // CMP_SUBS_32S_addsub_imm
+    { "cmp", 0xff80001fU, 0xf100001fU, 989, Mnemonic::ARM64_CMP, 3, 1 }, // CMP_SUBS_64S_addsub_imm
+    { "smin", 0xfffc0000U, 0x11c80000U, 992, Mnemonic::ARM64_SMIN, 3, 0 }, // SMIN_32_minmax_imm
+    { "smin", 0xfffc0000U, 0x91c80000U, 995, Mnemonic::ARM64_SMIN, 3, 1 }, // SMIN_64_minmax_imm
+    { "umax", 0xfffc0000U, 0x11c40000U, 998, Mnemonic::ARM64_UMAX, 3, 0 }, // UMAX_32U_minmax_imm
+    { "umax", 0xfffc0000U, 0x91c40000U, 1001, Mnemonic::ARM64_UMAX, 3, 1 }, // UMAX_64U_minmax_imm
+    { "umin", 0xfffc0000U, 0x11cc0000U, 998, Mnemonic::ARM64_UMIN, 3, 0 }, // UMIN_32U_minmax_imm
+    { "umin", 0xfffc0000U, 0x91cc0000U, 1001, Mnemonic::ARM64_UMIN, 3, 1 }, // UMIN_64U_minmax_imm
+    { "cmn", 0xff80001fU, 0x3100001fU, 986, Mnemonic::ARM64_CMN, 3, 0 }, // CMN_ADDS_32S_addsub_imm
+    { "cmn", 0xff80001fU, 0xb100001fU, 989, Mnemonic::ARM64_CMN, 3, 1 }, // CMN_ADDS_64S_addsub_imm
+    { "smax", 0xfffc0000U, 0x11c00000U, 992, Mnemonic::ARM64_SMAX, 3, 0 }, // SMAX_32_minmax_imm
+    { "smax", 0xfffc0000U, 0x91c00000U, 995, Mnemonic::ARM64_SMAX, 3, 1 }, // SMAX_64_minmax_imm
+    { "subg", 0xffc00000U, 0xd1800000U, 1004, Mnemonic::ARM64_SUBG, 4, 1 }, // SUBG_64_addsub_immtags
+    { "addg", 0xffc00000U, 0x91800000U, 1004, Mnemonic::ARM64_ADDG, 4, 1 }, // ADDG_64_addsub_immtags
+    { "add", 0xff800000U, 0x11000000U, 1008, Mnemonic::ARM64_ADD, 4, 0 }, // ADD_32_addsub_imm
+    { "add", 0xff800000U, 0x91000000U, 1012, Mnemonic::ARM64_ADD, 4, 1 }, // ADD_64_addsub_imm
+    { "sub", 0xff800000U, 0x51000000U, 1008, Mnemonic::ARM64_SUB, 4, 0 }, // SUB_32_addsub_imm
+    { "sub", 0xff800000U, 0xd1000000U, 1012, Mnemonic::ARM64_SUB, 4, 1 }, // SUB_64_addsub_imm
+    { "adds", 0xff800000U, 0x31000000U, 1016, Mnemonic::ARM64_ADDS, 4, 0 }, // ADDS_32S_addsub_imm
+    { "adds", 0xff800000U, 0xb1000000U, 1020, Mnemonic::ARM64_ADDS, 4, 1 }, // ADDS_64S_addsub_imm
+    { "subs", 0xff800000U, 0x71000000U, 1016, Mnemonic::ARM64_SUBS, 4, 0 }, // SUBS_32S_addsub_imm
+    { "subs", 0xff800000U, 0xf1000000U, 1020, Mnemonic::ARM64_SUBS, 4, 1 }, // SUBS_64S_addsub_imm
+    { "adr", 0x9f000000U, 0x10000000U, 1024, Mnemonic::ARM64_ADR, 2, 0 }, // ADR_only_pcreladdr
+    { "adrp", 0x9f000000U, 0x90000000U, 1024, Mnemonic::ARM64_ADRP, 2, 0 }, // ADRP_only_pcreladdr
+    { "sxtw", 0xfffffc00U, 0x93407c00U, 1026, Mnemonic::ARM64_SXTW, 2, 1 }, // SXTW_SBFM_64M_bitfield
     { "uxtb", 0xfffffc00U, 0x53001c00U, 742, Mnemonic::ARM64_UXTB, 2, 0 }, // UXTB_UBFM_32M_bitfield
     { "sxth", 0xfffffc00U, 0x13003c00U, 742, Mnemonic::ARM64_SXTH, 2, 0 }, // SXTH_SBFM_32M_bitfield
-    { "sxth", 0xfffffc00U, 0x93403c00U, 1028, Mnemonic::ARM64_SXTH, 2, 1 }, // SXTH_SBFM_64M_bitfield
+    { "sxth", 0xfffffc00U, 0x93403c00U, 1026, Mnemonic::ARM64_SXTH, 2, 1 }, // SXTH_SBFM_64M_bitfield
     { "sxtb", 0xfffffc00U, 0x13001c00U, 742, Mnemonic::ARM64_SXTB, 2, 0 }, // SXTB_SBFM_32M_bitfield
-    { "sxtb", 0xfffffc00U, 0x93401c00U, 1028, Mnemonic::ARM64_SXTB, 2, 1 }, // SXTB_SBFM_64M_bitfield
+    { "sxtb", 0xfffffc00U, 0x93401c00U, 1026, Mnemonic::ARM64_SXTB, 2, 1 }, // SXTB_SBFM_64M_bitfield
     { "uxth", 0xfffffc00U, 0x53003c00U, 742, Mnemonic::ARM64_UXTH, 2, 0 }, // UXTH_UBFM_32M_bitfield
     { "asr", 0xffc0fc00U, 0x13007c00U, 742, Mnemonic::ARM64_ASR, 2, 0 }, // ASR_SBFM_32M_bitfield
-    { "asr", 0xffc0fc00U, 0x9340fc00U, 1030, Mnemonic::ARM64_ASR, 3, 1 }, // ASR_SBFM_64M_bitfield
+    { "asr", 0xffc0fc00U, 0x9340fc00U, 1028, Mnemonic::ARM64_ASR, 3, 1 }, // ASR_SBFM_64M_bitfield
     { "lsr", 0xffc0fc00U, 0x53007c00U, 742, Mnemonic::ARM64_LSR, 2, 0 }, // LSR_UBFM_32M_bitfield
-    { "lsr", 0xffc0fc00U, 0xd340fc00U, 1030, Mnemonic::ARM64_LSR, 3, 1 }, // LSR_UBFM_64M_bitfield
-    { "autibsppc", 0xffe0001fU, 0xf3a0001fU, 1033, Mnemonic::ARM64_AUTIBSPPC, 1, 1 }, // AUTIBSPPC_only_dp_1src_imm
-    { "autiasppc", 0xffe0001fU, 0xf380001fU, 1033, Mnemonic::ARM64_AUTIASPPC, 1, 1 }, // AUTIASPPC_only_dp_1src_imm
-    { "bfc", 0xffc003e0U, 0x330003e0U, 1034, Mnemonic::ARM64_BFC, 3, 0 }, // BFC_BFM_32M_bitfield
-    { "bfc", 0xffc003e0U, 0xb34003e0U, 1037, Mnemonic::ARM64_BFC, 3, 1 }, // BFC_BFM_64M_bitfield
-    { "tst", 0xffc0001fU, 0x7200001fU, 1040, Mnemonic::ARM64_TST, 2, 0 }, // TST_ANDS_32S_log_imm
-    { "mov", 0xffc003e0U, 0x320003e0U, 1042, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ORR_32_log_imm
-    { "tst", 0xff80001fU, 0xf200001fU, 1044, Mnemonic::ARM64_TST, 2, 1 }, // TST_ANDS_64S_log_imm
-    { "mov", 0xff8003e0U, 0xb20003e0U, 1046, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_ORR_64_log_imm
-    { "extr", 0xffe00000U, 0x13800000U, 1048, Mnemonic::ARM64_EXTR, 4, 0 }, // EXTR_32_extract
-    { "extr", 0xffe00000U, 0x93c00000U, 1052, Mnemonic::ARM64_EXTR, 4, 1 }, // EXTR_64_extract
-    { "ror", 0xffe00000U, 0x13800000U, 1056, Mnemonic::ARM64_ROR, 2, 0 }, // ROR_EXTR_32_extract
-    { "ror", 0xffe00000U, 0x93c00000U, 1058, Mnemonic::ARM64_ROR, 2, 1 }, // ROR_EXTR_64_extract
-    { "lsl", 0xffc00000U, 0x53000000U, 1060, Mnemonic::ARM64_LSL, 3, 0 }, // LSL_UBFM_32M_bitfield
-    { "lsl", 0xffc00000U, 0xd3400000U, 1063, Mnemonic::ARM64_LSL, 3, 1 }, // LSL_UBFM_64M_bitfield
-    { "sbfx", 0xffc00000U, 0x13000000U, 1066, Mnemonic::ARM64_SBFX, 4, 0 }, // SBFX_SBFM_32M_bitfield
-    { "sbfx", 0xffc00000U, 0x93400000U, 1070, Mnemonic::ARM64_SBFX, 4, 1 }, // SBFX_SBFM_64M_bitfield
-    { "ubfx", 0xffc00000U, 0x53000000U, 1066, Mnemonic::ARM64_UBFX, 4, 0 }, // UBFX_UBFM_32M_bitfield
-    { "ubfx", 0xffc00000U, 0xd3400000U, 1070, Mnemonic::ARM64_UBFX, 4, 1 }, // UBFX_UBFM_64M_bitfield
-    { "ubfiz", 0xffc00000U, 0x53000000U, 1066, Mnemonic::ARM64_UBFIZ, 4, 0 }, // UBFIZ_UBFM_32M_bitfield
-    { "ubfiz", 0xffc00000U, 0xd3400000U, 1070, Mnemonic::ARM64_UBFIZ, 4, 1 }, // UBFIZ_UBFM_64M_bitfield
-    { "sbfiz", 0xffc00000U, 0x13000000U, 1066, Mnemonic::ARM64_SBFIZ, 4, 0 }, // SBFIZ_SBFM_32M_bitfield
-    { "sbfiz", 0xffc00000U, 0x93400000U, 1070, Mnemonic::ARM64_SBFIZ, 4, 1 }, // SBFIZ_SBFM_64M_bitfield
-    { "bfi", 0xffc00000U, 0x33000000U, 1066, Mnemonic::ARM64_BFI, 4, 0 }, // BFI_BFM_32M_bitfield
-    { "bfi", 0xffc00000U, 0xb3400000U, 1070, Mnemonic::ARM64_BFI, 4, 1 }, // BFI_BFM_64M_bitfield
-    { "bfxil", 0xffc00000U, 0x33000000U, 1066, Mnemonic::ARM64_BFXIL, 4, 0 }, // BFXIL_BFM_32M_bitfield
-    { "bfxil", 0xffc00000U, 0xb3400000U, 1070, Mnemonic::ARM64_BFXIL, 4, 1 }, // BFXIL_BFM_64M_bitfield
-    { "orr", 0xffc00000U, 0x32000000U, 1074, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_32_log_imm
-    { "eor", 0xffc00000U, 0x52000000U, 1074, Mnemonic::ARM64_EOR, 3, 0 }, // EOR_32_log_imm
-    { "ands", 0xffc00000U, 0x72000000U, 1077, Mnemonic::ARM64_ANDS, 3, 0 }, // ANDS_32S_log_imm
-    { "and", 0xffc00000U, 0x12000000U, 1074, Mnemonic::ARM64_AND, 3, 0 }, // AND_32_log_imm
-    { "bfm", 0xffc00000U, 0x33000000U, 1080, Mnemonic::ARM64_BFM, 4, 0 }, // BFM_32M_bitfield
-    { "bfm", 0xffc00000U, 0xb3400000U, 1084, Mnemonic::ARM64_BFM, 4, 1 }, // BFM_64M_bitfield
-    { "ubfm", 0xffc00000U, 0x53000000U, 1080, Mnemonic::ARM64_UBFM, 4, 0 }, // UBFM_32M_bitfield
-    { "ubfm", 0xffc00000U, 0xd3400000U, 1084, Mnemonic::ARM64_UBFM, 4, 1 }, // UBFM_64M_bitfield
-    { "sbfm", 0xffc00000U, 0x13000000U, 1080, Mnemonic::ARM64_SBFM, 4, 0 }, // SBFM_32M_bitfield
-    { "sbfm", 0xffc00000U, 0x93400000U, 1084, Mnemonic::ARM64_SBFM, 4, 1 }, // SBFM_64M_bitfield
-    { "mov", 0xff800000U, 0x52800000U, 1088, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVZ_32_movewide
-    { "mov", 0xff800000U, 0xd2800000U, 1090, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVZ_64_movewide
-    { "mov", 0xff800000U, 0x12800000U, 1088, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVN_32_movewide
-    { "mov", 0xff800000U, 0x92800000U, 1090, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVN_64_movewide
-    { "orr", 0xff800000U, 0xb2000000U, 1092, Mnemonic::ARM64_ORR, 3, 1 }, // ORR_64_log_imm
-    { "movz", 0xff800000U, 0x52800000U, 1095, Mnemonic::ARM64_MOVZ, 3, 0 }, // MOVZ_32_movewide
-    { "movz", 0xff800000U, 0xd2800000U, 1098, Mnemonic::ARM64_MOVZ, 3, 1 }, // MOVZ_64_movewide
-    { "movn", 0xff800000U, 0x12800000U, 1095, Mnemonic::ARM64_MOVN, 3, 0 }, // MOVN_32_movewide
-    { "movn", 0xff800000U, 0x92800000U, 1098, Mnemonic::ARM64_MOVN, 3, 1 }, // MOVN_64_movewide
-    { "movk", 0xff800000U, 0x72800000U, 1095, Mnemonic::ARM64_MOVK, 3, 0 }, // MOVK_32_movewide
-    { "movk", 0xff800000U, 0xf2800000U, 1098, Mnemonic::ARM64_MOVK, 3, 1 }, // MOVK_64_movewide
-    { "eor", 0xff800000U, 0xd2000000U, 1092, Mnemonic::ARM64_EOR, 3, 1 }, // EOR_64_log_imm
-    { "ands", 0xff800000U, 0xf2000000U, 1101, Mnemonic::ARM64_ANDS, 3, 1 }, // ANDS_64S_log_imm
-    { "and", 0xff800000U, 0x92000000U, 1092, Mnemonic::ARM64_AND, 3, 1 }, // AND_64_log_imm
+    { "lsr", 0xffc0fc00U, 0xd340fc00U, 1028, Mnemonic::ARM64_LSR, 3, 1 }, // LSR_UBFM_64M_bitfield
+    { "autibsppc", 0xffe0001fU, 0xf3a0001fU, 1031, Mnemonic::ARM64_AUTIBSPPC, 1, 1 }, // AUTIBSPPC_only_dp_1src_imm
+    { "autiasppc", 0xffe0001fU, 0xf380001fU, 1031, Mnemonic::ARM64_AUTIASPPC, 1, 1 }, // AUTIASPPC_only_dp_1src_imm
+    { "bfc", 0xffc003e0U, 0x330003e0U, 1032, Mnemonic::ARM64_BFC, 3, 0 }, // BFC_BFM_32M_bitfield
+    { "bfc", 0xffc003e0U, 0xb34003e0U, 1035, Mnemonic::ARM64_BFC, 3, 1 }, // BFC_BFM_64M_bitfield
+    { "tst", 0xffc0001fU, 0x7200001fU, 1038, Mnemonic::ARM64_TST, 2, 0 }, // TST_ANDS_32S_log_imm
+    { "mov", 0xffc003e0U, 0x320003e0U, 1040, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ORR_32_log_imm
+    { "tst", 0xff80001fU, 0xf200001fU, 1042, Mnemonic::ARM64_TST, 2, 1 }, // TST_ANDS_64S_log_imm
+    { "mov", 0xff8003e0U, 0xb20003e0U, 1044, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_ORR_64_log_imm
+    { "extr", 0xffe00000U, 0x13800000U, 1046, Mnemonic::ARM64_EXTR, 4, 0 }, // EXTR_32_extract
+    { "extr", 0xffe00000U, 0x93c00000U, 1050, Mnemonic::ARM64_EXTR, 4, 1 }, // EXTR_64_extract
+    { "ror", 0xffe00000U, 0x13800000U, 1054, Mnemonic::ARM64_ROR, 2, 0 }, // ROR_EXTR_32_extract
+    { "ror", 0xffe00000U, 0x93c00000U, 1056, Mnemonic::ARM64_ROR, 2, 1 }, // ROR_EXTR_64_extract
+    { "lsl", 0xffc00000U, 0x53000000U, 1058, Mnemonic::ARM64_LSL, 3, 0 }, // LSL_UBFM_32M_bitfield
+    { "lsl", 0xffc00000U, 0xd3400000U, 1061, Mnemonic::ARM64_LSL, 3, 1 }, // LSL_UBFM_64M_bitfield
+    { "sbfx", 0xffc00000U, 0x13000000U, 1064, Mnemonic::ARM64_SBFX, 4, 0 }, // SBFX_SBFM_32M_bitfield
+    { "sbfx", 0xffc00000U, 0x93400000U, 1068, Mnemonic::ARM64_SBFX, 4, 1 }, // SBFX_SBFM_64M_bitfield
+    { "ubfx", 0xffc00000U, 0x53000000U, 1064, Mnemonic::ARM64_UBFX, 4, 0 }, // UBFX_UBFM_32M_bitfield
+    { "ubfx", 0xffc00000U, 0xd3400000U, 1068, Mnemonic::ARM64_UBFX, 4, 1 }, // UBFX_UBFM_64M_bitfield
+    { "ubfiz", 0xffc00000U, 0x53000000U, 1064, Mnemonic::ARM64_UBFIZ, 4, 0 }, // UBFIZ_UBFM_32M_bitfield
+    { "ubfiz", 0xffc00000U, 0xd3400000U, 1068, Mnemonic::ARM64_UBFIZ, 4, 1 }, // UBFIZ_UBFM_64M_bitfield
+    { "sbfiz", 0xffc00000U, 0x13000000U, 1064, Mnemonic::ARM64_SBFIZ, 4, 0 }, // SBFIZ_SBFM_32M_bitfield
+    { "sbfiz", 0xffc00000U, 0x93400000U, 1068, Mnemonic::ARM64_SBFIZ, 4, 1 }, // SBFIZ_SBFM_64M_bitfield
+    { "bfi", 0xffc00000U, 0x33000000U, 1064, Mnemonic::ARM64_BFI, 4, 0 }, // BFI_BFM_32M_bitfield
+    { "bfi", 0xffc00000U, 0xb3400000U, 1068, Mnemonic::ARM64_BFI, 4, 1 }, // BFI_BFM_64M_bitfield
+    { "bfxil", 0xffc00000U, 0x33000000U, 1064, Mnemonic::ARM64_BFXIL, 4, 0 }, // BFXIL_BFM_32M_bitfield
+    { "bfxil", 0xffc00000U, 0xb3400000U, 1068, Mnemonic::ARM64_BFXIL, 4, 1 }, // BFXIL_BFM_64M_bitfield
+    { "orr", 0xffc00000U, 0x32000000U, 1072, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_32_log_imm
+    { "eor", 0xffc00000U, 0x52000000U, 1072, Mnemonic::ARM64_EOR, 3, 0 }, // EOR_32_log_imm
+    { "ands", 0xffc00000U, 0x72000000U, 1075, Mnemonic::ARM64_ANDS, 3, 0 }, // ANDS_32S_log_imm
+    { "and", 0xffc00000U, 0x12000000U, 1072, Mnemonic::ARM64_AND, 3, 0 }, // AND_32_log_imm
+    { "bfm", 0xffc00000U, 0x33000000U, 1078, Mnemonic::ARM64_BFM, 4, 0 }, // BFM_32M_bitfield
+    { "bfm", 0xffc00000U, 0xb3400000U, 1082, Mnemonic::ARM64_BFM, 4, 1 }, // BFM_64M_bitfield
+    { "ubfm", 0xffc00000U, 0x53000000U, 1078, Mnemonic::ARM64_UBFM, 4, 0 }, // UBFM_32M_bitfield
+    { "ubfm", 0xffc00000U, 0xd3400000U, 1082, Mnemonic::ARM64_UBFM, 4, 1 }, // UBFM_64M_bitfield
+    { "sbfm", 0xffc00000U, 0x13000000U, 1078, Mnemonic::ARM64_SBFM, 4, 0 }, // SBFM_32M_bitfield
+    { "sbfm", 0xffc00000U, 0x93400000U, 1082, Mnemonic::ARM64_SBFM, 4, 1 }, // SBFM_64M_bitfield
+    { "mov", 0xff800000U, 0x52800000U, 1086, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVZ_32_movewide
+    { "mov", 0xff800000U, 0xd2800000U, 1088, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVZ_64_movewide
+    { "mov", 0xff800000U, 0x12800000U, 1086, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVN_32_movewide
+    { "mov", 0xff800000U, 0x92800000U, 1088, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVN_64_movewide
+    { "orr", 0xff800000U, 0xb2000000U, 1090, Mnemonic::ARM64_ORR, 3, 1 }, // ORR_64_log_imm
+    { "movz", 0xff800000U, 0x52800000U, 1093, Mnemonic::ARM64_MOVZ, 3, 0 }, // MOVZ_32_movewide
+    { "movz", 0xff800000U, 0xd2800000U, 1096, Mnemonic::ARM64_MOVZ, 3, 1 }, // MOVZ_64_movewide
+    { "movn", 0xff800000U, 0x12800000U, 1093, Mnemonic::ARM64_MOVN, 3, 0 }, // MOVN_32_movewide
+    { "movn", 0xff800000U, 0x92800000U, 1096, Mnemonic::ARM64_MOVN, 3, 1 }, // MOVN_64_movewide
+    { "movk", 0xff800000U, 0x72800000U, 1093, Mnemonic::ARM64_MOVK, 3, 0 }, // MOVK_32_movewide
+    { "movk", 0xff800000U, 0xf2800000U, 1096, Mnemonic::ARM64_MOVK, 3, 1 }, // MOVK_64_movewide
+    { "eor", 0xff800000U, 0xd2000000U, 1090, Mnemonic::ARM64_EOR, 3, 1 }, // EOR_64_log_imm
+    { "ands", 0xff800000U, 0xf2000000U, 1099, Mnemonic::ARM64_ANDS, 3, 1 }, // ANDS_64S_log_imm
+    { "and", 0xff800000U, 0x92000000U, 1090, Mnemonic::ARM64_AND, 3, 1 }, // AND_64_log_imm
     { "tsb", 0xffffffffU, 0xd503225fU, 0, Mnemonic::ARM64_TSB, 0, 0 }, // TSB_HC_hints
     { "pssbb", 0xffffffffU, 0xd503349fU, 0, Mnemonic::ARM64_PSSBB, 0, 0 }, // PSSBB_DSB_BO_barriers
     { "sevl", 0xffffffffU, 0xd50320bfU, 0, Mnemonic::ARM64_SEVL, 0, 0 }, // SEVL_HI_hints
     { "xpaclri", 0xffffffffU, 0xd50320ffU, 0, Mnemonic::ARM64_XPACLRI, 0, 0 }, // XPACLRI_HI_hints
-    { "bti", 0xffffffffU, 0xd503241fU, 0, Mnemonic::ARM64_BTI, 0, 0 }, // BTI_HB_hints
     { "yield", 0xffffffffU, 0xd503203fU, 0, Mnemonic::ARM64_YIELD, 0, 0 }, // YIELD_HI_hints
     { "psb", 0xffffffffU, 0xd503223fU, 0, Mnemonic::ARM64_PSB, 0, 0 }, // PSB_HC_hints
     { "chkfeat", 0xffffffffU, 0xd503251fU, 0, Mnemonic::ARM64_CHKFEAT, 0, 0 }, // CHKFEAT_HF_hints
@@ -3158,7 +3161,6 @@ const InstructionEntry g_instructionTable[] = {
     { "wfe", 0xffffffffU, 0xd503205fU, 0, Mnemonic::ARM64_WFE, 0, 0 }, // WFE_HI_hints
     { "gcsb", 0xffffffffU, 0xd503227fU, 0, Mnemonic::ARM64_GCSB, 0, 0 }, // GCSB_HD_hints
     { "dgh", 0xffffffffU, 0xd50320dfU, 0, Mnemonic::ARM64_DGH, 0, 0 }, // DGH_HI_hints
-    { "smstart", 0xffffffffU, 0xd503417fU, 1104, Mnemonic::ARM64_SMSTART, 1, 0 }, // SMSTART_MSR_SI_pstate
     { "clrbhb", 0xffffffffU, 0xd50322dfU, 0, Mnemonic::ARM64_CLRBHB, 0, 0 }, // CLRBHB_HI_hints
     { "tcommit", 0xffffffffU, 0xd503307fU, 0, Mnemonic::ARM64_TCOMMIT, 0, 0 }, // TCOMMIT_only_barriers
     { "wfi", 0xffffffffU, 0xd503207fU, 0, Mnemonic::ARM64_WFI, 0, 0 }, // WFI_HI_hints
@@ -3170,7 +3172,6 @@ const InstructionEntry g_instructionTable[] = {
     { "autibz", 0xffffffffU, 0xd50323dfU, 0, Mnemonic::ARM64_AUTIBZ, 0, 0 }, // AUTIBZ_HI_hints
     { "nop", 0xffffffffU, 0xd503201fU, 0, Mnemonic::ARM64_NOP, 0, 0 }, // NOP_HI_hints
     { "esb", 0xffffffffU, 0xd503221fU, 0, Mnemonic::ARM64_ESB, 0, 0 }, // ESB_HI_hints
-    { "smstop", 0xffffffffU, 0xd503407fU, 1104, Mnemonic::ARM64_SMSTOP, 1, 0 }, // SMSTOP_MSR_SI_pstate
     { "autia1716", 0xffffffffU, 0xd503219fU, 0, Mnemonic::ARM64_AUTIA1716, 0, 0 }, // AUTIA1716_HI_hints
     { "autiasp", 0xffffffffU, 0xd50323bfU, 0, Mnemonic::ARM64_AUTIASP, 0, 0 }, // AUTIASP_HI_hints
     { "autiaz", 0xffffffffU, 0xd503239fU, 0, Mnemonic::ARM64_AUTIAZ, 0, 0 }, // AUTIAZ_HI_hints
@@ -3180,7 +3181,10 @@ const InstructionEntry g_instructionTable[] = {
     { "pacib1716", 0xffffffffU, 0xd503215fU, 0, Mnemonic::ARM64_PACIB1716, 0, 0 }, // PACIB1716_HI_hints
     { "pacibsp", 0xffffffffU, 0xd503237fU, 0, Mnemonic::ARM64_PACIBSP, 0, 0 }, // PACIBSP_HI_hints
     { "pacibz", 0xffffffffU, 0xd503235fU, 0, Mnemonic::ARM64_PACIBZ, 0, 0 }, // PACIBZ_HI_hints
-    { "dsb", 0xfffff3ffU, 0xd503323fU, 960, Mnemonic::ARM64_DSB, 1, 0 }, // DSB_BOn_barriers
+    { "bti", 0xffffff3fU, 0xd503241fU, 0, Mnemonic::ARM64_BTI, 0, 0 }, // BTI_HB_hints
+    { "smstart", 0xfffff9ffU, 0xd503417fU, 1102, Mnemonic::ARM64_SMSTART, 1, 0 }, // SMSTART_MSR_SI_pstate
+    { "dsb", 0xfffff3ffU, 0xd503323fU, 958, Mnemonic::ARM64_DSB, 1, 0 }, // DSB_BOn_barriers
+    { "smstop", 0xfffff9ffU, 0xd503407fU, 1102, Mnemonic::ARM64_SMSTOP, 1, 0 }, // SMSTOP_MSR_SI_pstate
     { "xaflag", 0xfffff0ffU, 0xd500403fU, 0, Mnemonic::ARM64_XAFLAG, 0, 0 }, // XAFLAG_M_pstate
     { "isb", 0xfffff0ffU, 0xd50330dfU, 0, Mnemonic::ARM64_ISB, 0, 0 }, // ISB_BI_barriers
     { "cfinv", 0xfffff0ffU, 0xd500401fU, 0, Mnemonic::ARM64_CFINV, 0, 0 }, // CFINV_M_pstate
@@ -3207,36 +3211,36 @@ const InstructionEntry g_instructionTable[] = {
     { "gcspopx", 0xffffffe0U, 0xd50877c0U, 0, Mnemonic::ARM64_GCSPOPX, 0, 0 }, // GCSPOPX_SYS_CR_systeminstrs
     { "hint", 0xfffff01fU, 0xd503201fU, 0, Mnemonic::ARM64_HINT, 0, 0 }, // HINT_HM_hints
     { "brb", 0xffffff00U, 0xd5097200U, 0, Mnemonic::ARM64_BRB, 0, 0 }, // BRB_SYS_CR_systeminstrs
-    { "msr", 0xfff8f01fU, 0xd500401fU, 1105, Mnemonic::ARM64_MSR, 2, 0 }, // MSR_SI_pstate
-    { "at", 0xfff8ff00U, 0xd5087800U, 671, Mnemonic::ARM64_AT, 1, 0 }, // AT_SYS_CR_systeminstrs
+    { "msr", 0xfff8f01fU, 0xd500401fU, 1103, Mnemonic::ARM64_MSR, 2, 0 }, // MSR_SI_pstate
+    { "at", 0xfff8fe00U, 0xd5087800U, 671, Mnemonic::ARM64_AT, 1, 0 }, // AT_SYS_CR_systeminstrs
     { "dc", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_DC, 1, 0 }, // DC_SYS_CR_systeminstrs
-    { "tlbi", 0xfff8f000U, 0xd5088000U, 671, Mnemonic::ARM64_TLBI, 1, 0 }, // TLBI_SYS_CR_systeminstrs
     { "ic", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_IC, 1, 0 }, // IC_SYS_CR_systeminstrs
-    { "tlbip", 0xfff8f000U, 0xd5488000U, 1107, Mnemonic::ARM64_TLBIP, 2, 0 }, // TLBIP_SYSP_CR_syspairinstrs
-    { "smc", 0xffe0001fU, 0xd4000003U, 1096, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
-    { "retaasppc", 0xffe0001fU, 0x5500001fU, 1033, Mnemonic::ARM64_RETAASPPC, 1, 0 }, // RETAASPPC_only_miscbranch
-    { "retabsppc", 0xffe0001fU, 0x5520001fU, 1033, Mnemonic::ARM64_RETABSPPC, 1, 0 }, // RETABSPPC_only_miscbranch
-    { "hlt", 0xffe0001fU, 0xd4400000U, 1096, Mnemonic::ARM64_HLT, 1, 0 }, // HLT_EX_exception
-    { "brk", 0xffe0001fU, 0xd4200000U, 1096, Mnemonic::ARM64_BRK, 1, 0 }, // BRK_EX_exception
-    { "tcancel", 0xffe0001fU, 0xd4600000U, 1096, Mnemonic::ARM64_TCANCEL, 1, 0 }, // TCANCEL_EX_exception
-    { "hvc", 0xffe0001fU, 0xd4000002U, 1096, Mnemonic::ARM64_HVC, 1, 0 }, // HVC_EX_exception
-    { "svc", 0xffe0001fU, 0xd4000001U, 1096, Mnemonic::ARM64_SVC, 1, 0 }, // SVC_EX_exception
-    { "dcps1", 0xffe0001fU, 0xd4a00001U, 1096, Mnemonic::ARM64_DCPS1, 1, 0 }, // DCPS1_DC_exception
-    { "dcps3", 0xffe0001fU, 0xd4a00003U, 1096, Mnemonic::ARM64_DCPS3, 1, 0 }, // DCPS3_DC_exception
-    { "dcps2", 0xffe0001fU, 0xd4a00002U, 1096, Mnemonic::ARM64_DCPS2, 1, 0 }, // DCPS2_DC_exception
-    { "sysp", 0xfff80000U, 0xd5480000U, 1107, Mnemonic::ARM64_SYSP, 2, 0 }, // SYSP_CR_syspairinstrs
+    { "smc", 0xffe0001fU, 0xd4000003U, 1094, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
+    { "retaasppc", 0xffe0001fU, 0x5500001fU, 1031, Mnemonic::ARM64_RETAASPPC, 1, 0 }, // RETAASPPC_only_miscbranch
+    { "retabsppc", 0xffe0001fU, 0x5520001fU, 1031, Mnemonic::ARM64_RETABSPPC, 1, 0 }, // RETABSPPC_only_miscbranch
+    { "hlt", 0xffe0001fU, 0xd4400000U, 1094, Mnemonic::ARM64_HLT, 1, 0 }, // HLT_EX_exception
+    { "tlbi", 0xfff8e000U, 0xd5088000U, 671, Mnemonic::ARM64_TLBI, 1, 0 }, // TLBI_SYS_CR_systeminstrs
+    { "brk", 0xffe0001fU, 0xd4200000U, 1094, Mnemonic::ARM64_BRK, 1, 0 }, // BRK_EX_exception
+    { "tcancel", 0xffe0001fU, 0xd4600000U, 1094, Mnemonic::ARM64_TCANCEL, 1, 0 }, // TCANCEL_EX_exception
+    { "tlbip", 0xfff8e000U, 0xd5488000U, 1105, Mnemonic::ARM64_TLBIP, 2, 0 }, // TLBIP_SYSP_CR_syspairinstrs
+    { "hvc", 0xffe0001fU, 0xd4000002U, 1094, Mnemonic::ARM64_HVC, 1, 0 }, // HVC_EX_exception
+    { "svc", 0xffe0001fU, 0xd4000001U, 1094, Mnemonic::ARM64_SVC, 1, 0 }, // SVC_EX_exception
+    { "dcps1", 0xffe0001fU, 0xd4a00001U, 1094, Mnemonic::ARM64_DCPS1, 1, 0 }, // DCPS1_DC_exception
+    { "dcps3", 0xffe0001fU, 0xd4a00003U, 1094, Mnemonic::ARM64_DCPS3, 1, 0 }, // DCPS3_DC_exception
+    { "dcps2", 0xffe0001fU, 0xd4a00002U, 1094, Mnemonic::ARM64_DCPS2, 1, 0 }, // DCPS2_DC_exception
+    { "sysp", 0xfff80000U, 0xd5480000U, 1105, Mnemonic::ARM64_SYSP, 2, 0 }, // SYSP_CR_syspairinstrs
     { "sys", 0xfff80000U, 0xd5080000U, 671, Mnemonic::ARM64_SYS, 1, 0 }, // SYS_CR_systeminstrs
     { "sysl", 0xfff80000U, 0xd5280000U, 671, Mnemonic::ARM64_SYSL, 1, 0 }, // SYSL_RC_systeminstrs
     { "mrs", 0xfff00000U, 0xd5300000U, 671, Mnemonic::ARM64_MRS, 1, 0 }, // MRS_RS_systemmove
     { "msr", 0xfff00000U, 0xd5100000U, 671, Mnemonic::ARM64_MSR, 1, 0 }, // MSR_SR_systemmove
-    { "msrr", 0xfff00000U, 0xd5500000U, 1109, Mnemonic::ARM64_MSRR, 2, 0 }, // MSRR_SR_systemmovepr
-    { "mrrs", 0xfff00000U, 0xd5700000U, 1109, Mnemonic::ARM64_MRRS, 2, 0 }, // MRRS_RS_systemmovepr
-    { "b.", 0xff000010U, 0x54000000U, 1111, Mnemonic::ARM64_B_, 2, 0 }, // B_only_condbranch
-    { "bc.", 0xff000010U, 0x54000010U, 1111, Mnemonic::ARM64_BC_, 2, 0 }, // BC_only_condbranch
-    { "cbnz", 0xff000000U, 0x35000000U, 1113, Mnemonic::ARM64_CBNZ, 2, 0 }, // CBNZ_32_compbranch
-    { "cbnz", 0xff000000U, 0xb5000000U, 1026, Mnemonic::ARM64_CBNZ, 2, 1 }, // CBNZ_64_compbranch
-    { "cbz", 0xff000000U, 0x34000000U, 1113, Mnemonic::ARM64_CBZ, 2, 0 }, // CBZ_32_compbranch
-    { "cbz", 0xff000000U, 0xb4000000U, 1026, Mnemonic::ARM64_CBZ, 2, 1 }, // CBZ_64_compbranch
+    { "msrr", 0xfff00000U, 0xd5500000U, 1107, Mnemonic::ARM64_MSRR, 2, 0 }, // MSRR_SR_systemmovepr
+    { "mrrs", 0xfff00000U, 0xd5700000U, 1107, Mnemonic::ARM64_MRRS, 2, 0 }, // MRRS_RS_systemmovepr
+    { "b.", 0xff000010U, 0x54000000U, 1109, Mnemonic::ARM64_B_, 2, 0 }, // B_only_condbranch
+    { "bc.", 0xff000010U, 0x54000010U, 1109, Mnemonic::ARM64_BC_, 2, 0 }, // BC_only_condbranch
+    { "cbnz", 0xff000000U, 0x35000000U, 1111, Mnemonic::ARM64_CBNZ, 2, 0 }, // CBNZ_32_compbranch
+    { "cbnz", 0xff000000U, 0xb5000000U, 1024, Mnemonic::ARM64_CBNZ, 2, 1 }, // CBNZ_64_compbranch
+    { "cbz", 0xff000000U, 0x34000000U, 1111, Mnemonic::ARM64_CBZ, 2, 0 }, // CBZ_32_compbranch
+    { "cbz", 0xff000000U, 0xb4000000U, 1024, Mnemonic::ARM64_CBZ, 2, 1 }, // CBZ_64_compbranch
     { "eret", 0xffffffffU, 0xd69f03e0U, 0, Mnemonic::ARM64_ERET, 0, 0 }, // ERET_64E_branch_reg
     { "eretaa", 0xffffffffU, 0xd69f0bffU, 0, Mnemonic::ARM64_ERETAA, 0, 0 }, // ERETAA_64E_branch_reg
     { "eretab", 0xffffffffU, 0xd69f0fffU, 0, Mnemonic::ARM64_ERETAB, 0, 0 }, // ERETAB_64E_branch_reg
@@ -3250,90 +3254,89 @@ const InstructionEntry g_instructionTable[] = {
     { "braaz", 0xfffffc1fU, 0xd61f081fU, 723, Mnemonic::ARM64_BRAAZ, 1, 1 }, // BRAAZ_64_branch_reg
     { "brabz", 0xfffffc1fU, 0xd61f0c1fU, 723, Mnemonic::ARM64_BRABZ, 1, 1 }, // BRABZ_64_branch_reg
     { "blr", 0xfffffc1fU, 0xd63f0000U, 723, Mnemonic::ARM64_BLR, 1, 1 }, // BLR_64_branch_reg
-    { "ret", 0xfffffc1fU, 0xd65f0000U, 1115, Mnemonic::ARM64_RET, 1, 0 }, // RET_64R_branch_reg
+    { "ret", 0xfffffc1fU, 0xd65f0000U, 1113, Mnemonic::ARM64_RET, 1, 0 }, // RET_64R_branch_reg
     { "br", 0xfffffc1fU, 0xd61f0000U, 723, Mnemonic::ARM64_BR, 1, 1 }, // BR_64_branch_reg
-    { "blraa", 0xfffffc00U, 0xd73f0800U, 1116, Mnemonic::ARM64_BLRAA, 2, 0 }, // BLRAA_64P_branch_reg
-    { "blrab", 0xfffffc00U, 0xd73f0c00U, 1116, Mnemonic::ARM64_BLRAB, 2, 0 }, // BLRAB_64P_branch_reg
-    { "braa", 0xfffffc00U, 0xd71f0800U, 1116, Mnemonic::ARM64_BRAA, 2, 0 }, // BRAA_64P_branch_reg
-    { "brab", 0xfffffc00U, 0xd71f0c00U, 1116, Mnemonic::ARM64_BRAB, 2, 0 }, // BRAB_64P_branch_reg
-    { "tbz", 0x7f000000U, 0x36000000U, 1118, Mnemonic::ARM64_TBZ, 3, 0 }, // TBZ_only_testbranch
-    { "tbnz", 0x7f000000U, 0x37000000U, 1118, Mnemonic::ARM64_TBNZ, 3, 0 }, // TBNZ_only_testbranch
+    { "blraa", 0xfffffc00U, 0xd73f0800U, 1114, Mnemonic::ARM64_BLRAA, 2, 0 }, // BLRAA_64P_branch_reg
+    { "blrab", 0xfffffc00U, 0xd73f0c00U, 1114, Mnemonic::ARM64_BLRAB, 2, 0 }, // BLRAB_64P_branch_reg
+    { "braa", 0xfffffc00U, 0xd71f0800U, 1114, Mnemonic::ARM64_BRAA, 2, 0 }, // BRAA_64P_branch_reg
+    { "brab", 0xfffffc00U, 0xd71f0c00U, 1114, Mnemonic::ARM64_BRAB, 2, 0 }, // BRAB_64P_branch_reg
+    { "tbz", 0x7f000000U, 0x36000000U, 1116, Mnemonic::ARM64_TBZ, 3, 0 }, // TBZ_only_testbranch
+    { "tbnz", 0x7f000000U, 0x37000000U, 1116, Mnemonic::ARM64_TBNZ, 3, 0 }, // TBNZ_only_testbranch
     { "ldgm", 0xfffffc00U, 0xd9e00000U, 671, Mnemonic::ARM64_LDGM, 2, 0 }, // LDGM_64bulk_ldsttags
     { "stzgm", 0xfffffc00U, 0xd9200000U, 671, Mnemonic::ARM64_STZGM, 2, 0 }, // STZGM_64bulk_ldsttags
-    { "stuminb", 0xffe0fc1fU, 0x3820701fU, 1121, Mnemonic::ARM64_STUMINB, 2, 0 }, // STUMINB_LDUMINB_32_memop
-    { "stuminlb", 0xffe0fc1fU, 0x3860701fU, 1121, Mnemonic::ARM64_STUMINLB, 2, 0 }, // STUMINLB_LDUMINLB_32_memop
-    { "stumaxb", 0xffe0fc1fU, 0x3820601fU, 1121, Mnemonic::ARM64_STUMAXB, 2, 0 }, // STUMAXB_LDUMAXB_32_memop
-    { "stumaxlb", 0xffe0fc1fU, 0x3860601fU, 1121, Mnemonic::ARM64_STUMAXLB, 2, 0 }, // STUMAXLB_LDUMAXLB_32_memop
-    { "stadd", 0xffe0fc1fU, 0xb820001fU, 1121, Mnemonic::ARM64_STADD, 2, 0 }, // STADD_LDADD_32_memop
-    { "staddl", 0xffe0fc1fU, 0xb860001fU, 1121, Mnemonic::ARM64_STADDL, 2, 0 }, // STADDL_LDADDL_32_memop
-    { "stadd", 0xffe0fc1fU, 0xf820001fU, 1123, Mnemonic::ARM64_STADD, 2, 1 }, // STADD_LDADD_64_memop
-    { "staddl", 0xffe0fc1fU, 0xf860001fU, 1123, Mnemonic::ARM64_STADDL, 2, 1 }, // STADDL_LDADDL_64_memop
-    { "stseth", 0xffe0fc1fU, 0x7820301fU, 1121, Mnemonic::ARM64_STSETH, 2, 0 }, // STSETH_LDSETH_32_memop
-    { "stsetlh", 0xffe0fc1fU, 0x7860301fU, 1121, Mnemonic::ARM64_STSETLH, 2, 0 }, // STSETLH_LDSETLH_32_memop
-    { "stclrb", 0xffe0fc1fU, 0x3820101fU, 1121, Mnemonic::ARM64_STCLRB, 2, 0 }, // STCLRB_LDCLRB_32_memop
-    { "stclrlb", 0xffe0fc1fU, 0x3860101fU, 1121, Mnemonic::ARM64_STCLRLB, 2, 0 }, // STCLRLB_LDCLRLB_32_memop
-    { "steorb", 0xffe0fc1fU, 0x3820201fU, 1121, Mnemonic::ARM64_STEORB, 2, 0 }, // STEORB_LDEORB_32_memop
-    { "steorlb", 0xffe0fc1fU, 0x3860201fU, 1121, Mnemonic::ARM64_STEORLB, 2, 0 }, // STEORLB_LDEORLB_32_memop
+    { "stuminb", 0xffe0fc1fU, 0x3820701fU, 1119, Mnemonic::ARM64_STUMINB, 2, 0 }, // STUMINB_LDUMINB_32_memop
+    { "stuminlb", 0xffe0fc1fU, 0x3860701fU, 1119, Mnemonic::ARM64_STUMINLB, 2, 0 }, // STUMINLB_LDUMINLB_32_memop
+    { "stumaxb", 0xffe0fc1fU, 0x3820601fU, 1119, Mnemonic::ARM64_STUMAXB, 2, 0 }, // STUMAXB_LDUMAXB_32_memop
+    { "stumaxlb", 0xffe0fc1fU, 0x3860601fU, 1119, Mnemonic::ARM64_STUMAXLB, 2, 0 }, // STUMAXLB_LDUMAXLB_32_memop
+    { "stadd", 0xffe0fc1fU, 0xb820001fU, 1119, Mnemonic::ARM64_STADD, 2, 0 }, // STADD_LDADD_32_memop
+    { "staddl", 0xffe0fc1fU, 0xb860001fU, 1119, Mnemonic::ARM64_STADDL, 2, 0 }, // STADDL_LDADDL_32_memop
+    { "stadd", 0xffe0fc1fU, 0xf820001fU, 1121, Mnemonic::ARM64_STADD, 2, 1 }, // STADD_LDADD_64_memop
+    { "staddl", 0xffe0fc1fU, 0xf860001fU, 1121, Mnemonic::ARM64_STADDL, 2, 1 }, // STADDL_LDADDL_64_memop
+    { "stseth", 0xffe0fc1fU, 0x7820301fU, 1119, Mnemonic::ARM64_STSETH, 2, 0 }, // STSETH_LDSETH_32_memop
+    { "stsetlh", 0xffe0fc1fU, 0x7860301fU, 1119, Mnemonic::ARM64_STSETLH, 2, 0 }, // STSETLH_LDSETLH_32_memop
+    { "stclrb", 0xffe0fc1fU, 0x3820101fU, 1119, Mnemonic::ARM64_STCLRB, 2, 0 }, // STCLRB_LDCLRB_32_memop
+    { "stclrlb", 0xffe0fc1fU, 0x3860101fU, 1119, Mnemonic::ARM64_STCLRLB, 2, 0 }, // STCLRLB_LDCLRLB_32_memop
+    { "steorb", 0xffe0fc1fU, 0x3820201fU, 1119, Mnemonic::ARM64_STEORB, 2, 0 }, // STEORB_LDEORB_32_memop
+    { "steorlb", 0xffe0fc1fU, 0x3860201fU, 1119, Mnemonic::ARM64_STEORLB, 2, 0 }, // STEORLB_LDEORLB_32_memop
     { "ldapr", 0xfffffc00U, 0x99c00800U, 658, Mnemonic::ARM64_LDAPR, 2, 0 }, // LDAPR_32L_ldapstl_writeback
     { "ldapr", 0xfffffc00U, 0xd9c00800U, 671, Mnemonic::ARM64_LDAPR, 2, 0 }, // LDAPR_64L_ldapstl_writeback
     { "gcssttr", 0xfffffc00U, 0xd91f1c00U, 671, Mnemonic::ARM64_GCSSTTR, 2, 1 }, // GCSSTTR_64_ldst_gcs
-    { "stumin", 0xffe0fc1fU, 0xb820701fU, 1121, Mnemonic::ARM64_STUMIN, 2, 0 }, // STUMIN_LDUMIN_32_memop
-    { "stuminl", 0xffe0fc1fU, 0xb860701fU, 1121, Mnemonic::ARM64_STUMINL, 2, 0 }, // STUMINL_LDUMINL_32_memop
-    { "stumin", 0xffe0fc1fU, 0xf820701fU, 1123, Mnemonic::ARM64_STUMIN, 2, 1 }, // STUMIN_LDUMIN_64_memop
-    { "stuminl", 0xffe0fc1fU, 0xf860701fU, 1123, Mnemonic::ARM64_STUMINL, 2, 1 }, // STUMINL_LDUMINL_64_memop
+    { "stumin", 0xffe0fc1fU, 0xb820701fU, 1119, Mnemonic::ARM64_STUMIN, 2, 0 }, // STUMIN_LDUMIN_32_memop
+    { "stuminl", 0xffe0fc1fU, 0xb860701fU, 1119, Mnemonic::ARM64_STUMINL, 2, 0 }, // STUMINL_LDUMINL_32_memop
+    { "stumin", 0xffe0fc1fU, 0xf820701fU, 1121, Mnemonic::ARM64_STUMIN, 2, 1 }, // STUMIN_LDUMIN_64_memop
+    { "stuminl", 0xffe0fc1fU, 0xf860701fU, 1121, Mnemonic::ARM64_STUMINL, 2, 1 }, // STUMINL_LDUMINL_64_memop
     { "stgm", 0xfffffc00U, 0xd9a00000U, 671, Mnemonic::ARM64_STGM, 2, 0 }, // STGM_64bulk_ldsttags
-    { "stumax", 0xffe0fc1fU, 0xb820601fU, 1121, Mnemonic::ARM64_STUMAX, 2, 0 }, // STUMAX_LDUMAX_32_memop
-    { "stumaxl", 0xffe0fc1fU, 0xb860601fU, 1121, Mnemonic::ARM64_STUMAXL, 2, 0 }, // STUMAXL_LDUMAXL_32_memop
-    { "stumax", 0xffe0fc1fU, 0xf820601fU, 1123, Mnemonic::ARM64_STUMAX, 2, 1 }, // STUMAX_LDUMAX_64_memop
-    { "stumaxl", 0xffe0fc1fU, 0xf860601fU, 1123, Mnemonic::ARM64_STUMAXL, 2, 1 }, // STUMAXL_LDUMAXL_64_memop
-    { "stsminh", 0xffe0fc1fU, 0x7820501fU, 1121, Mnemonic::ARM64_STSMINH, 2, 0 }, // STSMINH_LDSMINH_32_memop
-    { "stsminlh", 0xffe0fc1fU, 0x7860501fU, 1121, Mnemonic::ARM64_STSMINLH, 2, 0 }, // STSMINLH_LDSMINLH_32_memop
-    { "staddb", 0xffe0fc1fU, 0x3820001fU, 1121, Mnemonic::ARM64_STADDB, 2, 0 }, // STADDB_LDADDB_32_memop
-    { "staddlb", 0xffe0fc1fU, 0x3860001fU, 1121, Mnemonic::ARM64_STADDLB, 2, 0 }, // STADDLB_LDADDLB_32_memop
-    { "stsmaxh", 0xffe0fc1fU, 0x7820401fU, 1121, Mnemonic::ARM64_STSMAXH, 2, 0 }, // STSMAXH_LDSMAXH_32_memop
-    { "stsmaxlh", 0xffe0fc1fU, 0x7860401fU, 1121, Mnemonic::ARM64_STSMAXLH, 2, 0 }, // STSMAXLH_LDSMAXLH_32_memop
-    { "stset", 0xffe0fc1fU, 0xb820301fU, 1121, Mnemonic::ARM64_STSET, 2, 0 }, // STSET_LDSET_32_memop
-    { "stsetl", 0xffe0fc1fU, 0xb860301fU, 1121, Mnemonic::ARM64_STSETL, 2, 0 }, // STSETL_LDSETL_32_memop
-    { "stset", 0xffe0fc1fU, 0xf820301fU, 1123, Mnemonic::ARM64_STSET, 2, 1 }, // STSET_LDSET_64_memop
-    { "stsetl", 0xffe0fc1fU, 0xf860301fU, 1123, Mnemonic::ARM64_STSETL, 2, 1 }, // STSETL_LDSETL_64_memop
-    { "steorh", 0xffe0fc1fU, 0x7820201fU, 1121, Mnemonic::ARM64_STEORH, 2, 0 }, // STEORH_LDEORH_32_memop
-    { "steorlh", 0xffe0fc1fU, 0x7860201fU, 1121, Mnemonic::ARM64_STEORLH, 2, 0 }, // STEORLH_LDEORLH_32_memop
-    { "stclrh", 0xffe0fc1fU, 0x7820101fU, 1121, Mnemonic::ARM64_STCLRH, 2, 0 }, // STCLRH_LDCLRH_32_memop
-    { "stclrlh", 0xffe0fc1fU, 0x7860101fU, 1121, Mnemonic::ARM64_STCLRLH, 2, 0 }, // STCLRLH_LDCLRLH_32_memop
-    { "stsetb", 0xffe0fc1fU, 0x3820301fU, 1121, Mnemonic::ARM64_STSETB, 2, 0 }, // STSETB_LDSETB_32_memop
-    { "stsetlb", 0xffe0fc1fU, 0x3860301fU, 1121, Mnemonic::ARM64_STSETLB, 2, 0 }, // STSETLB_LDSETLB_32_memop
-    { "stclr", 0xffe0fc1fU, 0xb820101fU, 1121, Mnemonic::ARM64_STCLR, 2, 0 }, // STCLR_LDCLR_32_memop
-    { "stclrl", 0xffe0fc1fU, 0xb860101fU, 1121, Mnemonic::ARM64_STCLRL, 2, 0 }, // STCLRL_LDCLRL_32_memop
-    { "stclr", 0xffe0fc1fU, 0xf820101fU, 1123, Mnemonic::ARM64_STCLR, 2, 1 }, // STCLR_LDCLR_64_memop
-    { "stclrl", 0xffe0fc1fU, 0xf860101fU, 1123, Mnemonic::ARM64_STCLRL, 2, 1 }, // STCLRL_LDCLRL_64_memop
-    { "stumaxh", 0xffe0fc1fU, 0x7820601fU, 1121, Mnemonic::ARM64_STUMAXH, 2, 0 }, // STUMAXH_LDUMAXH_32_memop
-    { "stumaxlh", 0xffe0fc1fU, 0x7860601fU, 1121, Mnemonic::ARM64_STUMAXLH, 2, 0 }, // STUMAXLH_LDUMAXLH_32_memop
+    { "stumax", 0xffe0fc1fU, 0xb820601fU, 1119, Mnemonic::ARM64_STUMAX, 2, 0 }, // STUMAX_LDUMAX_32_memop
+    { "stumaxl", 0xffe0fc1fU, 0xb860601fU, 1119, Mnemonic::ARM64_STUMAXL, 2, 0 }, // STUMAXL_LDUMAXL_32_memop
+    { "stumax", 0xffe0fc1fU, 0xf820601fU, 1121, Mnemonic::ARM64_STUMAX, 2, 1 }, // STUMAX_LDUMAX_64_memop
+    { "stumaxl", 0xffe0fc1fU, 0xf860601fU, 1121, Mnemonic::ARM64_STUMAXL, 2, 1 }, // STUMAXL_LDUMAXL_64_memop
+    { "stsminh", 0xffe0fc1fU, 0x7820501fU, 1119, Mnemonic::ARM64_STSMINH, 2, 0 }, // STSMINH_LDSMINH_32_memop
+    { "stsminlh", 0xffe0fc1fU, 0x7860501fU, 1119, Mnemonic::ARM64_STSMINLH, 2, 0 }, // STSMINLH_LDSMINLH_32_memop
+    { "staddb", 0xffe0fc1fU, 0x3820001fU, 1119, Mnemonic::ARM64_STADDB, 2, 0 }, // STADDB_LDADDB_32_memop
+    { "staddlb", 0xffe0fc1fU, 0x3860001fU, 1119, Mnemonic::ARM64_STADDLB, 2, 0 }, // STADDLB_LDADDLB_32_memop
+    { "stsmaxh", 0xffe0fc1fU, 0x7820401fU, 1119, Mnemonic::ARM64_STSMAXH, 2, 0 }, // STSMAXH_LDSMAXH_32_memop
+    { "stsmaxlh", 0xffe0fc1fU, 0x7860401fU, 1119, Mnemonic::ARM64_STSMAXLH, 2, 0 }, // STSMAXLH_LDSMAXLH_32_memop
+    { "stset", 0xffe0fc1fU, 0xb820301fU, 1119, Mnemonic::ARM64_STSET, 2, 0 }, // STSET_LDSET_32_memop
+    { "stsetl", 0xffe0fc1fU, 0xb860301fU, 1119, Mnemonic::ARM64_STSETL, 2, 0 }, // STSETL_LDSETL_32_memop
+    { "stset", 0xffe0fc1fU, 0xf820301fU, 1121, Mnemonic::ARM64_STSET, 2, 1 }, // STSET_LDSET_64_memop
+    { "stsetl", 0xffe0fc1fU, 0xf860301fU, 1121, Mnemonic::ARM64_STSETL, 2, 1 }, // STSETL_LDSETL_64_memop
+    { "steorh", 0xffe0fc1fU, 0x7820201fU, 1119, Mnemonic::ARM64_STEORH, 2, 0 }, // STEORH_LDEORH_32_memop
+    { "steorlh", 0xffe0fc1fU, 0x7860201fU, 1119, Mnemonic::ARM64_STEORLH, 2, 0 }, // STEORLH_LDEORLH_32_memop
+    { "stclrh", 0xffe0fc1fU, 0x7820101fU, 1119, Mnemonic::ARM64_STCLRH, 2, 0 }, // STCLRH_LDCLRH_32_memop
+    { "stclrlh", 0xffe0fc1fU, 0x7860101fU, 1119, Mnemonic::ARM64_STCLRLH, 2, 0 }, // STCLRLH_LDCLRLH_32_memop
+    { "stsetb", 0xffe0fc1fU, 0x3820301fU, 1119, Mnemonic::ARM64_STSETB, 2, 0 }, // STSETB_LDSETB_32_memop
+    { "stsetlb", 0xffe0fc1fU, 0x3860301fU, 1119, Mnemonic::ARM64_STSETLB, 2, 0 }, // STSETLB_LDSETLB_32_memop
+    { "stclr", 0xffe0fc1fU, 0xb820101fU, 1119, Mnemonic::ARM64_STCLR, 2, 0 }, // STCLR_LDCLR_32_memop
+    { "stclrl", 0xffe0fc1fU, 0xb860101fU, 1119, Mnemonic::ARM64_STCLRL, 2, 0 }, // STCLRL_LDCLRL_32_memop
+    { "stclr", 0xffe0fc1fU, 0xf820101fU, 1121, Mnemonic::ARM64_STCLR, 2, 1 }, // STCLR_LDCLR_64_memop
+    { "stclrl", 0xffe0fc1fU, 0xf860101fU, 1121, Mnemonic::ARM64_STCLRL, 2, 1 }, // STCLRL_LDCLRL_64_memop
+    { "stumaxh", 0xffe0fc1fU, 0x7820601fU, 1119, Mnemonic::ARM64_STUMAXH, 2, 0 }, // STUMAXH_LDUMAXH_32_memop
+    { "stumaxlh", 0xffe0fc1fU, 0x7860601fU, 1119, Mnemonic::ARM64_STUMAXLH, 2, 0 }, // STUMAXLH_LDUMAXLH_32_memop
     { "ld64b", 0xfffffc00U, 0xf83fd000U, 671, Mnemonic::ARM64_LD64B, 2, 0 }, // LD64B_64L_memop
-    { "stuminh", 0xffe0fc1fU, 0x7820701fU, 1121, Mnemonic::ARM64_STUMINH, 2, 0 }, // STUMINH_LDUMINH_32_memop
-    { "stuminlh", 0xffe0fc1fU, 0x7860701fU, 1121, Mnemonic::ARM64_STUMINLH, 2, 0 }, // STUMINLH_LDUMINLH_32_memop
+    { "stuminh", 0xffe0fc1fU, 0x7820701fU, 1119, Mnemonic::ARM64_STUMINH, 2, 0 }, // STUMINH_LDUMINH_32_memop
+    { "stuminlh", 0xffe0fc1fU, 0x7860701fU, 1119, Mnemonic::ARM64_STUMINLH, 2, 0 }, // STUMINLH_LDUMINLH_32_memop
     { "st64b", 0xfffffc00U, 0xf83f9000U, 671, Mnemonic::ARM64_ST64B, 2, 0 }, // ST64B_64L_memop
-    { "stsmax", 0xffe0fc1fU, 0xb820401fU, 1121, Mnemonic::ARM64_STSMAX, 2, 0 }, // STSMAX_LDSMAX_32_memop
-    { "stsmaxl", 0xffe0fc1fU, 0xb860401fU, 1121, Mnemonic::ARM64_STSMAXL, 2, 0 }, // STSMAXL_LDSMAXL_32_memop
-    { "stsmax", 0xffe0fc1fU, 0xf820401fU, 1123, Mnemonic::ARM64_STSMAX, 2, 1 }, // STSMAX_LDSMAX_64_memop
-    { "stsmaxl", 0xffe0fc1fU, 0xf860401fU, 1123, Mnemonic::ARM64_STSMAXL, 2, 1 }, // STSMAXL_LDSMAXL_64_memop
-    { "stsmin", 0xffe0fc1fU, 0xb820501fU, 1121, Mnemonic::ARM64_STSMIN, 2, 0 }, // STSMIN_LDSMIN_32_memop
-    { "stsminl", 0xffe0fc1fU, 0xb860501fU, 1121, Mnemonic::ARM64_STSMINL, 2, 0 }, // STSMINL_LDSMINL_32_memop
-    { "stsmin", 0xffe0fc1fU, 0xf820501fU, 1123, Mnemonic::ARM64_STSMIN, 2, 1 }, // STSMIN_LDSMIN_64_memop
-    { "stsminl", 0xffe0fc1fU, 0xf860501fU, 1123, Mnemonic::ARM64_STSMINL, 2, 1 }, // STSMINL_LDSMINL_64_memop
+    { "stsmax", 0xffe0fc1fU, 0xb820401fU, 1119, Mnemonic::ARM64_STSMAX, 2, 0 }, // STSMAX_LDSMAX_32_memop
+    { "stsmaxl", 0xffe0fc1fU, 0xb860401fU, 1119, Mnemonic::ARM64_STSMAXL, 2, 0 }, // STSMAXL_LDSMAXL_32_memop
+    { "stsmax", 0xffe0fc1fU, 0xf820401fU, 1121, Mnemonic::ARM64_STSMAX, 2, 1 }, // STSMAX_LDSMAX_64_memop
+    { "stsmaxl", 0xffe0fc1fU, 0xf860401fU, 1121, Mnemonic::ARM64_STSMAXL, 2, 1 }, // STSMAXL_LDSMAXL_64_memop
+    { "stsmin", 0xffe0fc1fU, 0xb820501fU, 1119, Mnemonic::ARM64_STSMIN, 2, 0 }, // STSMIN_LDSMIN_32_memop
+    { "stsminl", 0xffe0fc1fU, 0xb860501fU, 1119, Mnemonic::ARM64_STSMINL, 2, 0 }, // STSMINL_LDSMINL_32_memop
+    { "stsmin", 0xffe0fc1fU, 0xf820501fU, 1121, Mnemonic::ARM64_STSMIN, 2, 1 }, // STSMIN_LDSMIN_64_memop
+    { "stsminl", 0xffe0fc1fU, 0xf860501fU, 1121, Mnemonic::ARM64_STSMINL, 2, 1 }, // STSMINL_LDSMINL_64_memop
     { "gcsstr", 0xfffffc00U, 0xd91f0c00U, 671, Mnemonic::ARM64_GCSSTR, 2, 1 }, // GCSSTR_64_ldst_gcs
-    { "stsmaxb", 0xffe0fc1fU, 0x3820401fU, 1121, Mnemonic::ARM64_STSMAXB, 2, 0 }, // STSMAXB_LDSMAXB_32_memop
-    { "stsmaxlb", 0xffe0fc1fU, 0x3860401fU, 1121, Mnemonic::ARM64_STSMAXLB, 2, 0 }, // STSMAXLB_LDSMAXLB_32_memop
-    { "staddh", 0xffe0fc1fU, 0x7820001fU, 1121, Mnemonic::ARM64_STADDH, 2, 0 }, // STADDH_LDADDH_32_memop
-    { "staddlh", 0xffe0fc1fU, 0x7860001fU, 1121, Mnemonic::ARM64_STADDLH, 2, 0 }, // STADDLH_LDADDLH_32_memop
-    { "steor", 0xffe0fc1fU, 0xb820201fU, 1121, Mnemonic::ARM64_STEOR, 2, 0 }, // STEOR_LDEOR_32_memop
-    { "steorl", 0xffe0fc1fU, 0xb860201fU, 1121, Mnemonic::ARM64_STEORL, 2, 0 }, // STEORL_LDEORL_32_memop
-    { "steor", 0xffe0fc1fU, 0xf820201fU, 1123, Mnemonic::ARM64_STEOR, 2, 1 }, // STEOR_LDEOR_64_memop
-    { "steorl", 0xffe0fc1fU, 0xf860201fU, 1123, Mnemonic::ARM64_STEORL, 2, 1 }, // STEORL_LDEORL_64_memop
-    { "stsminb", 0xffe0fc1fU, 0x3820501fU, 1121, Mnemonic::ARM64_STSMINB, 2, 0 }, // STSMINB_LDSMINB_32_memop
-    { "stsminlb", 0xffe0fc1fU, 0x3860501fU, 1121, Mnemonic::ARM64_STSMINLB, 2, 0 }, // STSMINLB_LDSMINLB_32_memop
-    { "stlr", 0xfffffc00U, 0x99800800U, 1125, Mnemonic::ARM64_STLR, 2, 0 }, // STLR_32S_ldapstl_writeback
-    { "stlr", 0xfffffc00U, 0xd9800800U, 1127, Mnemonic::ARM64_STLR, 2, 0 }, // STLR_64S_ldapstl_writeback
-    { "rprfm", 0xffe0ec1fU, 0xf8a04818U, 1129, Mnemonic::ARM64_RPRFM, 3, 0 }, // RPRFM_R_ldst_regoff
+    { "stsmaxb", 0xffe0fc1fU, 0x3820401fU, 1119, Mnemonic::ARM64_STSMAXB, 2, 0 }, // STSMAXB_LDSMAXB_32_memop
+    { "stsmaxlb", 0xffe0fc1fU, 0x3860401fU, 1119, Mnemonic::ARM64_STSMAXLB, 2, 0 }, // STSMAXLB_LDSMAXLB_32_memop
+    { "staddh", 0xffe0fc1fU, 0x7820001fU, 1119, Mnemonic::ARM64_STADDH, 2, 0 }, // STADDH_LDADDH_32_memop
+    { "staddlh", 0xffe0fc1fU, 0x7860001fU, 1119, Mnemonic::ARM64_STADDLH, 2, 0 }, // STADDLH_LDADDLH_32_memop
+    { "steor", 0xffe0fc1fU, 0xb820201fU, 1119, Mnemonic::ARM64_STEOR, 2, 0 }, // STEOR_LDEOR_32_memop
+    { "steorl", 0xffe0fc1fU, 0xb860201fU, 1119, Mnemonic::ARM64_STEORL, 2, 0 }, // STEORL_LDEORL_32_memop
+    { "steor", 0xffe0fc1fU, 0xf820201fU, 1121, Mnemonic::ARM64_STEOR, 2, 1 }, // STEOR_LDEOR_64_memop
+    { "steorl", 0xffe0fc1fU, 0xf860201fU, 1121, Mnemonic::ARM64_STEORL, 2, 1 }, // STEORL_LDEORL_64_memop
+    { "stsminb", 0xffe0fc1fU, 0x3820501fU, 1119, Mnemonic::ARM64_STSMINB, 2, 0 }, // STSMINB_LDSMINB_32_memop
+    { "stsminlb", 0xffe0fc1fU, 0x3860501fU, 1119, Mnemonic::ARM64_STSMINLB, 2, 0 }, // STSMINLB_LDSMINLB_32_memop
+    { "stlr", 0xfffffc00U, 0x99800800U, 1123, Mnemonic::ARM64_STLR, 2, 0 }, // STLR_32S_ldapstl_writeback
+    { "stlr", 0xfffffc00U, 0xd9800800U, 1125, Mnemonic::ARM64_STLR, 2, 0 }, // STLR_64S_ldapstl_writeback
     { "ldadd", 0xffe0fc00U, 0xb8200000U, 657, Mnemonic::ARM64_LDADD, 3, 0 }, // LDADD_32_memop
     { "ldadda", 0xffe0fc00U, 0xb8a00000U, 657, Mnemonic::ARM64_LDADDA, 3, 0 }, // LDADDA_32_memop
     { "ldaddal", 0xffe0fc00U, 0xb8e00000U, 657, Mnemonic::ARM64_LDADDAL, 3, 0 }, // LDADDAL_32_memop
@@ -3350,10 +3353,10 @@ const InstructionEntry g_instructionTable[] = {
     { "lduminalb", 0xffe0fc00U, 0x38e07000U, 657, Mnemonic::ARM64_LDUMINALB, 3, 0 }, // LDUMINALB_32_memop
     { "lduminb", 0xffe0fc00U, 0x38207000U, 657, Mnemonic::ARM64_LDUMINB, 3, 0 }, // LDUMINB_32_memop
     { "lduminlb", 0xffe0fc00U, 0x38607000U, 657, Mnemonic::ARM64_LDUMINLB, 3, 0 }, // LDUMINLB_32_memop
-    { "swpp", 0xffe0fc00U, 0x19208000U, 1132, Mnemonic::ARM64_SWPP, 3, 0 }, // SWPP_128_memop_128
-    { "swppa", 0xffe0fc00U, 0x19a08000U, 1132, Mnemonic::ARM64_SWPPA, 3, 0 }, // SWPPA_128_memop_128
-    { "swppal", 0xffe0fc00U, 0x19e08000U, 1132, Mnemonic::ARM64_SWPPAL, 3, 0 }, // SWPPAL_128_memop_128
-    { "swppl", 0xffe0fc00U, 0x19608000U, 1132, Mnemonic::ARM64_SWPPL, 3, 0 }, // SWPPL_128_memop_128
+    { "swpp", 0xffe0fc00U, 0x19208000U, 1127, Mnemonic::ARM64_SWPP, 3, 0 }, // SWPP_128_memop_128
+    { "swppa", 0xffe0fc00U, 0x19a08000U, 1127, Mnemonic::ARM64_SWPPA, 3, 0 }, // SWPPA_128_memop_128
+    { "swppal", 0xffe0fc00U, 0x19e08000U, 1127, Mnemonic::ARM64_SWPPAL, 3, 0 }, // SWPPAL_128_memop_128
+    { "swppl", 0xffe0fc00U, 0x19608000U, 1127, Mnemonic::ARM64_SWPPL, 3, 0 }, // SWPPL_128_memop_128
     { "rcwsswp", 0xffe0fc00U, 0x7820a000U, 670, Mnemonic::ARM64_RCWSSWP, 3, 1 }, // RCWSSWP_64_memop
     { "rcwsswpa", 0xffe0fc00U, 0x78a0a000U, 670, Mnemonic::ARM64_RCWSSWPA, 3, 1 }, // RCWSSWPA_64_memop
     { "rcwsswpal", 0xffe0fc00U, 0x78e0a000U, 670, Mnemonic::ARM64_RCWSSWPAL, 3, 1 }, // RCWSSWPAL_64_memop
@@ -3389,10 +3392,10 @@ const InstructionEntry g_instructionTable[] = {
     { "rcwsetl", 0xffe0fc00U, 0x3860b000U, 670, Mnemonic::ARM64_RCWSETL, 3, 1 }, // RCWSETL_64_memop
     { "ldapr", 0xffe0fc00U, 0xb8a0c000U, 658, Mnemonic::ARM64_LDAPR, 2, 0 }, // LDAPR_32L_memop
     { "ldapr", 0xffe0fc00U, 0xf8a0c000U, 671, Mnemonic::ARM64_LDAPR, 2, 0 }, // LDAPR_64L_memop
-    { "rcwswpp", 0xffe0fc00U, 0x1920a000U, 1132, Mnemonic::ARM64_RCWSWPP, 3, 0 }, // RCWSWPP_128_memop_128
-    { "rcwswppa", 0xffe0fc00U, 0x19a0a000U, 1132, Mnemonic::ARM64_RCWSWPPA, 3, 0 }, // RCWSWPPA_128_memop_128
-    { "rcwswppal", 0xffe0fc00U, 0x19e0a000U, 1132, Mnemonic::ARM64_RCWSWPPAL, 3, 0 }, // RCWSWPPAL_128_memop_128
-    { "rcwswppl", 0xffe0fc00U, 0x1960a000U, 1132, Mnemonic::ARM64_RCWSWPPL, 3, 0 }, // RCWSWPPL_128_memop_128
+    { "rcwswpp", 0xffe0fc00U, 0x1920a000U, 1127, Mnemonic::ARM64_RCWSWPP, 3, 0 }, // RCWSWPP_128_memop_128
+    { "rcwswppa", 0xffe0fc00U, 0x19a0a000U, 1127, Mnemonic::ARM64_RCWSWPPA, 3, 0 }, // RCWSWPPA_128_memop_128
+    { "rcwswppal", 0xffe0fc00U, 0x19e0a000U, 1127, Mnemonic::ARM64_RCWSWPPAL, 3, 0 }, // RCWSWPPAL_128_memop_128
+    { "rcwswppl", 0xffe0fc00U, 0x1960a000U, 1127, Mnemonic::ARM64_RCWSWPPL, 3, 0 }, // RCWSWPPL_128_memop_128
     { "rcwscasp", 0xffe0fc00U, 0x59200c00U, 665, Mnemonic::ARM64_RCWSCASP, 5, 0 }, // RCWSCASP_C64_rcwcomswappr
     { "rcwscaspa", 0xffe0fc00U, 0x59a00c00U, 665, Mnemonic::ARM64_RCWSCASPA, 5, 0 }, // RCWSCASPA_C64_rcwcomswappr
     { "rcwscaspal", 0xffe0fc00U, 0x59e00c00U, 665, Mnemonic::ARM64_RCWSCASPAL, 5, 0 }, // RCWSCASPAL_C64_rcwcomswappr
@@ -3413,26 +3416,26 @@ const InstructionEntry g_instructionTable[] = {
     { "ldsmaxalh", 0xffe0fc00U, 0x78e04000U, 657, Mnemonic::ARM64_LDSMAXALH, 3, 0 }, // LDSMAXALH_32_memop
     { "ldsmaxh", 0xffe0fc00U, 0x78204000U, 657, Mnemonic::ARM64_LDSMAXH, 3, 0 }, // LDSMAXH_32_memop
     { "ldsmaxlh", 0xffe0fc00U, 0x78604000U, 657, Mnemonic::ARM64_LDSMAXLH, 3, 0 }, // LDSMAXLH_32_memop
-    { "rcwsetp", 0xffe0fc00U, 0x1920b000U, 1132, Mnemonic::ARM64_RCWSETP, 3, 0 }, // RCWSETP_128_memop_128
-    { "rcwsetpa", 0xffe0fc00U, 0x19a0b000U, 1132, Mnemonic::ARM64_RCWSETPA, 3, 0 }, // RCWSETPA_128_memop_128
-    { "rcwsetpal", 0xffe0fc00U, 0x19e0b000U, 1132, Mnemonic::ARM64_RCWSETPAL, 3, 0 }, // RCWSETPAL_128_memop_128
-    { "rcwsetpl", 0xffe0fc00U, 0x1960b000U, 1132, Mnemonic::ARM64_RCWSETPL, 3, 0 }, // RCWSETPL_128_memop_128
+    { "rcwsetp", 0xffe0fc00U, 0x1920b000U, 1127, Mnemonic::ARM64_RCWSETP, 3, 0 }, // RCWSETP_128_memop_128
+    { "rcwsetpa", 0xffe0fc00U, 0x19a0b000U, 1127, Mnemonic::ARM64_RCWSETPA, 3, 0 }, // RCWSETPA_128_memop_128
+    { "rcwsetpal", 0xffe0fc00U, 0x19e0b000U, 1127, Mnemonic::ARM64_RCWSETPAL, 3, 0 }, // RCWSETPAL_128_memop_128
+    { "rcwsetpl", 0xffe0fc00U, 0x1960b000U, 1127, Mnemonic::ARM64_RCWSETPL, 3, 0 }, // RCWSETPL_128_memop_128
     { "rcwsclr", 0xffe0fc00U, 0x78209000U, 670, Mnemonic::ARM64_RCWSCLR, 3, 1 }, // RCWSCLR_64_memop
     { "rcwsclra", 0xffe0fc00U, 0x78a09000U, 670, Mnemonic::ARM64_RCWSCLRA, 3, 1 }, // RCWSCLRA_64_memop
     { "rcwsclral", 0xffe0fc00U, 0x78e09000U, 670, Mnemonic::ARM64_RCWSCLRAL, 3, 1 }, // RCWSCLRAL_64_memop
     { "rcwsclrl", 0xffe0fc00U, 0x78609000U, 670, Mnemonic::ARM64_RCWSCLRL, 3, 1 }, // RCWSCLRL_64_memop
-    { "ldclrp", 0xffe0fc00U, 0x19201000U, 1132, Mnemonic::ARM64_LDCLRP, 3, 0 }, // LDCLRP_128_memop_128
-    { "ldclrpa", 0xffe0fc00U, 0x19a01000U, 1132, Mnemonic::ARM64_LDCLRPA, 3, 0 }, // LDCLRPA_128_memop_128
-    { "ldclrpal", 0xffe0fc00U, 0x19e01000U, 1132, Mnemonic::ARM64_LDCLRPAL, 3, 0 }, // LDCLRPAL_128_memop_128
-    { "ldclrpl", 0xffe0fc00U, 0x19601000U, 1132, Mnemonic::ARM64_LDCLRPL, 3, 0 }, // LDCLRPL_128_memop_128
+    { "ldclrp", 0xffe0fc00U, 0x19201000U, 1127, Mnemonic::ARM64_LDCLRP, 3, 0 }, // LDCLRP_128_memop_128
+    { "ldclrpa", 0xffe0fc00U, 0x19a01000U, 1127, Mnemonic::ARM64_LDCLRPA, 3, 0 }, // LDCLRPA_128_memop_128
+    { "ldclrpal", 0xffe0fc00U, 0x19e01000U, 1127, Mnemonic::ARM64_LDCLRPAL, 3, 0 }, // LDCLRPAL_128_memop_128
+    { "ldclrpl", 0xffe0fc00U, 0x19601000U, 1127, Mnemonic::ARM64_LDCLRPL, 3, 0 }, // LDCLRPL_128_memop_128
     { "ldaddab", 0xffe0fc00U, 0x38a00000U, 657, Mnemonic::ARM64_LDADDAB, 3, 0 }, // LDADDAB_32_memop
     { "ldaddalb", 0xffe0fc00U, 0x38e00000U, 657, Mnemonic::ARM64_LDADDALB, 3, 0 }, // LDADDALB_32_memop
     { "ldaddb", 0xffe0fc00U, 0x38200000U, 657, Mnemonic::ARM64_LDADDB, 3, 0 }, // LDADDB_32_memop
     { "ldaddlb", 0xffe0fc00U, 0x38600000U, 657, Mnemonic::ARM64_LDADDLB, 3, 0 }, // LDADDLB_32_memop
-    { "ldiapp", 0xffe0fc00U, 0x99400800U, 1135, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_32LE_ldiappstilp
-    { "ldiapp", 0xffe0fc00U, 0x99401800U, 1135, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_32L_ldiappstilp
-    { "ldiapp", 0xffe0fc00U, 0xd9400800U, 1132, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_64LS_ldiappstilp
-    { "ldiapp", 0xffe0fc00U, 0xd9401800U, 1132, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_64L_ldiappstilp
+    { "ldiapp", 0xffe0fc00U, 0x99400800U, 1130, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_32LE_ldiappstilp
+    { "ldiapp", 0xffe0fc00U, 0x99401800U, 1130, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_32L_ldiappstilp
+    { "ldiapp", 0xffe0fc00U, 0xd9400800U, 1127, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_64LS_ldiappstilp
+    { "ldiapp", 0xffe0fc00U, 0xd9401800U, 1127, Mnemonic::ARM64_LDIAPP, 3, 0 }, // LDIAPP_64L_ldiappstilp
     { "rcwswp", 0xffe0fc00U, 0x3820a000U, 670, Mnemonic::ARM64_RCWSWP, 3, 1 }, // RCWSWP_64_memop
     { "rcwswpa", 0xffe0fc00U, 0x38a0a000U, 670, Mnemonic::ARM64_RCWSWPA, 3, 1 }, // RCWSWPA_64_memop
     { "rcwswpal", 0xffe0fc00U, 0x38e0a000U, 670, Mnemonic::ARM64_RCWSWPAL, 3, 1 }, // RCWSWPAL_64_memop
@@ -3450,18 +3453,18 @@ const InstructionEntry g_instructionTable[] = {
     { "rcwscasa", 0xffe0fc00U, 0x59a00800U, 670, Mnemonic::ARM64_RCWSCASA, 3, 0 }, // RCWSCASA_C64_rcwcomswap
     { "rcwscasal", 0xffe0fc00U, 0x59e00800U, 670, Mnemonic::ARM64_RCWSCASAL, 3, 0 }, // RCWSCASAL_C64_rcwcomswap
     { "rcwscasl", 0xffe0fc00U, 0x59600800U, 670, Mnemonic::ARM64_RCWSCASL, 3, 0 }, // RCWSCASL_C64_rcwcomswap
-    { "rcwssetp", 0xffe0fc00U, 0x5920b000U, 1132, Mnemonic::ARM64_RCWSSETP, 3, 0 }, // RCWSSETP_128_memop_128
-    { "rcwssetpa", 0xffe0fc00U, 0x59a0b000U, 1132, Mnemonic::ARM64_RCWSSETPA, 3, 0 }, // RCWSSETPA_128_memop_128
-    { "rcwssetpal", 0xffe0fc00U, 0x59e0b000U, 1132, Mnemonic::ARM64_RCWSSETPAL, 3, 0 }, // RCWSSETPAL_128_memop_128
-    { "rcwssetpl", 0xffe0fc00U, 0x5960b000U, 1132, Mnemonic::ARM64_RCWSSETPL, 3, 0 }, // RCWSSETPL_128_memop_128
-    { "rcwsswpp", 0xffe0fc00U, 0x5920a000U, 1132, Mnemonic::ARM64_RCWSSWPP, 3, 0 }, // RCWSSWPP_128_memop_128
-    { "rcwsswppa", 0xffe0fc00U, 0x59a0a000U, 1132, Mnemonic::ARM64_RCWSSWPPA, 3, 0 }, // RCWSSWPPA_128_memop_128
-    { "rcwsswppal", 0xffe0fc00U, 0x59e0a000U, 1132, Mnemonic::ARM64_RCWSSWPPAL, 3, 0 }, // RCWSSWPPAL_128_memop_128
-    { "rcwsswppl", 0xffe0fc00U, 0x5960a000U, 1132, Mnemonic::ARM64_RCWSSWPPL, 3, 0 }, // RCWSSWPPL_128_memop_128
-    { "stilp", 0xffe0fc00U, 0x99000800U, 1138, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_32SE_ldiappstilp
-    { "stilp", 0xffe0fc00U, 0x99001800U, 1135, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_32S_ldiappstilp
-    { "stilp", 0xffe0fc00U, 0xd9000800U, 1141, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_64SS_ldiappstilp
-    { "stilp", 0xffe0fc00U, 0xd9001800U, 1132, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_64S_ldiappstilp
+    { "rcwssetp", 0xffe0fc00U, 0x5920b000U, 1127, Mnemonic::ARM64_RCWSSETP, 3, 0 }, // RCWSSETP_128_memop_128
+    { "rcwssetpa", 0xffe0fc00U, 0x59a0b000U, 1127, Mnemonic::ARM64_RCWSSETPA, 3, 0 }, // RCWSSETPA_128_memop_128
+    { "rcwssetpal", 0xffe0fc00U, 0x59e0b000U, 1127, Mnemonic::ARM64_RCWSSETPAL, 3, 0 }, // RCWSSETPAL_128_memop_128
+    { "rcwssetpl", 0xffe0fc00U, 0x5960b000U, 1127, Mnemonic::ARM64_RCWSSETPL, 3, 0 }, // RCWSSETPL_128_memop_128
+    { "rcwsswpp", 0xffe0fc00U, 0x5920a000U, 1127, Mnemonic::ARM64_RCWSSWPP, 3, 0 }, // RCWSSWPP_128_memop_128
+    { "rcwsswppa", 0xffe0fc00U, 0x59a0a000U, 1127, Mnemonic::ARM64_RCWSSWPPA, 3, 0 }, // RCWSSWPPA_128_memop_128
+    { "rcwsswppal", 0xffe0fc00U, 0x59e0a000U, 1127, Mnemonic::ARM64_RCWSSWPPAL, 3, 0 }, // RCWSSWPPAL_128_memop_128
+    { "rcwsswppl", 0xffe0fc00U, 0x5960a000U, 1127, Mnemonic::ARM64_RCWSSWPPL, 3, 0 }, // RCWSSWPPL_128_memop_128
+    { "stilp", 0xffe0fc00U, 0x99000800U, 1133, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_32SE_ldiappstilp
+    { "stilp", 0xffe0fc00U, 0x99001800U, 1130, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_32S_ldiappstilp
+    { "stilp", 0xffe0fc00U, 0xd9000800U, 1136, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_64SS_ldiappstilp
+    { "stilp", 0xffe0fc00U, 0xd9001800U, 1127, Mnemonic::ARM64_STILP, 3, 0 }, // STILP_64S_ldiappstilp
     { "rcwcasp", 0xffe0fc00U, 0x19200c00U, 665, Mnemonic::ARM64_RCWCASP, 5, 0 }, // RCWCASP_C64_rcwcomswappr
     { "rcwcaspa", 0xffe0fc00U, 0x19a00c00U, 665, Mnemonic::ARM64_RCWCASPA, 5, 0 }, // RCWCASPA_C64_rcwcomswappr
     { "rcwcaspal", 0xffe0fc00U, 0x19e00c00U, 665, Mnemonic::ARM64_RCWCASPAL, 5, 0 }, // RCWCASPAL_C64_rcwcomswappr
@@ -3527,10 +3530,10 @@ const InstructionEntry g_instructionTable[] = {
     { "ldsetalb", 0xffe0fc00U, 0x38e03000U, 657, Mnemonic::ARM64_LDSETALB, 3, 0 }, // LDSETALB_32_memop
     { "ldsetb", 0xffe0fc00U, 0x38203000U, 657, Mnemonic::ARM64_LDSETB, 3, 0 }, // LDSETB_32_memop
     { "ldsetlb", 0xffe0fc00U, 0x38603000U, 657, Mnemonic::ARM64_LDSETLB, 3, 0 }, // LDSETLB_32_memop
-    { "rcwsclrp", 0xffe0fc00U, 0x59209000U, 1132, Mnemonic::ARM64_RCWSCLRP, 3, 0 }, // RCWSCLRP_128_memop_128
-    { "rcwsclrpa", 0xffe0fc00U, 0x59a09000U, 1132, Mnemonic::ARM64_RCWSCLRPA, 3, 0 }, // RCWSCLRPA_128_memop_128
-    { "rcwsclrpal", 0xffe0fc00U, 0x59e09000U, 1132, Mnemonic::ARM64_RCWSCLRPAL, 3, 0 }, // RCWSCLRPAL_128_memop_128
-    { "rcwsclrpl", 0xffe0fc00U, 0x59609000U, 1132, Mnemonic::ARM64_RCWSCLRPL, 3, 0 }, // RCWSCLRPL_128_memop_128
+    { "rcwsclrp", 0xffe0fc00U, 0x59209000U, 1127, Mnemonic::ARM64_RCWSCLRP, 3, 0 }, // RCWSCLRP_128_memop_128
+    { "rcwsclrpa", 0xffe0fc00U, 0x59a09000U, 1127, Mnemonic::ARM64_RCWSCLRPA, 3, 0 }, // RCWSCLRPA_128_memop_128
+    { "rcwsclrpal", 0xffe0fc00U, 0x59e09000U, 1127, Mnemonic::ARM64_RCWSCLRPAL, 3, 0 }, // RCWSCLRPAL_128_memop_128
+    { "rcwsclrpl", 0xffe0fc00U, 0x59609000U, 1127, Mnemonic::ARM64_RCWSCLRPL, 3, 0 }, // RCWSCLRPL_128_memop_128
     { "lduminah", 0xffe0fc00U, 0x78a07000U, 657, Mnemonic::ARM64_LDUMINAH, 3, 0 }, // LDUMINAH_32_memop
     { "lduminalh", 0xffe0fc00U, 0x78e07000U, 657, Mnemonic::ARM64_LDUMINALH, 3, 0 }, // LDUMINALH_32_memop
     { "lduminh", 0xffe0fc00U, 0x78207000U, 657, Mnemonic::ARM64_LDUMINH, 3, 0 }, // LDUMINH_32_memop
@@ -3547,19 +3550,19 @@ const InstructionEntry g_instructionTable[] = {
     { "ldumaxalh", 0xffe0fc00U, 0x78e06000U, 657, Mnemonic::ARM64_LDUMAXALH, 3, 0 }, // LDUMAXALH_32_memop
     { "ldumaxh", 0xffe0fc00U, 0x78206000U, 657, Mnemonic::ARM64_LDUMAXH, 3, 0 }, // LDUMAXH_32_memop
     { "ldumaxlh", 0xffe0fc00U, 0x78606000U, 657, Mnemonic::ARM64_LDUMAXLH, 3, 0 }, // LDUMAXLH_32_memop
-    { "rcwclrp", 0xffe0fc00U, 0x19209000U, 1132, Mnemonic::ARM64_RCWCLRP, 3, 0 }, // RCWCLRP_128_memop_128
-    { "rcwclrpa", 0xffe0fc00U, 0x19a09000U, 1132, Mnemonic::ARM64_RCWCLRPA, 3, 0 }, // RCWCLRPA_128_memop_128
-    { "rcwclrpal", 0xffe0fc00U, 0x19e09000U, 1132, Mnemonic::ARM64_RCWCLRPAL, 3, 0 }, // RCWCLRPAL_128_memop_128
-    { "rcwclrpl", 0xffe0fc00U, 0x19609000U, 1132, Mnemonic::ARM64_RCWCLRPL, 3, 0 }, // RCWCLRPL_128_memop_128
+    { "rcwclrp", 0xffe0fc00U, 0x19209000U, 1127, Mnemonic::ARM64_RCWCLRP, 3, 0 }, // RCWCLRP_128_memop_128
+    { "rcwclrpa", 0xffe0fc00U, 0x19a09000U, 1127, Mnemonic::ARM64_RCWCLRPA, 3, 0 }, // RCWCLRPA_128_memop_128
+    { "rcwclrpal", 0xffe0fc00U, 0x19e09000U, 1127, Mnemonic::ARM64_RCWCLRPAL, 3, 0 }, // RCWCLRPAL_128_memop_128
+    { "rcwclrpl", 0xffe0fc00U, 0x19609000U, 1127, Mnemonic::ARM64_RCWCLRPL, 3, 0 }, // RCWCLRPL_128_memop_128
     { "swpah", 0xffe0fc00U, 0x78a08000U, 657, Mnemonic::ARM64_SWPAH, 3, 0 }, // SWPAH_32_memop
     { "swpalh", 0xffe0fc00U, 0x78e08000U, 657, Mnemonic::ARM64_SWPALH, 3, 0 }, // SWPALH_32_memop
     { "swph", 0xffe0fc00U, 0x78208000U, 657, Mnemonic::ARM64_SWPH, 3, 0 }, // SWPH_32_memop
     { "swplh", 0xffe0fc00U, 0x78608000U, 657, Mnemonic::ARM64_SWPLH, 3, 0 }, // SWPLH_32_memop
     { "ldaprh", 0xffe0fc00U, 0x78a0c000U, 658, Mnemonic::ARM64_LDAPRH, 2, 0 }, // LDAPRH_32L_memop
-    { "ldsetp", 0xffe0fc00U, 0x19203000U, 1132, Mnemonic::ARM64_LDSETP, 3, 0 }, // LDSETP_128_memop_128
-    { "ldsetpa", 0xffe0fc00U, 0x19a03000U, 1132, Mnemonic::ARM64_LDSETPA, 3, 0 }, // LDSETPA_128_memop_128
-    { "ldsetpal", 0xffe0fc00U, 0x19e03000U, 1132, Mnemonic::ARM64_LDSETPAL, 3, 0 }, // LDSETPAL_128_memop_128
-    { "ldsetpl", 0xffe0fc00U, 0x19603000U, 1132, Mnemonic::ARM64_LDSETPL, 3, 0 }, // LDSETPL_128_memop_128
+    { "ldsetp", 0xffe0fc00U, 0x19203000U, 1127, Mnemonic::ARM64_LDSETP, 3, 0 }, // LDSETP_128_memop_128
+    { "ldsetpa", 0xffe0fc00U, 0x19a03000U, 1127, Mnemonic::ARM64_LDSETPA, 3, 0 }, // LDSETPA_128_memop_128
+    { "ldsetpal", 0xffe0fc00U, 0x19e03000U, 1127, Mnemonic::ARM64_LDSETPAL, 3, 0 }, // LDSETPAL_128_memop_128
+    { "ldsetpl", 0xffe0fc00U, 0x19603000U, 1127, Mnemonic::ARM64_LDSETPL, 3, 0 }, // LDSETPL_128_memop_128
     { "ldsmax", 0xffe0fc00U, 0xb8204000U, 657, Mnemonic::ARM64_LDSMAX, 3, 0 }, // LDSMAX_32_memop
     { "ldsmaxa", 0xffe0fc00U, 0xb8a04000U, 657, Mnemonic::ARM64_LDSMAXA, 3, 0 }, // LDSMAXA_32_memop
     { "ldsmaxal", 0xffe0fc00U, 0xb8e04000U, 657, Mnemonic::ARM64_LDSMAXAL, 3, 0 }, // LDSMAXAL_32_memop
@@ -3568,185 +3571,186 @@ const InstructionEntry g_instructionTable[] = {
     { "ldsmaxa", 0xffe0fc00U, 0xf8a04000U, 670, Mnemonic::ARM64_LDSMAXA, 3, 1 }, // LDSMAXA_64_memop
     { "ldsmaxal", 0xffe0fc00U, 0xf8e04000U, 670, Mnemonic::ARM64_LDSMAXAL, 3, 1 }, // LDSMAXAL_64_memop
     { "ldsmaxl", 0xffe0fc00U, 0xf8604000U, 670, Mnemonic::ARM64_LDSMAXL, 3, 1 }, // LDSMAXL_64_memop
-    { "prfm", 0xffe0ec00U, 0xf8a04800U, 1144, Mnemonic::ARM64_PRFM, 3, 0 }, // PRFM_P_ldst_regoff
-    { "ldrb", 0xffe0ec00U, 0x38606800U, 1147, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32BL_ldst_regoff
-    { "ldrsb", 0xffe0ec00U, 0x38e06800U, 1147, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32BL_ldst_regoff
-    { "ldrsb", 0xffe0ec00U, 0x38a06800U, 1149, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_64BL_ldst_regoff
-    { "strb", 0xffe0ec00U, 0x38206800U, 1147, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32BL_ldst_regoff
-    { "cpyfpwtwn", 0x3fe0fc00U, 0x19005400U, 1151, Mnemonic::ARM64_CPYFPWTWN, 3, 0 }, // CPYFPWTWN_CPY_memcms
-    { "cpyfmwtwn", 0x3fe0fc00U, 0x19405400U, 1151, Mnemonic::ARM64_CPYFMWTWN, 3, 0 }, // CPYFMWTWN_CPY_memcms
-    { "cpyfewtwn", 0x3fe0fc00U, 0x19805400U, 1151, Mnemonic::ARM64_CPYFEWTWN, 3, 0 }, // CPYFEWTWN_CPY_memcms
-    { "setptn", 0x3fe0fc00U, 0x19c03400U, 1154, Mnemonic::ARM64_SETPTN, 3, 0 }, // SETPTN_SET_memcms
-    { "setmtn", 0x3fe0fc00U, 0x19c07400U, 1154, Mnemonic::ARM64_SETMTN, 3, 0 }, // SETMTN_SET_memcms
-    { "setetn", 0x3fe0fc00U, 0x19c0b400U, 1154, Mnemonic::ARM64_SETETN, 3, 0 }, // SETETN_SET_memcms
-    { "setp", 0x3fe0fc00U, 0x19c00400U, 1154, Mnemonic::ARM64_SETP, 3, 0 }, // SETP_SET_memcms
-    { "setm", 0x3fe0fc00U, 0x19c04400U, 1154, Mnemonic::ARM64_SETM, 3, 0 }, // SETM_SET_memcms
-    { "sete", 0x3fe0fc00U, 0x19c08400U, 1154, Mnemonic::ARM64_SETE, 3, 0 }, // SETE_SET_memcms
-    { "setpt", 0x3fe0fc00U, 0x19c01400U, 1154, Mnemonic::ARM64_SETPT, 3, 0 }, // SETPT_SET_memcms
-    { "setmt", 0x3fe0fc00U, 0x19c05400U, 1154, Mnemonic::ARM64_SETMT, 3, 0 }, // SETMT_SET_memcms
-    { "setet", 0x3fe0fc00U, 0x19c09400U, 1154, Mnemonic::ARM64_SETET, 3, 0 }, // SETET_SET_memcms
-    { "cpyfptrn", 0x3fe0fc00U, 0x1900b400U, 1151, Mnemonic::ARM64_CPYFPTRN, 3, 0 }, // CPYFPTRN_CPY_memcms
-    { "cpyfmtrn", 0x3fe0fc00U, 0x1940b400U, 1151, Mnemonic::ARM64_CPYFMTRN, 3, 0 }, // CPYFMTRN_CPY_memcms
-    { "cpyfetrn", 0x3fe0fc00U, 0x1980b400U, 1151, Mnemonic::ARM64_CPYFETRN, 3, 0 }, // CPYFETRN_CPY_memcms
-    { "cpyfp", 0x3fe0fc00U, 0x19000400U, 1151, Mnemonic::ARM64_CPYFP, 3, 0 }, // CPYFP_CPY_memcms
-    { "cpyfm", 0x3fe0fc00U, 0x19400400U, 1151, Mnemonic::ARM64_CPYFM, 3, 0 }, // CPYFM_CPY_memcms
-    { "cpyfe", 0x3fe0fc00U, 0x19800400U, 1151, Mnemonic::ARM64_CPYFE, 3, 0 }, // CPYFE_CPY_memcms
-    { "cpyfpwtn", 0x3fe0fc00U, 0x1900d400U, 1151, Mnemonic::ARM64_CPYFPWTN, 3, 0 }, // CPYFPWTN_CPY_memcms
-    { "cpyfmwtn", 0x3fe0fc00U, 0x1940d400U, 1151, Mnemonic::ARM64_CPYFMWTN, 3, 0 }, // CPYFMWTN_CPY_memcms
-    { "cpyfewtn", 0x3fe0fc00U, 0x1980d400U, 1151, Mnemonic::ARM64_CPYFEWTN, 3, 0 }, // CPYFEWTN_CPY_memcms
-    { "cpyfprt", 0x3fe0fc00U, 0x19002400U, 1151, Mnemonic::ARM64_CPYFPRT, 3, 0 }, // CPYFPRT_CPY_memcms
-    { "cpyfmrt", 0x3fe0fc00U, 0x19402400U, 1151, Mnemonic::ARM64_CPYFMRT, 3, 0 }, // CPYFMRT_CPY_memcms
-    { "cpyfert", 0x3fe0fc00U, 0x19802400U, 1151, Mnemonic::ARM64_CPYFERT, 3, 0 }, // CPYFERT_CPY_memcms
-    { "cpyfpn", 0x3fe0fc00U, 0x1900c400U, 1151, Mnemonic::ARM64_CPYFPN, 3, 0 }, // CPYFPN_CPY_memcms
-    { "cpyfmn", 0x3fe0fc00U, 0x1940c400U, 1151, Mnemonic::ARM64_CPYFMN, 3, 0 }, // CPYFMN_CPY_memcms
-    { "cpyfen", 0x3fe0fc00U, 0x1980c400U, 1151, Mnemonic::ARM64_CPYFEN, 3, 0 }, // CPYFEN_CPY_memcms
-    { "cpyfprtrn", 0x3fe0fc00U, 0x1900a400U, 1151, Mnemonic::ARM64_CPYFPRTRN, 3, 0 }, // CPYFPRTRN_CPY_memcms
-    { "cpyfmrtrn", 0x3fe0fc00U, 0x1940a400U, 1151, Mnemonic::ARM64_CPYFMRTRN, 3, 0 }, // CPYFMRTRN_CPY_memcms
-    { "cpyfertrn", 0x3fe0fc00U, 0x1980a400U, 1151, Mnemonic::ARM64_CPYFERTRN, 3, 0 }, // CPYFERTRN_CPY_memcms
-    { "cpyfprtn", 0x3fe0fc00U, 0x1900e400U, 1151, Mnemonic::ARM64_CPYFPRTN, 3, 0 }, // CPYFPRTN_CPY_memcms
-    { "cpyfmrtn", 0x3fe0fc00U, 0x1940e400U, 1151, Mnemonic::ARM64_CPYFMRTN, 3, 0 }, // CPYFMRTN_CPY_memcms
-    { "cpyfertn", 0x3fe0fc00U, 0x1980e400U, 1151, Mnemonic::ARM64_CPYFERTN, 3, 0 }, // CPYFERTN_CPY_memcms
-    { "cpyfpwn", 0x3fe0fc00U, 0x19004400U, 1151, Mnemonic::ARM64_CPYFPWN, 3, 0 }, // CPYFPWN_CPY_memcms
-    { "cpyfmwn", 0x3fe0fc00U, 0x19404400U, 1151, Mnemonic::ARM64_CPYFMWN, 3, 0 }, // CPYFMWN_CPY_memcms
-    { "cpyfewn", 0x3fe0fc00U, 0x19804400U, 1151, Mnemonic::ARM64_CPYFEWN, 3, 0 }, // CPYFEWN_CPY_memcms
-    { "cpyfptwn", 0x3fe0fc00U, 0x19007400U, 1151, Mnemonic::ARM64_CPYFPTWN, 3, 0 }, // CPYFPTWN_CPY_memcms
-    { "cpyfmtwn", 0x3fe0fc00U, 0x19407400U, 1151, Mnemonic::ARM64_CPYFMTWN, 3, 0 }, // CPYFMTWN_CPY_memcms
-    { "cpyfetwn", 0x3fe0fc00U, 0x19807400U, 1151, Mnemonic::ARM64_CPYFETWN, 3, 0 }, // CPYFETWN_CPY_memcms
-    { "cpyfptn", 0x3fe0fc00U, 0x1900f400U, 1151, Mnemonic::ARM64_CPYFPTN, 3, 0 }, // CPYFPTN_CPY_memcms
-    { "cpyfmtn", 0x3fe0fc00U, 0x1940f400U, 1151, Mnemonic::ARM64_CPYFMTN, 3, 0 }, // CPYFMTN_CPY_memcms
-    { "cpyfetn", 0x3fe0fc00U, 0x1980f400U, 1151, Mnemonic::ARM64_CPYFETN, 3, 0 }, // CPYFETN_CPY_memcms
-    { "cpyfpwt", 0x3fe0fc00U, 0x19001400U, 1151, Mnemonic::ARM64_CPYFPWT, 3, 0 }, // CPYFPWT_CPY_memcms
-    { "cpyfmwt", 0x3fe0fc00U, 0x19401400U, 1151, Mnemonic::ARM64_CPYFMWT, 3, 0 }, // CPYFMWT_CPY_memcms
-    { "cpyfewt", 0x3fe0fc00U, 0x19801400U, 1151, Mnemonic::ARM64_CPYFEWT, 3, 0 }, // CPYFEWT_CPY_memcms
-    { "cpyfpwtrn", 0x3fe0fc00U, 0x19009400U, 1151, Mnemonic::ARM64_CPYFPWTRN, 3, 0 }, // CPYFPWTRN_CPY_memcms
-    { "cpyfmwtrn", 0x3fe0fc00U, 0x19409400U, 1151, Mnemonic::ARM64_CPYFMWTRN, 3, 0 }, // CPYFMWTRN_CPY_memcms
-    { "cpyfewtrn", 0x3fe0fc00U, 0x19809400U, 1151, Mnemonic::ARM64_CPYFEWTRN, 3, 0 }, // CPYFEWTRN_CPY_memcms
-    { "cpyfpt", 0x3fe0fc00U, 0x19003400U, 1151, Mnemonic::ARM64_CPYFPT, 3, 0 }, // CPYFPT_CPY_memcms
-    { "cpyfmt", 0x3fe0fc00U, 0x19403400U, 1151, Mnemonic::ARM64_CPYFMT, 3, 0 }, // CPYFMT_CPY_memcms
-    { "cpyfet", 0x3fe0fc00U, 0x19803400U, 1151, Mnemonic::ARM64_CPYFET, 3, 0 }, // CPYFET_CPY_memcms
-    { "cpyfprn", 0x3fe0fc00U, 0x19008400U, 1151, Mnemonic::ARM64_CPYFPRN, 3, 0 }, // CPYFPRN_CPY_memcms
-    { "cpyfmrn", 0x3fe0fc00U, 0x19408400U, 1151, Mnemonic::ARM64_CPYFMRN, 3, 0 }, // CPYFMRN_CPY_memcms
-    { "cpyfern", 0x3fe0fc00U, 0x19808400U, 1151, Mnemonic::ARM64_CPYFERN, 3, 0 }, // CPYFERN_CPY_memcms
-    { "setpn", 0x3fe0fc00U, 0x19c02400U, 1154, Mnemonic::ARM64_SETPN, 3, 0 }, // SETPN_SET_memcms
-    { "setmn", 0x3fe0fc00U, 0x19c06400U, 1154, Mnemonic::ARM64_SETMN, 3, 0 }, // SETMN_SET_memcms
-    { "seten", 0x3fe0fc00U, 0x19c0a400U, 1154, Mnemonic::ARM64_SETEN, 3, 0 }, // SETEN_SET_memcms
-    { "cpyfprtwn", 0x3fe0fc00U, 0x19006400U, 1151, Mnemonic::ARM64_CPYFPRTWN, 3, 0 }, // CPYFPRTWN_CPY_memcms
-    { "cpyfmrtwn", 0x3fe0fc00U, 0x19406400U, 1151, Mnemonic::ARM64_CPYFMRTWN, 3, 0 }, // CPYFMRTWN_CPY_memcms
-    { "cpyfertwn", 0x3fe0fc00U, 0x19806400U, 1151, Mnemonic::ARM64_CPYFERTWN, 3, 0 }, // CPYFERTWN_CPY_memcms
-    { "ldursb", 0xffe00c00U, 0x38c00000U, 1157, Mnemonic::ARM64_LDURSB, 2, 0 }, // LDURSB_32_ldst_unscaled
-    { "ldursb", 0xffe00c00U, 0x38800000U, 1159, Mnemonic::ARM64_LDURSB, 2, 1 }, // LDURSB_64_ldst_unscaled
-    { "ldrh", 0xffe00c00U, 0x78400400U, 1161, Mnemonic::ARM64_LDRH, 3, 0 }, // LDRH_32_ldst_immpost
-    { "ldrh", 0xffe00c00U, 0x78400c00U, 1164, Mnemonic::ARM64_LDRH, 2, 0 }, // LDRH_32_ldst_immpre
-    { "strb", 0xffe00c00U, 0x38000400U, 1161, Mnemonic::ARM64_STRB, 3, 0 }, // STRB_32_ldst_immpost
-    { "strb", 0xffe00c00U, 0x38000c00U, 1164, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32_ldst_immpre
-    { "ldapur", 0xffe00c00U, 0x99400000U, 1157, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_32_ldapstl_unscaled
-    { "ldapur", 0xffe00c00U, 0xd9400000U, 1159, Mnemonic::ARM64_LDAPUR, 2, 1 }, // LDAPUR_64_ldapstl_unscaled
-    { "ldapurb", 0xffe00c00U, 0x19400000U, 1157, Mnemonic::ARM64_LDAPURB, 2, 0 }, // LDAPURB_32_ldapstl_unscaled
-    { "prfum", 0xffe00c00U, 0xf8800000U, 1166, Mnemonic::ARM64_PRFUM, 3, 0 }, // PRFUM_P_ldst_unscaled
-    { "strh", 0xffe00c00U, 0x78200800U, 1147, Mnemonic::ARM64_STRH, 2, 0 }, // STRH_32_ldst_regoff
-    { "ldrb", 0xffe00c00U, 0x38600800U, 1147, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32B_ldst_regoff
-    { "stlurb", 0xffe00c00U, 0x19000000U, 1157, Mnemonic::ARM64_STLURB, 2, 0 }, // STLURB_32_ldapstl_unscaled
-    { "sttrb", 0xffe00c00U, 0x38000800U, 1157, Mnemonic::ARM64_STTRB, 2, 0 }, // STTRB_32_ldst_unpriv
-    { "ldursw", 0xffe00c00U, 0xb8800000U, 1159, Mnemonic::ARM64_LDURSW, 2, 1 }, // LDURSW_64_ldst_unscaled
-    { "stz2g", 0xffe00c00U, 0xd9e00400U, 1169, Mnemonic::ARM64_STZ2G, 3, 0 }, // STZ2G_64Spost_ldsttags
-    { "stz2g", 0xffe00c00U, 0xd9e00c00U, 1172, Mnemonic::ARM64_STZ2G, 2, 0 }, // STZ2G_64Spre_ldsttags
-    { "stz2g", 0xffe00c00U, 0xd9e00800U, 1174, Mnemonic::ARM64_STZ2G, 2, 0 }, // STZ2G_64Soffset_ldsttags
-    { "stzg", 0xffe00c00U, 0xd9600400U, 1169, Mnemonic::ARM64_STZG, 3, 0 }, // STZG_64Spost_ldsttags
-    { "stzg", 0xffe00c00U, 0xd9600c00U, 1172, Mnemonic::ARM64_STZG, 2, 0 }, // STZG_64Spre_ldsttags
-    { "stzg", 0xffe00c00U, 0xd9600800U, 1174, Mnemonic::ARM64_STZG, 2, 0 }, // STZG_64Soffset_ldsttags
-    { "ldrsw", 0xffe00c00U, 0xb8a00800U, 1149, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_ldst_regoff
-    { "ldapursb", 0xffe00c00U, 0x19c00000U, 1157, Mnemonic::ARM64_LDAPURSB, 2, 0 }, // LDAPURSB_32_ldapstl_unscaled
-    { "ldapursb", 0xffe00c00U, 0x19800000U, 1159, Mnemonic::ARM64_LDAPURSB, 2, 1 }, // LDAPURSB_64_ldapstl_unscaled
-    { "ldrsb", 0xffe00c00U, 0x38e00800U, 1147, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32B_ldst_regoff
-    { "ldrsb", 0xffe00c00U, 0x38a00800U, 1149, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_64B_ldst_regoff
-    { "stg", 0xffe00c00U, 0xd9200400U, 1169, Mnemonic::ARM64_STG, 3, 0 }, // STG_64Spost_ldsttags
-    { "stg", 0xffe00c00U, 0xd9200c00U, 1172, Mnemonic::ARM64_STG, 2, 0 }, // STG_64Spre_ldsttags
-    { "stg", 0xffe00c00U, 0xd9200800U, 1174, Mnemonic::ARM64_STG, 2, 0 }, // STG_64Soffset_ldsttags
-    { "ldrsh", 0xffe00c00U, 0x78c00400U, 1161, Mnemonic::ARM64_LDRSH, 3, 0 }, // LDRSH_32_ldst_immpost
-    { "ldrsh", 0xffe00c00U, 0x78800400U, 1176, Mnemonic::ARM64_LDRSH, 3, 1 }, // LDRSH_64_ldst_immpost
-    { "ldrsh", 0xffe00c00U, 0x78c00c00U, 1164, Mnemonic::ARM64_LDRSH, 2, 0 }, // LDRSH_32_ldst_immpre
-    { "ldrsh", 0xffe00c00U, 0x78800c00U, 1179, Mnemonic::ARM64_LDRSH, 2, 1 }, // LDRSH_64_ldst_immpre
-    { "ldapursw", 0xffe00c00U, 0x99800000U, 1159, Mnemonic::ARM64_LDAPURSW, 2, 1 }, // LDAPURSW_64_ldapstl_unscaled
-    { "ldtrb", 0xffe00c00U, 0x38400800U, 1157, Mnemonic::ARM64_LDTRB, 2, 0 }, // LDTRB_32_ldst_unpriv
-    { "ldrb", 0xffe00c00U, 0x38400400U, 1161, Mnemonic::ARM64_LDRB, 3, 0 }, // LDRB_32_ldst_immpost
-    { "ldrb", 0xffe00c00U, 0x38400c00U, 1164, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32_ldst_immpre
-    { "st2g", 0xffe00c00U, 0xd9a00400U, 1169, Mnemonic::ARM64_ST2G, 3, 0 }, // ST2G_64Spost_ldsttags
-    { "st2g", 0xffe00c00U, 0xd9a00c00U, 1172, Mnemonic::ARM64_ST2G, 2, 0 }, // ST2G_64Spre_ldsttags
-    { "st2g", 0xffe00c00U, 0xd9a00800U, 1174, Mnemonic::ARM64_ST2G, 2, 0 }, // ST2G_64Soffset_ldsttags
-    { "strh", 0xffe00c00U, 0x78000400U, 1161, Mnemonic::ARM64_STRH, 3, 0 }, // STRH_32_ldst_immpost
-    { "strh", 0xffe00c00U, 0x78000c00U, 1164, Mnemonic::ARM64_STRH, 2, 0 }, // STRH_32_ldst_immpre
-    { "ldtrsh", 0xffe00c00U, 0x78c00800U, 1157, Mnemonic::ARM64_LDTRSH, 2, 0 }, // LDTRSH_32_ldst_unpriv
-    { "ldtrsh", 0xffe00c00U, 0x78800800U, 1159, Mnemonic::ARM64_LDTRSH, 2, 1 }, // LDTRSH_64_ldst_unpriv
-    { "sturb", 0xffe00c00U, 0x38000000U, 1157, Mnemonic::ARM64_STURB, 2, 0 }, // STURB_32_ldst_unscaled
-    { "str", 0xffe00c00U, 0xb8000400U, 1161, Mnemonic::ARM64_STR, 3, 0 }, // STR_32_ldst_immpost
-    { "str", 0xffe00c00U, 0xf8000400U, 1176, Mnemonic::ARM64_STR, 3, 1 }, // STR_64_ldst_immpost
-    { "str", 0xffe00c00U, 0xb8000c00U, 1164, Mnemonic::ARM64_STR, 2, 0 }, // STR_32_ldst_immpre
-    { "str", 0xffe00c00U, 0xf8000c00U, 1179, Mnemonic::ARM64_STR, 2, 1 }, // STR_64_ldst_immpre
-    { "stlur", 0xffe00c00U, 0x99000000U, 1157, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_32_ldapstl_unscaled
-    { "stlur", 0xffe00c00U, 0xd9000000U, 1159, Mnemonic::ARM64_STLUR, 2, 1 }, // STLUR_64_ldapstl_unscaled
-    { "strb", 0xffe00c00U, 0x38200800U, 1147, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32B_ldst_regoff
-    { "ldrh", 0xffe00c00U, 0x78600800U, 1147, Mnemonic::ARM64_LDRH, 2, 0 }, // LDRH_32_ldst_regoff
-    { "str", 0xffe00c00U, 0xb8200800U, 1147, Mnemonic::ARM64_STR, 2, 0 }, // STR_32_ldst_regoff
-    { "str", 0xffe00c00U, 0xf8200800U, 1149, Mnemonic::ARM64_STR, 2, 1 }, // STR_64_ldst_regoff
-    { "ldrsh", 0xffe00c00U, 0x78e00800U, 1147, Mnemonic::ARM64_LDRSH, 2, 0 }, // LDRSH_32_ldst_regoff
-    { "ldrsh", 0xffe00c00U, 0x78a00800U, 1149, Mnemonic::ARM64_LDRSH, 2, 1 }, // LDRSH_64_ldst_regoff
-    { "ldurb", 0xffe00c00U, 0x38400000U, 1157, Mnemonic::ARM64_LDURB, 2, 0 }, // LDURB_32_ldst_unscaled
-    { "ldrsb", 0xffe00c00U, 0x38c00400U, 1161, Mnemonic::ARM64_LDRSB, 3, 0 }, // LDRSB_32_ldst_immpost
-    { "ldrsb", 0xffe00c00U, 0x38800400U, 1176, Mnemonic::ARM64_LDRSB, 3, 1 }, // LDRSB_64_ldst_immpost
-    { "ldrsb", 0xffe00c00U, 0x38c00c00U, 1164, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32_ldst_immpre
-    { "ldrsb", 0xffe00c00U, 0x38800c00U, 1179, Mnemonic::ARM64_LDRSB, 2, 1 }, // LDRSB_64_ldst_immpre
-    { "ldrsw", 0xffe00c00U, 0xb8800400U, 1176, Mnemonic::ARM64_LDRSW, 3, 1 }, // LDRSW_64_ldst_immpost
-    { "ldrsw", 0xffe00c00U, 0xb8800c00U, 1179, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_ldst_immpre
-    { "ldtrsw", 0xffe00c00U, 0xb8800800U, 1159, Mnemonic::ARM64_LDTRSW, 2, 1 }, // LDTRSW_64_ldst_unpriv
-    { "ldr", 0xffe00c00U, 0xb8600800U, 1147, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_ldst_regoff
-    { "ldr", 0xffe00c00U, 0xf8600800U, 1149, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_ldst_regoff
-    { "ldtrsb", 0xffe00c00U, 0x38c00800U, 1157, Mnemonic::ARM64_LDTRSB, 2, 0 }, // LDTRSB_32_ldst_unpriv
-    { "ldtrsb", 0xffe00c00U, 0x38800800U, 1159, Mnemonic::ARM64_LDTRSB, 2, 1 }, // LDTRSB_64_ldst_unpriv
-    { "sturh", 0xffe00c00U, 0x78000000U, 1157, Mnemonic::ARM64_STURH, 2, 0 }, // STURH_32_ldst_unscaled
-    { "ldtr", 0xffe00c00U, 0xb8400800U, 1157, Mnemonic::ARM64_LDTR, 2, 0 }, // LDTR_32_ldst_unpriv
-    { "ldtr", 0xffe00c00U, 0xf8400800U, 1159, Mnemonic::ARM64_LDTR, 2, 1 }, // LDTR_64_ldst_unpriv
-    { "ldur", 0xffe00c00U, 0xb8400000U, 1157, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_32_ldst_unscaled
-    { "ldur", 0xffe00c00U, 0xf8400000U, 1159, Mnemonic::ARM64_LDUR, 2, 1 }, // LDUR_64_ldst_unscaled
-    { "ldr", 0xffe00c00U, 0xb8400400U, 1161, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_32_ldst_immpost
-    { "ldr", 0xffe00c00U, 0xf8400400U, 1176, Mnemonic::ARM64_LDR, 3, 1 }, // LDR_64_ldst_immpost
-    { "ldr", 0xffe00c00U, 0xb8400c00U, 1164, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_ldst_immpre
-    { "ldr", 0xffe00c00U, 0xf8400c00U, 1179, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_ldst_immpre
-    { "ldg", 0xffe00c00U, 0xd9600000U, 1159, Mnemonic::ARM64_LDG, 2, 0 }, // LDG_64Loffset_ldsttags
-    { "ldurh", 0xffe00c00U, 0x78400000U, 1157, Mnemonic::ARM64_LDURH, 2, 0 }, // LDURH_32_ldst_unscaled
-    { "stlurh", 0xffe00c00U, 0x59000000U, 1157, Mnemonic::ARM64_STLURH, 2, 0 }, // STLURH_32_ldapstl_unscaled
-    { "sttrh", 0xffe00c00U, 0x78000800U, 1157, Mnemonic::ARM64_STTRH, 2, 0 }, // STTRH_32_ldst_unpriv
-    { "ldursh", 0xffe00c00U, 0x78c00000U, 1157, Mnemonic::ARM64_LDURSH, 2, 0 }, // LDURSH_32_ldst_unscaled
-    { "ldursh", 0xffe00c00U, 0x78800000U, 1159, Mnemonic::ARM64_LDURSH, 2, 1 }, // LDURSH_64_ldst_unscaled
-    { "ldapurh", 0xffe00c00U, 0x59400000U, 1157, Mnemonic::ARM64_LDAPURH, 2, 0 }, // LDAPURH_32_ldapstl_unscaled
-    { "sttr", 0xffe00c00U, 0xb8000800U, 1157, Mnemonic::ARM64_STTR, 2, 0 }, // STTR_32_ldst_unpriv
-    { "sttr", 0xffe00c00U, 0xf8000800U, 1159, Mnemonic::ARM64_STTR, 2, 1 }, // STTR_64_ldst_unpriv
-    { "stur", 0xffe00c00U, 0xb8000000U, 1157, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_32_ldst_unscaled
-    { "stur", 0xffe00c00U, 0xf8000000U, 1159, Mnemonic::ARM64_STUR, 2, 1 }, // STUR_64_ldst_unscaled
-    { "ldtrh", 0xffe00c00U, 0x78400800U, 1157, Mnemonic::ARM64_LDTRH, 2, 0 }, // LDTRH_32_ldst_unpriv
-    { "ldapursh", 0xffe00c00U, 0x59c00000U, 1157, Mnemonic::ARM64_LDAPURSH, 2, 0 }, // LDAPURSH_32_ldapstl_unscaled
-    { "ldapursh", 0xffe00c00U, 0x59800000U, 1159, Mnemonic::ARM64_LDAPURSH, 2, 1 }, // LDAPURSH_64_ldapstl_unscaled
-    { "ldraa", 0xffa00c00U, 0xf8200400U, 1181, Mnemonic::ARM64_LDRAA, 2, 1 }, // LDRAA_64_ldst_pac
-    { "ldraa", 0xffa00c00U, 0xf8200c00U, 1127, Mnemonic::ARM64_LDRAA, 2, 0 }, // LDRAA_64W_ldst_pac
-    { "ldrab", 0xffa00c00U, 0xf8a00400U, 1181, Mnemonic::ARM64_LDRAB, 2, 1 }, // LDRAB_64_ldst_pac
-    { "ldrab", 0xffa00c00U, 0xf8a00c00U, 1127, Mnemonic::ARM64_LDRAB, 2, 0 }, // LDRAB_64W_ldst_pac
-    { "ldrh", 0xffc00000U, 0x79400000U, 1183, Mnemonic::ARM64_LDRH, 2, 0 }, // LDRH_32_ldst_pos
-    { "strb", 0xffc00000U, 0x39000000U, 1183, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32_ldst_pos
-    { "ldrsh", 0xffc00000U, 0x79c00000U, 1183, Mnemonic::ARM64_LDRSH, 2, 0 }, // LDRSH_32_ldst_pos
-    { "ldrsh", 0xffc00000U, 0x79800000U, 1185, Mnemonic::ARM64_LDRSH, 2, 1 }, // LDRSH_64_ldst_pos
-    { "ldrb", 0xffc00000U, 0x39400000U, 1183, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32_ldst_pos
-    { "strh", 0xffc00000U, 0x79000000U, 1183, Mnemonic::ARM64_STRH, 2, 0 }, // STRH_32_ldst_pos
-    { "str", 0xffc00000U, 0xb9000000U, 1183, Mnemonic::ARM64_STR, 2, 0 }, // STR_32_ldst_pos
-    { "str", 0xffc00000U, 0xf9000000U, 1185, Mnemonic::ARM64_STR, 2, 1 }, // STR_64_ldst_pos
-    { "prfm", 0xffc00000U, 0xf9800000U, 1187, Mnemonic::ARM64_PRFM, 3, 0 }, // PRFM_P_ldst_pos
-    { "ldrsb", 0xffc00000U, 0x39c00000U, 1183, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32_ldst_pos
-    { "ldrsb", 0xffc00000U, 0x39800000U, 1185, Mnemonic::ARM64_LDRSB, 2, 1 }, // LDRSB_64_ldst_pos
-    { "ldrsw", 0xffc00000U, 0xb9800000U, 1185, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_ldst_pos
-    { "ldr", 0xffc00000U, 0xb9400000U, 1183, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_ldst_pos
-    { "ldr", 0xffc00000U, 0xf9400000U, 1185, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_ldst_pos
-    { "prfm", 0xff000000U, 0xd8000000U, 1190, Mnemonic::ARM64_PRFM, 3, 0 }, // PRFM_P_loadlit
-    { "ldrsw", 0xff000000U, 0x98000000U, 1026, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_loadlit
-    { "ldr", 0xff000000U, 0x18000000U, 1113, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_loadlit
-    { "ldr", 0xff000000U, 0x58000000U, 1026, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_loadlit
+    { "prfm", 0xffe04c03U, 0xf8a04803U, 1139, Mnemonic::ARM64_PRFM, 3, 0 }, // PRFM_P_ldst_regoff
+    { "ldrb", 0xffe0ec00U, 0x38606800U, 1142, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32BL_ldst_regoff
+    { "ldrsb", 0xffe0ec00U, 0x38e06800U, 1142, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32BL_ldst_regoff
+    { "ldrsb", 0xffe0ec00U, 0x38a06800U, 1144, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_64BL_ldst_regoff
+    { "strb", 0xffe0ec00U, 0x38206800U, 1142, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32BL_ldst_regoff
+    { "rprfm", 0xffe04c18U, 0xf8a04818U, 1146, Mnemonic::ARM64_RPRFM, 3, 0 }, // RPRFM_R_ldst_regoff
+    { "cpyfpwtwn", 0x3fe0fc00U, 0x19005400U, 1149, Mnemonic::ARM64_CPYFPWTWN, 3, 0 }, // CPYFPWTWN_CPY_memcms
+    { "cpyfmwtwn", 0x3fe0fc00U, 0x19405400U, 1149, Mnemonic::ARM64_CPYFMWTWN, 3, 0 }, // CPYFMWTWN_CPY_memcms
+    { "cpyfewtwn", 0x3fe0fc00U, 0x19805400U, 1149, Mnemonic::ARM64_CPYFEWTWN, 3, 0 }, // CPYFEWTWN_CPY_memcms
+    { "setptn", 0x3fe0fc00U, 0x19c03400U, 1152, Mnemonic::ARM64_SETPTN, 3, 0 }, // SETPTN_SET_memcms
+    { "setmtn", 0x3fe0fc00U, 0x19c07400U, 1152, Mnemonic::ARM64_SETMTN, 3, 0 }, // SETMTN_SET_memcms
+    { "setetn", 0x3fe0fc00U, 0x19c0b400U, 1152, Mnemonic::ARM64_SETETN, 3, 0 }, // SETETN_SET_memcms
+    { "setp", 0x3fe0fc00U, 0x19c00400U, 1152, Mnemonic::ARM64_SETP, 3, 0 }, // SETP_SET_memcms
+    { "setm", 0x3fe0fc00U, 0x19c04400U, 1152, Mnemonic::ARM64_SETM, 3, 0 }, // SETM_SET_memcms
+    { "sete", 0x3fe0fc00U, 0x19c08400U, 1152, Mnemonic::ARM64_SETE, 3, 0 }, // SETE_SET_memcms
+    { "setpt", 0x3fe0fc00U, 0x19c01400U, 1152, Mnemonic::ARM64_SETPT, 3, 0 }, // SETPT_SET_memcms
+    { "setmt", 0x3fe0fc00U, 0x19c05400U, 1152, Mnemonic::ARM64_SETMT, 3, 0 }, // SETMT_SET_memcms
+    { "setet", 0x3fe0fc00U, 0x19c09400U, 1152, Mnemonic::ARM64_SETET, 3, 0 }, // SETET_SET_memcms
+    { "cpyfptrn", 0x3fe0fc00U, 0x1900b400U, 1149, Mnemonic::ARM64_CPYFPTRN, 3, 0 }, // CPYFPTRN_CPY_memcms
+    { "cpyfmtrn", 0x3fe0fc00U, 0x1940b400U, 1149, Mnemonic::ARM64_CPYFMTRN, 3, 0 }, // CPYFMTRN_CPY_memcms
+    { "cpyfetrn", 0x3fe0fc00U, 0x1980b400U, 1149, Mnemonic::ARM64_CPYFETRN, 3, 0 }, // CPYFETRN_CPY_memcms
+    { "cpyfp", 0x3fe0fc00U, 0x19000400U, 1149, Mnemonic::ARM64_CPYFP, 3, 0 }, // CPYFP_CPY_memcms
+    { "cpyfm", 0x3fe0fc00U, 0x19400400U, 1149, Mnemonic::ARM64_CPYFM, 3, 0 }, // CPYFM_CPY_memcms
+    { "cpyfe", 0x3fe0fc00U, 0x19800400U, 1149, Mnemonic::ARM64_CPYFE, 3, 0 }, // CPYFE_CPY_memcms
+    { "cpyfpwtn", 0x3fe0fc00U, 0x1900d400U, 1149, Mnemonic::ARM64_CPYFPWTN, 3, 0 }, // CPYFPWTN_CPY_memcms
+    { "cpyfmwtn", 0x3fe0fc00U, 0x1940d400U, 1149, Mnemonic::ARM64_CPYFMWTN, 3, 0 }, // CPYFMWTN_CPY_memcms
+    { "cpyfewtn", 0x3fe0fc00U, 0x1980d400U, 1149, Mnemonic::ARM64_CPYFEWTN, 3, 0 }, // CPYFEWTN_CPY_memcms
+    { "cpyfprt", 0x3fe0fc00U, 0x19002400U, 1149, Mnemonic::ARM64_CPYFPRT, 3, 0 }, // CPYFPRT_CPY_memcms
+    { "cpyfmrt", 0x3fe0fc00U, 0x19402400U, 1149, Mnemonic::ARM64_CPYFMRT, 3, 0 }, // CPYFMRT_CPY_memcms
+    { "cpyfert", 0x3fe0fc00U, 0x19802400U, 1149, Mnemonic::ARM64_CPYFERT, 3, 0 }, // CPYFERT_CPY_memcms
+    { "cpyfpn", 0x3fe0fc00U, 0x1900c400U, 1149, Mnemonic::ARM64_CPYFPN, 3, 0 }, // CPYFPN_CPY_memcms
+    { "cpyfmn", 0x3fe0fc00U, 0x1940c400U, 1149, Mnemonic::ARM64_CPYFMN, 3, 0 }, // CPYFMN_CPY_memcms
+    { "cpyfen", 0x3fe0fc00U, 0x1980c400U, 1149, Mnemonic::ARM64_CPYFEN, 3, 0 }, // CPYFEN_CPY_memcms
+    { "cpyfprtrn", 0x3fe0fc00U, 0x1900a400U, 1149, Mnemonic::ARM64_CPYFPRTRN, 3, 0 }, // CPYFPRTRN_CPY_memcms
+    { "cpyfmrtrn", 0x3fe0fc00U, 0x1940a400U, 1149, Mnemonic::ARM64_CPYFMRTRN, 3, 0 }, // CPYFMRTRN_CPY_memcms
+    { "cpyfertrn", 0x3fe0fc00U, 0x1980a400U, 1149, Mnemonic::ARM64_CPYFERTRN, 3, 0 }, // CPYFERTRN_CPY_memcms
+    { "cpyfprtn", 0x3fe0fc00U, 0x1900e400U, 1149, Mnemonic::ARM64_CPYFPRTN, 3, 0 }, // CPYFPRTN_CPY_memcms
+    { "cpyfmrtn", 0x3fe0fc00U, 0x1940e400U, 1149, Mnemonic::ARM64_CPYFMRTN, 3, 0 }, // CPYFMRTN_CPY_memcms
+    { "cpyfertn", 0x3fe0fc00U, 0x1980e400U, 1149, Mnemonic::ARM64_CPYFERTN, 3, 0 }, // CPYFERTN_CPY_memcms
+    { "cpyfpwn", 0x3fe0fc00U, 0x19004400U, 1149, Mnemonic::ARM64_CPYFPWN, 3, 0 }, // CPYFPWN_CPY_memcms
+    { "cpyfmwn", 0x3fe0fc00U, 0x19404400U, 1149, Mnemonic::ARM64_CPYFMWN, 3, 0 }, // CPYFMWN_CPY_memcms
+    { "cpyfewn", 0x3fe0fc00U, 0x19804400U, 1149, Mnemonic::ARM64_CPYFEWN, 3, 0 }, // CPYFEWN_CPY_memcms
+    { "cpyfptwn", 0x3fe0fc00U, 0x19007400U, 1149, Mnemonic::ARM64_CPYFPTWN, 3, 0 }, // CPYFPTWN_CPY_memcms
+    { "cpyfmtwn", 0x3fe0fc00U, 0x19407400U, 1149, Mnemonic::ARM64_CPYFMTWN, 3, 0 }, // CPYFMTWN_CPY_memcms
+    { "cpyfetwn", 0x3fe0fc00U, 0x19807400U, 1149, Mnemonic::ARM64_CPYFETWN, 3, 0 }, // CPYFETWN_CPY_memcms
+    { "cpyfptn", 0x3fe0fc00U, 0x1900f400U, 1149, Mnemonic::ARM64_CPYFPTN, 3, 0 }, // CPYFPTN_CPY_memcms
+    { "cpyfmtn", 0x3fe0fc00U, 0x1940f400U, 1149, Mnemonic::ARM64_CPYFMTN, 3, 0 }, // CPYFMTN_CPY_memcms
+    { "cpyfetn", 0x3fe0fc00U, 0x1980f400U, 1149, Mnemonic::ARM64_CPYFETN, 3, 0 }, // CPYFETN_CPY_memcms
+    { "cpyfpwt", 0x3fe0fc00U, 0x19001400U, 1149, Mnemonic::ARM64_CPYFPWT, 3, 0 }, // CPYFPWT_CPY_memcms
+    { "cpyfmwt", 0x3fe0fc00U, 0x19401400U, 1149, Mnemonic::ARM64_CPYFMWT, 3, 0 }, // CPYFMWT_CPY_memcms
+    { "cpyfewt", 0x3fe0fc00U, 0x19801400U, 1149, Mnemonic::ARM64_CPYFEWT, 3, 0 }, // CPYFEWT_CPY_memcms
+    { "cpyfpwtrn", 0x3fe0fc00U, 0x19009400U, 1149, Mnemonic::ARM64_CPYFPWTRN, 3, 0 }, // CPYFPWTRN_CPY_memcms
+    { "cpyfmwtrn", 0x3fe0fc00U, 0x19409400U, 1149, Mnemonic::ARM64_CPYFMWTRN, 3, 0 }, // CPYFMWTRN_CPY_memcms
+    { "cpyfewtrn", 0x3fe0fc00U, 0x19809400U, 1149, Mnemonic::ARM64_CPYFEWTRN, 3, 0 }, // CPYFEWTRN_CPY_memcms
+    { "cpyfpt", 0x3fe0fc00U, 0x19003400U, 1149, Mnemonic::ARM64_CPYFPT, 3, 0 }, // CPYFPT_CPY_memcms
+    { "cpyfmt", 0x3fe0fc00U, 0x19403400U, 1149, Mnemonic::ARM64_CPYFMT, 3, 0 }, // CPYFMT_CPY_memcms
+    { "cpyfet", 0x3fe0fc00U, 0x19803400U, 1149, Mnemonic::ARM64_CPYFET, 3, 0 }, // CPYFET_CPY_memcms
+    { "cpyfprn", 0x3fe0fc00U, 0x19008400U, 1149, Mnemonic::ARM64_CPYFPRN, 3, 0 }, // CPYFPRN_CPY_memcms
+    { "cpyfmrn", 0x3fe0fc00U, 0x19408400U, 1149, Mnemonic::ARM64_CPYFMRN, 3, 0 }, // CPYFMRN_CPY_memcms
+    { "cpyfern", 0x3fe0fc00U, 0x19808400U, 1149, Mnemonic::ARM64_CPYFERN, 3, 0 }, // CPYFERN_CPY_memcms
+    { "setpn", 0x3fe0fc00U, 0x19c02400U, 1152, Mnemonic::ARM64_SETPN, 3, 0 }, // SETPN_SET_memcms
+    { "setmn", 0x3fe0fc00U, 0x19c06400U, 1152, Mnemonic::ARM64_SETMN, 3, 0 }, // SETMN_SET_memcms
+    { "seten", 0x3fe0fc00U, 0x19c0a400U, 1152, Mnemonic::ARM64_SETEN, 3, 0 }, // SETEN_SET_memcms
+    { "cpyfprtwn", 0x3fe0fc00U, 0x19006400U, 1149, Mnemonic::ARM64_CPYFPRTWN, 3, 0 }, // CPYFPRTWN_CPY_memcms
+    { "cpyfmrtwn", 0x3fe0fc00U, 0x19406400U, 1149, Mnemonic::ARM64_CPYFMRTWN, 3, 0 }, // CPYFMRTWN_CPY_memcms
+    { "cpyfertwn", 0x3fe0fc00U, 0x19806400U, 1149, Mnemonic::ARM64_CPYFERTWN, 3, 0 }, // CPYFERTWN_CPY_memcms
+    { "ldursb", 0xffe00c00U, 0x38c00000U, 1155, Mnemonic::ARM64_LDURSB, 2, 0 }, // LDURSB_32_ldst_unscaled
+    { "ldursb", 0xffe00c00U, 0x38800000U, 1157, Mnemonic::ARM64_LDURSB, 2, 1 }, // LDURSB_64_ldst_unscaled
+    { "ldrh", 0xffe00c00U, 0x78400400U, 1159, Mnemonic::ARM64_LDRH, 3, 0 }, // LDRH_32_ldst_immpost
+    { "ldrh", 0xffe00c00U, 0x78400c00U, 1162, Mnemonic::ARM64_LDRH, 2, 0 }, // LDRH_32_ldst_immpre
+    { "strb", 0xffe00c00U, 0x38000400U, 1159, Mnemonic::ARM64_STRB, 3, 0 }, // STRB_32_ldst_immpost
+    { "strb", 0xffe00c00U, 0x38000c00U, 1162, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32_ldst_immpre
+    { "ldapur", 0xffe00c00U, 0x99400000U, 1155, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_32_ldapstl_unscaled
+    { "ldapur", 0xffe00c00U, 0xd9400000U, 1157, Mnemonic::ARM64_LDAPUR, 2, 1 }, // LDAPUR_64_ldapstl_unscaled
+    { "ldapurb", 0xffe00c00U, 0x19400000U, 1155, Mnemonic::ARM64_LDAPURB, 2, 0 }, // LDAPURB_32_ldapstl_unscaled
+    { "prfum", 0xffe00c00U, 0xf8800000U, 1164, Mnemonic::ARM64_PRFUM, 3, 0 }, // PRFUM_P_ldst_unscaled
+    { "strh", 0xffe00c00U, 0x78200800U, 1142, Mnemonic::ARM64_STRH, 2, 0 }, // STRH_32_ldst_regoff
+    { "ldrb", 0xffe00c00U, 0x38600800U, 1142, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32B_ldst_regoff
+    { "stlurb", 0xffe00c00U, 0x19000000U, 1155, Mnemonic::ARM64_STLURB, 2, 0 }, // STLURB_32_ldapstl_unscaled
+    { "sttrb", 0xffe00c00U, 0x38000800U, 1155, Mnemonic::ARM64_STTRB, 2, 0 }, // STTRB_32_ldst_unpriv
+    { "ldursw", 0xffe00c00U, 0xb8800000U, 1157, Mnemonic::ARM64_LDURSW, 2, 1 }, // LDURSW_64_ldst_unscaled
+    { "stz2g", 0xffe00c00U, 0xd9e00400U, 1167, Mnemonic::ARM64_STZ2G, 3, 0 }, // STZ2G_64Spost_ldsttags
+    { "stz2g", 0xffe00c00U, 0xd9e00c00U, 1170, Mnemonic::ARM64_STZ2G, 2, 0 }, // STZ2G_64Spre_ldsttags
+    { "stz2g", 0xffe00c00U, 0xd9e00800U, 1172, Mnemonic::ARM64_STZ2G, 2, 0 }, // STZ2G_64Soffset_ldsttags
+    { "stzg", 0xffe00c00U, 0xd9600400U, 1167, Mnemonic::ARM64_STZG, 3, 0 }, // STZG_64Spost_ldsttags
+    { "stzg", 0xffe00c00U, 0xd9600c00U, 1170, Mnemonic::ARM64_STZG, 2, 0 }, // STZG_64Spre_ldsttags
+    { "stzg", 0xffe00c00U, 0xd9600800U, 1172, Mnemonic::ARM64_STZG, 2, 0 }, // STZG_64Soffset_ldsttags
+    { "ldrsw", 0xffe00c00U, 0xb8a00800U, 1144, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_ldst_regoff
+    { "ldapursb", 0xffe00c00U, 0x19c00000U, 1155, Mnemonic::ARM64_LDAPURSB, 2, 0 }, // LDAPURSB_32_ldapstl_unscaled
+    { "ldapursb", 0xffe00c00U, 0x19800000U, 1157, Mnemonic::ARM64_LDAPURSB, 2, 1 }, // LDAPURSB_64_ldapstl_unscaled
+    { "ldrsb", 0xffe00c00U, 0x38e00800U, 1142, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32B_ldst_regoff
+    { "ldrsb", 0xffe00c00U, 0x38a00800U, 1144, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_64B_ldst_regoff
+    { "stg", 0xffe00c00U, 0xd9200400U, 1167, Mnemonic::ARM64_STG, 3, 0 }, // STG_64Spost_ldsttags
+    { "stg", 0xffe00c00U, 0xd9200c00U, 1170, Mnemonic::ARM64_STG, 2, 0 }, // STG_64Spre_ldsttags
+    { "stg", 0xffe00c00U, 0xd9200800U, 1172, Mnemonic::ARM64_STG, 2, 0 }, // STG_64Soffset_ldsttags
+    { "ldrsh", 0xffe00c00U, 0x78c00400U, 1159, Mnemonic::ARM64_LDRSH, 3, 0 }, // LDRSH_32_ldst_immpost
+    { "ldrsh", 0xffe00c00U, 0x78800400U, 1174, Mnemonic::ARM64_LDRSH, 3, 1 }, // LDRSH_64_ldst_immpost
+    { "ldrsh", 0xffe00c00U, 0x78c00c00U, 1162, Mnemonic::ARM64_LDRSH, 2, 0 }, // LDRSH_32_ldst_immpre
+    { "ldrsh", 0xffe00c00U, 0x78800c00U, 1177, Mnemonic::ARM64_LDRSH, 2, 1 }, // LDRSH_64_ldst_immpre
+    { "ldapursw", 0xffe00c00U, 0x99800000U, 1157, Mnemonic::ARM64_LDAPURSW, 2, 1 }, // LDAPURSW_64_ldapstl_unscaled
+    { "ldtrb", 0xffe00c00U, 0x38400800U, 1155, Mnemonic::ARM64_LDTRB, 2, 0 }, // LDTRB_32_ldst_unpriv
+    { "ldrb", 0xffe00c00U, 0x38400400U, 1159, Mnemonic::ARM64_LDRB, 3, 0 }, // LDRB_32_ldst_immpost
+    { "ldrb", 0xffe00c00U, 0x38400c00U, 1162, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32_ldst_immpre
+    { "st2g", 0xffe00c00U, 0xd9a00400U, 1167, Mnemonic::ARM64_ST2G, 3, 0 }, // ST2G_64Spost_ldsttags
+    { "st2g", 0xffe00c00U, 0xd9a00c00U, 1170, Mnemonic::ARM64_ST2G, 2, 0 }, // ST2G_64Spre_ldsttags
+    { "st2g", 0xffe00c00U, 0xd9a00800U, 1172, Mnemonic::ARM64_ST2G, 2, 0 }, // ST2G_64Soffset_ldsttags
+    { "strh", 0xffe00c00U, 0x78000400U, 1159, Mnemonic::ARM64_STRH, 3, 0 }, // STRH_32_ldst_immpost
+    { "strh", 0xffe00c00U, 0x78000c00U, 1162, Mnemonic::ARM64_STRH, 2, 0 }, // STRH_32_ldst_immpre
+    { "ldtrsh", 0xffe00c00U, 0x78c00800U, 1155, Mnemonic::ARM64_LDTRSH, 2, 0 }, // LDTRSH_32_ldst_unpriv
+    { "ldtrsh", 0xffe00c00U, 0x78800800U, 1157, Mnemonic::ARM64_LDTRSH, 2, 1 }, // LDTRSH_64_ldst_unpriv
+    { "sturb", 0xffe00c00U, 0x38000000U, 1155, Mnemonic::ARM64_STURB, 2, 0 }, // STURB_32_ldst_unscaled
+    { "str", 0xffe00c00U, 0xb8000400U, 1159, Mnemonic::ARM64_STR, 3, 0 }, // STR_32_ldst_immpost
+    { "str", 0xffe00c00U, 0xf8000400U, 1174, Mnemonic::ARM64_STR, 3, 1 }, // STR_64_ldst_immpost
+    { "str", 0xffe00c00U, 0xb8000c00U, 1162, Mnemonic::ARM64_STR, 2, 0 }, // STR_32_ldst_immpre
+    { "str", 0xffe00c00U, 0xf8000c00U, 1177, Mnemonic::ARM64_STR, 2, 1 }, // STR_64_ldst_immpre
+    { "stlur", 0xffe00c00U, 0x99000000U, 1155, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_32_ldapstl_unscaled
+    { "stlur", 0xffe00c00U, 0xd9000000U, 1157, Mnemonic::ARM64_STLUR, 2, 1 }, // STLUR_64_ldapstl_unscaled
+    { "strb", 0xffe00c00U, 0x38200800U, 1142, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32B_ldst_regoff
+    { "ldrh", 0xffe00c00U, 0x78600800U, 1142, Mnemonic::ARM64_LDRH, 2, 0 }, // LDRH_32_ldst_regoff
+    { "str", 0xffe00c00U, 0xb8200800U, 1142, Mnemonic::ARM64_STR, 2, 0 }, // STR_32_ldst_regoff
+    { "str", 0xffe00c00U, 0xf8200800U, 1144, Mnemonic::ARM64_STR, 2, 1 }, // STR_64_ldst_regoff
+    { "ldrsh", 0xffe00c00U, 0x78e00800U, 1142, Mnemonic::ARM64_LDRSH, 2, 0 }, // LDRSH_32_ldst_regoff
+    { "ldrsh", 0xffe00c00U, 0x78a00800U, 1144, Mnemonic::ARM64_LDRSH, 2, 1 }, // LDRSH_64_ldst_regoff
+    { "ldurb", 0xffe00c00U, 0x38400000U, 1155, Mnemonic::ARM64_LDURB, 2, 0 }, // LDURB_32_ldst_unscaled
+    { "ldrsb", 0xffe00c00U, 0x38c00400U, 1159, Mnemonic::ARM64_LDRSB, 3, 0 }, // LDRSB_32_ldst_immpost
+    { "ldrsb", 0xffe00c00U, 0x38800400U, 1174, Mnemonic::ARM64_LDRSB, 3, 1 }, // LDRSB_64_ldst_immpost
+    { "ldrsb", 0xffe00c00U, 0x38c00c00U, 1162, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32_ldst_immpre
+    { "ldrsb", 0xffe00c00U, 0x38800c00U, 1177, Mnemonic::ARM64_LDRSB, 2, 1 }, // LDRSB_64_ldst_immpre
+    { "ldrsw", 0xffe00c00U, 0xb8800400U, 1174, Mnemonic::ARM64_LDRSW, 3, 1 }, // LDRSW_64_ldst_immpost
+    { "ldrsw", 0xffe00c00U, 0xb8800c00U, 1177, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_ldst_immpre
+    { "ldtrsw", 0xffe00c00U, 0xb8800800U, 1157, Mnemonic::ARM64_LDTRSW, 2, 1 }, // LDTRSW_64_ldst_unpriv
+    { "ldr", 0xffe00c00U, 0xb8600800U, 1142, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_ldst_regoff
+    { "ldr", 0xffe00c00U, 0xf8600800U, 1144, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_ldst_regoff
+    { "ldtrsb", 0xffe00c00U, 0x38c00800U, 1155, Mnemonic::ARM64_LDTRSB, 2, 0 }, // LDTRSB_32_ldst_unpriv
+    { "ldtrsb", 0xffe00c00U, 0x38800800U, 1157, Mnemonic::ARM64_LDTRSB, 2, 1 }, // LDTRSB_64_ldst_unpriv
+    { "sturh", 0xffe00c00U, 0x78000000U, 1155, Mnemonic::ARM64_STURH, 2, 0 }, // STURH_32_ldst_unscaled
+    { "ldtr", 0xffe00c00U, 0xb8400800U, 1155, Mnemonic::ARM64_LDTR, 2, 0 }, // LDTR_32_ldst_unpriv
+    { "ldtr", 0xffe00c00U, 0xf8400800U, 1157, Mnemonic::ARM64_LDTR, 2, 1 }, // LDTR_64_ldst_unpriv
+    { "ldur", 0xffe00c00U, 0xb8400000U, 1155, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_32_ldst_unscaled
+    { "ldur", 0xffe00c00U, 0xf8400000U, 1157, Mnemonic::ARM64_LDUR, 2, 1 }, // LDUR_64_ldst_unscaled
+    { "ldr", 0xffe00c00U, 0xb8400400U, 1159, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_32_ldst_immpost
+    { "ldr", 0xffe00c00U, 0xf8400400U, 1174, Mnemonic::ARM64_LDR, 3, 1 }, // LDR_64_ldst_immpost
+    { "ldr", 0xffe00c00U, 0xb8400c00U, 1162, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_ldst_immpre
+    { "ldr", 0xffe00c00U, 0xf8400c00U, 1177, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_ldst_immpre
+    { "ldg", 0xffe00c00U, 0xd9600000U, 1157, Mnemonic::ARM64_LDG, 2, 0 }, // LDG_64Loffset_ldsttags
+    { "ldurh", 0xffe00c00U, 0x78400000U, 1155, Mnemonic::ARM64_LDURH, 2, 0 }, // LDURH_32_ldst_unscaled
+    { "stlurh", 0xffe00c00U, 0x59000000U, 1155, Mnemonic::ARM64_STLURH, 2, 0 }, // STLURH_32_ldapstl_unscaled
+    { "sttrh", 0xffe00c00U, 0x78000800U, 1155, Mnemonic::ARM64_STTRH, 2, 0 }, // STTRH_32_ldst_unpriv
+    { "ldursh", 0xffe00c00U, 0x78c00000U, 1155, Mnemonic::ARM64_LDURSH, 2, 0 }, // LDURSH_32_ldst_unscaled
+    { "ldursh", 0xffe00c00U, 0x78800000U, 1157, Mnemonic::ARM64_LDURSH, 2, 1 }, // LDURSH_64_ldst_unscaled
+    { "ldapurh", 0xffe00c00U, 0x59400000U, 1155, Mnemonic::ARM64_LDAPURH, 2, 0 }, // LDAPURH_32_ldapstl_unscaled
+    { "sttr", 0xffe00c00U, 0xb8000800U, 1155, Mnemonic::ARM64_STTR, 2, 0 }, // STTR_32_ldst_unpriv
+    { "sttr", 0xffe00c00U, 0xf8000800U, 1157, Mnemonic::ARM64_STTR, 2, 1 }, // STTR_64_ldst_unpriv
+    { "stur", 0xffe00c00U, 0xb8000000U, 1155, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_32_ldst_unscaled
+    { "stur", 0xffe00c00U, 0xf8000000U, 1157, Mnemonic::ARM64_STUR, 2, 1 }, // STUR_64_ldst_unscaled
+    { "ldtrh", 0xffe00c00U, 0x78400800U, 1155, Mnemonic::ARM64_LDTRH, 2, 0 }, // LDTRH_32_ldst_unpriv
+    { "ldapursh", 0xffe00c00U, 0x59c00000U, 1155, Mnemonic::ARM64_LDAPURSH, 2, 0 }, // LDAPURSH_32_ldapstl_unscaled
+    { "ldapursh", 0xffe00c00U, 0x59800000U, 1157, Mnemonic::ARM64_LDAPURSH, 2, 1 }, // LDAPURSH_64_ldapstl_unscaled
+    { "ldraa", 0xffa00c00U, 0xf8200400U, 1179, Mnemonic::ARM64_LDRAA, 2, 1 }, // LDRAA_64_ldst_pac
+    { "ldraa", 0xffa00c00U, 0xf8200c00U, 1125, Mnemonic::ARM64_LDRAA, 2, 0 }, // LDRAA_64W_ldst_pac
+    { "ldrab", 0xffa00c00U, 0xf8a00400U, 1179, Mnemonic::ARM64_LDRAB, 2, 1 }, // LDRAB_64_ldst_pac
+    { "ldrab", 0xffa00c00U, 0xf8a00c00U, 1125, Mnemonic::ARM64_LDRAB, 2, 0 }, // LDRAB_64W_ldst_pac
+    { "ldrh", 0xffc00000U, 0x79400000U, 1181, Mnemonic::ARM64_LDRH, 2, 0 }, // LDRH_32_ldst_pos
+    { "strb", 0xffc00000U, 0x39000000U, 1181, Mnemonic::ARM64_STRB, 2, 0 }, // STRB_32_ldst_pos
+    { "ldrsh", 0xffc00000U, 0x79c00000U, 1181, Mnemonic::ARM64_LDRSH, 2, 0 }, // LDRSH_32_ldst_pos
+    { "ldrsh", 0xffc00000U, 0x79800000U, 1183, Mnemonic::ARM64_LDRSH, 2, 1 }, // LDRSH_64_ldst_pos
+    { "ldrb", 0xffc00000U, 0x39400000U, 1181, Mnemonic::ARM64_LDRB, 2, 0 }, // LDRB_32_ldst_pos
+    { "strh", 0xffc00000U, 0x79000000U, 1181, Mnemonic::ARM64_STRH, 2, 0 }, // STRH_32_ldst_pos
+    { "str", 0xffc00000U, 0xb9000000U, 1181, Mnemonic::ARM64_STR, 2, 0 }, // STR_32_ldst_pos
+    { "str", 0xffc00000U, 0xf9000000U, 1183, Mnemonic::ARM64_STR, 2, 1 }, // STR_64_ldst_pos
+    { "prfm", 0xffc00000U, 0xf9800000U, 1185, Mnemonic::ARM64_PRFM, 3, 0 }, // PRFM_P_ldst_pos
+    { "ldrsb", 0xffc00000U, 0x39c00000U, 1181, Mnemonic::ARM64_LDRSB, 2, 0 }, // LDRSB_32_ldst_pos
+    { "ldrsb", 0xffc00000U, 0x39800000U, 1183, Mnemonic::ARM64_LDRSB, 2, 1 }, // LDRSB_64_ldst_pos
+    { "ldrsw", 0xffc00000U, 0xb9800000U, 1183, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_ldst_pos
+    { "ldr", 0xffc00000U, 0xb9400000U, 1181, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_ldst_pos
+    { "ldr", 0xffc00000U, 0xf9400000U, 1183, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_ldst_pos
+    { "prfm", 0xff000000U, 0xd8000000U, 1188, Mnemonic::ARM64_PRFM, 3, 0 }, // PRFM_P_loadlit
+    { "ldrsw", 0xff000000U, 0x98000000U, 1024, Mnemonic::ARM64_LDRSW, 2, 1 }, // LDRSW_64_loadlit
+    { "ldr", 0xff000000U, 0x18000000U, 1111, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_32_loadlit
+    { "ldr", 0xff000000U, 0x58000000U, 1024, Mnemonic::ARM64_LDR, 2, 1 }, // LDR_64_loadlit
     { "paciasppc", 0xffffffffU, 0xdac1a3feU, 0, Mnemonic::ARM64_PACIASPPC, 0, 1 }, // PACIASPPC_64LR_dp_1src
     { "autib171615", 0xffffffffU, 0xdac1bffeU, 0, Mnemonic::ARM64_AUTIB171615, 0, 1 }, // AUTIB171615_64LR_dp_1src
     { "pacibsppc", 0xffffffffU, 0xdac1a7feU, 0, Mnemonic::ARM64_PACIBSPPC, 0, 1 }, // PACIBSPPC_64LR_dp_1src
@@ -3769,13 +3773,13 @@ const InstructionEntry g_instructionTable[] = {
     { "paciza", 0xffffffe0U, 0xdac123e0U, 671, Mnemonic::ARM64_PACIZA, 1, 1 }, // PACIZA_64Z_dp_1src
     { "autdza", 0xffffffe0U, 0xdac13be0U, 671, Mnemonic::ARM64_AUTDZA, 1, 1 }, // AUTDZA_64Z_dp_1src
     { "pacizb", 0xffffffe0U, 0xdac127e0U, 671, Mnemonic::ARM64_PACIZB, 1, 1 }, // PACIZB_64Z_dp_1src
-    { "cset", 0xffff0fe0U, 0x1a9f07e0U, 1193, Mnemonic::ARM64_CSET, 2, 0 }, // CSET_CSINC_32_condsel
-    { "cset", 0xffff0fe0U, 0x9a9f07e0U, 1195, Mnemonic::ARM64_CSET, 2, 1 }, // CSET_CSINC_64_condsel
-    { "csetm", 0xffff0fe0U, 0x5a9f03e0U, 1193, Mnemonic::ARM64_CSETM, 2, 0 }, // CSETM_CSINV_32_condsel
-    { "csetm", 0xffff0fe0U, 0xda9f03e0U, 1195, Mnemonic::ARM64_CSETM, 2, 1 }, // CSETM_CSINV_64_condsel
+    { "cset", 0xffff1fe0U, 0x1a9f17e0U, 1191, Mnemonic::ARM64_CSET, 2, 0 }, // CSET_CSINC_32_condsel
+    { "cset", 0xffff1fe0U, 0x9a9f17e0U, 1193, Mnemonic::ARM64_CSET, 2, 1 }, // CSET_CSINC_64_condsel
+    { "csetm", 0xffff1fe0U, 0x5a9f17e0U, 1191, Mnemonic::ARM64_CSETM, 2, 0 }, // CSETM_CSINV_32_condsel
+    { "csetm", 0xffff1fe0U, 0xda9f17e0U, 1193, Mnemonic::ARM64_CSETM, 2, 1 }, // CSETM_CSINV_64_condsel
     { "ngc", 0xffe0ffe0U, 0x5a0003e0U, 704, Mnemonic::ARM64_NGC, 2, 0 }, // NGC_SBC_32_addsub_carry
     { "ngc", 0xffe0ffe0U, 0xda0003e0U, 706, Mnemonic::ARM64_NGC, 2, 1 }, // NGC_SBC_64_addsub_carry
-    { "cmpp", 0xffe0fc1fU, 0xbac0001fU, 1197, Mnemonic::ARM64_CMPP, 2, 1 }, // CMPP_SUBPS_64S_dp_2src
+    { "cmpp", 0xffe0fc1fU, 0xbac0001fU, 1195, Mnemonic::ARM64_CMPP, 2, 1 }, // CMPP_SUBPS_64S_dp_2src
     { "abs", 0xfffffc00U, 0x5ac02000U, 742, Mnemonic::ARM64_ABS, 2, 0 }, // ABS_32_dp_1src
     { "abs", 0xfffffc00U, 0xdac02000U, 746, Mnemonic::ARM64_ABS, 2, 1 }, // ABS_64_dp_1src
     { "ctz", 0xfffffc00U, 0x5ac01800U, 742, Mnemonic::ARM64_CTZ, 2, 0 }, // CTZ_32_dp_1src
@@ -3817,594 +3821,594 @@ const InstructionEntry g_instructionTable[] = {
     { "crc32cb", 0xffe0fc00U, 0x1ac05000U, 742, Mnemonic::ARM64_CRC32CB, 3, 0 }, // CRC32CB_32C_dp_2src
     { "crc32ch", 0xffe0fc00U, 0x1ac05400U, 742, Mnemonic::ARM64_CRC32CH, 3, 0 }, // CRC32CH_32C_dp_2src
     { "crc32cw", 0xffe0fc00U, 0x1ac05800U, 742, Mnemonic::ARM64_CRC32CW, 3, 0 }, // CRC32CW_32C_dp_2src
-    { "crc32cx", 0xffe0fc00U, 0x9ac05c00U, 1199, Mnemonic::ARM64_CRC32CX, 3, 1 }, // CRC32CX_64C_dp_2src
+    { "crc32cx", 0xffe0fc00U, 0x9ac05c00U, 1197, Mnemonic::ARM64_CRC32CX, 3, 1 }, // CRC32CX_64C_dp_2src
     { "rorv", 0xffe0fc00U, 0x1ac02c00U, 742, Mnemonic::ARM64_RORV, 3, 0 }, // RORV_32_dp_2src
     { "rorv", 0xffe0fc00U, 0x9ac02c00U, 746, Mnemonic::ARM64_RORV, 3, 1 }, // RORV_64_dp_2src
-    { "irg", 0xffe0fc00U, 0x9ac01000U, 1202, Mnemonic::ARM64_IRG, 3, 1 }, // IRG_64I_dp_2src
+    { "irg", 0xffe0fc00U, 0x9ac01000U, 1200, Mnemonic::ARM64_IRG, 3, 1 }, // IRG_64I_dp_2src
     { "umax", 0xffe0fc00U, 0x1ac06400U, 742, Mnemonic::ARM64_UMAX, 3, 0 }, // UMAX_32_dp_2src
     { "umax", 0xffe0fc00U, 0x9ac06400U, 746, Mnemonic::ARM64_UMAX, 3, 1 }, // UMAX_64_dp_2src
     { "adc", 0xffe0fc00U, 0x1a000000U, 742, Mnemonic::ARM64_ADC, 3, 0 }, // ADC_32_addsub_carry
     { "adc", 0xffe0fc00U, 0x9a000000U, 746, Mnemonic::ARM64_ADC, 3, 1 }, // ADC_64_addsub_carry
     { "mul", 0xffe0fc00U, 0x1b007c00U, 742, Mnemonic::ARM64_MUL, 3, 0 }, // MUL_MADD_32A_dp_3src
     { "mul", 0xffe0fc00U, 0x9b007c00U, 746, Mnemonic::ARM64_MUL, 3, 1 }, // MUL_MADD_64A_dp_3src
-    { "pacga", 0xffe0fc00U, 0x9ac03000U, 1205, Mnemonic::ARM64_PACGA, 3, 1 }, // PACGA_64P_dp_2src
+    { "pacga", 0xffe0fc00U, 0x9ac03000U, 1203, Mnemonic::ARM64_PACGA, 3, 1 }, // PACGA_64P_dp_2src
     { "mneg", 0xffe0fc00U, 0x1b00fc00U, 742, Mnemonic::ARM64_MNEG, 3, 0 }, // MNEG_MSUB_32A_dp_3src
     { "mneg", 0xffe0fc00U, 0x9b00fc00U, 746, Mnemonic::ARM64_MNEG, 3, 1 }, // MNEG_MSUB_64A_dp_3src
-    { "gmi", 0xffe0fc00U, 0x9ac01400U, 1208, Mnemonic::ARM64_GMI, 3, 1 }, // GMI_64G_dp_2src
-    { "subp", 0xffe0fc00U, 0x9ac00000U, 1211, Mnemonic::ARM64_SUBP, 3, 1 }, // SUBP_64S_dp_2src
+    { "gmi", 0xffe0fc00U, 0x9ac01400U, 1206, Mnemonic::ARM64_GMI, 3, 1 }, // GMI_64G_dp_2src
+    { "subp", 0xffe0fc00U, 0x9ac00000U, 1209, Mnemonic::ARM64_SUBP, 3, 1 }, // SUBP_64S_dp_2src
     { "lslv", 0xffe0fc00U, 0x1ac02000U, 742, Mnemonic::ARM64_LSLV, 3, 0 }, // LSLV_32_dp_2src
     { "lslv", 0xffe0fc00U, 0x9ac02000U, 746, Mnemonic::ARM64_LSLV, 3, 1 }, // LSLV_64_dp_2src
     { "crc32b", 0xffe0fc00U, 0x1ac04000U, 742, Mnemonic::ARM64_CRC32B, 3, 0 }, // CRC32B_32C_dp_2src
     { "crc32h", 0xffe0fc00U, 0x1ac04400U, 742, Mnemonic::ARM64_CRC32H, 3, 0 }, // CRC32H_32C_dp_2src
     { "crc32w", 0xffe0fc00U, 0x1ac04800U, 742, Mnemonic::ARM64_CRC32W, 3, 0 }, // CRC32W_32C_dp_2src
-    { "crc32x", 0xffe0fc00U, 0x9ac04c00U, 1199, Mnemonic::ARM64_CRC32X, 3, 1 }, // CRC32X_64C_dp_2src
+    { "crc32x", 0xffe0fc00U, 0x9ac04c00U, 1197, Mnemonic::ARM64_CRC32X, 3, 1 }, // CRC32X_64C_dp_2src
     { "asrv", 0xffe0fc00U, 0x1ac02800U, 742, Mnemonic::ARM64_ASRV, 3, 0 }, // ASRV_32_dp_2src
     { "asrv", 0xffe0fc00U, 0x9ac02800U, 746, Mnemonic::ARM64_ASRV, 3, 1 }, // ASRV_64_dp_2src
-    { "umull", 0xffe0fc00U, 0x9ba07c00U, 1214, Mnemonic::ARM64_UMULL, 3, 1 }, // UMULL_UMADDL_64WA_dp_3src
+    { "umull", 0xffe0fc00U, 0x9ba07c00U, 1212, Mnemonic::ARM64_UMULL, 3, 1 }, // UMULL_UMADDL_64WA_dp_3src
     { "udiv", 0xffe0fc00U, 0x1ac00800U, 742, Mnemonic::ARM64_UDIV, 3, 0 }, // UDIV_32_dp_2src
     { "udiv", 0xffe0fc00U, 0x9ac00800U, 746, Mnemonic::ARM64_UDIV, 3, 1 }, // UDIV_64_dp_2src
     { "sbcs", 0xffe0fc00U, 0x7a000000U, 742, Mnemonic::ARM64_SBCS, 3, 0 }, // SBCS_32_addsub_carry
     { "sbcs", 0xffe0fc00U, 0xfa000000U, 746, Mnemonic::ARM64_SBCS, 3, 1 }, // SBCS_64_addsub_carry
-    { "subps", 0xffe0fc00U, 0xbac00000U, 1211, Mnemonic::ARM64_SUBPS, 3, 1 }, // SUBPS_64S_dp_2src
-    { "rmif", 0xffe07c10U, 0xba000400U, 1217, Mnemonic::ARM64_RMIF, 2, 1 }, // RMIF_only_rmif
+    { "subps", 0xffe0fc00U, 0xbac00000U, 1209, Mnemonic::ARM64_SUBPS, 3, 1 }, // SUBPS_64S_dp_2src
+    { "rmif", 0xffe07c10U, 0xba000400U, 1215, Mnemonic::ARM64_RMIF, 2, 1 }, // RMIF_only_rmif
     { "adcs", 0xffe0fc00U, 0x3a000000U, 742, Mnemonic::ARM64_ADCS, 3, 0 }, // ADCS_32_addsub_carry
     { "adcs", 0xffe0fc00U, 0xba000000U, 746, Mnemonic::ARM64_ADCS, 3, 1 }, // ADCS_64_addsub_carry
-    { "smnegl", 0xffe0fc00U, 0x9b20fc00U, 1214, Mnemonic::ARM64_SMNEGL, 3, 1 }, // SMNEGL_SMSUBL_64WA_dp_3src
+    { "smnegl", 0xffe0fc00U, 0x9b20fc00U, 1212, Mnemonic::ARM64_SMNEGL, 3, 1 }, // SMNEGL_SMSUBL_64WA_dp_3src
     { "ror", 0xffe0fc00U, 0x1ac02c00U, 742, Mnemonic::ARM64_ROR, 3, 0 }, // ROR_RORV_32_dp_2src
     { "ror", 0xffe0fc00U, 0x9ac02c00U, 746, Mnemonic::ARM64_ROR, 3, 1 }, // ROR_RORV_64_dp_2src
     { "umin", 0xffe0fc00U, 0x1ac06c00U, 742, Mnemonic::ARM64_UMIN, 3, 0 }, // UMIN_32_dp_2src
     { "umin", 0xffe0fc00U, 0x9ac06c00U, 746, Mnemonic::ARM64_UMIN, 3, 1 }, // UMIN_64_dp_2src
-    { "smull", 0xffe0fc00U, 0x9b207c00U, 1214, Mnemonic::ARM64_SMULL, 3, 1 }, // SMULL_SMADDL_64WA_dp_3src
-    { "umnegl", 0xffe0fc00U, 0x9ba0fc00U, 1214, Mnemonic::ARM64_UMNEGL, 3, 1 }, // UMNEGL_UMSUBL_64WA_dp_3src
+    { "smull", 0xffe0fc00U, 0x9b207c00U, 1212, Mnemonic::ARM64_SMULL, 3, 1 }, // SMULL_SMADDL_64WA_dp_3src
+    { "umnegl", 0xffe0fc00U, 0x9ba0fc00U, 1212, Mnemonic::ARM64_UMNEGL, 3, 1 }, // UMNEGL_UMSUBL_64WA_dp_3src
     { "sdiv", 0xffe0fc00U, 0x1ac00c00U, 742, Mnemonic::ARM64_SDIV, 3, 0 }, // SDIV_32_dp_2src
     { "sdiv", 0xffe0fc00U, 0x9ac00c00U, 746, Mnemonic::ARM64_SDIV, 3, 1 }, // SDIV_64_dp_2src
     { "sbc", 0xffe0fc00U, 0x5a000000U, 742, Mnemonic::ARM64_SBC, 3, 0 }, // SBC_32_addsub_carry
     { "sbc", 0xffe0fc00U, 0xda000000U, 746, Mnemonic::ARM64_SBC, 3, 1 }, // SBC_64_addsub_carry
     { "smax", 0xffe0fc00U, 0x1ac06000U, 742, Mnemonic::ARM64_SMAX, 3, 0 }, // SMAX_32_dp_2src
     { "smax", 0xffe0fc00U, 0x9ac06000U, 746, Mnemonic::ARM64_SMAX, 3, 1 }, // SMAX_64_dp_2src
-    { "ccmp", 0xffe00c10U, 0x7a400000U, 1219, Mnemonic::ARM64_CCMP, 3, 0 }, // CCMP_32_condcmp_reg
-    { "ccmp", 0xffe00c10U, 0xfa400000U, 1222, Mnemonic::ARM64_CCMP, 3, 1 }, // CCMP_64_condcmp_reg
-    { "ccmn", 0xffe00c10U, 0x3a400800U, 1225, Mnemonic::ARM64_CCMN, 3, 0 }, // CCMN_32_condcmp_imm
-    { "ccmn", 0xffe00c10U, 0xba400800U, 1228, Mnemonic::ARM64_CCMN, 3, 1 }, // CCMN_64_condcmp_imm
-    { "addpt", 0xffe0e000U, 0x9a002000U, 1202, Mnemonic::ARM64_ADDPT, 3, 1 }, // ADDPT_64_addsub_pt
-    { "ccmp", 0xffe00c10U, 0x7a400800U, 1225, Mnemonic::ARM64_CCMP, 3, 0 }, // CCMP_32_condcmp_imm
-    { "ccmp", 0xffe00c10U, 0xfa400800U, 1228, Mnemonic::ARM64_CCMP, 3, 1 }, // CCMP_64_condcmp_imm
-    { "subpt", 0xffe0e000U, 0xda002000U, 1202, Mnemonic::ARM64_SUBPT, 3, 1 }, // SUBPT_64_addsub_pt
-    { "ccmn", 0xffe00c10U, 0x3a400000U, 1219, Mnemonic::ARM64_CCMN, 3, 0 }, // CCMN_32_condcmp_reg
-    { "ccmn", 0xffe00c10U, 0xba400000U, 1222, Mnemonic::ARM64_CCMN, 3, 1 }, // CCMN_64_condcmp_reg
-    { "cneg", 0xffe00c00U, 0x5a800400U, 1193, Mnemonic::ARM64_CNEG, 2, 0 }, // CNEG_CSNEG_32_condsel
-    { "cneg", 0xffe00c00U, 0xda800400U, 1195, Mnemonic::ARM64_CNEG, 2, 1 }, // CNEG_CSNEG_64_condsel
-    { "csneg", 0xffe00c00U, 0x5a800400U, 1231, Mnemonic::ARM64_CSNEG, 4, 0 }, // CSNEG_32_condsel
-    { "csneg", 0xffe00c00U, 0xda800400U, 1235, Mnemonic::ARM64_CSNEG, 4, 1 }, // CSNEG_64_condsel
-    { "csel", 0xffe00c00U, 0x1a800000U, 1231, Mnemonic::ARM64_CSEL, 4, 0 }, // CSEL_32_condsel
-    { "csel", 0xffe00c00U, 0x9a800000U, 1235, Mnemonic::ARM64_CSEL, 4, 1 }, // CSEL_64_condsel
-    { "csinv", 0xffe00c00U, 0x5a800000U, 1231, Mnemonic::ARM64_CSINV, 4, 0 }, // CSINV_32_condsel
-    { "csinv", 0xffe00c00U, 0xda800000U, 1235, Mnemonic::ARM64_CSINV, 4, 1 }, // CSINV_64_condsel
-    { "csinc", 0xffe00c00U, 0x1a800400U, 1231, Mnemonic::ARM64_CSINC, 4, 0 }, // CSINC_32_condsel
-    { "csinc", 0xffe00c00U, 0x9a800400U, 1235, Mnemonic::ARM64_CSINC, 4, 1 }, // CSINC_64_condsel
-    { "cinv", 0xffe00c00U, 0x5a800000U, 1193, Mnemonic::ARM64_CINV, 2, 0 }, // CINV_CSINV_32_condsel
-    { "cinv", 0xffe00c00U, 0xda800000U, 1195, Mnemonic::ARM64_CINV, 2, 1 }, // CINV_CSINV_64_condsel
-    { "cinc", 0xffe00c00U, 0x1a800400U, 1193, Mnemonic::ARM64_CINC, 2, 0 }, // CINC_CSINC_32_condsel
-    { "cinc", 0xffe00c00U, 0x9a800400U, 1195, Mnemonic::ARM64_CINC, 2, 1 }, // CINC_CSINC_64_condsel
-    { "msubpt", 0xffe08000U, 0x9b608000U, 1239, Mnemonic::ARM64_MSUBPT, 4, 1 }, // MSUBPT_64A_dp_3src
-    { "umsubl", 0xffe08000U, 0x9ba08000U, 1243, Mnemonic::ARM64_UMSUBL, 4, 1 }, // UMSUBL_64WA_dp_3src
-    { "maddpt", 0xffe08000U, 0x9b600000U, 1239, Mnemonic::ARM64_MADDPT, 4, 1 }, // MADDPT_64A_dp_3src
-    { "smsubl", 0xffe08000U, 0x9b208000U, 1243, Mnemonic::ARM64_SMSUBL, 4, 1 }, // SMSUBL_64WA_dp_3src
+    { "cneg", 0xffe01c00U, 0x5a801400U, 1191, Mnemonic::ARM64_CNEG, 2, 0 }, // CNEG_CSNEG_32_condsel
+    { "cneg", 0xffe01c00U, 0xda801400U, 1193, Mnemonic::ARM64_CNEG, 2, 1 }, // CNEG_CSNEG_64_condsel
+    { "ccmp", 0xffe00c10U, 0x7a400000U, 1217, Mnemonic::ARM64_CCMP, 3, 0 }, // CCMP_32_condcmp_reg
+    { "ccmp", 0xffe00c10U, 0xfa400000U, 1220, Mnemonic::ARM64_CCMP, 3, 1 }, // CCMP_64_condcmp_reg
+    { "ccmn", 0xffe00c10U, 0x3a400800U, 1223, Mnemonic::ARM64_CCMN, 3, 0 }, // CCMN_32_condcmp_imm
+    { "ccmn", 0xffe00c10U, 0xba400800U, 1226, Mnemonic::ARM64_CCMN, 3, 1 }, // CCMN_64_condcmp_imm
+    { "addpt", 0xffe0e000U, 0x9a002000U, 1200, Mnemonic::ARM64_ADDPT, 3, 1 }, // ADDPT_64_addsub_pt
+    { "ccmp", 0xffe00c10U, 0x7a400800U, 1223, Mnemonic::ARM64_CCMP, 3, 0 }, // CCMP_32_condcmp_imm
+    { "ccmp", 0xffe00c10U, 0xfa400800U, 1226, Mnemonic::ARM64_CCMP, 3, 1 }, // CCMP_64_condcmp_imm
+    { "cinv", 0xffe01c00U, 0x5a801400U, 1191, Mnemonic::ARM64_CINV, 2, 0 }, // CINV_CSINV_32_condsel
+    { "cinv", 0xffe01c00U, 0xda801400U, 1193, Mnemonic::ARM64_CINV, 2, 1 }, // CINV_CSINV_64_condsel
+    { "subpt", 0xffe0e000U, 0xda002000U, 1200, Mnemonic::ARM64_SUBPT, 3, 1 }, // SUBPT_64_addsub_pt
+    { "ccmn", 0xffe00c10U, 0x3a400000U, 1217, Mnemonic::ARM64_CCMN, 3, 0 }, // CCMN_32_condcmp_reg
+    { "ccmn", 0xffe00c10U, 0xba400000U, 1220, Mnemonic::ARM64_CCMN, 3, 1 }, // CCMN_64_condcmp_reg
+    { "cinc", 0xffe01c00U, 0x1a801400U, 1191, Mnemonic::ARM64_CINC, 2, 0 }, // CINC_CSINC_32_condsel
+    { "cinc", 0xffe01c00U, 0x9a801400U, 1193, Mnemonic::ARM64_CINC, 2, 1 }, // CINC_CSINC_64_condsel
+    { "csneg", 0xffe00c00U, 0x5a800400U, 1229, Mnemonic::ARM64_CSNEG, 4, 0 }, // CSNEG_32_condsel
+    { "csneg", 0xffe00c00U, 0xda800400U, 1233, Mnemonic::ARM64_CSNEG, 4, 1 }, // CSNEG_64_condsel
+    { "csel", 0xffe00c00U, 0x1a800000U, 1229, Mnemonic::ARM64_CSEL, 4, 0 }, // CSEL_32_condsel
+    { "csel", 0xffe00c00U, 0x9a800000U, 1233, Mnemonic::ARM64_CSEL, 4, 1 }, // CSEL_64_condsel
+    { "csinv", 0xffe00c00U, 0x5a800000U, 1229, Mnemonic::ARM64_CSINV, 4, 0 }, // CSINV_32_condsel
+    { "csinv", 0xffe00c00U, 0xda800000U, 1233, Mnemonic::ARM64_CSINV, 4, 1 }, // CSINV_64_condsel
+    { "csinc", 0xffe00c00U, 0x1a800400U, 1229, Mnemonic::ARM64_CSINC, 4, 0 }, // CSINC_32_condsel
+    { "csinc", 0xffe00c00U, 0x9a800400U, 1233, Mnemonic::ARM64_CSINC, 4, 1 }, // CSINC_64_condsel
+    { "msubpt", 0xffe08000U, 0x9b608000U, 1237, Mnemonic::ARM64_MSUBPT, 4, 1 }, // MSUBPT_64A_dp_3src
+    { "umsubl", 0xffe08000U, 0x9ba08000U, 1241, Mnemonic::ARM64_UMSUBL, 4, 1 }, // UMSUBL_64WA_dp_3src
+    { "maddpt", 0xffe08000U, 0x9b600000U, 1237, Mnemonic::ARM64_MADDPT, 4, 1 }, // MADDPT_64A_dp_3src
+    { "smsubl", 0xffe08000U, 0x9b208000U, 1241, Mnemonic::ARM64_SMSUBL, 4, 1 }, // SMSUBL_64WA_dp_3src
     { "smulh", 0xffe08000U, 0x9b400000U, 746, Mnemonic::ARM64_SMULH, 3, 1 }, // SMULH_64_dp_3src
-    { "smaddl", 0xffe08000U, 0x9b200000U, 1243, Mnemonic::ARM64_SMADDL, 4, 1 }, // SMADDL_64WA_dp_3src
-    { "umaddl", 0xffe08000U, 0x9ba00000U, 1243, Mnemonic::ARM64_UMADDL, 4, 1 }, // UMADDL_64WA_dp_3src
-    { "madd", 0xffe08000U, 0x1b000000U, 1247, Mnemonic::ARM64_MADD, 4, 0 }, // MADD_32A_dp_3src
-    { "madd", 0xffe08000U, 0x9b000000U, 1239, Mnemonic::ARM64_MADD, 4, 1 }, // MADD_64A_dp_3src
+    { "smaddl", 0xffe08000U, 0x9b200000U, 1241, Mnemonic::ARM64_SMADDL, 4, 1 }, // SMADDL_64WA_dp_3src
+    { "umaddl", 0xffe08000U, 0x9ba00000U, 1241, Mnemonic::ARM64_UMADDL, 4, 1 }, // UMADDL_64WA_dp_3src
+    { "madd", 0xffe08000U, 0x1b000000U, 1245, Mnemonic::ARM64_MADD, 4, 0 }, // MADD_32A_dp_3src
+    { "madd", 0xffe08000U, 0x9b000000U, 1237, Mnemonic::ARM64_MADD, 4, 1 }, // MADD_64A_dp_3src
     { "umulh", 0xffe08000U, 0x9bc00000U, 746, Mnemonic::ARM64_UMULH, 3, 1 }, // UMULH_64_dp_3src
-    { "msub", 0xffe08000U, 0x1b008000U, 1247, Mnemonic::ARM64_MSUB, 4, 0 }, // MSUB_32A_dp_3src
-    { "msub", 0xffe08000U, 0x9b008000U, 1239, Mnemonic::ARM64_MSUB, 4, 1 }, // MSUB_64A_dp_3src
-    { "str", 0xffe0ec00U, 0x3c206800U, 1251, Mnemonic::ARM64_STR, 2, 0 }, // STR_BL_ldst_regoff
-    { "ldr", 0xffe0ec00U, 0x3c606800U, 1251, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_BL_ldst_regoff
-    { "cpypwtwn", 0x3fe0fc00U, 0x1d005400U, 1151, Mnemonic::ARM64_CPYPWTWN, 3, 0 }, // CPYPWTWN_CPY_memcms
-    { "cpymwtwn", 0x3fe0fc00U, 0x1d405400U, 1151, Mnemonic::ARM64_CPYMWTWN, 3, 0 }, // CPYMWTWN_CPY_memcms
-    { "cpyewtwn", 0x3fe0fc00U, 0x1d805400U, 1151, Mnemonic::ARM64_CPYEWTWN, 3, 0 }, // CPYEWTWN_CPY_memcms
-    { "setgptn", 0x3fe0fc00U, 0x1dc03400U, 1154, Mnemonic::ARM64_SETGPTN, 3, 0 }, // SETGPTN_SET_memcms
-    { "setgmtn", 0x3fe0fc00U, 0x1dc07400U, 1154, Mnemonic::ARM64_SETGMTN, 3, 0 }, // SETGMTN_SET_memcms
-    { "setgetn", 0x3fe0fc00U, 0x1dc0b400U, 1154, Mnemonic::ARM64_SETGETN, 3, 0 }, // SETGETN_SET_memcms
-    { "cpypn", 0x3fe0fc00U, 0x1d00c400U, 1151, Mnemonic::ARM64_CPYPN, 3, 0 }, // CPYPN_CPY_memcms
-    { "cpymn", 0x3fe0fc00U, 0x1d40c400U, 1151, Mnemonic::ARM64_CPYMN, 3, 0 }, // CPYMN_CPY_memcms
-    { "cpyen", 0x3fe0fc00U, 0x1d80c400U, 1151, Mnemonic::ARM64_CPYEN, 3, 0 }, // CPYEN_CPY_memcms
-    { "cpyprn", 0x3fe0fc00U, 0x1d008400U, 1151, Mnemonic::ARM64_CPYPRN, 3, 0 }, // CPYPRN_CPY_memcms
-    { "cpymrn", 0x3fe0fc00U, 0x1d408400U, 1151, Mnemonic::ARM64_CPYMRN, 3, 0 }, // CPYMRN_CPY_memcms
-    { "cpyern", 0x3fe0fc00U, 0x1d808400U, 1151, Mnemonic::ARM64_CPYERN, 3, 0 }, // CPYERN_CPY_memcms
-    { "cpyprtrn", 0x3fe0fc00U, 0x1d00a400U, 1151, Mnemonic::ARM64_CPYPRTRN, 3, 0 }, // CPYPRTRN_CPY_memcms
-    { "cpymrtrn", 0x3fe0fc00U, 0x1d40a400U, 1151, Mnemonic::ARM64_CPYMRTRN, 3, 0 }, // CPYMRTRN_CPY_memcms
-    { "cpyertrn", 0x3fe0fc00U, 0x1d80a400U, 1151, Mnemonic::ARM64_CPYERTRN, 3, 0 }, // CPYERTRN_CPY_memcms
-    { "cpyptwn", 0x3fe0fc00U, 0x1d007400U, 1151, Mnemonic::ARM64_CPYPTWN, 3, 0 }, // CPYPTWN_CPY_memcms
-    { "cpymtwn", 0x3fe0fc00U, 0x1d407400U, 1151, Mnemonic::ARM64_CPYMTWN, 3, 0 }, // CPYMTWN_CPY_memcms
-    { "cpyetwn", 0x3fe0fc00U, 0x1d807400U, 1151, Mnemonic::ARM64_CPYETWN, 3, 0 }, // CPYETWN_CPY_memcms
-    { "setgpn", 0x3fe0fc00U, 0x1dc02400U, 1154, Mnemonic::ARM64_SETGPN, 3, 0 }, // SETGPN_SET_memcms
-    { "setgmn", 0x3fe0fc00U, 0x1dc06400U, 1154, Mnemonic::ARM64_SETGMN, 3, 0 }, // SETGMN_SET_memcms
-    { "setgen", 0x3fe0fc00U, 0x1dc0a400U, 1154, Mnemonic::ARM64_SETGEN, 3, 0 }, // SETGEN_SET_memcms
-    { "cpyptn", 0x3fe0fc00U, 0x1d00f400U, 1151, Mnemonic::ARM64_CPYPTN, 3, 0 }, // CPYPTN_CPY_memcms
-    { "cpymtn", 0x3fe0fc00U, 0x1d40f400U, 1151, Mnemonic::ARM64_CPYMTN, 3, 0 }, // CPYMTN_CPY_memcms
-    { "cpyetn", 0x3fe0fc00U, 0x1d80f400U, 1151, Mnemonic::ARM64_CPYETN, 3, 0 }, // CPYETN_CPY_memcms
-    { "cpypwt", 0x3fe0fc00U, 0x1d001400U, 1151, Mnemonic::ARM64_CPYPWT, 3, 0 }, // CPYPWT_CPY_memcms
-    { "cpymwt", 0x3fe0fc00U, 0x1d401400U, 1151, Mnemonic::ARM64_CPYMWT, 3, 0 }, // CPYMWT_CPY_memcms
-    { "cpyewt", 0x3fe0fc00U, 0x1d801400U, 1151, Mnemonic::ARM64_CPYEWT, 3, 0 }, // CPYEWT_CPY_memcms
-    { "cpypwn", 0x3fe0fc00U, 0x1d004400U, 1151, Mnemonic::ARM64_CPYPWN, 3, 0 }, // CPYPWN_CPY_memcms
-    { "cpymwn", 0x3fe0fc00U, 0x1d404400U, 1151, Mnemonic::ARM64_CPYMWN, 3, 0 }, // CPYMWN_CPY_memcms
-    { "cpyewn", 0x3fe0fc00U, 0x1d804400U, 1151, Mnemonic::ARM64_CPYEWN, 3, 0 }, // CPYEWN_CPY_memcms
-    { "setgpt", 0x3fe0fc00U, 0x1dc01400U, 1154, Mnemonic::ARM64_SETGPT, 3, 0 }, // SETGPT_SET_memcms
-    { "setgmt", 0x3fe0fc00U, 0x1dc05400U, 1154, Mnemonic::ARM64_SETGMT, 3, 0 }, // SETGMT_SET_memcms
-    { "setget", 0x3fe0fc00U, 0x1dc09400U, 1154, Mnemonic::ARM64_SETGET, 3, 0 }, // SETGET_SET_memcms
-    { "cpyprtn", 0x3fe0fc00U, 0x1d00e400U, 1151, Mnemonic::ARM64_CPYPRTN, 3, 0 }, // CPYPRTN_CPY_memcms
-    { "cpymrtn", 0x3fe0fc00U, 0x1d40e400U, 1151, Mnemonic::ARM64_CPYMRTN, 3, 0 }, // CPYMRTN_CPY_memcms
-    { "cpyertn", 0x3fe0fc00U, 0x1d80e400U, 1151, Mnemonic::ARM64_CPYERTN, 3, 0 }, // CPYERTN_CPY_memcms
-    { "cpypwtrn", 0x3fe0fc00U, 0x1d009400U, 1151, Mnemonic::ARM64_CPYPWTRN, 3, 0 }, // CPYPWTRN_CPY_memcms
-    { "cpymwtrn", 0x3fe0fc00U, 0x1d409400U, 1151, Mnemonic::ARM64_CPYMWTRN, 3, 0 }, // CPYMWTRN_CPY_memcms
-    { "cpyewtrn", 0x3fe0fc00U, 0x1d809400U, 1151, Mnemonic::ARM64_CPYEWTRN, 3, 0 }, // CPYEWTRN_CPY_memcms
-    { "cpyp", 0x3fe0fc00U, 0x1d000400U, 1151, Mnemonic::ARM64_CPYP, 3, 0 }, // CPYP_CPY_memcms
-    { "cpym", 0x3fe0fc00U, 0x1d400400U, 1151, Mnemonic::ARM64_CPYM, 3, 0 }, // CPYM_CPY_memcms
-    { "cpye", 0x3fe0fc00U, 0x1d800400U, 1151, Mnemonic::ARM64_CPYE, 3, 0 }, // CPYE_CPY_memcms
-    { "cpyptrn", 0x3fe0fc00U, 0x1d00b400U, 1151, Mnemonic::ARM64_CPYPTRN, 3, 0 }, // CPYPTRN_CPY_memcms
-    { "cpymtrn", 0x3fe0fc00U, 0x1d40b400U, 1151, Mnemonic::ARM64_CPYMTRN, 3, 0 }, // CPYMTRN_CPY_memcms
-    { "cpyetrn", 0x3fe0fc00U, 0x1d80b400U, 1151, Mnemonic::ARM64_CPYETRN, 3, 0 }, // CPYETRN_CPY_memcms
-    { "cpyprt", 0x3fe0fc00U, 0x1d002400U, 1151, Mnemonic::ARM64_CPYPRT, 3, 0 }, // CPYPRT_CPY_memcms
-    { "cpymrt", 0x3fe0fc00U, 0x1d402400U, 1151, Mnemonic::ARM64_CPYMRT, 3, 0 }, // CPYMRT_CPY_memcms
-    { "cpyert", 0x3fe0fc00U, 0x1d802400U, 1151, Mnemonic::ARM64_CPYERT, 3, 0 }, // CPYERT_CPY_memcms
-    { "setgp", 0x3fe0fc00U, 0x1dc00400U, 1154, Mnemonic::ARM64_SETGP, 3, 0 }, // SETGP_SET_memcms
-    { "setgm", 0x3fe0fc00U, 0x1dc04400U, 1154, Mnemonic::ARM64_SETGM, 3, 0 }, // SETGM_SET_memcms
-    { "setge", 0x3fe0fc00U, 0x1dc08400U, 1154, Mnemonic::ARM64_SETGE, 3, 0 }, // SETGE_SET_memcms
-    { "cpypwtn", 0x3fe0fc00U, 0x1d00d400U, 1151, Mnemonic::ARM64_CPYPWTN, 3, 0 }, // CPYPWTN_CPY_memcms
-    { "cpymwtn", 0x3fe0fc00U, 0x1d40d400U, 1151, Mnemonic::ARM64_CPYMWTN, 3, 0 }, // CPYMWTN_CPY_memcms
-    { "cpyewtn", 0x3fe0fc00U, 0x1d80d400U, 1151, Mnemonic::ARM64_CPYEWTN, 3, 0 }, // CPYEWTN_CPY_memcms
-    { "cpypt", 0x3fe0fc00U, 0x1d003400U, 1151, Mnemonic::ARM64_CPYPT, 3, 0 }, // CPYPT_CPY_memcms
-    { "cpymt", 0x3fe0fc00U, 0x1d403400U, 1151, Mnemonic::ARM64_CPYMT, 3, 0 }, // CPYMT_CPY_memcms
-    { "cpyet", 0x3fe0fc00U, 0x1d803400U, 1151, Mnemonic::ARM64_CPYET, 3, 0 }, // CPYET_CPY_memcms
-    { "cpyprtwn", 0x3fe0fc00U, 0x1d006400U, 1151, Mnemonic::ARM64_CPYPRTWN, 3, 0 }, // CPYPRTWN_CPY_memcms
-    { "cpymrtwn", 0x3fe0fc00U, 0x1d406400U, 1151, Mnemonic::ARM64_CPYMRTWN, 3, 0 }, // CPYMRTWN_CPY_memcms
-    { "cpyertwn", 0x3fe0fc00U, 0x1d806400U, 1151, Mnemonic::ARM64_CPYERTWN, 3, 0 }, // CPYERTWN_CPY_memcms
-    { "stur", 0xffe00c00U, 0x3c000000U, 1253, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_B_ldst_unscaled
-    { "stur", 0xffe00c00U, 0x7c000000U, 1255, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_H_ldst_unscaled
-    { "stur", 0xffe00c00U, 0xbc000000U, 1257, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_S_ldst_unscaled
-    { "stur", 0xffe00c00U, 0xfc000000U, 1259, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_D_ldst_unscaled
-    { "stur", 0xffe00c00U, 0x3c800000U, 1261, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_Q_ldst_unscaled
-    { "ldapur", 0xffe00c00U, 0x1d400800U, 1253, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_B_ldapstl_simd
-    { "ldapur", 0xffe00c00U, 0x5d400800U, 1255, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_H_ldapstl_simd
-    { "ldapur", 0xffe00c00U, 0x9d400800U, 1257, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_S_ldapstl_simd
-    { "ldapur", 0xffe00c00U, 0xdd400800U, 1259, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_D_ldapstl_simd
-    { "ldapur", 0xffe00c00U, 0x1dc00800U, 1261, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_Q_ldapstl_simd
-    { "str", 0xffe00c00U, 0x3c200800U, 1251, Mnemonic::ARM64_STR, 2, 0 }, // STR_B_ldst_regoff
-    { "str", 0xffe00c00U, 0x7c200800U, 1263, Mnemonic::ARM64_STR, 2, 0 }, // STR_H_ldst_regoff
-    { "str", 0xffe00c00U, 0xbc200800U, 1265, Mnemonic::ARM64_STR, 2, 0 }, // STR_S_ldst_regoff
-    { "str", 0xffe00c00U, 0xfc200800U, 1267, Mnemonic::ARM64_STR, 2, 0 }, // STR_D_ldst_regoff
-    { "str", 0xffe00c00U, 0x3ca00800U, 1269, Mnemonic::ARM64_STR, 2, 0 }, // STR_Q_ldst_regoff
-    { "str", 0xffe00c00U, 0x3c000400U, 1271, Mnemonic::ARM64_STR, 3, 0 }, // STR_B_ldst_immpost
-    { "str", 0xffe00c00U, 0x7c000400U, 1274, Mnemonic::ARM64_STR, 3, 0 }, // STR_H_ldst_immpost
-    { "str", 0xffe00c00U, 0xbc000400U, 1277, Mnemonic::ARM64_STR, 3, 0 }, // STR_S_ldst_immpost
-    { "str", 0xffe00c00U, 0xfc000400U, 1280, Mnemonic::ARM64_STR, 3, 0 }, // STR_D_ldst_immpost
-    { "str", 0xffe00c00U, 0x3c800400U, 1283, Mnemonic::ARM64_STR, 3, 0 }, // STR_Q_ldst_immpost
-    { "str", 0xffe00c00U, 0x3c000c00U, 1286, Mnemonic::ARM64_STR, 2, 0 }, // STR_B_ldst_immpre
-    { "str", 0xffe00c00U, 0x7c000c00U, 1288, Mnemonic::ARM64_STR, 2, 0 }, // STR_H_ldst_immpre
-    { "str", 0xffe00c00U, 0xbc000c00U, 1290, Mnemonic::ARM64_STR, 2, 0 }, // STR_S_ldst_immpre
-    { "str", 0xffe00c00U, 0xfc000c00U, 1292, Mnemonic::ARM64_STR, 2, 0 }, // STR_D_ldst_immpre
-    { "str", 0xffe00c00U, 0x3c800c00U, 1294, Mnemonic::ARM64_STR, 2, 0 }, // STR_Q_ldst_immpre
-    { "ldr", 0xffe00c00U, 0x3c600800U, 1251, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_B_ldst_regoff
-    { "ldr", 0xffe00c00U, 0x7c600800U, 1263, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_H_ldst_regoff
-    { "ldr", 0xffe00c00U, 0xbc600800U, 1265, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_ldst_regoff
-    { "ldr", 0xffe00c00U, 0xfc600800U, 1267, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_ldst_regoff
-    { "ldr", 0xffe00c00U, 0x3ce00800U, 1269, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_ldst_regoff
-    { "ldr", 0xffe00c00U, 0x3c400400U, 1271, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_B_ldst_immpost
-    { "ldr", 0xffe00c00U, 0x7c400400U, 1274, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_H_ldst_immpost
-    { "ldr", 0xffe00c00U, 0xbc400400U, 1277, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_S_ldst_immpost
-    { "ldr", 0xffe00c00U, 0xfc400400U, 1280, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_D_ldst_immpost
-    { "ldr", 0xffe00c00U, 0x3cc00400U, 1283, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_Q_ldst_immpost
-    { "ldr", 0xffe00c00U, 0x3c400c00U, 1286, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_B_ldst_immpre
-    { "ldr", 0xffe00c00U, 0x7c400c00U, 1288, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_H_ldst_immpre
-    { "ldr", 0xffe00c00U, 0xbc400c00U, 1290, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_ldst_immpre
-    { "ldr", 0xffe00c00U, 0xfc400c00U, 1292, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_ldst_immpre
-    { "ldr", 0xffe00c00U, 0x3cc00c00U, 1294, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_ldst_immpre
-    { "stlur", 0xffe00c00U, 0x1d000800U, 1253, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_B_ldapstl_simd
-    { "stlur", 0xffe00c00U, 0x5d000800U, 1255, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_H_ldapstl_simd
-    { "stlur", 0xffe00c00U, 0x9d000800U, 1257, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_S_ldapstl_simd
-    { "stlur", 0xffe00c00U, 0xdd000800U, 1259, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_D_ldapstl_simd
-    { "stlur", 0xffe00c00U, 0x1d800800U, 1261, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_Q_ldapstl_simd
-    { "ldur", 0xffe00c00U, 0x3c400000U, 1253, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_B_ldst_unscaled
-    { "ldur", 0xffe00c00U, 0x7c400000U, 1255, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_H_ldst_unscaled
-    { "ldur", 0xffe00c00U, 0xbc400000U, 1257, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_S_ldst_unscaled
-    { "ldur", 0xffe00c00U, 0xfc400000U, 1259, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_D_ldst_unscaled
-    { "ldur", 0xffe00c00U, 0x3cc00000U, 1261, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_Q_ldst_unscaled
-    { "str", 0xffc00000U, 0x3d000000U, 1296, Mnemonic::ARM64_STR, 2, 0 }, // STR_B_ldst_pos
-    { "str", 0xffc00000U, 0x7d000000U, 1298, Mnemonic::ARM64_STR, 2, 0 }, // STR_H_ldst_pos
-    { "str", 0xffc00000U, 0xbd000000U, 1300, Mnemonic::ARM64_STR, 2, 0 }, // STR_S_ldst_pos
-    { "str", 0xffc00000U, 0xfd000000U, 1302, Mnemonic::ARM64_STR, 2, 0 }, // STR_D_ldst_pos
-    { "str", 0xffc00000U, 0x3d800000U, 1304, Mnemonic::ARM64_STR, 2, 0 }, // STR_Q_ldst_pos
-    { "ldr", 0xffc00000U, 0x3d400000U, 1296, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_B_ldst_pos
-    { "ldr", 0xffc00000U, 0x7d400000U, 1298, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_H_ldst_pos
-    { "ldr", 0xffc00000U, 0xbd400000U, 1300, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_ldst_pos
-    { "ldr", 0xffc00000U, 0xfd400000U, 1302, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_ldst_pos
-    { "ldr", 0xffc00000U, 0x3dc00000U, 1304, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_ldst_pos
-    { "ldr", 0xff000000U, 0x1c000000U, 1306, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_loadlit
-    { "ldr", 0xff000000U, 0x5c000000U, 1308, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_loadlit
-    { "ldr", 0xff000000U, 0x9c000000U, 1310, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_loadlit
+    { "msub", 0xffe08000U, 0x1b008000U, 1245, Mnemonic::ARM64_MSUB, 4, 0 }, // MSUB_32A_dp_3src
+    { "msub", 0xffe08000U, 0x9b008000U, 1237, Mnemonic::ARM64_MSUB, 4, 1 }, // MSUB_64A_dp_3src
+    { "str", 0xffe0ec00U, 0x3c206800U, 1249, Mnemonic::ARM64_STR, 2, 0 }, // STR_BL_ldst_regoff
+    { "ldr", 0xffe0ec00U, 0x3c606800U, 1249, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_BL_ldst_regoff
+    { "cpypwtwn", 0x3fe0fc00U, 0x1d005400U, 1149, Mnemonic::ARM64_CPYPWTWN, 3, 0 }, // CPYPWTWN_CPY_memcms
+    { "cpymwtwn", 0x3fe0fc00U, 0x1d405400U, 1149, Mnemonic::ARM64_CPYMWTWN, 3, 0 }, // CPYMWTWN_CPY_memcms
+    { "cpyewtwn", 0x3fe0fc00U, 0x1d805400U, 1149, Mnemonic::ARM64_CPYEWTWN, 3, 0 }, // CPYEWTWN_CPY_memcms
+    { "setgptn", 0x3fe0fc00U, 0x1dc03400U, 1152, Mnemonic::ARM64_SETGPTN, 3, 0 }, // SETGPTN_SET_memcms
+    { "setgmtn", 0x3fe0fc00U, 0x1dc07400U, 1152, Mnemonic::ARM64_SETGMTN, 3, 0 }, // SETGMTN_SET_memcms
+    { "setgetn", 0x3fe0fc00U, 0x1dc0b400U, 1152, Mnemonic::ARM64_SETGETN, 3, 0 }, // SETGETN_SET_memcms
+    { "cpypn", 0x3fe0fc00U, 0x1d00c400U, 1149, Mnemonic::ARM64_CPYPN, 3, 0 }, // CPYPN_CPY_memcms
+    { "cpymn", 0x3fe0fc00U, 0x1d40c400U, 1149, Mnemonic::ARM64_CPYMN, 3, 0 }, // CPYMN_CPY_memcms
+    { "cpyen", 0x3fe0fc00U, 0x1d80c400U, 1149, Mnemonic::ARM64_CPYEN, 3, 0 }, // CPYEN_CPY_memcms
+    { "cpyprn", 0x3fe0fc00U, 0x1d008400U, 1149, Mnemonic::ARM64_CPYPRN, 3, 0 }, // CPYPRN_CPY_memcms
+    { "cpymrn", 0x3fe0fc00U, 0x1d408400U, 1149, Mnemonic::ARM64_CPYMRN, 3, 0 }, // CPYMRN_CPY_memcms
+    { "cpyern", 0x3fe0fc00U, 0x1d808400U, 1149, Mnemonic::ARM64_CPYERN, 3, 0 }, // CPYERN_CPY_memcms
+    { "cpyprtrn", 0x3fe0fc00U, 0x1d00a400U, 1149, Mnemonic::ARM64_CPYPRTRN, 3, 0 }, // CPYPRTRN_CPY_memcms
+    { "cpymrtrn", 0x3fe0fc00U, 0x1d40a400U, 1149, Mnemonic::ARM64_CPYMRTRN, 3, 0 }, // CPYMRTRN_CPY_memcms
+    { "cpyertrn", 0x3fe0fc00U, 0x1d80a400U, 1149, Mnemonic::ARM64_CPYERTRN, 3, 0 }, // CPYERTRN_CPY_memcms
+    { "cpyptwn", 0x3fe0fc00U, 0x1d007400U, 1149, Mnemonic::ARM64_CPYPTWN, 3, 0 }, // CPYPTWN_CPY_memcms
+    { "cpymtwn", 0x3fe0fc00U, 0x1d407400U, 1149, Mnemonic::ARM64_CPYMTWN, 3, 0 }, // CPYMTWN_CPY_memcms
+    { "cpyetwn", 0x3fe0fc00U, 0x1d807400U, 1149, Mnemonic::ARM64_CPYETWN, 3, 0 }, // CPYETWN_CPY_memcms
+    { "setgpn", 0x3fe0fc00U, 0x1dc02400U, 1152, Mnemonic::ARM64_SETGPN, 3, 0 }, // SETGPN_SET_memcms
+    { "setgmn", 0x3fe0fc00U, 0x1dc06400U, 1152, Mnemonic::ARM64_SETGMN, 3, 0 }, // SETGMN_SET_memcms
+    { "setgen", 0x3fe0fc00U, 0x1dc0a400U, 1152, Mnemonic::ARM64_SETGEN, 3, 0 }, // SETGEN_SET_memcms
+    { "cpyptn", 0x3fe0fc00U, 0x1d00f400U, 1149, Mnemonic::ARM64_CPYPTN, 3, 0 }, // CPYPTN_CPY_memcms
+    { "cpymtn", 0x3fe0fc00U, 0x1d40f400U, 1149, Mnemonic::ARM64_CPYMTN, 3, 0 }, // CPYMTN_CPY_memcms
+    { "cpyetn", 0x3fe0fc00U, 0x1d80f400U, 1149, Mnemonic::ARM64_CPYETN, 3, 0 }, // CPYETN_CPY_memcms
+    { "cpypwt", 0x3fe0fc00U, 0x1d001400U, 1149, Mnemonic::ARM64_CPYPWT, 3, 0 }, // CPYPWT_CPY_memcms
+    { "cpymwt", 0x3fe0fc00U, 0x1d401400U, 1149, Mnemonic::ARM64_CPYMWT, 3, 0 }, // CPYMWT_CPY_memcms
+    { "cpyewt", 0x3fe0fc00U, 0x1d801400U, 1149, Mnemonic::ARM64_CPYEWT, 3, 0 }, // CPYEWT_CPY_memcms
+    { "cpypwn", 0x3fe0fc00U, 0x1d004400U, 1149, Mnemonic::ARM64_CPYPWN, 3, 0 }, // CPYPWN_CPY_memcms
+    { "cpymwn", 0x3fe0fc00U, 0x1d404400U, 1149, Mnemonic::ARM64_CPYMWN, 3, 0 }, // CPYMWN_CPY_memcms
+    { "cpyewn", 0x3fe0fc00U, 0x1d804400U, 1149, Mnemonic::ARM64_CPYEWN, 3, 0 }, // CPYEWN_CPY_memcms
+    { "setgpt", 0x3fe0fc00U, 0x1dc01400U, 1152, Mnemonic::ARM64_SETGPT, 3, 0 }, // SETGPT_SET_memcms
+    { "setgmt", 0x3fe0fc00U, 0x1dc05400U, 1152, Mnemonic::ARM64_SETGMT, 3, 0 }, // SETGMT_SET_memcms
+    { "setget", 0x3fe0fc00U, 0x1dc09400U, 1152, Mnemonic::ARM64_SETGET, 3, 0 }, // SETGET_SET_memcms
+    { "cpyprtn", 0x3fe0fc00U, 0x1d00e400U, 1149, Mnemonic::ARM64_CPYPRTN, 3, 0 }, // CPYPRTN_CPY_memcms
+    { "cpymrtn", 0x3fe0fc00U, 0x1d40e400U, 1149, Mnemonic::ARM64_CPYMRTN, 3, 0 }, // CPYMRTN_CPY_memcms
+    { "cpyertn", 0x3fe0fc00U, 0x1d80e400U, 1149, Mnemonic::ARM64_CPYERTN, 3, 0 }, // CPYERTN_CPY_memcms
+    { "cpypwtrn", 0x3fe0fc00U, 0x1d009400U, 1149, Mnemonic::ARM64_CPYPWTRN, 3, 0 }, // CPYPWTRN_CPY_memcms
+    { "cpymwtrn", 0x3fe0fc00U, 0x1d409400U, 1149, Mnemonic::ARM64_CPYMWTRN, 3, 0 }, // CPYMWTRN_CPY_memcms
+    { "cpyewtrn", 0x3fe0fc00U, 0x1d809400U, 1149, Mnemonic::ARM64_CPYEWTRN, 3, 0 }, // CPYEWTRN_CPY_memcms
+    { "cpyp", 0x3fe0fc00U, 0x1d000400U, 1149, Mnemonic::ARM64_CPYP, 3, 0 }, // CPYP_CPY_memcms
+    { "cpym", 0x3fe0fc00U, 0x1d400400U, 1149, Mnemonic::ARM64_CPYM, 3, 0 }, // CPYM_CPY_memcms
+    { "cpye", 0x3fe0fc00U, 0x1d800400U, 1149, Mnemonic::ARM64_CPYE, 3, 0 }, // CPYE_CPY_memcms
+    { "cpyptrn", 0x3fe0fc00U, 0x1d00b400U, 1149, Mnemonic::ARM64_CPYPTRN, 3, 0 }, // CPYPTRN_CPY_memcms
+    { "cpymtrn", 0x3fe0fc00U, 0x1d40b400U, 1149, Mnemonic::ARM64_CPYMTRN, 3, 0 }, // CPYMTRN_CPY_memcms
+    { "cpyetrn", 0x3fe0fc00U, 0x1d80b400U, 1149, Mnemonic::ARM64_CPYETRN, 3, 0 }, // CPYETRN_CPY_memcms
+    { "cpyprt", 0x3fe0fc00U, 0x1d002400U, 1149, Mnemonic::ARM64_CPYPRT, 3, 0 }, // CPYPRT_CPY_memcms
+    { "cpymrt", 0x3fe0fc00U, 0x1d402400U, 1149, Mnemonic::ARM64_CPYMRT, 3, 0 }, // CPYMRT_CPY_memcms
+    { "cpyert", 0x3fe0fc00U, 0x1d802400U, 1149, Mnemonic::ARM64_CPYERT, 3, 0 }, // CPYERT_CPY_memcms
+    { "setgp", 0x3fe0fc00U, 0x1dc00400U, 1152, Mnemonic::ARM64_SETGP, 3, 0 }, // SETGP_SET_memcms
+    { "setgm", 0x3fe0fc00U, 0x1dc04400U, 1152, Mnemonic::ARM64_SETGM, 3, 0 }, // SETGM_SET_memcms
+    { "setge", 0x3fe0fc00U, 0x1dc08400U, 1152, Mnemonic::ARM64_SETGE, 3, 0 }, // SETGE_SET_memcms
+    { "cpypwtn", 0x3fe0fc00U, 0x1d00d400U, 1149, Mnemonic::ARM64_CPYPWTN, 3, 0 }, // CPYPWTN_CPY_memcms
+    { "cpymwtn", 0x3fe0fc00U, 0x1d40d400U, 1149, Mnemonic::ARM64_CPYMWTN, 3, 0 }, // CPYMWTN_CPY_memcms
+    { "cpyewtn", 0x3fe0fc00U, 0x1d80d400U, 1149, Mnemonic::ARM64_CPYEWTN, 3, 0 }, // CPYEWTN_CPY_memcms
+    { "cpypt", 0x3fe0fc00U, 0x1d003400U, 1149, Mnemonic::ARM64_CPYPT, 3, 0 }, // CPYPT_CPY_memcms
+    { "cpymt", 0x3fe0fc00U, 0x1d403400U, 1149, Mnemonic::ARM64_CPYMT, 3, 0 }, // CPYMT_CPY_memcms
+    { "cpyet", 0x3fe0fc00U, 0x1d803400U, 1149, Mnemonic::ARM64_CPYET, 3, 0 }, // CPYET_CPY_memcms
+    { "cpyprtwn", 0x3fe0fc00U, 0x1d006400U, 1149, Mnemonic::ARM64_CPYPRTWN, 3, 0 }, // CPYPRTWN_CPY_memcms
+    { "cpymrtwn", 0x3fe0fc00U, 0x1d406400U, 1149, Mnemonic::ARM64_CPYMRTWN, 3, 0 }, // CPYMRTWN_CPY_memcms
+    { "cpyertwn", 0x3fe0fc00U, 0x1d806400U, 1149, Mnemonic::ARM64_CPYERTWN, 3, 0 }, // CPYERTWN_CPY_memcms
+    { "stur", 0xffe00c00U, 0x3c000000U, 1251, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_B_ldst_unscaled
+    { "stur", 0xffe00c00U, 0x7c000000U, 1253, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_H_ldst_unscaled
+    { "stur", 0xffe00c00U, 0xbc000000U, 1255, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_S_ldst_unscaled
+    { "stur", 0xffe00c00U, 0xfc000000U, 1257, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_D_ldst_unscaled
+    { "stur", 0xffe00c00U, 0x3c800000U, 1259, Mnemonic::ARM64_STUR, 2, 0 }, // STUR_Q_ldst_unscaled
+    { "ldapur", 0xffe00c00U, 0x1d400800U, 1251, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_B_ldapstl_simd
+    { "ldapur", 0xffe00c00U, 0x5d400800U, 1253, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_H_ldapstl_simd
+    { "ldapur", 0xffe00c00U, 0x9d400800U, 1255, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_S_ldapstl_simd
+    { "ldapur", 0xffe00c00U, 0xdd400800U, 1257, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_D_ldapstl_simd
+    { "ldapur", 0xffe00c00U, 0x1dc00800U, 1259, Mnemonic::ARM64_LDAPUR, 2, 0 }, // LDAPUR_Q_ldapstl_simd
+    { "str", 0xffe00c00U, 0x3c200800U, 1249, Mnemonic::ARM64_STR, 2, 0 }, // STR_B_ldst_regoff
+    { "str", 0xffe00c00U, 0x7c200800U, 1261, Mnemonic::ARM64_STR, 2, 0 }, // STR_H_ldst_regoff
+    { "str", 0xffe00c00U, 0xbc200800U, 1263, Mnemonic::ARM64_STR, 2, 0 }, // STR_S_ldst_regoff
+    { "str", 0xffe00c00U, 0xfc200800U, 1265, Mnemonic::ARM64_STR, 2, 0 }, // STR_D_ldst_regoff
+    { "str", 0xffe00c00U, 0x3ca00800U, 1267, Mnemonic::ARM64_STR, 2, 0 }, // STR_Q_ldst_regoff
+    { "str", 0xffe00c00U, 0x3c000400U, 1269, Mnemonic::ARM64_STR, 3, 0 }, // STR_B_ldst_immpost
+    { "str", 0xffe00c00U, 0x7c000400U, 1272, Mnemonic::ARM64_STR, 3, 0 }, // STR_H_ldst_immpost
+    { "str", 0xffe00c00U, 0xbc000400U, 1275, Mnemonic::ARM64_STR, 3, 0 }, // STR_S_ldst_immpost
+    { "str", 0xffe00c00U, 0xfc000400U, 1278, Mnemonic::ARM64_STR, 3, 0 }, // STR_D_ldst_immpost
+    { "str", 0xffe00c00U, 0x3c800400U, 1281, Mnemonic::ARM64_STR, 3, 0 }, // STR_Q_ldst_immpost
+    { "str", 0xffe00c00U, 0x3c000c00U, 1284, Mnemonic::ARM64_STR, 2, 0 }, // STR_B_ldst_immpre
+    { "str", 0xffe00c00U, 0x7c000c00U, 1286, Mnemonic::ARM64_STR, 2, 0 }, // STR_H_ldst_immpre
+    { "str", 0xffe00c00U, 0xbc000c00U, 1288, Mnemonic::ARM64_STR, 2, 0 }, // STR_S_ldst_immpre
+    { "str", 0xffe00c00U, 0xfc000c00U, 1290, Mnemonic::ARM64_STR, 2, 0 }, // STR_D_ldst_immpre
+    { "str", 0xffe00c00U, 0x3c800c00U, 1292, Mnemonic::ARM64_STR, 2, 0 }, // STR_Q_ldst_immpre
+    { "ldr", 0xffe00c00U, 0x3c600800U, 1249, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_B_ldst_regoff
+    { "ldr", 0xffe00c00U, 0x7c600800U, 1261, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_H_ldst_regoff
+    { "ldr", 0xffe00c00U, 0xbc600800U, 1263, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_ldst_regoff
+    { "ldr", 0xffe00c00U, 0xfc600800U, 1265, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_ldst_regoff
+    { "ldr", 0xffe00c00U, 0x3ce00800U, 1267, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_ldst_regoff
+    { "ldr", 0xffe00c00U, 0x3c400400U, 1269, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_B_ldst_immpost
+    { "ldr", 0xffe00c00U, 0x7c400400U, 1272, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_H_ldst_immpost
+    { "ldr", 0xffe00c00U, 0xbc400400U, 1275, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_S_ldst_immpost
+    { "ldr", 0xffe00c00U, 0xfc400400U, 1278, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_D_ldst_immpost
+    { "ldr", 0xffe00c00U, 0x3cc00400U, 1281, Mnemonic::ARM64_LDR, 3, 0 }, // LDR_Q_ldst_immpost
+    { "ldr", 0xffe00c00U, 0x3c400c00U, 1284, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_B_ldst_immpre
+    { "ldr", 0xffe00c00U, 0x7c400c00U, 1286, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_H_ldst_immpre
+    { "ldr", 0xffe00c00U, 0xbc400c00U, 1288, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_ldst_immpre
+    { "ldr", 0xffe00c00U, 0xfc400c00U, 1290, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_ldst_immpre
+    { "ldr", 0xffe00c00U, 0x3cc00c00U, 1292, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_ldst_immpre
+    { "stlur", 0xffe00c00U, 0x1d000800U, 1251, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_B_ldapstl_simd
+    { "stlur", 0xffe00c00U, 0x5d000800U, 1253, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_H_ldapstl_simd
+    { "stlur", 0xffe00c00U, 0x9d000800U, 1255, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_S_ldapstl_simd
+    { "stlur", 0xffe00c00U, 0xdd000800U, 1257, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_D_ldapstl_simd
+    { "stlur", 0xffe00c00U, 0x1d800800U, 1259, Mnemonic::ARM64_STLUR, 2, 0 }, // STLUR_Q_ldapstl_simd
+    { "ldur", 0xffe00c00U, 0x3c400000U, 1251, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_B_ldst_unscaled
+    { "ldur", 0xffe00c00U, 0x7c400000U, 1253, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_H_ldst_unscaled
+    { "ldur", 0xffe00c00U, 0xbc400000U, 1255, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_S_ldst_unscaled
+    { "ldur", 0xffe00c00U, 0xfc400000U, 1257, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_D_ldst_unscaled
+    { "ldur", 0xffe00c00U, 0x3cc00000U, 1259, Mnemonic::ARM64_LDUR, 2, 0 }, // LDUR_Q_ldst_unscaled
+    { "str", 0xffc00000U, 0x3d000000U, 1294, Mnemonic::ARM64_STR, 2, 0 }, // STR_B_ldst_pos
+    { "str", 0xffc00000U, 0x7d000000U, 1296, Mnemonic::ARM64_STR, 2, 0 }, // STR_H_ldst_pos
+    { "str", 0xffc00000U, 0xbd000000U, 1298, Mnemonic::ARM64_STR, 2, 0 }, // STR_S_ldst_pos
+    { "str", 0xffc00000U, 0xfd000000U, 1300, Mnemonic::ARM64_STR, 2, 0 }, // STR_D_ldst_pos
+    { "str", 0xffc00000U, 0x3d800000U, 1302, Mnemonic::ARM64_STR, 2, 0 }, // STR_Q_ldst_pos
+    { "ldr", 0xffc00000U, 0x3d400000U, 1294, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_B_ldst_pos
+    { "ldr", 0xffc00000U, 0x7d400000U, 1296, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_H_ldst_pos
+    { "ldr", 0xffc00000U, 0xbd400000U, 1298, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_ldst_pos
+    { "ldr", 0xffc00000U, 0xfd400000U, 1300, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_ldst_pos
+    { "ldr", 0xffc00000U, 0x3dc00000U, 1302, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_ldst_pos
+    { "ldr", 0xff000000U, 0x1c000000U, 1304, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_S_loadlit
+    { "ldr", 0xff000000U, 0x5c000000U, 1306, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_D_loadlit
+    { "ldr", 0xff000000U, 0x9c000000U, 1308, Mnemonic::ARM64_LDR, 2, 0 }, // LDR_Q_loadlit
     { "cmeq", 0xfffffc00U, 0x5ee09800U, 832, Mnemonic::ARM64_CMEQ, 2, 0 }, // CMEQ_asisdmisc_Z
     { "sha1su1", 0xfffffc00U, 0x5e281800U, 832, Mnemonic::ARM64_SHA1SU1, 2, 0 }, // SHA1SU1_VV_cryptosha2
-    { "frsqrte", 0xfffffc00U, 0x7ef9d800U, 1312, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asisdmiscfp16_R
+    { "frsqrte", 0xfffffc00U, 0x7ef9d800U, 1310, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asisdmiscfp16_R
     { "fcvtxn", 0xfffffc00U, 0x7e616800U, 832, Mnemonic::ARM64_FCVTXN, 2, 0 }, // FCVTXN_asisdmisc_N
-    { "frintx", 0xfffffc00U, 0x1ee74000U, 1312, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_H_floatdp1
-    { "frintx", 0xfffffc00U, 0x1e274000U, 1314, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_S_floatdp1
-    { "frintx", 0xfffffc00U, 0x1e674000U, 1316, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_D_floatdp1
-    { "fcvtpu", 0xfffffc00U, 0x7ef9a800U, 1312, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asisdmiscfp16_R
-    { "fabs", 0xfffffc00U, 0x1ee0c000U, 1312, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_H_floatdp1
-    { "fabs", 0xfffffc00U, 0x1e20c000U, 1314, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_S_floatdp1
-    { "fabs", 0xfffffc00U, 0x1e60c000U, 1316, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_D_floatdp1
-    { "frintm", 0xfffffc00U, 0x1ee54000U, 1312, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_H_floatdp1
-    { "frintm", 0xfffffc00U, 0x1e254000U, 1314, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_S_floatdp1
-    { "frintm", 0xfffffc00U, 0x1e654000U, 1316, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_D_floatdp1
-    { "sha1h", 0xfffffc00U, 0x5e280800U, 1314, Mnemonic::ARM64_SHA1H, 2, 0 }, // SHA1H_SS_cryptosha2
+    { "frintx", 0xfffffc00U, 0x1ee74000U, 1310, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_H_floatdp1
+    { "frintx", 0xfffffc00U, 0x1e274000U, 1312, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_S_floatdp1
+    { "frintx", 0xfffffc00U, 0x1e674000U, 1314, Mnemonic::ARM64_FRINTX, 2, 0 }, // FRINTX_D_floatdp1
+    { "fcvtpu", 0xfffffc00U, 0x7ef9a800U, 1310, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asisdmiscfp16_R
+    { "fabs", 0xfffffc00U, 0x1ee0c000U, 1310, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_H_floatdp1
+    { "fabs", 0xfffffc00U, 0x1e20c000U, 1312, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_S_floatdp1
+    { "fabs", 0xfffffc00U, 0x1e60c000U, 1314, Mnemonic::ARM64_FABS, 2, 0 }, // FABS_D_floatdp1
+    { "frintm", 0xfffffc00U, 0x1ee54000U, 1310, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_H_floatdp1
+    { "frintm", 0xfffffc00U, 0x1e254000U, 1312, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_S_floatdp1
+    { "frintm", 0xfffffc00U, 0x1e654000U, 1314, Mnemonic::ARM64_FRINTM, 2, 0 }, // FRINTM_D_floatdp1
+    { "sha1h", 0xfffffc00U, 0x5e280800U, 1312, Mnemonic::ARM64_SHA1H, 2, 0 }, // SHA1H_SS_cryptosha2
     { "faddp", 0xfffffc00U, 0x5e30d800U, 832, Mnemonic::ARM64_FADDP, 2, 0 }, // FADDP_asisdpair_only_H
-    { "fcvtnu", 0xfffffc00U, 0x7e79a800U, 1312, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asisdmiscfp16_R
+    { "fcvtnu", 0xfffffc00U, 0x7e79a800U, 1310, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asisdmiscfp16_R
     { "neg", 0xfffffc00U, 0x7ee0b800U, 832, Mnemonic::ARM64_NEG, 2, 0 }, // NEG_asisdmisc_R
-    { "frecpx", 0xfffffc00U, 0x5ef9f800U, 1312, Mnemonic::ARM64_FRECPX, 2, 0 }, // FRECPX_asisdmiscfp16_R
+    { "frecpx", 0xfffffc00U, 0x5ef9f800U, 1310, Mnemonic::ARM64_FRECPX, 2, 0 }, // FRECPX_asisdmiscfp16_R
     { "cmgt", 0xfffffc00U, 0x5ee08800U, 832, Mnemonic::ARM64_CMGT, 2, 0 }, // CMGT_asisdmisc_Z
-    { "frint64z", 0xfffffc00U, 0x1e294000U, 1314, Mnemonic::ARM64_FRINT64Z, 2, 0 }, // FRINT64Z_S_floatdp1
-    { "frint64z", 0xfffffc00U, 0x1e694000U, 1316, Mnemonic::ARM64_FRINT64Z, 2, 0 }, // FRINT64Z_D_floatdp1
-    { "fcvtzs", 0xfffffc00U, 0x1ef80000U, 1318, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_32H_float2int
-    { "fcvtzs", 0xfffffc00U, 0x9ef80000U, 1320, Mnemonic::ARM64_FCVTZS, 2, 1 }, // FCVTZS_64H_float2int
-    { "fcvtzs", 0xfffffc00U, 0x1e380000U, 1322, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_32S_float2int
-    { "fcvtzs", 0xfffffc00U, 0x9e380000U, 1324, Mnemonic::ARM64_FCVTZS, 2, 1 }, // FCVTZS_64S_float2int
-    { "fcvtzs", 0xfffffc00U, 0x1e780000U, 1326, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_32D_float2int
-    { "fcvtzs", 0xfffffc00U, 0x9e780000U, 1328, Mnemonic::ARM64_FCVTZS, 2, 1 }, // FCVTZS_64D_float2int
+    { "frint64z", 0xfffffc00U, 0x1e294000U, 1312, Mnemonic::ARM64_FRINT64Z, 2, 0 }, // FRINT64Z_S_floatdp1
+    { "frint64z", 0xfffffc00U, 0x1e694000U, 1314, Mnemonic::ARM64_FRINT64Z, 2, 0 }, // FRINT64Z_D_floatdp1
+    { "fcvtzs", 0xfffffc00U, 0x1ef80000U, 1316, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_32H_float2int
+    { "fcvtzs", 0xfffffc00U, 0x9ef80000U, 1318, Mnemonic::ARM64_FCVTZS, 2, 1 }, // FCVTZS_64H_float2int
+    { "fcvtzs", 0xfffffc00U, 0x1e380000U, 1320, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_32S_float2int
+    { "fcvtzs", 0xfffffc00U, 0x9e380000U, 1322, Mnemonic::ARM64_FCVTZS, 2, 1 }, // FCVTZS_64S_float2int
+    { "fcvtzs", 0xfffffc00U, 0x1e780000U, 1324, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_32D_float2int
+    { "fcvtzs", 0xfffffc00U, 0x9e780000U, 1326, Mnemonic::ARM64_FCVTZS, 2, 1 }, // FCVTZS_64D_float2int
     { "cmge", 0xfffffc00U, 0x7ee08800U, 832, Mnemonic::ARM64_CMGE, 2, 0 }, // CMGE_asisdmisc_Z
-    { "fcmp", 0xffe0fc1fU, 0x1ee02000U, 1313, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_H_floatcmp
-    { "fcmp", 0xffe0fc1fU, 0x1ee02008U, 1313, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_HZ_floatcmp
-    { "fcmp", 0xffe0fc1fU, 0x1e202000U, 1315, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_S_floatcmp
-    { "fcmp", 0xffe0fc1fU, 0x1e202008U, 1315, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_SZ_floatcmp
-    { "fcmp", 0xffe0fc1fU, 0x1e602000U, 1317, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_D_floatcmp
-    { "fcmp", 0xffe0fc1fU, 0x1e602008U, 1317, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_DZ_floatcmp
-    { "frinta", 0xfffffc00U, 0x1ee64000U, 1312, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_H_floatdp1
-    { "frinta", 0xfffffc00U, 0x1e264000U, 1314, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_S_floatdp1
-    { "frinta", 0xfffffc00U, 0x1e664000U, 1316, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_D_floatdp1
+    { "fcmp", 0xffe0fc1fU, 0x1ee02000U, 1311, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_H_floatcmp
+    { "fcmp", 0xffe0fc1fU, 0x1ee02008U, 1311, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_HZ_floatcmp
+    { "fcmp", 0xffe0fc1fU, 0x1e202000U, 1313, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_S_floatcmp
+    { "fcmp", 0xffe0fc1fU, 0x1e202008U, 1313, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_SZ_floatcmp
+    { "fcmp", 0xffe0fc1fU, 0x1e602000U, 1315, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_D_floatcmp
+    { "fcmp", 0xffe0fc1fU, 0x1e602008U, 1315, Mnemonic::ARM64_FCMP, 1, 0 }, // FCMP_DZ_floatcmp
+    { "frinta", 0xfffffc00U, 0x1ee64000U, 1310, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_H_floatdp1
+    { "frinta", 0xfffffc00U, 0x1e264000U, 1312, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_S_floatdp1
+    { "frinta", 0xfffffc00U, 0x1e664000U, 1314, Mnemonic::ARM64_FRINTA, 2, 0 }, // FRINTA_D_floatdp1
     { "fminnmp", 0xfffffc00U, 0x5eb0c800U, 832, Mnemonic::ARM64_FMINNMP, 2, 0 }, // FMINNMP_asisdpair_only_H
-    { "fcvtmu", 0xfffffc00U, 0x1ef10000U, 1318, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_32H_float2int
-    { "fcvtmu", 0xfffffc00U, 0x9ef10000U, 1320, Mnemonic::ARM64_FCVTMU, 2, 1 }, // FCVTMU_64H_float2int
-    { "fcvtmu", 0xfffffc00U, 0x1e310000U, 1322, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_32S_float2int
-    { "fcvtmu", 0xfffffc00U, 0x9e310000U, 1324, Mnemonic::ARM64_FCVTMU, 2, 1 }, // FCVTMU_64S_float2int
-    { "fcvtmu", 0xfffffc00U, 0x1e710000U, 1326, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_32D_float2int
-    { "fcvtmu", 0xfffffc00U, 0x9e710000U, 1328, Mnemonic::ARM64_FCVTMU, 2, 1 }, // FCVTMU_64D_float2int
-    { "fcmle", 0xfffffc00U, 0x7ef8d800U, 1312, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asisdmiscfp16_FZ
+    { "fcvtmu", 0xfffffc00U, 0x1ef10000U, 1316, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_32H_float2int
+    { "fcvtmu", 0xfffffc00U, 0x9ef10000U, 1318, Mnemonic::ARM64_FCVTMU, 2, 1 }, // FCVTMU_64H_float2int
+    { "fcvtmu", 0xfffffc00U, 0x1e310000U, 1320, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_32S_float2int
+    { "fcvtmu", 0xfffffc00U, 0x9e310000U, 1322, Mnemonic::ARM64_FCVTMU, 2, 1 }, // FCVTMU_64S_float2int
+    { "fcvtmu", 0xfffffc00U, 0x1e710000U, 1324, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_32D_float2int
+    { "fcvtmu", 0xfffffc00U, 0x9e710000U, 1326, Mnemonic::ARM64_FCVTMU, 2, 1 }, // FCVTMU_64D_float2int
+    { "fcmle", 0xfffffc00U, 0x7ef8d800U, 1310, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asisdmiscfp16_FZ
     { "fmaxp", 0xfffffc00U, 0x5e30f800U, 832, Mnemonic::ARM64_FMAXP, 2, 0 }, // FMAXP_asisdpair_only_H
-    { "fcvtps", 0xfffffc00U, 0x5ef9a800U, 1312, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asisdmiscfp16_R
-    { "frint32x", 0xfffffc00U, 0x1e28c000U, 1314, Mnemonic::ARM64_FRINT32X, 2, 0 }, // FRINT32X_S_floatdp1
-    { "frint32x", 0xfffffc00U, 0x1e68c000U, 1316, Mnemonic::ARM64_FRINT32X, 2, 0 }, // FRINT32X_D_floatdp1
-    { "fcvtns", 0xfffffc00U, 0x5e79a800U, 1312, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asisdmiscfp16_R
-    { "fcvtms", 0xfffffc00U, 0x1ef00000U, 1318, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_32H_float2int
-    { "fcvtms", 0xfffffc00U, 0x9ef00000U, 1320, Mnemonic::ARM64_FCVTMS, 2, 1 }, // FCVTMS_64H_float2int
-    { "fcvtms", 0xfffffc00U, 0x1e300000U, 1322, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_32S_float2int
-    { "fcvtms", 0xfffffc00U, 0x9e300000U, 1324, Mnemonic::ARM64_FCVTMS, 2, 1 }, // FCVTMS_64S_float2int
-    { "fcvtms", 0xfffffc00U, 0x1e700000U, 1326, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_32D_float2int
-    { "fcvtms", 0xfffffc00U, 0x9e700000U, 1328, Mnemonic::ARM64_FCVTMS, 2, 1 }, // FCVTMS_64D_float2int
+    { "fcvtps", 0xfffffc00U, 0x5ef9a800U, 1310, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asisdmiscfp16_R
+    { "frint32x", 0xfffffc00U, 0x1e28c000U, 1312, Mnemonic::ARM64_FRINT32X, 2, 0 }, // FRINT32X_S_floatdp1
+    { "frint32x", 0xfffffc00U, 0x1e68c000U, 1314, Mnemonic::ARM64_FRINT32X, 2, 0 }, // FRINT32X_D_floatdp1
+    { "fcvtns", 0xfffffc00U, 0x5e79a800U, 1310, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asisdmiscfp16_R
+    { "fcvtms", 0xfffffc00U, 0x1ef00000U, 1316, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_32H_float2int
+    { "fcvtms", 0xfffffc00U, 0x9ef00000U, 1318, Mnemonic::ARM64_FCVTMS, 2, 1 }, // FCVTMS_64H_float2int
+    { "fcvtms", 0xfffffc00U, 0x1e300000U, 1320, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_32S_float2int
+    { "fcvtms", 0xfffffc00U, 0x9e300000U, 1322, Mnemonic::ARM64_FCVTMS, 2, 1 }, // FCVTMS_64S_float2int
+    { "fcvtms", 0xfffffc00U, 0x1e700000U, 1324, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_32D_float2int
+    { "fcvtms", 0xfffffc00U, 0x9e700000U, 1326, Mnemonic::ARM64_FCVTMS, 2, 1 }, // FCVTMS_64D_float2int
     { "cmle", 0xfffffc00U, 0x7ee09800U, 832, Mnemonic::ARM64_CMLE, 2, 0 }, // CMLE_asisdmisc_Z
-    { "fjcvtzs", 0xfffffc00U, 0x1e7e0000U, 1326, Mnemonic::ARM64_FJCVTZS, 2, 0 }, // FJCVTZS_32D_float2int
+    { "fjcvtzs", 0xfffffc00U, 0x1e7e0000U, 1324, Mnemonic::ARM64_FJCVTZS, 2, 0 }, // FJCVTZS_32D_float2int
     { "abs", 0xfffffc00U, 0x5ee0b800U, 832, Mnemonic::ARM64_ABS, 2, 0 }, // ABS_asisdmisc_R
-    { "fneg", 0xfffffc00U, 0x1ee14000U, 1312, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_H_floatdp1
-    { "fneg", 0xfffffc00U, 0x1e214000U, 1314, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_S_floatdp1
-    { "fneg", 0xfffffc00U, 0x1e614000U, 1316, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_D_floatdp1
-    { "fcvtps", 0xfffffc00U, 0x1ee80000U, 1318, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_32H_float2int
-    { "fcvtps", 0xfffffc00U, 0x9ee80000U, 1320, Mnemonic::ARM64_FCVTPS, 2, 1 }, // FCVTPS_64H_float2int
-    { "fcvtps", 0xfffffc00U, 0x1e280000U, 1322, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_32S_float2int
-    { "fcvtps", 0xfffffc00U, 0x9e280000U, 1324, Mnemonic::ARM64_FCVTPS, 2, 1 }, // FCVTPS_64S_float2int
-    { "fcvtps", 0xfffffc00U, 0x1e680000U, 1326, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_32D_float2int
-    { "fcvtps", 0xfffffc00U, 0x9e680000U, 1328, Mnemonic::ARM64_FCVTPS, 2, 1 }, // FCVTPS_64D_float2int
-    { "bfcvt", 0xfffffc00U, 0x1e634000U, 1330, Mnemonic::ARM64_BFCVT, 2, 0 }, // BFCVT_BS_floatdp1
-    { "fcvtns", 0xfffffc00U, 0x1ee00000U, 1318, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_32H_float2int
-    { "fcvtns", 0xfffffc00U, 0x9ee00000U, 1320, Mnemonic::ARM64_FCVTNS, 2, 1 }, // FCVTNS_64H_float2int
-    { "fcvtns", 0xfffffc00U, 0x1e200000U, 1322, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_32S_float2int
-    { "fcvtns", 0xfffffc00U, 0x9e200000U, 1324, Mnemonic::ARM64_FCVTNS, 2, 1 }, // FCVTNS_64S_float2int
-    { "fcvtns", 0xfffffc00U, 0x1e600000U, 1326, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_32D_float2int
-    { "fcvtns", 0xfffffc00U, 0x9e600000U, 1328, Mnemonic::ARM64_FCVTNS, 2, 1 }, // FCVTNS_64D_float2int
+    { "fneg", 0xfffffc00U, 0x1ee14000U, 1310, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_H_floatdp1
+    { "fneg", 0xfffffc00U, 0x1e214000U, 1312, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_S_floatdp1
+    { "fneg", 0xfffffc00U, 0x1e614000U, 1314, Mnemonic::ARM64_FNEG, 2, 0 }, // FNEG_D_floatdp1
+    { "fcvtps", 0xfffffc00U, 0x1ee80000U, 1316, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_32H_float2int
+    { "fcvtps", 0xfffffc00U, 0x9ee80000U, 1318, Mnemonic::ARM64_FCVTPS, 2, 1 }, // FCVTPS_64H_float2int
+    { "fcvtps", 0xfffffc00U, 0x1e280000U, 1320, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_32S_float2int
+    { "fcvtps", 0xfffffc00U, 0x9e280000U, 1322, Mnemonic::ARM64_FCVTPS, 2, 1 }, // FCVTPS_64S_float2int
+    { "fcvtps", 0xfffffc00U, 0x1e680000U, 1324, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_32D_float2int
+    { "fcvtps", 0xfffffc00U, 0x9e680000U, 1326, Mnemonic::ARM64_FCVTPS, 2, 1 }, // FCVTPS_64D_float2int
+    { "bfcvt", 0xfffffc00U, 0x1e634000U, 1328, Mnemonic::ARM64_BFCVT, 2, 0 }, // BFCVT_BS_floatdp1
+    { "fcvtns", 0xfffffc00U, 0x1ee00000U, 1316, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_32H_float2int
+    { "fcvtns", 0xfffffc00U, 0x9ee00000U, 1318, Mnemonic::ARM64_FCVTNS, 2, 1 }, // FCVTNS_64H_float2int
+    { "fcvtns", 0xfffffc00U, 0x1e200000U, 1320, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_32S_float2int
+    { "fcvtns", 0xfffffc00U, 0x9e200000U, 1322, Mnemonic::ARM64_FCVTNS, 2, 1 }, // FCVTNS_64S_float2int
+    { "fcvtns", 0xfffffc00U, 0x1e600000U, 1324, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_32D_float2int
+    { "fcvtns", 0xfffffc00U, 0x9e600000U, 1326, Mnemonic::ARM64_FCVTNS, 2, 1 }, // FCVTNS_64D_float2int
     { "cmlt", 0xfffffc00U, 0x5ee0a800U, 832, Mnemonic::ARM64_CMLT, 2, 0 }, // CMLT_asisdmisc_Z
-    { "fcmeq", 0xfffffc00U, 0x5ef8d800U, 1312, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asisdmiscfp16_FZ
-    { "fcvtzu", 0xfffffc00U, 0x1ef90000U, 1318, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_32H_float2int
-    { "fcvtzu", 0xfffffc00U, 0x9ef90000U, 1320, Mnemonic::ARM64_FCVTZU, 2, 1 }, // FCVTZU_64H_float2int
-    { "fcvtzu", 0xfffffc00U, 0x1e390000U, 1322, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_32S_float2int
-    { "fcvtzu", 0xfffffc00U, 0x9e390000U, 1324, Mnemonic::ARM64_FCVTZU, 2, 1 }, // FCVTZU_64S_float2int
-    { "fcvtzu", 0xfffffc00U, 0x1e790000U, 1326, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_32D_float2int
-    { "fcvtzu", 0xfffffc00U, 0x9e790000U, 1328, Mnemonic::ARM64_FCVTZU, 2, 1 }, // FCVTZU_64D_float2int
-    { "frintz", 0xfffffc00U, 0x1ee5c000U, 1312, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_H_floatdp1
-    { "frintz", 0xfffffc00U, 0x1e25c000U, 1314, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_S_floatdp1
-    { "frintz", 0xfffffc00U, 0x1e65c000U, 1316, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_D_floatdp1
-    { "scvtf", 0xfffffc00U, 0x1ee20000U, 1332, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_H32_float2int
-    { "scvtf", 0xfffffc00U, 0x1e220000U, 1334, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_S32_float2int
-    { "scvtf", 0xfffffc00U, 0x1e620000U, 1336, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_D32_float2int
-    { "scvtf", 0xfffffc00U, 0x9ee20000U, 1338, Mnemonic::ARM64_SCVTF, 2, 1 }, // SCVTF_H64_float2int
-    { "scvtf", 0xfffffc00U, 0x9e220000U, 1340, Mnemonic::ARM64_SCVTF, 2, 1 }, // SCVTF_S64_float2int
-    { "scvtf", 0xfffffc00U, 0x9e620000U, 1342, Mnemonic::ARM64_SCVTF, 2, 1 }, // SCVTF_D64_float2int
-    { "fcvtnu", 0xfffffc00U, 0x1ee10000U, 1318, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_32H_float2int
-    { "fcvtnu", 0xfffffc00U, 0x9ee10000U, 1320, Mnemonic::ARM64_FCVTNU, 2, 1 }, // FCVTNU_64H_float2int
-    { "fcvtnu", 0xfffffc00U, 0x1e210000U, 1322, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_32S_float2int
-    { "fcvtnu", 0xfffffc00U, 0x9e210000U, 1324, Mnemonic::ARM64_FCVTNU, 2, 1 }, // FCVTNU_64S_float2int
-    { "fcvtnu", 0xfffffc00U, 0x1e610000U, 1326, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_32D_float2int
-    { "fcvtnu", 0xfffffc00U, 0x9e610000U, 1328, Mnemonic::ARM64_FCVTNU, 2, 1 }, // FCVTNU_64D_float2int
-    { "fcmgt", 0xfffffc00U, 0x5ef8c800U, 1312, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asisdmiscfp16_FZ
-    { "fcvtzs", 0xfffffc00U, 0x5ef9b800U, 1312, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asisdmiscfp16_R
-    { "fcvtms", 0xfffffc00U, 0x5e79b800U, 1312, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asisdmiscfp16_R
-    { "fcvtpu", 0xfffffc00U, 0x1ee90000U, 1318, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_32H_float2int
-    { "fcvtpu", 0xfffffc00U, 0x9ee90000U, 1320, Mnemonic::ARM64_FCVTPU, 2, 1 }, // FCVTPU_64H_float2int
-    { "fcvtpu", 0xfffffc00U, 0x1e290000U, 1322, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_32S_float2int
-    { "fcvtpu", 0xfffffc00U, 0x9e290000U, 1324, Mnemonic::ARM64_FCVTPU, 2, 1 }, // FCVTPU_64S_float2int
-    { "fcvtpu", 0xfffffc00U, 0x1e690000U, 1326, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_32D_float2int
-    { "fcvtpu", 0xfffffc00U, 0x9e690000U, 1328, Mnemonic::ARM64_FCVTPU, 2, 1 }, // FCVTPU_64D_float2int
-    { "fcmlt", 0xfffffc00U, 0x5ef8e800U, 1312, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asisdmiscfp16_FZ
-    { "frint64x", 0xfffffc00U, 0x1e29c000U, 1314, Mnemonic::ARM64_FRINT64X, 2, 0 }, // FRINT64X_S_floatdp1
-    { "frint64x", 0xfffffc00U, 0x1e69c000U, 1316, Mnemonic::ARM64_FRINT64X, 2, 0 }, // FRINT64X_D_floatdp1
-    { "fcvtau", 0xfffffc00U, 0x7e79c800U, 1312, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asisdmiscfp16_R
+    { "fcmeq", 0xfffffc00U, 0x5ef8d800U, 1310, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asisdmiscfp16_FZ
+    { "fcvtzu", 0xfffffc00U, 0x1ef90000U, 1316, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_32H_float2int
+    { "fcvtzu", 0xfffffc00U, 0x9ef90000U, 1318, Mnemonic::ARM64_FCVTZU, 2, 1 }, // FCVTZU_64H_float2int
+    { "fcvtzu", 0xfffffc00U, 0x1e390000U, 1320, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_32S_float2int
+    { "fcvtzu", 0xfffffc00U, 0x9e390000U, 1322, Mnemonic::ARM64_FCVTZU, 2, 1 }, // FCVTZU_64S_float2int
+    { "fcvtzu", 0xfffffc00U, 0x1e790000U, 1324, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_32D_float2int
+    { "fcvtzu", 0xfffffc00U, 0x9e790000U, 1326, Mnemonic::ARM64_FCVTZU, 2, 1 }, // FCVTZU_64D_float2int
+    { "frintz", 0xfffffc00U, 0x1ee5c000U, 1310, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_H_floatdp1
+    { "frintz", 0xfffffc00U, 0x1e25c000U, 1312, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_S_floatdp1
+    { "frintz", 0xfffffc00U, 0x1e65c000U, 1314, Mnemonic::ARM64_FRINTZ, 2, 0 }, // FRINTZ_D_floatdp1
+    { "scvtf", 0xfffffc00U, 0x1ee20000U, 1330, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_H32_float2int
+    { "scvtf", 0xfffffc00U, 0x1e220000U, 1332, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_S32_float2int
+    { "scvtf", 0xfffffc00U, 0x1e620000U, 1334, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_D32_float2int
+    { "scvtf", 0xfffffc00U, 0x9ee20000U, 1336, Mnemonic::ARM64_SCVTF, 2, 1 }, // SCVTF_H64_float2int
+    { "scvtf", 0xfffffc00U, 0x9e220000U, 1338, Mnemonic::ARM64_SCVTF, 2, 1 }, // SCVTF_S64_float2int
+    { "scvtf", 0xfffffc00U, 0x9e620000U, 1340, Mnemonic::ARM64_SCVTF, 2, 1 }, // SCVTF_D64_float2int
+    { "fcvtnu", 0xfffffc00U, 0x1ee10000U, 1316, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_32H_float2int
+    { "fcvtnu", 0xfffffc00U, 0x9ee10000U, 1318, Mnemonic::ARM64_FCVTNU, 2, 1 }, // FCVTNU_64H_float2int
+    { "fcvtnu", 0xfffffc00U, 0x1e210000U, 1320, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_32S_float2int
+    { "fcvtnu", 0xfffffc00U, 0x9e210000U, 1322, Mnemonic::ARM64_FCVTNU, 2, 1 }, // FCVTNU_64S_float2int
+    { "fcvtnu", 0xfffffc00U, 0x1e610000U, 1324, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_32D_float2int
+    { "fcvtnu", 0xfffffc00U, 0x9e610000U, 1326, Mnemonic::ARM64_FCVTNU, 2, 1 }, // FCVTNU_64D_float2int
+    { "fcmgt", 0xfffffc00U, 0x5ef8c800U, 1310, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asisdmiscfp16_FZ
+    { "fcvtzs", 0xfffffc00U, 0x5ef9b800U, 1310, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asisdmiscfp16_R
+    { "fcvtms", 0xfffffc00U, 0x5e79b800U, 1310, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asisdmiscfp16_R
+    { "fcvtpu", 0xfffffc00U, 0x1ee90000U, 1316, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_32H_float2int
+    { "fcvtpu", 0xfffffc00U, 0x9ee90000U, 1318, Mnemonic::ARM64_FCVTPU, 2, 1 }, // FCVTPU_64H_float2int
+    { "fcvtpu", 0xfffffc00U, 0x1e290000U, 1320, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_32S_float2int
+    { "fcvtpu", 0xfffffc00U, 0x9e290000U, 1322, Mnemonic::ARM64_FCVTPU, 2, 1 }, // FCVTPU_64S_float2int
+    { "fcvtpu", 0xfffffc00U, 0x1e690000U, 1324, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_32D_float2int
+    { "fcvtpu", 0xfffffc00U, 0x9e690000U, 1326, Mnemonic::ARM64_FCVTPU, 2, 1 }, // FCVTPU_64D_float2int
+    { "fcmlt", 0xfffffc00U, 0x5ef8e800U, 1310, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asisdmiscfp16_FZ
+    { "frint64x", 0xfffffc00U, 0x1e29c000U, 1312, Mnemonic::ARM64_FRINT64X, 2, 0 }, // FRINT64X_S_floatdp1
+    { "frint64x", 0xfffffc00U, 0x1e69c000U, 1314, Mnemonic::ARM64_FRINT64X, 2, 0 }, // FRINT64X_D_floatdp1
+    { "fcvtau", 0xfffffc00U, 0x7e79c800U, 1310, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asisdmiscfp16_R
     { "addp", 0xfffffc00U, 0x5ef1b800U, 832, Mnemonic::ARM64_ADDP, 2, 0 }, // ADDP_asisdpair_only
-    { "frinti", 0xfffffc00U, 0x1ee7c000U, 1312, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_H_floatdp1
-    { "frinti", 0xfffffc00U, 0x1e27c000U, 1314, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_S_floatdp1
-    { "frinti", 0xfffffc00U, 0x1e67c000U, 1316, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_D_floatdp1
-    { "scvtf", 0xfffffc00U, 0x5e79d800U, 1312, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asisdmiscfp16_R
-    { "fmov", 0xfffffc00U, 0x1ee04000U, 1312, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_H_floatdp1
-    { "fmov", 0xfffffc00U, 0x1e204000U, 1314, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_S_floatdp1
-    { "fmov", 0xfffffc00U, 0x1e604000U, 1316, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_D_floatdp1
+    { "frinti", 0xfffffc00U, 0x1ee7c000U, 1310, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_H_floatdp1
+    { "frinti", 0xfffffc00U, 0x1e27c000U, 1312, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_S_floatdp1
+    { "frinti", 0xfffffc00U, 0x1e67c000U, 1314, Mnemonic::ARM64_FRINTI, 2, 0 }, // FRINTI_D_floatdp1
+    { "scvtf", 0xfffffc00U, 0x5e79d800U, 1310, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asisdmiscfp16_R
+    { "fmov", 0xfffffc00U, 0x1ee04000U, 1310, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_H_floatdp1
+    { "fmov", 0xfffffc00U, 0x1e204000U, 1312, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_S_floatdp1
+    { "fmov", 0xfffffc00U, 0x1e604000U, 1314, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_D_floatdp1
     { "fminp", 0xfffffc00U, 0x5eb0f800U, 832, Mnemonic::ARM64_FMINP, 2, 0 }, // FMINP_asisdpair_only_H
     { "sha256su0", 0xfffffc00U, 0x5e282800U, 832, Mnemonic::ARM64_SHA256SU0, 2, 0 }, // SHA256SU0_VV_cryptosha2
     { "fmaxnmp", 0xfffffc00U, 0x5e30c800U, 832, Mnemonic::ARM64_FMAXNMP, 2, 0 }, // FMAXNMP_asisdpair_only_H
-    { "fcvt", 0xfffffc00U, 0x1ee24000U, 1344, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_SH_floatdp1
-    { "fcvt", 0xfffffc00U, 0x1ee2c000U, 1346, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_DH_floatdp1
-    { "fcvt", 0xfffffc00U, 0x1e23c000U, 1330, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_HS_floatdp1
-    { "fcvt", 0xfffffc00U, 0x1e22c000U, 1348, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_DS_floatdp1
-    { "fcvt", 0xfffffc00U, 0x1e63c000U, 1350, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_HD_floatdp1
-    { "fcvt", 0xfffffc00U, 0x1e624000U, 1352, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_SD_floatdp1
-    { "frintn", 0xfffffc00U, 0x1ee44000U, 1312, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_H_floatdp1
-    { "frintn", 0xfffffc00U, 0x1e244000U, 1314, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_S_floatdp1
-    { "frintn", 0xfffffc00U, 0x1e644000U, 1316, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_D_floatdp1
-    { "ucvtf", 0xfffffc00U, 0x1ee30000U, 1332, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_H32_float2int
-    { "ucvtf", 0xfffffc00U, 0x1e230000U, 1334, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_S32_float2int
-    { "ucvtf", 0xfffffc00U, 0x1e630000U, 1336, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_D32_float2int
-    { "ucvtf", 0xfffffc00U, 0x9ee30000U, 1338, Mnemonic::ARM64_UCVTF, 2, 1 }, // UCVTF_H64_float2int
-    { "ucvtf", 0xfffffc00U, 0x9e230000U, 1340, Mnemonic::ARM64_UCVTF, 2, 1 }, // UCVTF_S64_float2int
-    { "ucvtf", 0xfffffc00U, 0x9e630000U, 1342, Mnemonic::ARM64_UCVTF, 2, 1 }, // UCVTF_D64_float2int
-    { "fcmge", 0xfffffc00U, 0x7ef8c800U, 1312, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdmiscfp16_FZ
-    { "fmov", 0xfffffc00U, 0x1ee60000U, 1318, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_32H_float2int
-    { "fmov", 0xfffffc00U, 0x9ee60000U, 1320, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_64H_float2int
-    { "fmov", 0xfffffc00U, 0x1ee70000U, 1332, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_H32_float2int
-    { "fmov", 0xfffffc00U, 0x1e270000U, 1334, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_S32_float2int
-    { "fmov", 0xfffffc00U, 0x1e260000U, 1322, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_32S_float2int
-    { "fmov", 0xfffffc00U, 0x9ee70000U, 1338, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_H64_float2int
-    { "fmov", 0xfffffc00U, 0x9e670000U, 1342, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_D64_float2int
-    { "fmov", 0xfffffc00U, 0x9eaf0000U, 1354, Mnemonic::ARM64_FMOV, 1, 1 }, // FMOV_V64I_float2int
-    { "fmov", 0xfffffc00U, 0x9e660000U, 1328, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_64D_float2int
-    { "fmov", 0xfffffc00U, 0x9eae0000U, 1355, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_64VX_float2int
-    { "frint32z", 0xfffffc00U, 0x1e284000U, 1314, Mnemonic::ARM64_FRINT32Z, 2, 0 }, // FRINT32Z_S_floatdp1
-    { "frint32z", 0xfffffc00U, 0x1e684000U, 1316, Mnemonic::ARM64_FRINT32Z, 2, 0 }, // FRINT32Z_D_floatdp1
-    { "fcvtas", 0xfffffc00U, 0x1ee40000U, 1318, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_32H_float2int
-    { "fcvtas", 0xfffffc00U, 0x9ee40000U, 1320, Mnemonic::ARM64_FCVTAS, 2, 1 }, // FCVTAS_64H_float2int
-    { "fcvtas", 0xfffffc00U, 0x1e240000U, 1322, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_32S_float2int
-    { "fcvtas", 0xfffffc00U, 0x9e240000U, 1324, Mnemonic::ARM64_FCVTAS, 2, 1 }, // FCVTAS_64S_float2int
-    { "fcvtas", 0xfffffc00U, 0x1e640000U, 1326, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_32D_float2int
-    { "fcvtas", 0xfffffc00U, 0x9e640000U, 1328, Mnemonic::ARM64_FCVTAS, 2, 1 }, // FCVTAS_64D_float2int
-    { "frintp", 0xfffffc00U, 0x1ee4c000U, 1312, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_H_floatdp1
-    { "frintp", 0xfffffc00U, 0x1e24c000U, 1314, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_S_floatdp1
-    { "frintp", 0xfffffc00U, 0x1e64c000U, 1316, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_D_floatdp1
-    { "fsqrt", 0xfffffc00U, 0x1ee1c000U, 1312, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_H_floatdp1
-    { "fsqrt", 0xfffffc00U, 0x1e21c000U, 1314, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_S_floatdp1
-    { "fsqrt", 0xfffffc00U, 0x1e61c000U, 1316, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_D_floatdp1
-    { "fcvtmu", 0xfffffc00U, 0x7e79b800U, 1312, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asisdmiscfp16_R
-    { "fcvtzu", 0xfffffc00U, 0x7ef9b800U, 1312, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asisdmiscfp16_R
-    { "fcmpe", 0xffe0fc1fU, 0x1ee02010U, 1313, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_H_floatcmp
-    { "fcmpe", 0xffe0fc1fU, 0x1ee02018U, 1313, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_HZ_floatcmp
-    { "fcmpe", 0xffe0fc1fU, 0x1e202010U, 1315, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_S_floatcmp
-    { "fcmpe", 0xffe0fc1fU, 0x1e202018U, 1315, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_SZ_floatcmp
-    { "fcmpe", 0xffe0fc1fU, 0x1e602010U, 1317, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_D_floatcmp
-    { "fcmpe", 0xffe0fc1fU, 0x1e602018U, 1317, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_DZ_floatcmp
-    { "ucvtf", 0xfffffc00U, 0x7e79d800U, 1312, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asisdmiscfp16_R
-    { "frecpe", 0xfffffc00U, 0x5ef9d800U, 1312, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asisdmiscfp16_R
-    { "fcvtau", 0xfffffc00U, 0x1ee50000U, 1318, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_32H_float2int
-    { "fcvtau", 0xfffffc00U, 0x9ee50000U, 1320, Mnemonic::ARM64_FCVTAU, 2, 1 }, // FCVTAU_64H_float2int
-    { "fcvtau", 0xfffffc00U, 0x1e250000U, 1322, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_32S_float2int
-    { "fcvtau", 0xfffffc00U, 0x9e250000U, 1324, Mnemonic::ARM64_FCVTAU, 2, 1 }, // FCVTAU_64S_float2int
-    { "fcvtau", 0xfffffc00U, 0x1e650000U, 1326, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_32D_float2int
-    { "fcvtau", 0xfffffc00U, 0x9e650000U, 1328, Mnemonic::ARM64_FCVTAU, 2, 1 }, // FCVTAU_64D_float2int
-    { "fcvtas", 0xfffffc00U, 0x5e79c800U, 1312, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asisdmiscfp16_R
-    { "frsqrte", 0xffbffc00U, 0x7ea1d800U, 1357, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asisdmisc_R
-    { "fcvtpu", 0xffbffc00U, 0x7ea1a800U, 1357, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asisdmisc_R
-    { "faddp", 0xffbffc00U, 0x7e30d800U, 1359, Mnemonic::ARM64_FADDP, 2, 0 }, // FADDP_asisdpair_only_SD
-    { "fcvtnu", 0xffbffc00U, 0x7e21a800U, 1357, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asisdmisc_R
-    { "frecpx", 0xffbffc00U, 0x5ea1f800U, 1357, Mnemonic::ARM64_FRECPX, 2, 0 }, // FRECPX_asisdmisc_R
-    { "fminnmp", 0xffbffc00U, 0x7eb0c800U, 1359, Mnemonic::ARM64_FMINNMP, 2, 0 }, // FMINNMP_asisdpair_only_SD
-    { "fcmle", 0xffbffc00U, 0x7ea0d800U, 1357, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asisdmisc_FZ
-    { "fmaxp", 0xffbffc00U, 0x7e30f800U, 1359, Mnemonic::ARM64_FMAXP, 2, 0 }, // FMAXP_asisdpair_only_SD
-    { "fcvtps", 0xffbffc00U, 0x5ea1a800U, 1357, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asisdmisc_R
-    { "fcvtns", 0xffbffc00U, 0x5e21a800U, 1357, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asisdmisc_R
-    { "fcmeq", 0xffbffc00U, 0x5ea0d800U, 1357, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asisdmisc_FZ
-    { "fcmgt", 0xffbffc00U, 0x5ea0c800U, 1357, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asisdmisc_FZ
-    { "fcvtzs", 0xffbffc00U, 0x5ea1b800U, 1357, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asisdmisc_R
-    { "fcvtms", 0xffbffc00U, 0x5e21b800U, 1357, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asisdmisc_R
-    { "fcmlt", 0xffbffc00U, 0x5ea0e800U, 1357, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asisdmisc_FZ
-    { "fcvtau", 0xffbffc00U, 0x7e21c800U, 1357, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asisdmisc_R
-    { "scvtf", 0xffbffc00U, 0x5e21d800U, 1357, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asisdmisc_R
-    { "fminp", 0xffbffc00U, 0x7eb0f800U, 1359, Mnemonic::ARM64_FMINP, 2, 0 }, // FMINP_asisdpair_only_SD
-    { "fmaxnmp", 0xffbffc00U, 0x7e30c800U, 1359, Mnemonic::ARM64_FMAXNMP, 2, 0 }, // FMAXNMP_asisdpair_only_SD
-    { "fcmge", 0xffbffc00U, 0x7ea0c800U, 1357, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdmisc_FZ
-    { "fcvtmu", 0xffbffc00U, 0x7e21b800U, 1357, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asisdmisc_R
-    { "fcvtzu", 0xffbffc00U, 0x7ea1b800U, 1357, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asisdmisc_R
-    { "ucvtf", 0xffbffc00U, 0x7e21d800U, 1357, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asisdmisc_R
-    { "frecpe", 0xffbffc00U, 0x5ea1d800U, 1357, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asisdmisc_R
-    { "fcvtas", 0xffbffc00U, 0x5e21c800U, 1357, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asisdmisc_R
+    { "fcvt", 0xfffffc00U, 0x1ee24000U, 1342, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_SH_floatdp1
+    { "fcvt", 0xfffffc00U, 0x1ee2c000U, 1344, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_DH_floatdp1
+    { "fcvt", 0xfffffc00U, 0x1e23c000U, 1328, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_HS_floatdp1
+    { "fcvt", 0xfffffc00U, 0x1e22c000U, 1346, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_DS_floatdp1
+    { "fcvt", 0xfffffc00U, 0x1e63c000U, 1348, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_HD_floatdp1
+    { "fcvt", 0xfffffc00U, 0x1e624000U, 1350, Mnemonic::ARM64_FCVT, 2, 0 }, // FCVT_SD_floatdp1
+    { "frintn", 0xfffffc00U, 0x1ee44000U, 1310, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_H_floatdp1
+    { "frintn", 0xfffffc00U, 0x1e244000U, 1312, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_S_floatdp1
+    { "frintn", 0xfffffc00U, 0x1e644000U, 1314, Mnemonic::ARM64_FRINTN, 2, 0 }, // FRINTN_D_floatdp1
+    { "ucvtf", 0xfffffc00U, 0x1ee30000U, 1330, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_H32_float2int
+    { "ucvtf", 0xfffffc00U, 0x1e230000U, 1332, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_S32_float2int
+    { "ucvtf", 0xfffffc00U, 0x1e630000U, 1334, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_D32_float2int
+    { "ucvtf", 0xfffffc00U, 0x9ee30000U, 1336, Mnemonic::ARM64_UCVTF, 2, 1 }, // UCVTF_H64_float2int
+    { "ucvtf", 0xfffffc00U, 0x9e230000U, 1338, Mnemonic::ARM64_UCVTF, 2, 1 }, // UCVTF_S64_float2int
+    { "ucvtf", 0xfffffc00U, 0x9e630000U, 1340, Mnemonic::ARM64_UCVTF, 2, 1 }, // UCVTF_D64_float2int
+    { "fcmge", 0xfffffc00U, 0x7ef8c800U, 1310, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdmiscfp16_FZ
+    { "fmov", 0xfffffc00U, 0x1ee60000U, 1316, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_32H_float2int
+    { "fmov", 0xfffffc00U, 0x9ee60000U, 1318, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_64H_float2int
+    { "fmov", 0xfffffc00U, 0x1ee70000U, 1330, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_H32_float2int
+    { "fmov", 0xfffffc00U, 0x1e270000U, 1332, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_S32_float2int
+    { "fmov", 0xfffffc00U, 0x1e260000U, 1320, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_32S_float2int
+    { "fmov", 0xfffffc00U, 0x9ee70000U, 1336, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_H64_float2int
+    { "fmov", 0xfffffc00U, 0x9e670000U, 1340, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_D64_float2int
+    { "fmov", 0xfffffc00U, 0x9eaf0000U, 1352, Mnemonic::ARM64_FMOV, 1, 1 }, // FMOV_V64I_float2int
+    { "fmov", 0xfffffc00U, 0x9e660000U, 1326, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_64D_float2int
+    { "fmov", 0xfffffc00U, 0x9eae0000U, 1353, Mnemonic::ARM64_FMOV, 2, 1 }, // FMOV_64VX_float2int
+    { "frint32z", 0xfffffc00U, 0x1e284000U, 1312, Mnemonic::ARM64_FRINT32Z, 2, 0 }, // FRINT32Z_S_floatdp1
+    { "frint32z", 0xfffffc00U, 0x1e684000U, 1314, Mnemonic::ARM64_FRINT32Z, 2, 0 }, // FRINT32Z_D_floatdp1
+    { "fcvtas", 0xfffffc00U, 0x1ee40000U, 1316, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_32H_float2int
+    { "fcvtas", 0xfffffc00U, 0x9ee40000U, 1318, Mnemonic::ARM64_FCVTAS, 2, 1 }, // FCVTAS_64H_float2int
+    { "fcvtas", 0xfffffc00U, 0x1e240000U, 1320, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_32S_float2int
+    { "fcvtas", 0xfffffc00U, 0x9e240000U, 1322, Mnemonic::ARM64_FCVTAS, 2, 1 }, // FCVTAS_64S_float2int
+    { "fcvtas", 0xfffffc00U, 0x1e640000U, 1324, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_32D_float2int
+    { "fcvtas", 0xfffffc00U, 0x9e640000U, 1326, Mnemonic::ARM64_FCVTAS, 2, 1 }, // FCVTAS_64D_float2int
+    { "frintp", 0xfffffc00U, 0x1ee4c000U, 1310, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_H_floatdp1
+    { "frintp", 0xfffffc00U, 0x1e24c000U, 1312, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_S_floatdp1
+    { "frintp", 0xfffffc00U, 0x1e64c000U, 1314, Mnemonic::ARM64_FRINTP, 2, 0 }, // FRINTP_D_floatdp1
+    { "fsqrt", 0xfffffc00U, 0x1ee1c000U, 1310, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_H_floatdp1
+    { "fsqrt", 0xfffffc00U, 0x1e21c000U, 1312, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_S_floatdp1
+    { "fsqrt", 0xfffffc00U, 0x1e61c000U, 1314, Mnemonic::ARM64_FSQRT, 2, 0 }, // FSQRT_D_floatdp1
+    { "fcvtmu", 0xfffffc00U, 0x7e79b800U, 1310, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asisdmiscfp16_R
+    { "fcvtzu", 0xfffffc00U, 0x7ef9b800U, 1310, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asisdmiscfp16_R
+    { "fcmpe", 0xffe0fc1fU, 0x1ee02010U, 1311, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_H_floatcmp
+    { "fcmpe", 0xffe0fc1fU, 0x1ee02018U, 1311, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_HZ_floatcmp
+    { "fcmpe", 0xffe0fc1fU, 0x1e202010U, 1313, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_S_floatcmp
+    { "fcmpe", 0xffe0fc1fU, 0x1e202018U, 1313, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_SZ_floatcmp
+    { "fcmpe", 0xffe0fc1fU, 0x1e602010U, 1315, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_D_floatcmp
+    { "fcmpe", 0xffe0fc1fU, 0x1e602018U, 1315, Mnemonic::ARM64_FCMPE, 1, 0 }, // FCMPE_DZ_floatcmp
+    { "ucvtf", 0xfffffc00U, 0x7e79d800U, 1310, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asisdmiscfp16_R
+    { "frecpe", 0xfffffc00U, 0x5ef9d800U, 1310, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asisdmiscfp16_R
+    { "fcvtau", 0xfffffc00U, 0x1ee50000U, 1316, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_32H_float2int
+    { "fcvtau", 0xfffffc00U, 0x9ee50000U, 1318, Mnemonic::ARM64_FCVTAU, 2, 1 }, // FCVTAU_64H_float2int
+    { "fcvtau", 0xfffffc00U, 0x1e250000U, 1320, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_32S_float2int
+    { "fcvtau", 0xfffffc00U, 0x9e250000U, 1322, Mnemonic::ARM64_FCVTAU, 2, 1 }, // FCVTAU_64S_float2int
+    { "fcvtau", 0xfffffc00U, 0x1e650000U, 1324, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_32D_float2int
+    { "fcvtau", 0xfffffc00U, 0x9e650000U, 1326, Mnemonic::ARM64_FCVTAU, 2, 1 }, // FCVTAU_64D_float2int
+    { "fcvtas", 0xfffffc00U, 0x5e79c800U, 1310, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asisdmiscfp16_R
+    { "frsqrte", 0xffbffc00U, 0x7ea1d800U, 1355, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // FRSQRTE_asisdmisc_R
+    { "fcvtpu", 0xffbffc00U, 0x7ea1a800U, 1355, Mnemonic::ARM64_FCVTPU, 2, 0 }, // FCVTPU_asisdmisc_R
+    { "faddp", 0xffbffc00U, 0x7e30d800U, 1357, Mnemonic::ARM64_FADDP, 2, 0 }, // FADDP_asisdpair_only_SD
+    { "fcvtnu", 0xffbffc00U, 0x7e21a800U, 1355, Mnemonic::ARM64_FCVTNU, 2, 0 }, // FCVTNU_asisdmisc_R
+    { "frecpx", 0xffbffc00U, 0x5ea1f800U, 1355, Mnemonic::ARM64_FRECPX, 2, 0 }, // FRECPX_asisdmisc_R
+    { "fminnmp", 0xffbffc00U, 0x7eb0c800U, 1357, Mnemonic::ARM64_FMINNMP, 2, 0 }, // FMINNMP_asisdpair_only_SD
+    { "fcmle", 0xffbffc00U, 0x7ea0d800U, 1355, Mnemonic::ARM64_FCMLE, 2, 0 }, // FCMLE_asisdmisc_FZ
+    { "fmaxp", 0xffbffc00U, 0x7e30f800U, 1357, Mnemonic::ARM64_FMAXP, 2, 0 }, // FMAXP_asisdpair_only_SD
+    { "fcvtps", 0xffbffc00U, 0x5ea1a800U, 1355, Mnemonic::ARM64_FCVTPS, 2, 0 }, // FCVTPS_asisdmisc_R
+    { "fcvtns", 0xffbffc00U, 0x5e21a800U, 1355, Mnemonic::ARM64_FCVTNS, 2, 0 }, // FCVTNS_asisdmisc_R
+    { "fcmeq", 0xffbffc00U, 0x5ea0d800U, 1355, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asisdmisc_FZ
+    { "fcmgt", 0xffbffc00U, 0x5ea0c800U, 1355, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asisdmisc_FZ
+    { "fcvtzs", 0xffbffc00U, 0x5ea1b800U, 1355, Mnemonic::ARM64_FCVTZS, 2, 0 }, // FCVTZS_asisdmisc_R
+    { "fcvtms", 0xffbffc00U, 0x5e21b800U, 1355, Mnemonic::ARM64_FCVTMS, 2, 0 }, // FCVTMS_asisdmisc_R
+    { "fcmlt", 0xffbffc00U, 0x5ea0e800U, 1355, Mnemonic::ARM64_FCMLT, 2, 0 }, // FCMLT_asisdmisc_FZ
+    { "fcvtau", 0xffbffc00U, 0x7e21c800U, 1355, Mnemonic::ARM64_FCVTAU, 2, 0 }, // FCVTAU_asisdmisc_R
+    { "scvtf", 0xffbffc00U, 0x5e21d800U, 1355, Mnemonic::ARM64_SCVTF, 2, 0 }, // SCVTF_asisdmisc_R
+    { "fminp", 0xffbffc00U, 0x7eb0f800U, 1357, Mnemonic::ARM64_FMINP, 2, 0 }, // FMINP_asisdpair_only_SD
+    { "fmaxnmp", 0xffbffc00U, 0x7e30c800U, 1357, Mnemonic::ARM64_FMAXNMP, 2, 0 }, // FMAXNMP_asisdpair_only_SD
+    { "fcmge", 0xffbffc00U, 0x7ea0c800U, 1355, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdmisc_FZ
+    { "fcvtmu", 0xffbffc00U, 0x7e21b800U, 1355, Mnemonic::ARM64_FCVTMU, 2, 0 }, // FCVTMU_asisdmisc_R
+    { "fcvtzu", 0xffbffc00U, 0x7ea1b800U, 1355, Mnemonic::ARM64_FCVTZU, 2, 0 }, // FCVTZU_asisdmisc_R
+    { "ucvtf", 0xffbffc00U, 0x7e21d800U, 1355, Mnemonic::ARM64_UCVTF, 2, 0 }, // UCVTF_asisdmisc_R
+    { "frecpe", 0xffbffc00U, 0x5ea1d800U, 1355, Mnemonic::ARM64_FRECPE, 2, 0 }, // FRECPE_asisdmisc_R
+    { "fcvtas", 0xffbffc00U, 0x5e21c800U, 1355, Mnemonic::ARM64_FCVTAS, 2, 0 }, // FCVTAS_asisdmisc_R
     { "uqxtn", 0xff3ffc00U, 0x7e214800U, 832, Mnemonic::ARM64_UQXTN, 2, 0 }, // UQXTN_asisdmisc_N
     { "sqxtun", 0xff3ffc00U, 0x7e212800U, 832, Mnemonic::ARM64_SQXTUN, 2, 0 }, // SQXTUN_asisdmisc_N
     { "sqxtn", 0xff3ffc00U, 0x5e214800U, 832, Mnemonic::ARM64_SQXTN, 2, 0 }, // SQXTN_asisdmisc_N
-    { "suqadd", 0xff3ffc00U, 0x5e203800U, 1361, Mnemonic::ARM64_SUQADD, 2, 0 }, // SUQADD_asisdmisc_R
-    { "sqabs", 0xff3ffc00U, 0x5e207800U, 1361, Mnemonic::ARM64_SQABS, 2, 0 }, // SQABS_asisdmisc_R
-    { "usqadd", 0xff3ffc00U, 0x7e203800U, 1361, Mnemonic::ARM64_USQADD, 2, 0 }, // USQADD_asisdmisc_R
-    { "sqneg", 0xff3ffc00U, 0x7e207800U, 1361, Mnemonic::ARM64_SQNEG, 2, 0 }, // SQNEG_asisdmisc_R
-    { "ushr", 0xfff8fc00U, 0x7f400400U, 1363, Mnemonic::ARM64_USHR, 3, 0 }, // USHR_asisdshf_R
-    { "shl", 0xfff8fc00U, 0x5f405400U, 1363, Mnemonic::ARM64_SHL, 3, 0 }, // SHL_asisdshf_R
-    { "srshr", 0xfff8fc00U, 0x5f402400U, 1363, Mnemonic::ARM64_SRSHR, 3, 0 }, // SRSHR_asisdshf_R
-    { "sshr", 0xfff8fc00U, 0x5f400400U, 1363, Mnemonic::ARM64_SSHR, 3, 0 }, // SSHR_asisdshf_R
-    { "urshr", 0xfff8fc00U, 0x7f402400U, 1363, Mnemonic::ARM64_URSHR, 3, 0 }, // URSHR_asisdshf_R
-    { "ursra", 0xfff8fc00U, 0x7f403400U, 1363, Mnemonic::ARM64_URSRA, 3, 0 }, // URSRA_asisdshf_R
-    { "fmov", 0xffe01fe0U, 0x1ee01000U, 1366, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_H_floatimm
-    { "fmov", 0xffe01fe0U, 0x1e201000U, 1368, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_S_floatimm
-    { "fmov", 0xffe01fe0U, 0x1e601000U, 1370, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_D_floatimm
-    { "sli", 0xfff8fc00U, 0x7f405400U, 1363, Mnemonic::ARM64_SLI, 3, 0 }, // SLI_asisdshf_R
-    { "usra", 0xfff8fc00U, 0x7f401400U, 1363, Mnemonic::ARM64_USRA, 3, 0 }, // USRA_asisdshf_R
-    { "sri", 0xfff8fc00U, 0x7f404400U, 1363, Mnemonic::ARM64_SRI, 3, 0 }, // SRI_asisdshf_R
-    { "ssra", 0xfff8fc00U, 0x5f401400U, 1363, Mnemonic::ARM64_SSRA, 3, 0 }, // SSRA_asisdshf_R
-    { "srsra", 0xfff8fc00U, 0x5f403400U, 1363, Mnemonic::ARM64_SRSRA, 3, 0 }, // SRSRA_asisdshf_R
-    { "fdiv", 0xffe0fc00U, 0x1ee01800U, 1312, Mnemonic::ARM64_FDIV, 2, 0 }, // FDIV_H_floatdp2
-    { "fdiv", 0xffe0fc00U, 0x1e201800U, 1314, Mnemonic::ARM64_FDIV, 2, 0 }, // FDIV_S_floatdp2
-    { "fdiv", 0xffe0fc00U, 0x1e601800U, 1316, Mnemonic::ARM64_FDIV, 2, 0 }, // FDIV_D_floatdp2
-    { "fnmul", 0xffe0fc00U, 0x1ee08800U, 1312, Mnemonic::ARM64_FNMUL, 2, 0 }, // FNMUL_H_floatdp2
-    { "fnmul", 0xffe0fc00U, 0x1e208800U, 1314, Mnemonic::ARM64_FNMUL, 2, 0 }, // FNMUL_S_floatdp2
-    { "fnmul", 0xffe0fc00U, 0x1e608800U, 1316, Mnemonic::ARM64_FNMUL, 2, 0 }, // FNMUL_D_floatdp2
-    { "fmin", 0xffe0fc00U, 0x1ee05800U, 1312, Mnemonic::ARM64_FMIN, 2, 0 }, // FMIN_H_floatdp2
-    { "fmin", 0xffe0fc00U, 0x1e205800U, 1314, Mnemonic::ARM64_FMIN, 2, 0 }, // FMIN_S_floatdp2
-    { "fmin", 0xffe0fc00U, 0x1e605800U, 1316, Mnemonic::ARM64_FMIN, 2, 0 }, // FMIN_D_floatdp2
-    { "facge", 0xffe0fc00U, 0x7e402c00U, 1312, Mnemonic::ARM64_FACGE, 2, 0 }, // FACGE_asisdsamefp16_only
-    { "fcmeq", 0xffe0fc00U, 0x5e402400U, 1312, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asisdsamefp16_only
-    { "sha1m", 0xffe0fc00U, 0x5e002000U, 1372, Mnemonic::ARM64_SHA1M, 3, 0 }, // SHA1M_QSV_cryptosha3
-    { "frsqrts", 0xffe0fc00U, 0x5ec03c00U, 1312, Mnemonic::ARM64_FRSQRTS, 2, 0 }, // FRSQRTS_asisdsamefp16_only
-    { "sub", 0xffe0fc00U, 0x7ee08400U, 865, Mnemonic::ARM64_SUB, 3, 0 }, // SUB_asisdsame_only
-    { "cmge", 0xffe0fc00U, 0x5ee03c00U, 865, Mnemonic::ARM64_CMGE, 3, 0 }, // CMGE_asisdsame_only
-    { "fadd", 0xffe0fc00U, 0x1ee02800U, 1312, Mnemonic::ARM64_FADD, 2, 0 }, // FADD_H_floatdp2
-    { "fadd", 0xffe0fc00U, 0x1e202800U, 1314, Mnemonic::ARM64_FADD, 2, 0 }, // FADD_S_floatdp2
-    { "fadd", 0xffe0fc00U, 0x1e602800U, 1316, Mnemonic::ARM64_FADD, 2, 0 }, // FADD_D_floatdp2
-    { "sha256h", 0xffe0fc00U, 0x5e004000U, 870, Mnemonic::ARM64_SHA256H, 3, 0 }, // SHA256H_QQV_cryptosha3
-    { "fcmgt", 0xffe0fc00U, 0x7ec02400U, 1312, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asisdsamefp16_only
-    { "fmaxnm", 0xffe0fc00U, 0x1ee06800U, 1312, Mnemonic::ARM64_FMAXNM, 2, 0 }, // FMAXNM_H_floatdp2
-    { "fmaxnm", 0xffe0fc00U, 0x1e206800U, 1314, Mnemonic::ARM64_FMAXNM, 2, 0 }, // FMAXNM_S_floatdp2
-    { "fmaxnm", 0xffe0fc00U, 0x1e606800U, 1316, Mnemonic::ARM64_FMAXNM, 2, 0 }, // FMAXNM_D_floatdp2
-    { "sha256su1", 0xffe0fc00U, 0x5e006000U, 865, Mnemonic::ARM64_SHA256SU1, 3, 0 }, // SHA256SU1_VVV_cryptosha3
-    { "fmulx", 0xffe0fc00U, 0x5e401c00U, 1312, Mnemonic::ARM64_FMULX, 2, 0 }, // FMULX_asisdsamefp16_only
-    { "cmhi", 0xffe0fc00U, 0x7ee03400U, 865, Mnemonic::ARM64_CMHI, 3, 0 }, // CMHI_asisdsame_only
-    { "srshl", 0xffe0fc00U, 0x5ee05400U, 865, Mnemonic::ARM64_SRSHL, 3, 0 }, // SRSHL_asisdsame_only
-    { "sshl", 0xffe0fc00U, 0x5ee04400U, 865, Mnemonic::ARM64_SSHL, 3, 0 }, // SSHL_asisdsame_only
-    { "fabd", 0xffe0fc00U, 0x7ec01400U, 1312, Mnemonic::ARM64_FABD, 2, 0 }, // FABD_asisdsamefp16_only
-    { "sha256h2", 0xffe0fc00U, 0x5e005000U, 870, Mnemonic::ARM64_SHA256H2, 3, 0 }, // SHA256H2_QQV_cryptosha3
-    { "cmgt", 0xffe0fc00U, 0x5ee03400U, 865, Mnemonic::ARM64_CMGT, 3, 0 }, // CMGT_asisdsame_only
-    { "fsub", 0xffe0fc00U, 0x1ee03800U, 1312, Mnemonic::ARM64_FSUB, 2, 0 }, // FSUB_H_floatdp2
-    { "fsub", 0xffe0fc00U, 0x1e203800U, 1314, Mnemonic::ARM64_FSUB, 2, 0 }, // FSUB_S_floatdp2
-    { "fsub", 0xffe0fc00U, 0x1e603800U, 1316, Mnemonic::ARM64_FSUB, 2, 0 }, // FSUB_D_floatdp2
-    { "dup", 0xffe0fc00U, 0x5e000400U, 1375, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asisdone_only
-    { "ushl", 0xffe0fc00U, 0x7ee04400U, 865, Mnemonic::ARM64_USHL, 3, 0 }, // USHL_asisdsame_only
-    { "cmhs", 0xffe0fc00U, 0x7ee03c00U, 865, Mnemonic::ARM64_CMHS, 3, 0 }, // CMHS_asisdsame_only
-    { "sha1su0", 0xffe0fc00U, 0x5e003000U, 865, Mnemonic::ARM64_SHA1SU0, 3, 0 }, // SHA1SU0_VVV_cryptosha3
-    { "cmtst", 0xffe0fc00U, 0x5ee08c00U, 865, Mnemonic::ARM64_CMTST, 3, 0 }, // CMTST_asisdsame_only
-    { "fmul", 0xffe0fc00U, 0x1ee00800U, 1312, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_H_floatdp2
-    { "fmul", 0xffe0fc00U, 0x1e200800U, 1314, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_S_floatdp2
-    { "fmul", 0xffe0fc00U, 0x1e600800U, 1316, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_D_floatdp2
-    { "urshl", 0xffe0fc00U, 0x7ee05400U, 865, Mnemonic::ARM64_URSHL, 3, 0 }, // URSHL_asisdsame_only
-    { "cmeq", 0xffe0fc00U, 0x7ee08c00U, 865, Mnemonic::ARM64_CMEQ, 3, 0 }, // CMEQ_asisdsame_only
-    { "mov", 0xffe0fc00U, 0x5e000400U, 1375, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_DUP_asisdone_only
-    { "sha1p", 0xffe0fc00U, 0x5e001000U, 1372, Mnemonic::ARM64_SHA1P, 3, 0 }, // SHA1P_QSV_cryptosha3
-    { "fminnm", 0xffe0fc00U, 0x1ee07800U, 1312, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_H_floatdp2
-    { "fminnm", 0xffe0fc00U, 0x1e207800U, 1314, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_S_floatdp2
-    { "fminnm", 0xffe0fc00U, 0x1e607800U, 1316, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_D_floatdp2
-    { "facgt", 0xffe0fc00U, 0x7ec02c00U, 1312, Mnemonic::ARM64_FACGT, 2, 0 }, // FACGT_asisdsamefp16_only
-    { "frecps", 0xffe0fc00U, 0x5e403c00U, 1312, Mnemonic::ARM64_FRECPS, 2, 0 }, // FRECPS_asisdsamefp16_only
-    { "fmax", 0xffe0fc00U, 0x1ee04800U, 1312, Mnemonic::ARM64_FMAX, 2, 0 }, // FMAX_H_floatdp2
-    { "fmax", 0xffe0fc00U, 0x1e204800U, 1314, Mnemonic::ARM64_FMAX, 2, 0 }, // FMAX_S_floatdp2
-    { "fmax", 0xffe0fc00U, 0x1e604800U, 1316, Mnemonic::ARM64_FMAX, 2, 0 }, // FMAX_D_floatdp2
-    { "sha1c", 0xffe0fc00U, 0x5e000000U, 1372, Mnemonic::ARM64_SHA1C, 3, 0 }, // SHA1C_QSV_cryptosha3
-    { "add", 0xffe0fc00U, 0x5ee08400U, 865, Mnemonic::ARM64_ADD, 3, 0 }, // ADD_asisdsame_only
-    { "fcmge", 0xffe0fc00U, 0x7e402400U, 1312, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdsamefp16_only
-    { "facge", 0xffa0fc00U, 0x7e20ec00U, 1377, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asisdsame_only
-    { "fcmeq", 0xffa0fc00U, 0x5e20e400U, 1377, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asisdsame_only
-    { "frsqrts", 0xffa0fc00U, 0x5ea0fc00U, 1377, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asisdsame_only
-    { "fcmgt", 0xffa0fc00U, 0x7ea0e400U, 1377, Mnemonic::ARM64_FCMGT, 3, 0 }, // FCMGT_asisdsame_only
-    { "fcvtzs", 0xffff0000U, 0x1ed80000U, 1380, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_32H_float2fix
-    { "fcvtzs", 0xffff0000U, 0x9ed80000U, 1383, Mnemonic::ARM64_FCVTZS, 3, 1 }, // FCVTZS_64H_float2fix
-    { "fcvtzs", 0xffff0000U, 0x1e180000U, 1386, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_32S_float2fix
-    { "fcvtzs", 0xffff0000U, 0x9e180000U, 1389, Mnemonic::ARM64_FCVTZS, 3, 1 }, // FCVTZS_64S_float2fix
-    { "fcvtzs", 0xffff0000U, 0x1e580000U, 1392, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_32D_float2fix
-    { "fcvtzs", 0xffff0000U, 0x9e580000U, 1395, Mnemonic::ARM64_FCVTZS, 3, 1 }, // FCVTZS_64D_float2fix
-    { "fmulx", 0xffa0fc00U, 0x5e20dc00U, 1377, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asisdsame_only
-    { "scvtf", 0xffff0000U, 0x1ec20000U, 1398, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_H32_float2fix
-    { "scvtf", 0xffff0000U, 0x9ec20000U, 1401, Mnemonic::ARM64_SCVTF, 3, 1 }, // SCVTF_H64_float2fix
-    { "scvtf", 0xffff0000U, 0x1e020000U, 1404, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_S32_float2fix
-    { "scvtf", 0xffff0000U, 0x9e020000U, 1407, Mnemonic::ARM64_SCVTF, 3, 1 }, // SCVTF_S64_float2fix
-    { "scvtf", 0xffff0000U, 0x1e420000U, 1410, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_D32_float2fix
-    { "scvtf", 0xffff0000U, 0x9e420000U, 1413, Mnemonic::ARM64_SCVTF, 3, 1 }, // SCVTF_D64_float2fix
-    { "fabd", 0xffa0fc00U, 0x7ea0d400U, 1377, Mnemonic::ARM64_FABD, 3, 0 }, // FABD_asisdsame_only
-    { "fcvtzu", 0xffff0000U, 0x1ed90000U, 1380, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_32H_float2fix
-    { "fcvtzu", 0xffff0000U, 0x9ed90000U, 1383, Mnemonic::ARM64_FCVTZU, 3, 1 }, // FCVTZU_64H_float2fix
-    { "fcvtzu", 0xffff0000U, 0x1e190000U, 1386, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_32S_float2fix
-    { "fcvtzu", 0xffff0000U, 0x9e190000U, 1389, Mnemonic::ARM64_FCVTZU, 3, 1 }, // FCVTZU_64S_float2fix
-    { "fcvtzu", 0xffff0000U, 0x1e590000U, 1392, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_32D_float2fix
-    { "fcvtzu", 0xffff0000U, 0x9e590000U, 1395, Mnemonic::ARM64_FCVTZU, 3, 1 }, // FCVTZU_64D_float2fix
-    { "facgt", 0xffa0fc00U, 0x7ea0ec00U, 1377, Mnemonic::ARM64_FACGT, 3, 0 }, // FACGT_asisdsame_only
-    { "frecps", 0xffa0fc00U, 0x5e20fc00U, 1377, Mnemonic::ARM64_FRECPS, 3, 0 }, // FRECPS_asisdsame_only
-    { "fcmge", 0xffa0fc00U, 0x7e20e400U, 1377, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asisdsame_only
-    { "ucvtf", 0xffff0000U, 0x1ec30000U, 1398, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_H32_float2fix
-    { "ucvtf", 0xffff0000U, 0x9ec30000U, 1401, Mnemonic::ARM64_UCVTF, 3, 1 }, // UCVTF_H64_float2fix
-    { "ucvtf", 0xffff0000U, 0x1e030000U, 1404, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_S32_float2fix
-    { "ucvtf", 0xffff0000U, 0x9e030000U, 1407, Mnemonic::ARM64_UCVTF, 3, 1 }, // UCVTF_S64_float2fix
-    { "ucvtf", 0xffff0000U, 0x1e430000U, 1410, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_D32_float2fix
-    { "ucvtf", 0xffff0000U, 0x9e430000U, 1413, Mnemonic::ARM64_UCVTF, 3, 1 }, // UCVTF_D64_float2fix
-    { "sqadd", 0xff20fc00U, 0x5e200c00U, 1416, Mnemonic::ARM64_SQADD, 3, 0 }, // SQADD_asisdsame_only
-    { "sqshrun", 0xff80fc00U, 0x7f008400U, 1363, Mnemonic::ARM64_SQSHRUN, 3, 0 }, // SQSHRUN_asisdshf_N
-    { "sqrshrn", 0xff80fc00U, 0x5f009c00U, 1363, Mnemonic::ARM64_SQRSHRN, 3, 0 }, // SQRSHRN_asisdshf_N
-    { "sqdmlal", 0xff20fc00U, 0x5e209000U, 865, Mnemonic::ARM64_SQDMLAL, 3, 0 }, // SQDMLAL_asisddiff_only
-    { "sqshrn", 0xff80fc00U, 0x5f009400U, 1363, Mnemonic::ARM64_SQSHRN, 3, 0 }, // SQSHRN_asisdshf_N
-    { "sqdmulh", 0xff20fc00U, 0x5e20b400U, 1416, Mnemonic::ARM64_SQDMULH, 3, 0 }, // SQDMULH_asisdsame_only
-    { "uqadd", 0xff20fc00U, 0x7e200c00U, 1416, Mnemonic::ARM64_UQADD, 3, 0 }, // UQADD_asisdsame_only
-    { "sqrshl", 0xff20fc00U, 0x5e205c00U, 1416, Mnemonic::ARM64_SQRSHL, 3, 0 }, // SQRSHL_asisdsame_only
-    { "sqrdmlah", 0xff20fc00U, 0x7e008400U, 1416, Mnemonic::ARM64_SQRDMLAH, 3, 0 }, // SQRDMLAH_asisdsame2_only
-    { "uqrshrn", 0xff80fc00U, 0x7f009c00U, 1363, Mnemonic::ARM64_UQRSHRN, 3, 0 }, // UQRSHRN_asisdshf_N
-    { "fmla", 0xffc0f400U, 0x5f001000U, 1419, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asisdelem_RH_H
-    { "sqshlu", 0xff80fc00U, 0x7f006400U, 1422, Mnemonic::ARM64_SQSHLU, 3, 0 }, // SQSHLU_asisdshf_R
-    { "fcvtzs", 0xff80fc00U, 0x5f00fc00U, 1425, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_asisdshf_C
-    { "sqdmlsl", 0xff20fc00U, 0x5e20b000U, 865, Mnemonic::ARM64_SQDMLSL, 3, 0 }, // SQDMLSL_asisddiff_only
-    { "uqsub", 0xff20fc00U, 0x7e202c00U, 1416, Mnemonic::ARM64_UQSUB, 3, 0 }, // UQSUB_asisdsame_only
-    { "uqshl", 0xff80fc00U, 0x7f007400U, 1422, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asisdshf_R
-    { "uqshrn", 0xff80fc00U, 0x7f009400U, 1363, Mnemonic::ARM64_UQSHRN, 3, 0 }, // UQSHRN_asisdshf_N
-    { "sqshl", 0xff80fc00U, 0x5f007400U, 1422, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asisdshf_R
-    { "fmls", 0xffc0f400U, 0x5f005000U, 1419, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asisdelem_RH_H
-    { "sqrshrun", 0xff80fc00U, 0x7f008c00U, 1363, Mnemonic::ARM64_SQRSHRUN, 3, 0 }, // SQRSHRUN_asisdshf_N
-    { "sqrdmulh", 0xff20fc00U, 0x7e20b400U, 1416, Mnemonic::ARM64_SQRDMULH, 3, 0 }, // SQRDMULH_asisdsame_only
-    { "sqdmull", 0xff20fc00U, 0x5e20d000U, 865, Mnemonic::ARM64_SQDMULL, 3, 0 }, // SQDMULL_asisddiff_only
-    { "uqshl", 0xff20fc00U, 0x7e204c00U, 1416, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asisdsame_only
-    { "sqsub", 0xff20fc00U, 0x5e202c00U, 1416, Mnemonic::ARM64_SQSUB, 3, 0 }, // SQSUB_asisdsame_only
-    { "ucvtf", 0xff80fc00U, 0x7f00e400U, 1425, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_asisdshf_C
-    { "fcvtzu", 0xff80fc00U, 0x7f00fc00U, 1425, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_asisdshf_C
-    { "fmul", 0xffc0f400U, 0x5f009000U, 1419, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asisdelem_RH_H
-    { "scvtf", 0xff80fc00U, 0x5f00e400U, 1425, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_asisdshf_C
-    { "sqshl", 0xff20fc00U, 0x5e204c00U, 1416, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asisdsame_only
-    { "fmulx", 0xffc0f400U, 0x7f009000U, 1419, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asisdelem_RH_H
-    { "uqrshl", 0xff20fc00U, 0x7e205c00U, 1416, Mnemonic::ARM64_UQRSHL, 3, 0 }, // UQRSHL_asisdsame_only
-    { "sqrdmlsh", 0xff20fc00U, 0x7e008c00U, 1416, Mnemonic::ARM64_SQRDMLSH, 3, 0 }, // SQRDMLSH_asisdsame2_only
-    { "fccmpe", 0xffe00c10U, 0x1ee00410U, 1428, Mnemonic::ARM64_FCCMPE, 2, 0 }, // FCCMPE_H_floatccmp
-    { "fccmpe", 0xffe00c10U, 0x1e200410U, 1430, Mnemonic::ARM64_FCCMPE, 2, 0 }, // FCCMPE_S_floatccmp
-    { "fccmpe", 0xffe00c10U, 0x1e600410U, 1432, Mnemonic::ARM64_FCCMPE, 2, 0 }, // FCCMPE_D_floatccmp
-    { "fmla", 0xff80f400U, 0x5f801000U, 1434, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asisdelem_R_SD
-    { "fmls", 0xff80f400U, 0x5f805000U, 1434, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asisdelem_R_SD
-    { "fmul", 0xff80f400U, 0x5f809000U, 1434, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asisdelem_R_SD
-    { "fccmp", 0xffe00c10U, 0x1ee00400U, 1428, Mnemonic::ARM64_FCCMP, 2, 0 }, // FCCMP_H_floatccmp
-    { "fccmp", 0xffe00c10U, 0x1e200400U, 1430, Mnemonic::ARM64_FCCMP, 2, 0 }, // FCCMP_S_floatccmp
-    { "fccmp", 0xffe00c10U, 0x1e600400U, 1432, Mnemonic::ARM64_FCCMP, 2, 0 }, // FCCMP_D_floatccmp
-    { "fmulx", 0xff80f400U, 0x7f809000U, 1434, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asisdelem_R_SD
-    { "sqdmulh", 0xff00f400U, 0x5f00c000U, 1437, Mnemonic::ARM64_SQDMULH, 4, 0 }, // SQDMULH_asisdelem_R
-    { "sqrdmlah", 0xff00f400U, 0x7f00d000U, 1437, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // SQRDMLAH_asisdelem_R
-    { "fcsel", 0xffe00c00U, 0x1ee00c00U, 1441, Mnemonic::ARM64_FCSEL, 3, 0 }, // FCSEL_H_floatsel
-    { "fcsel", 0xffe00c00U, 0x1e200c00U, 1444, Mnemonic::ARM64_FCSEL, 3, 0 }, // FCSEL_S_floatsel
-    { "fcsel", 0xffe00c00U, 0x1e600c00U, 1447, Mnemonic::ARM64_FCSEL, 3, 0 }, // FCSEL_D_floatsel
-    { "sqdmlal", 0xff00f400U, 0x5f003000U, 1450, Mnemonic::ARM64_SQDMLAL, 4, 0 }, // SQDMLAL_asisdelem_L
-    { "sqrdmlsh", 0xff00f400U, 0x7f00f000U, 1437, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // SQRDMLSH_asisdelem_R
-    { "sqdmull", 0xff00f400U, 0x5f00b000U, 1450, Mnemonic::ARM64_SQDMULL, 4, 0 }, // SQDMULL_asisdelem_L
-    { "sqrdmulh", 0xff00f400U, 0x5f00d000U, 1437, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // SQRDMULH_asisdelem_R
-    { "sqdmlsl", 0xff00f400U, 0x5f007000U, 1450, Mnemonic::ARM64_SQDMLSL, 4, 0 }, // SQDMLSL_asisdelem_L
-    { "fmadd", 0xffe08000U, 0x1fc00000U, 1312, Mnemonic::ARM64_FMADD, 2, 0 }, // FMADD_H_floatdp3
-    { "fmadd", 0xffe08000U, 0x1f000000U, 1314, Mnemonic::ARM64_FMADD, 2, 0 }, // FMADD_S_floatdp3
-    { "fmadd", 0xffe08000U, 0x1f400000U, 1316, Mnemonic::ARM64_FMADD, 2, 0 }, // FMADD_D_floatdp3
-    { "fnmsub", 0xffe08000U, 0x1fe08000U, 1312, Mnemonic::ARM64_FNMSUB, 2, 0 }, // FNMSUB_H_floatdp3
-    { "fnmsub", 0xffe08000U, 0x1f208000U, 1314, Mnemonic::ARM64_FNMSUB, 2, 0 }, // FNMSUB_S_floatdp3
-    { "fnmsub", 0xffe08000U, 0x1f608000U, 1316, Mnemonic::ARM64_FNMSUB, 2, 0 }, // FNMSUB_D_floatdp3
-    { "fnmadd", 0xffe08000U, 0x1fe00000U, 1312, Mnemonic::ARM64_FNMADD, 2, 0 }, // FNMADD_H_floatdp3
-    { "fnmadd", 0xffe08000U, 0x1f200000U, 1314, Mnemonic::ARM64_FNMADD, 2, 0 }, // FNMADD_S_floatdp3
-    { "fnmadd", 0xffe08000U, 0x1f600000U, 1316, Mnemonic::ARM64_FNMADD, 2, 0 }, // FNMADD_D_floatdp3
-    { "fmsub", 0xffe08000U, 0x1fc08000U, 1312, Mnemonic::ARM64_FMSUB, 2, 0 }, // FMSUB_H_floatdp3
-    { "fmsub", 0xffe08000U, 0x1f008000U, 1314, Mnemonic::ARM64_FMSUB, 2, 0 }, // FMSUB_S_floatdp3
-    { "fmsub", 0xffe08000U, 0x1f408000U, 1316, Mnemonic::ARM64_FMSUB, 2, 0 }, // FMSUB_D_floatdp3
-    { "bl", 0xfc000000U, 0x94000000U, 1454, Mnemonic::ARM64_BL, 1, 0 }, // BL_only_branch_imm
-    { "b", 0xfc000000U, 0x14000000U, 1454, Mnemonic::ARM64_B, 1, 0 }, // B_only_branch_imm
+    { "suqadd", 0xff3ffc00U, 0x5e203800U, 1359, Mnemonic::ARM64_SUQADD, 2, 0 }, // SUQADD_asisdmisc_R
+    { "sqabs", 0xff3ffc00U, 0x5e207800U, 1359, Mnemonic::ARM64_SQABS, 2, 0 }, // SQABS_asisdmisc_R
+    { "usqadd", 0xff3ffc00U, 0x7e203800U, 1359, Mnemonic::ARM64_USQADD, 2, 0 }, // USQADD_asisdmisc_R
+    { "sqneg", 0xff3ffc00U, 0x7e207800U, 1359, Mnemonic::ARM64_SQNEG, 2, 0 }, // SQNEG_asisdmisc_R
+    { "fmov", 0xffe01fe0U, 0x1ee01000U, 1361, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_H_floatimm
+    { "fmov", 0xffe01fe0U, 0x1e201000U, 1363, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_S_floatimm
+    { "fmov", 0xffe01fe0U, 0x1e601000U, 1365, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_D_floatimm
+    { "fdiv", 0xffe0fc00U, 0x1ee01800U, 1310, Mnemonic::ARM64_FDIV, 2, 0 }, // FDIV_H_floatdp2
+    { "fdiv", 0xffe0fc00U, 0x1e201800U, 1312, Mnemonic::ARM64_FDIV, 2, 0 }, // FDIV_S_floatdp2
+    { "fdiv", 0xffe0fc00U, 0x1e601800U, 1314, Mnemonic::ARM64_FDIV, 2, 0 }, // FDIV_D_floatdp2
+    { "fnmul", 0xffe0fc00U, 0x1ee08800U, 1310, Mnemonic::ARM64_FNMUL, 2, 0 }, // FNMUL_H_floatdp2
+    { "fnmul", 0xffe0fc00U, 0x1e208800U, 1312, Mnemonic::ARM64_FNMUL, 2, 0 }, // FNMUL_S_floatdp2
+    { "fnmul", 0xffe0fc00U, 0x1e608800U, 1314, Mnemonic::ARM64_FNMUL, 2, 0 }, // FNMUL_D_floatdp2
+    { "fmin", 0xffe0fc00U, 0x1ee05800U, 1310, Mnemonic::ARM64_FMIN, 2, 0 }, // FMIN_H_floatdp2
+    { "fmin", 0xffe0fc00U, 0x1e205800U, 1312, Mnemonic::ARM64_FMIN, 2, 0 }, // FMIN_S_floatdp2
+    { "fmin", 0xffe0fc00U, 0x1e605800U, 1314, Mnemonic::ARM64_FMIN, 2, 0 }, // FMIN_D_floatdp2
+    { "facge", 0xffe0fc00U, 0x7e402c00U, 1310, Mnemonic::ARM64_FACGE, 2, 0 }, // FACGE_asisdsamefp16_only
+    { "fcmeq", 0xffe0fc00U, 0x5e402400U, 1310, Mnemonic::ARM64_FCMEQ, 2, 0 }, // FCMEQ_asisdsamefp16_only
+    { "sha1m", 0xffe0fc00U, 0x5e002000U, 1367, Mnemonic::ARM64_SHA1M, 3, 0 }, // SHA1M_QSV_cryptosha3
+    { "frsqrts", 0xffe0fc00U, 0x5ec03c00U, 1310, Mnemonic::ARM64_FRSQRTS, 2, 0 }, // FRSQRTS_asisdsamefp16_only
+    { "sub", 0xffe0fc00U, 0x7ee08400U, 863, Mnemonic::ARM64_SUB, 3, 0 }, // SUB_asisdsame_only
+    { "cmge", 0xffe0fc00U, 0x5ee03c00U, 863, Mnemonic::ARM64_CMGE, 3, 0 }, // CMGE_asisdsame_only
+    { "fadd", 0xffe0fc00U, 0x1ee02800U, 1310, Mnemonic::ARM64_FADD, 2, 0 }, // FADD_H_floatdp2
+    { "fadd", 0xffe0fc00U, 0x1e202800U, 1312, Mnemonic::ARM64_FADD, 2, 0 }, // FADD_S_floatdp2
+    { "fadd", 0xffe0fc00U, 0x1e602800U, 1314, Mnemonic::ARM64_FADD, 2, 0 }, // FADD_D_floatdp2
+    { "sha256h", 0xffe0fc00U, 0x5e004000U, 868, Mnemonic::ARM64_SHA256H, 3, 0 }, // SHA256H_QQV_cryptosha3
+    { "fcmgt", 0xffe0fc00U, 0x7ec02400U, 1310, Mnemonic::ARM64_FCMGT, 2, 0 }, // FCMGT_asisdsamefp16_only
+    { "fmaxnm", 0xffe0fc00U, 0x1ee06800U, 1310, Mnemonic::ARM64_FMAXNM, 2, 0 }, // FMAXNM_H_floatdp2
+    { "fmaxnm", 0xffe0fc00U, 0x1e206800U, 1312, Mnemonic::ARM64_FMAXNM, 2, 0 }, // FMAXNM_S_floatdp2
+    { "fmaxnm", 0xffe0fc00U, 0x1e606800U, 1314, Mnemonic::ARM64_FMAXNM, 2, 0 }, // FMAXNM_D_floatdp2
+    { "sha256su1", 0xffe0fc00U, 0x5e006000U, 863, Mnemonic::ARM64_SHA256SU1, 3, 0 }, // SHA256SU1_VVV_cryptosha3
+    { "fmulx", 0xffe0fc00U, 0x5e401c00U, 1310, Mnemonic::ARM64_FMULX, 2, 0 }, // FMULX_asisdsamefp16_only
+    { "cmhi", 0xffe0fc00U, 0x7ee03400U, 863, Mnemonic::ARM64_CMHI, 3, 0 }, // CMHI_asisdsame_only
+    { "srshl", 0xffe0fc00U, 0x5ee05400U, 863, Mnemonic::ARM64_SRSHL, 3, 0 }, // SRSHL_asisdsame_only
+    { "sshl", 0xffe0fc00U, 0x5ee04400U, 863, Mnemonic::ARM64_SSHL, 3, 0 }, // SSHL_asisdsame_only
+    { "fabd", 0xffe0fc00U, 0x7ec01400U, 1310, Mnemonic::ARM64_FABD, 2, 0 }, // FABD_asisdsamefp16_only
+    { "sha256h2", 0xffe0fc00U, 0x5e005000U, 868, Mnemonic::ARM64_SHA256H2, 3, 0 }, // SHA256H2_QQV_cryptosha3
+    { "cmgt", 0xffe0fc00U, 0x5ee03400U, 863, Mnemonic::ARM64_CMGT, 3, 0 }, // CMGT_asisdsame_only
+    { "fsub", 0xffe0fc00U, 0x1ee03800U, 1310, Mnemonic::ARM64_FSUB, 2, 0 }, // FSUB_H_floatdp2
+    { "fsub", 0xffe0fc00U, 0x1e203800U, 1312, Mnemonic::ARM64_FSUB, 2, 0 }, // FSUB_S_floatdp2
+    { "fsub", 0xffe0fc00U, 0x1e603800U, 1314, Mnemonic::ARM64_FSUB, 2, 0 }, // FSUB_D_floatdp2
+    { "dup", 0xffe0fc00U, 0x5e000400U, 1370, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asisdone_only
+    { "ushl", 0xffe0fc00U, 0x7ee04400U, 863, Mnemonic::ARM64_USHL, 3, 0 }, // USHL_asisdsame_only
+    { "cmhs", 0xffe0fc00U, 0x7ee03c00U, 863, Mnemonic::ARM64_CMHS, 3, 0 }, // CMHS_asisdsame_only
+    { "sha1su0", 0xffe0fc00U, 0x5e003000U, 863, Mnemonic::ARM64_SHA1SU0, 3, 0 }, // SHA1SU0_VVV_cryptosha3
+    { "cmtst", 0xffe0fc00U, 0x5ee08c00U, 863, Mnemonic::ARM64_CMTST, 3, 0 }, // CMTST_asisdsame_only
+    { "fmul", 0xffe0fc00U, 0x1ee00800U, 1310, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_H_floatdp2
+    { "fmul", 0xffe0fc00U, 0x1e200800U, 1312, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_S_floatdp2
+    { "fmul", 0xffe0fc00U, 0x1e600800U, 1314, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_D_floatdp2
+    { "urshl", 0xffe0fc00U, 0x7ee05400U, 863, Mnemonic::ARM64_URSHL, 3, 0 }, // URSHL_asisdsame_only
+    { "cmeq", 0xffe0fc00U, 0x7ee08c00U, 863, Mnemonic::ARM64_CMEQ, 3, 0 }, // CMEQ_asisdsame_only
+    { "mov", 0xffe0fc00U, 0x5e000400U, 1370, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_DUP_asisdone_only
+    { "sha1p", 0xffe0fc00U, 0x5e001000U, 1367, Mnemonic::ARM64_SHA1P, 3, 0 }, // SHA1P_QSV_cryptosha3
+    { "fminnm", 0xffe0fc00U, 0x1ee07800U, 1310, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_H_floatdp2
+    { "fminnm", 0xffe0fc00U, 0x1e207800U, 1312, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_S_floatdp2
+    { "fminnm", 0xffe0fc00U, 0x1e607800U, 1314, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_D_floatdp2
+    { "facgt", 0xffe0fc00U, 0x7ec02c00U, 1310, Mnemonic::ARM64_FACGT, 2, 0 }, // FACGT_asisdsamefp16_only
+    { "frecps", 0xffe0fc00U, 0x5e403c00U, 1310, Mnemonic::ARM64_FRECPS, 2, 0 }, // FRECPS_asisdsamefp16_only
+    { "fmax", 0xffe0fc00U, 0x1ee04800U, 1310, Mnemonic::ARM64_FMAX, 2, 0 }, // FMAX_H_floatdp2
+    { "fmax", 0xffe0fc00U, 0x1e204800U, 1312, Mnemonic::ARM64_FMAX, 2, 0 }, // FMAX_S_floatdp2
+    { "fmax", 0xffe0fc00U, 0x1e604800U, 1314, Mnemonic::ARM64_FMAX, 2, 0 }, // FMAX_D_floatdp2
+    { "sha1c", 0xffe0fc00U, 0x5e000000U, 1367, Mnemonic::ARM64_SHA1C, 3, 0 }, // SHA1C_QSV_cryptosha3
+    { "add", 0xffe0fc00U, 0x5ee08400U, 863, Mnemonic::ARM64_ADD, 3, 0 }, // ADD_asisdsame_only
+    { "fcmge", 0xffe0fc00U, 0x7e402400U, 1310, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdsamefp16_only
+    { "ushr", 0xffc0fc00U, 0x7f400400U, 1372, Mnemonic::ARM64_USHR, 3, 0 }, // USHR_asisdshf_R
+    { "facge", 0xffa0fc00U, 0x7e20ec00U, 1375, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asisdsame_only
+    { "fcmeq", 0xffa0fc00U, 0x5e20e400U, 1375, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asisdsame_only
+    { "frsqrts", 0xffa0fc00U, 0x5ea0fc00U, 1375, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asisdsame_only
+    { "shl", 0xffc0fc00U, 0x5f405400U, 1372, Mnemonic::ARM64_SHL, 3, 0 }, // SHL_asisdshf_R
+    { "srshr", 0xffc0fc00U, 0x5f402400U, 1372, Mnemonic::ARM64_SRSHR, 3, 0 }, // SRSHR_asisdshf_R
+    { "sshr", 0xffc0fc00U, 0x5f400400U, 1372, Mnemonic::ARM64_SSHR, 3, 0 }, // SSHR_asisdshf_R
+    { "fcmgt", 0xffa0fc00U, 0x7ea0e400U, 1375, Mnemonic::ARM64_FCMGT, 3, 0 }, // FCMGT_asisdsame_only
+    { "fcvtzs", 0xffff0000U, 0x1ed80000U, 1378, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_32H_float2fix
+    { "fcvtzs", 0xffff0000U, 0x9ed80000U, 1381, Mnemonic::ARM64_FCVTZS, 3, 1 }, // FCVTZS_64H_float2fix
+    { "fcvtzs", 0xffff0000U, 0x1e180000U, 1384, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_32S_float2fix
+    { "fcvtzs", 0xffff0000U, 0x9e180000U, 1387, Mnemonic::ARM64_FCVTZS, 3, 1 }, // FCVTZS_64S_float2fix
+    { "fcvtzs", 0xffff0000U, 0x1e580000U, 1390, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_32D_float2fix
+    { "fcvtzs", 0xffff0000U, 0x9e580000U, 1393, Mnemonic::ARM64_FCVTZS, 3, 1 }, // FCVTZS_64D_float2fix
+    { "urshr", 0xffc0fc00U, 0x7f402400U, 1372, Mnemonic::ARM64_URSHR, 3, 0 }, // URSHR_asisdshf_R
+    { "fmulx", 0xffa0fc00U, 0x5e20dc00U, 1375, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asisdsame_only
+    { "scvtf", 0xffff0000U, 0x1ec20000U, 1396, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_H32_float2fix
+    { "scvtf", 0xffff0000U, 0x9ec20000U, 1399, Mnemonic::ARM64_SCVTF, 3, 1 }, // SCVTF_H64_float2fix
+    { "scvtf", 0xffff0000U, 0x1e020000U, 1402, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_S32_float2fix
+    { "scvtf", 0xffff0000U, 0x9e020000U, 1405, Mnemonic::ARM64_SCVTF, 3, 1 }, // SCVTF_S64_float2fix
+    { "scvtf", 0xffff0000U, 0x1e420000U, 1408, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_D32_float2fix
+    { "scvtf", 0xffff0000U, 0x9e420000U, 1411, Mnemonic::ARM64_SCVTF, 3, 1 }, // SCVTF_D64_float2fix
+    { "fabd", 0xffa0fc00U, 0x7ea0d400U, 1375, Mnemonic::ARM64_FABD, 3, 0 }, // FABD_asisdsame_only
+    { "ursra", 0xffc0fc00U, 0x7f403400U, 1372, Mnemonic::ARM64_URSRA, 3, 0 }, // URSRA_asisdshf_R
+    { "fcvtzu", 0xffff0000U, 0x1ed90000U, 1378, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_32H_float2fix
+    { "fcvtzu", 0xffff0000U, 0x9ed90000U, 1381, Mnemonic::ARM64_FCVTZU, 3, 1 }, // FCVTZU_64H_float2fix
+    { "fcvtzu", 0xffff0000U, 0x1e190000U, 1384, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_32S_float2fix
+    { "fcvtzu", 0xffff0000U, 0x9e190000U, 1387, Mnemonic::ARM64_FCVTZU, 3, 1 }, // FCVTZU_64S_float2fix
+    { "fcvtzu", 0xffff0000U, 0x1e590000U, 1390, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_32D_float2fix
+    { "fcvtzu", 0xffff0000U, 0x9e590000U, 1393, Mnemonic::ARM64_FCVTZU, 3, 1 }, // FCVTZU_64D_float2fix
+    { "sli", 0xffc0fc00U, 0x7f405400U, 1372, Mnemonic::ARM64_SLI, 3, 0 }, // SLI_asisdshf_R
+    { "usra", 0xffc0fc00U, 0x7f401400U, 1372, Mnemonic::ARM64_USRA, 3, 0 }, // USRA_asisdshf_R
+    { "sri", 0xffc0fc00U, 0x7f404400U, 1372, Mnemonic::ARM64_SRI, 3, 0 }, // SRI_asisdshf_R
+    { "facgt", 0xffa0fc00U, 0x7ea0ec00U, 1375, Mnemonic::ARM64_FACGT, 3, 0 }, // FACGT_asisdsame_only
+    { "frecps", 0xffa0fc00U, 0x5e20fc00U, 1375, Mnemonic::ARM64_FRECPS, 3, 0 }, // FRECPS_asisdsame_only
+    { "ssra", 0xffc0fc00U, 0x5f401400U, 1372, Mnemonic::ARM64_SSRA, 3, 0 }, // SSRA_asisdshf_R
+    { "fcmge", 0xffa0fc00U, 0x7e20e400U, 1375, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asisdsame_only
+    { "ucvtf", 0xffff0000U, 0x1ec30000U, 1396, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_H32_float2fix
+    { "ucvtf", 0xffff0000U, 0x9ec30000U, 1399, Mnemonic::ARM64_UCVTF, 3, 1 }, // UCVTF_H64_float2fix
+    { "ucvtf", 0xffff0000U, 0x1e030000U, 1402, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_S32_float2fix
+    { "ucvtf", 0xffff0000U, 0x9e030000U, 1405, Mnemonic::ARM64_UCVTF, 3, 1 }, // UCVTF_S64_float2fix
+    { "ucvtf", 0xffff0000U, 0x1e430000U, 1408, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_D32_float2fix
+    { "ucvtf", 0xffff0000U, 0x9e430000U, 1411, Mnemonic::ARM64_UCVTF, 3, 1 }, // UCVTF_D64_float2fix
+    { "srsra", 0xffc0fc00U, 0x5f403400U, 1372, Mnemonic::ARM64_SRSRA, 3, 0 }, // SRSRA_asisdshf_R
+    { "sqadd", 0xff20fc00U, 0x5e200c00U, 1414, Mnemonic::ARM64_SQADD, 3, 0 }, // SQADD_asisdsame_only
+    { "sqshrun", 0xff80fc00U, 0x7f008400U, 1417, Mnemonic::ARM64_SQSHRUN, 3, 0 }, // SQSHRUN_asisdshf_N
+    { "sqrshrn", 0xff80fc00U, 0x5f009c00U, 1417, Mnemonic::ARM64_SQRSHRN, 3, 0 }, // SQRSHRN_asisdshf_N
+    { "sqdmlal", 0xff20fc00U, 0x5e209000U, 863, Mnemonic::ARM64_SQDMLAL, 3, 0 }, // SQDMLAL_asisddiff_only
+    { "sqshrn", 0xff80fc00U, 0x5f009400U, 1417, Mnemonic::ARM64_SQSHRN, 3, 0 }, // SQSHRN_asisdshf_N
+    { "sqdmulh", 0xff20fc00U, 0x5e20b400U, 1414, Mnemonic::ARM64_SQDMULH, 3, 0 }, // SQDMULH_asisdsame_only
+    { "uqadd", 0xff20fc00U, 0x7e200c00U, 1414, Mnemonic::ARM64_UQADD, 3, 0 }, // UQADD_asisdsame_only
+    { "sqrshl", 0xff20fc00U, 0x5e205c00U, 1414, Mnemonic::ARM64_SQRSHL, 3, 0 }, // SQRSHL_asisdsame_only
+    { "sqrdmlah", 0xff20fc00U, 0x7e008400U, 1414, Mnemonic::ARM64_SQRDMLAH, 3, 0 }, // SQRDMLAH_asisdsame2_only
+    { "uqrshrn", 0xff80fc00U, 0x7f009c00U, 1417, Mnemonic::ARM64_UQRSHRN, 3, 0 }, // UQRSHRN_asisdshf_N
+    { "fmla", 0xffc0f400U, 0x5f001000U, 1420, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asisdelem_RH_H
+    { "sqshlu", 0xff80fc00U, 0x7f006400U, 1423, Mnemonic::ARM64_SQSHLU, 3, 0 }, // SQSHLU_asisdshf_R
+    { "fcvtzs", 0xff80fc00U, 0x5f00fc00U, 1426, Mnemonic::ARM64_FCVTZS, 3, 0 }, // FCVTZS_asisdshf_C
+    { "sqdmlsl", 0xff20fc00U, 0x5e20b000U, 863, Mnemonic::ARM64_SQDMLSL, 3, 0 }, // SQDMLSL_asisddiff_only
+    { "uqsub", 0xff20fc00U, 0x7e202c00U, 1414, Mnemonic::ARM64_UQSUB, 3, 0 }, // UQSUB_asisdsame_only
+    { "uqshl", 0xff80fc00U, 0x7f007400U, 1423, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asisdshf_R
+    { "uqshrn", 0xff80fc00U, 0x7f009400U, 1417, Mnemonic::ARM64_UQSHRN, 3, 0 }, // UQSHRN_asisdshf_N
+    { "sqshl", 0xff80fc00U, 0x5f007400U, 1423, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asisdshf_R
+    { "fmls", 0xffc0f400U, 0x5f005000U, 1420, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asisdelem_RH_H
+    { "sqrshrun", 0xff80fc00U, 0x7f008c00U, 1417, Mnemonic::ARM64_SQRSHRUN, 3, 0 }, // SQRSHRUN_asisdshf_N
+    { "sqrdmulh", 0xff20fc00U, 0x7e20b400U, 1414, Mnemonic::ARM64_SQRDMULH, 3, 0 }, // SQRDMULH_asisdsame_only
+    { "sqdmull", 0xff20fc00U, 0x5e20d000U, 863, Mnemonic::ARM64_SQDMULL, 3, 0 }, // SQDMULL_asisddiff_only
+    { "uqshl", 0xff20fc00U, 0x7e204c00U, 1414, Mnemonic::ARM64_UQSHL, 3, 0 }, // UQSHL_asisdsame_only
+    { "sqsub", 0xff20fc00U, 0x5e202c00U, 1414, Mnemonic::ARM64_SQSUB, 3, 0 }, // SQSUB_asisdsame_only
+    { "ucvtf", 0xff80fc00U, 0x7f00e400U, 1426, Mnemonic::ARM64_UCVTF, 3, 0 }, // UCVTF_asisdshf_C
+    { "fcvtzu", 0xff80fc00U, 0x7f00fc00U, 1426, Mnemonic::ARM64_FCVTZU, 3, 0 }, // FCVTZU_asisdshf_C
+    { "fmul", 0xffc0f400U, 0x5f009000U, 1420, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asisdelem_RH_H
+    { "scvtf", 0xff80fc00U, 0x5f00e400U, 1426, Mnemonic::ARM64_SCVTF, 3, 0 }, // SCVTF_asisdshf_C
+    { "sqshl", 0xff20fc00U, 0x5e204c00U, 1414, Mnemonic::ARM64_SQSHL, 3, 0 }, // SQSHL_asisdsame_only
+    { "fmulx", 0xffc0f400U, 0x7f009000U, 1420, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asisdelem_RH_H
+    { "uqrshl", 0xff20fc00U, 0x7e205c00U, 1414, Mnemonic::ARM64_UQRSHL, 3, 0 }, // UQRSHL_asisdsame_only
+    { "sqrdmlsh", 0xff20fc00U, 0x7e008c00U, 1414, Mnemonic::ARM64_SQRDMLSH, 3, 0 }, // SQRDMLSH_asisdsame2_only
+    { "fccmpe", 0xffe00c10U, 0x1ee00410U, 1429, Mnemonic::ARM64_FCCMPE, 2, 0 }, // FCCMPE_H_floatccmp
+    { "fccmpe", 0xffe00c10U, 0x1e200410U, 1431, Mnemonic::ARM64_FCCMPE, 2, 0 }, // FCCMPE_S_floatccmp
+    { "fccmpe", 0xffe00c10U, 0x1e600410U, 1433, Mnemonic::ARM64_FCCMPE, 2, 0 }, // FCCMPE_D_floatccmp
+    { "fmla", 0xff80f400U, 0x5f801000U, 1435, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asisdelem_R_SD
+    { "fmls", 0xff80f400U, 0x5f805000U, 1435, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asisdelem_R_SD
+    { "fmul", 0xff80f400U, 0x5f809000U, 1435, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asisdelem_R_SD
+    { "fccmp", 0xffe00c10U, 0x1ee00400U, 1429, Mnemonic::ARM64_FCCMP, 2, 0 }, // FCCMP_H_floatccmp
+    { "fccmp", 0xffe00c10U, 0x1e200400U, 1431, Mnemonic::ARM64_FCCMP, 2, 0 }, // FCCMP_S_floatccmp
+    { "fccmp", 0xffe00c10U, 0x1e600400U, 1433, Mnemonic::ARM64_FCCMP, 2, 0 }, // FCCMP_D_floatccmp
+    { "fmulx", 0xff80f400U, 0x7f809000U, 1435, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asisdelem_R_SD
+    { "sqdmulh", 0xff00f400U, 0x5f00c000U, 1438, Mnemonic::ARM64_SQDMULH, 4, 0 }, // SQDMULH_asisdelem_R
+    { "sqrdmlah", 0xff00f400U, 0x7f00d000U, 1438, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // SQRDMLAH_asisdelem_R
+    { "fcsel", 0xffe00c00U, 0x1ee00c00U, 1442, Mnemonic::ARM64_FCSEL, 3, 0 }, // FCSEL_H_floatsel
+    { "fcsel", 0xffe00c00U, 0x1e200c00U, 1445, Mnemonic::ARM64_FCSEL, 3, 0 }, // FCSEL_S_floatsel
+    { "fcsel", 0xffe00c00U, 0x1e600c00U, 1448, Mnemonic::ARM64_FCSEL, 3, 0 }, // FCSEL_D_floatsel
+    { "sqdmlal", 0xff00f400U, 0x5f003000U, 1451, Mnemonic::ARM64_SQDMLAL, 4, 0 }, // SQDMLAL_asisdelem_L
+    { "sqrdmlsh", 0xff00f400U, 0x7f00f000U, 1438, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // SQRDMLSH_asisdelem_R
+    { "sqdmull", 0xff00f400U, 0x5f00b000U, 1451, Mnemonic::ARM64_SQDMULL, 4, 0 }, // SQDMULL_asisdelem_L
+    { "sqrdmulh", 0xff00f400U, 0x5f00d000U, 1438, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // SQRDMULH_asisdelem_R
+    { "sqdmlsl", 0xff00f400U, 0x5f007000U, 1451, Mnemonic::ARM64_SQDMLSL, 4, 0 }, // SQDMLSL_asisdelem_L
+    { "fmadd", 0xffe08000U, 0x1fc00000U, 1310, Mnemonic::ARM64_FMADD, 2, 0 }, // FMADD_H_floatdp3
+    { "fmadd", 0xffe08000U, 0x1f000000U, 1312, Mnemonic::ARM64_FMADD, 2, 0 }, // FMADD_S_floatdp3
+    { "fmadd", 0xffe08000U, 0x1f400000U, 1314, Mnemonic::ARM64_FMADD, 2, 0 }, // FMADD_D_floatdp3
+    { "fnmsub", 0xffe08000U, 0x1fe08000U, 1310, Mnemonic::ARM64_FNMSUB, 2, 0 }, // FNMSUB_H_floatdp3
+    { "fnmsub", 0xffe08000U, 0x1f208000U, 1312, Mnemonic::ARM64_FNMSUB, 2, 0 }, // FNMSUB_S_floatdp3
+    { "fnmsub", 0xffe08000U, 0x1f608000U, 1314, Mnemonic::ARM64_FNMSUB, 2, 0 }, // FNMSUB_D_floatdp3
+    { "fnmadd", 0xffe08000U, 0x1fe00000U, 1310, Mnemonic::ARM64_FNMADD, 2, 0 }, // FNMADD_H_floatdp3
+    { "fnmadd", 0xffe08000U, 0x1f200000U, 1312, Mnemonic::ARM64_FNMADD, 2, 0 }, // FNMADD_S_floatdp3
+    { "fnmadd", 0xffe08000U, 0x1f600000U, 1314, Mnemonic::ARM64_FNMADD, 2, 0 }, // FNMADD_D_floatdp3
+    { "fmsub", 0xffe08000U, 0x1fc08000U, 1310, Mnemonic::ARM64_FMSUB, 2, 0 }, // FMSUB_H_floatdp3
+    { "fmsub", 0xffe08000U, 0x1f008000U, 1312, Mnemonic::ARM64_FMSUB, 2, 0 }, // FMSUB_S_floatdp3
+    { "fmsub", 0xffe08000U, 0x1f408000U, 1314, Mnemonic::ARM64_FMSUB, 2, 0 }, // FMSUB_D_floatdp3
+    { "bl", 0xfc000000U, 0x94000000U, 1455, Mnemonic::ARM64_BL, 1, 0 }, // BL_only_branch_imm
+    { "b", 0xfc000000U, 0x14000000U, 1455, Mnemonic::ARM64_B, 1, 0 }, // B_only_branch_imm
 };
 
 const size_t g_instructionTableSize = 4013;
@@ -4880,12 +4884,16 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                             // size=10 → half-precision FP16 operations
                             arrangement = Q ? "8h" : "4h";
                         } else if (size == 3) {
-                            // size=11 → need to distinguish between half and single
+                            // size=11 → need to distinguish between half, single, and double
                             // Check bits[15:10] to distinguish operation class
                             uint32_t bits1510 = extractBits(opcode, 10, 6);
                             if (bits1510 == 0x07) {
                                 // FAMAX/FAMIN half-precision (bits[15:10]=000111)
                                 arrangement = Q ? "8h" : "4h";
+                            } else if (bits1510 == 0x37) {
+                                // FAMAX/FAMIN double-precision (bits[15:10]=110111=0x37)
+                                // Q=0 is UNDEFINED per ARM spec, but handle Q=1
+                                arrangement = Q ? "2d" : "1d";
                             } else {
                                 // Other operations - typically single-precision
                                 arrangement = Q ? "4s" : "2s";
@@ -5030,10 +5038,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                             // size=11 → distinguish based on bits[15:10]
                             uint32_t bits1510 = extractBits(opcode, 10, 6);
                             if (bits1510 == 0x07) {
-                                // FAMAX/FAMIN half-precision
+                                // FAMAX/FAMIN half-precision (opcode=000111)
                                 arrangement = Q ? "8h" : "4h";
+                            } else if (bits1510 == 0x37) {
+                                // FAMAX/FAMIN double-precision (opcode=110111=0x37)
+                                // Q=0 is UNDEFINED per ARM spec, but handle Q=1
+                                arrangement = Q ? "2d" : "1d";
                             } else {
-                                // Other FP ops - might be half or other
+                                // Other FP ops - default to half-precision
                                 arrangement = Q ? "8h" : "4h";
                             }
                         } else {

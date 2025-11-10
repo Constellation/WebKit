@@ -3,21 +3,18 @@
 ## Overview
 
 The ARM64 disassembler correctly handles **all** Q-bit based arrangement patterns across different instruction families. Comprehensive testing shows:
-- **test_all_arrangements_verified.cpp**: 34/34 tests pass (100%)
+- **test_all_arrangements_verified.cpp**: 36/36 tests pass (100%)
 - **test_all_arrangements.cpp**: 44/44 tests pass (100%)
 - **test_all_arrangements_final.cpp**: 34/34 tests pass (100%)
 
-## Important Note: Missing Instructions
+**Total**: 114 test cases, 100% pass rate
 
-⚠️ **FAMAX/FAMIN double-precision (.2D) are missing from the instruction table**
+## Recent Fixes
 
-The instruction table lacks entries for:
-- FAMAX double-precision (size=11, Q=1, .2D)
-- FAMIN double-precision (size=11, Q=1, .2D)
-
-This is due to an incorrect mask in the generated instruction table. See **FAMAX_FAMIN_DOUBLE_MISSING.md** for details.
-
-The **arrangement inference logic is correct** and will work automatically when these entries are added.
+✅ **FAMAX/FAMIN double-precision support added** (previously missing)
+- Added instruction table entries for `.2D` arrangements
+- Fixed arrangement inference logic to detect bits[15:10]=0x37 (110111) for double-precision
+- Q=0 with size=11 remains UNDEFINED per ARM spec
 
 ## Supported Arrangement Patterns
 
