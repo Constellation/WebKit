@@ -28868,7 +28868,7 @@ int main() {
                 printf("  Opcode:   0x%08x\n", tests[i].opcode);
                 printf("  Expected: %s\n", expected.c_str());
                 printf("  Got:      %s\n", got.c_str());
-            } else if (showBinjaDetails && failed < 100) {
+            } else if (showBinjaDetails) {
                 printf("FAIL [%d]: 0x%08x\n", i, tests[i].opcode);
                 printf("  Expected: %s\n", expected.c_str());
                 printf("  Got:      %s\n", got.c_str());
