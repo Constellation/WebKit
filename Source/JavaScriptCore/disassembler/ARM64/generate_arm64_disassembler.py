@@ -1333,7 +1333,6 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 #include "A64InstructionTable.h"
 #include <stdio.h>
 #include <string.h>
-#include <string>
 
 namespace JSC::ARM64Disassembler {
 
@@ -1587,25 +1586,42 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
     // Format mnemonic (with optional "2" suffix and optional condition suffix)
     // Mnemonic is already lowercase in table
-    int offset;
+    // Use stack-allocated buffer to avoid heap allocation
+    int offset = 0;
+    std::array<char, 32> mnemonicBuffer;
     size_t mnemonicLength = strlen(entry->mnemonic);
-    std::string mnemonicStr(entry->mnemonic);
+
+    // Build mnemonic string with optional suffixes
+    size_t pos = 0;
+
+    // Copy base mnemonic
+    ASSERT(8 + mnemonicBuffer.size() >= mnemonicLength);
+    memcpy(mnemonicBuffer.data(), entry->mnemonic, mnemonicLength);
+    pos = mnemonicLength;
 
     // Add "2" suffix if needed (before condition suffix)
+    // Example: smull2
     if (appendTwo)
-        mnemonicStr += "2";
+        mnemonicBuffer[pos++] = '2';
 
+    // Add condition suffix if needed
     if (hasConditionSuffix && conditionCode) {
         // Check if mnemonic already ends with a dot (like "b.")
-        if (mnemonicLength && entry->mnemonic[mnemonicLength - 1] == '.') {
-            // Already has dot, just append condition
-            offset = snprintf(buffer, bufferSize, "   %-9s", (mnemonicStr + conditionCode).c_str());
-        } else {
-            // Add dot before condition
-            offset = snprintf(buffer, bufferSize, "   %-9s", (mnemonicStr + "." + conditionCode).c_str());
-        }
-    } else
-        offset = snprintf(buffer, bufferSize, "   %-9s", mnemonicStr.c_str());
+        bool hasDot = (mnemonicLength > 0 && entry->mnemonic[mnemonicLength - 1] == '.');
+
+        // Add dot before condition if not already present
+        if (!hasDot)
+            mnemonicBuffer[pos++] = '.';
+
+        // Add condition code
+        const char* cc = conditionCode;
+        while (*cc)
+            mnemonicBuffer[pos++] = *cc++;
+    }
+
+    mnemonicBuffer[pos] = 0;
+
+    offset = snprintf(buffer, bufferSize, "   %-9s", mnemonicBuffer.data());
 
     if (offset < 0 || (size_t)offset >= bufferSize)
         return;
