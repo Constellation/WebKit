@@ -47,8 +47,8 @@ int main() {
         // Category 4: OTHER_6_WAYS (element ops, no byte, no double)
         {"OTHER_6_WAYS", "MUL (elem)", 0x0f428000, 0x4f428000, "v0.4h", "v0.8h"}, // size=01, H=0, L=0, M=0, Rm=2
         {"OTHER_6_WAYS", "MUL (elem)", 0x0f828000, 0x4f828000, "v0.2s", "v0.4s"}, // size=10
-        {"OTHER_6_WAYS", "MLA (elem)", 0x0f420000, 0x4f420000, "v0.4h", "v0.8h"}, // FIXED: size=01, Rm=2
-        {"OTHER_6_WAYS", "MLA (elem)", 0x0f820000, 0x4f820000, "v0.2s", "v0.4s"}, // FIXED: size=10, Rm=2
+        {"OTHER_6_WAYS", "MLA (elem)", 0x2f420000, 0x6f420000, "v0.4h", "v0.8h"}, // FIXED: U=1 for MLA (not FMLAL)
+        {"OTHER_6_WAYS", "MLA (elem)", 0x2f820000, 0x6f820000, "v0.2s", "v0.4s"}, // FIXED: U=1 for MLA (not FMLAL)
 
         // Category 5: OTHER_5_WAYS (REV32)
         {"OTHER_5_WAYS", "REV32", 0x2e200800, 0x6e200800, "v0.8b", "v0.16b"},    // size=00
