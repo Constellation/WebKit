@@ -1,0 +1,36 @@
+SVE/SME Disassembly Comparison
+================================
+
+Opcode     | objdump Output                      | Our Output                    | Status
+-----------|-------------------------------------|-------------------------------|-------
+0x04220020 | add z0.b, z1.b, z2.b               | add z0, z1, z2               | ⚠️ Missing element size
+0x04620020 | add z0.h, z1.h, z2.h               | add z0, z1, z2               | ⚠️ Missing element size
+0x04a20020 | add z0.s, z1.s, z2.s               | add z0, z1, z2               | ⚠️ Missing element size
+0x04e20020 | add z0.d, z1.d, z2.d               | add z0, z1, z2               | ⚠️ Missing element size
+           |                                     |                              |
+0x04000020 | add z0.b, p0/m, z0.b, z1.b         | add d0, p0, d0, z1           | ❌ Wrong format
+0x04400020 | add z0.h, p0/m, z0.h, z1.h         | add d0, p0, d0, z1           | ❌ Wrong format
+0x04800020 | add z0.s, p0/m, z0.s, z1.s         | add d0, p0, d0, z1           | ❌ Wrong format
+0x04c00020 | add z0.d, p0/m, z0.d, z1.d         | add d0, p0, d0, z1           | ❌ Wrong format
+           |                                     |                              |
+0x65420820 | fmul z0.h, z1.h, z2.h              | fmul z0, z1, z2              | ⚠️ Missing element size
+0x65820820 | fmul z0.s, z1.s, z2.s              | fmul z0, z1, z2              | ⚠️ Missing element size
+0x65c20820 | fmul z0.d, z1.d, z2.d              | fmul z0, z1, z2              | ⚠️ Missing element size
+           |                                     |                              |
+0xa540a000 | ld1w { z0.s }, p0/z, [x0]          | ld1w p0, [x0]                | ❌ Wrong format
+0xa5e0a000 | ld1d { z0.d }, p0/z, [x0]          | ld1d p0, [x0]                | ❌ Wrong format
+           |                                     |                              |
+0x0ea0dc00 | famax v0.2s, v1.2s, v2.2s          | famax v0.8b, v0.8b, v0.8b    | ❌ Wrong registers & size
+0x4ea0dc00 | famax v0.4s, v1.4s, v2.4s          | famax v0.16b, v0.16b, v0.16b | ❌ Wrong registers & size
+           |                                     |                              |
+0x650e8000 | famax z0.h, p0/m, z0.h, z0.h       | famax d0, p0, d0, z0         | ❌ Wrong register type
+
+Summary of Issues:
+------------------
+1. SVE unpredicated arithmetic: Missing element size suffixes (.b, .h, .s, .d)
+2. SVE predicated operations: Wrong register types and missing /m modifier
+3. SVE load/store: Missing destination register in braces
+4. FAMAX SIMD: Wrong operand extraction (getting wrong registers and sizes)
+5. FAMAX SVE: Using 'd0' instead of 'z0.h'
+
+This indicates the SVE/SME operand formatting logic needs enhancement in the generator.

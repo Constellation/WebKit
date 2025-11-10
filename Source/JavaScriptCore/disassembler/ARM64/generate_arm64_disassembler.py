@@ -987,6 +987,21 @@ class ARM64InstructionParser:
                     return Operand('REG_GPR_W', None, primary_field or 'Rm', secondary_field, is_optional, hover)
                 return Operand('REG_GPR_X', None, primary_field or 'Rm', secondary_field, is_optional, hover)
 
+        # SVE registers - Check BEFORE FP registers to avoid misclassification
+        # SVE Z registers: links like "sa_zdn", "sa_zm", or hover containing "scalable vector"
+        # SVE P registers: links like "sa_pg", "sa_pn", or hover containing "scalable predicate"
+        if 'scalable vector' in hover_lower or any(p in link_lower for p in ['sa_zdn', 'sa_zm', 'sa_zn', 'sa_zd', 'sa_za']):
+            return Operand('REG_SVE_Z', None, primary_field or 'Zd', None, is_optional, hover)
+        if 'scalable predicate' in hover_lower or any(p in link_lower for p in ['sa_pg', 'sa_pn', 'sa_pm', 'sa_pd']):
+            return Operand('REG_SVE_P', None, primary_field or 'Pd', None, is_optional, hover)
+
+        # Also check for traditional SVE link patterns (zd, zn, zm, za, pd, pn, pm, pg)
+        # These come after scalable text check to prioritize hover-based detection
+        if any(p in link_lower for p in ['zd', 'zn', 'zm', 'za']) and not any(p in link_lower for p in ['wzr', 'xzr']):
+            return Operand('REG_SVE_Z', None, primary_field or 'Zd', None, is_optional, hover)
+        if any(p in link_lower for p in ['pd', 'pn', 'pm', 'pg']) and 'predicate' in hover_lower:
+            return Operand('REG_SVE_P', None, primary_field or 'Pd', None, is_optional, hover)
+
         # FP registers
         # Support d/n/m/t/a suffixes (destination/source1/source2/transfer/accumulator)
         # 't' suffix is used for load/store instructions (Rt = transfer register)
@@ -1015,10 +1030,6 @@ class ARM64InstructionParser:
             return Operand('REG_SIMD_V', None, primary_field or 'Rd', None, is_optional, hover)
         if any(p in link_lower for p in ['vt']):
             return Operand('REG_SIMD_V', None, primary_field or 'Rt', None, is_optional, hover)
-
-        # SVE
-        if any(p in link_lower for p in ['zd', 'zn', 'zm', 'za']): return Operand('REG_SVE_Z', None, primary_field or 'Zd', None, is_optional, hover)
-        if any(p in link_lower for p in ['pd', 'pn', 'pm', 'pg']): return Operand('REG_SVE_P', None, primary_field or 'Pd', None, is_optional, hover)
 
         # Bit position (for TBNZ/TBZ)
         if 'bit' in hover_lower and ('number' in hover_lower or 'position' in hover_lower):
@@ -2050,6 +2061,44 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     // Comprehensive element size inference from opcode bits
                     uint32_t Q = field2Val & 0x1;
 
+                    // Detect FP SIMD instructions that use size:Q encoding (FAMAX, FAMIN, etc.)
+                    // Pattern: bits[28:24]=01110 (SIMD FP class), bit[23]=1 (FP with size field)
+                    // This matches FAMAX, FAMIN, and other FP SIMD instructions
+                    uint32_t bits2824 = extractBits(opcode, 24, 5);
+                    uint32_t bit23 = extractBits(opcode, 23, 1);
+                    bool isFPSIMDWithSizeQ = (bits2824 == 0x0E && bit23 == 1);
+
+                    if (isFPSIMDWithSizeQ) {
+                        // FP SIMD instructions (FAMAX, FAMIN, etc.) use size field + Q
+                        // size at bits[23:22] determines precision:
+                        // - 10 (bit[22]=0) → half-precision for FP16 ops
+                        // - 11 (bit[22]=1) → single-precision or half-precision depending on operation
+                        // Extract full size field
+                        uint32_t size = extractBits(opcode, 22, 2);
+
+                        // For half-precision FP16 ops (size[1:0]=10 with bits[22:21]=10)
+                        // or size[1:0]=11 (with various interpretations)
+                        if (size == 2) {
+                            // size=10 → half-precision FP16 operations
+                            arrangement = Q ? "8h" : "4h";
+                        } else if (size == 3) {
+                            // size=11 → need to distinguish between half and single
+                            // Check bits[15:10] to distinguish operation class
+                            uint32_t bits1510 = extractBits(opcode, 10, 6);
+                            if (bits1510 == 0x07) {
+                                // FAMAX/FAMIN half-precision (bits[15:10]=000111)
+                                arrangement = Q ? "8h" : "4h";
+                            } else {
+                                // Other operations - typically single-precision
+                                arrangement = Q ? "4s" : "2s";
+                            }
+                        } else {
+                            // size=00 or 01 → single/double precision (handled in field2Width=0)
+                            // Fallback
+                            arrangement = Q ? "16b" : "8b";
+                        }
+                    } else {
+                        // Non-FP-SIMD instructions - use comprehensive inference
                     // Key bit ranges for classification:
                     uint32_t bits3129 = extractBits(opcode, 29, 3);  // Top-level class
                     uint32_t bits2321 = extractBits(opcode, 21, 3);  // Type/size indicator
@@ -2131,6 +2180,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     else {
                         arrangement = Q ? "16b" : "8b";
                     }
+                    }  // End of non-FAMAX comprehensive inference
                 } else if (op.field2Start == 22 && op.field2Width == 1) {
                     // sz field (bit 22) - FMUL/FABS/etc. floating-point type
                     // Could be standalone or with Q bit - check if Q varies
@@ -2159,10 +2209,43 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
                     else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
                 } else if (op.field2Width == 0) {
-                    // No arrangement field encoded - this shouldn't happen for REG_SIMD_ARRANGED
-                    // Default to Q bit if present
+                    // No arrangement field encoded
                     uint32_t Q = extractBits(opcode, 30, 1);
-                    arrangement = Q ? "16b" : "8b";
+
+                    // Detect FP SIMD instructions that use size:Q encoding (FAMAX, FAMIN, etc.)
+                    // Pattern: bits[28:24]=01110 (SIMD FP class), bit[23]=1 (FP with size field)
+                    uint32_t bits2824 = extractBits(opcode, 24, 5);
+                    uint32_t bit23 = extractBits(opcode, 23, 1);
+                    bool isFPSIMDWithSizeQ = (bits2824 == 0x0E && bit23 == 1);
+
+                    if (isFPSIMDWithSizeQ) {
+                        // FP SIMD instructions (FAMAX, FAMIN, etc.) use size<0>:Q encoding
+                        // size[1:0] at bits[23:22]:
+                        // 10 (bit23=1, bit22=0) → single-precision
+                        // 11 (bit23=1, bit22=1) → half-precision or other
+                        uint32_t full_size = extractBits(opcode, 22, 2);
+
+                        if (full_size == 2) {
+                            // size=10 → single-precision
+                            arrangement = Q ? "4s" : "2s";
+                        } else if (full_size == 3) {
+                            // size=11 → distinguish based on bits[15:10]
+                            uint32_t bits1510 = extractBits(opcode, 10, 6);
+                            if (bits1510 == 0x07) {
+                                // FAMAX/FAMIN half-precision
+                                arrangement = Q ? "8h" : "4h";
+                            } else {
+                                // Other FP ops - might be half or other
+                                arrangement = Q ? "8h" : "4h";
+                            }
+                        } else {
+                            // size=00 or 01 - shouldn't happen for typical FP SIMD
+                            arrangement = Q ? "16b" : "8b";
+                        }
+                    } else {
+                        // Default to Q bit if present
+                        arrangement = Q ? "16b" : "8b";
+                    }
                 }
                 // Additional fallback: try to infer from Q bit alone if field metadata is missing
                 else {
@@ -2305,10 +2388,71 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
         // SVE Registers
         case REG_SVE_Z:
-            offset += snprintf(buffer + offset, bufferSize - offset, "z%u", field1Val);
+            {
+                // SVE Z registers typically have element size suffix (.b, .h, .s, .d)
+                // For most instructions, element size is encoded in bits [22:23]
+                // For load/store (ld*/st*), size is in the mnemonic itself (ld1b, ld1h, ld1w, ld1d)
+                const char* sizeStr = ".b";  // default
+
+                // Check if this is a load/store instruction
+                bool isLoadStore = (strncmp(entry->mnemonic, "ld", 2) == 0 || strncmp(entry->mnemonic, "st", 2) == 0);
+
+                if (isLoadStore) {
+                    // Size determined by mnemonic suffix
+                    size_t mnemonicLen = strlen(entry->mnemonic);
+                    if (mnemonicLen > 0) {
+                        char lastChar = entry->mnemonic[mnemonicLen - 1];
+                        // Check last character: ld1b/st1b → .b, ld1h/st1h → .h, etc.
+                        if (lastChar == 'b') sizeStr = ".b";
+                        else if (lastChar == 'h') sizeStr = ".h";
+                        else if (lastChar == 'w') sizeStr = ".s";  // word = 32-bit = single
+                        else if (lastChar == 'd') sizeStr = ".d";
+                        else {
+                            // Fallback to bits [22:23]
+                            uint32_t size = extractBits(opcode, 22, 2);
+                            const char* sizeChars[] = {".b", ".h", ".s", ".d"};
+                            sizeStr = sizeChars[size & 0x3];
+                        }
+                    }
+                } else {
+                    // For non-load/store, extract from bits [22:23]
+                    uint32_t size = extractBits(opcode, 22, 2);
+                    const char* sizeChars[] = {".b", ".h", ".s", ".d"};
+                    sizeStr = sizeChars[size & 0x3];
+                }
+
+                // SVE load/store wraps first Z register in braces: { z0.s }
+                if (isLoadStore && i == startOperand) {
+                    offset += snprintf(buffer + offset, bufferSize - offset, "{ z%u%s }", field1Val, sizeStr);
+                } else {
+                    offset += snprintf(buffer + offset, bufferSize - offset, "z%u%s", field1Val, sizeStr);
+                }
+            }
             break;
         case REG_SVE_P:
-            offset += snprintf(buffer + offset, bufferSize - offset, "p%u", field1Val);
+            {
+                // SVE P (predicate) registers need modifier /m or /z
+                // /z = zeroing (for loads)
+                // /m = merging (for arithmetic/logical operations)
+                // No modifier for stores
+                // Detect based on instruction mnemonic
+                const char* modifier = "";
+
+                // Check if this is a load instruction (uses /z)
+                if (strncmp(entry->mnemonic, "ld", 2) == 0) {
+                    modifier = "/z";
+                }
+                // Stores use no modifier
+                else if (strncmp(entry->mnemonic, "st", 2) == 0) {
+                    modifier = "";
+                }
+                // Arithmetic/logical operations use /m
+                else {
+                    modifier = "/m";
+                }
+
+                offset += snprintf(buffer + offset, bufferSize - offset, "p%u%s", field1Val, modifier);
+            }
             break;
 
         // Immediates
