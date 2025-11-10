@@ -36,6 +36,7 @@
 
 #include "A64InstructionTable.h"
 #include <array>
+#include <bit>
 #include <stdio.h>
 #include <string.h>
 
@@ -5320,13 +5321,13 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
                     // Display as signed if it's -1, -2, etc (common case)
                     if (is64 && invertedImm > 0x7FFFFFFFFFFFFFFFULL) {
-                        int64_t signedVal = (int64_t)invertedImm;
-                        offset += snprintf(buffer + offset, bufferSize - offset, "#%lld", (long long)signedVal);
+                        int64_t signedVal = static_cast<int64_t>(invertedImm);
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#%lld", static_cast<long long>(signedVal));
                     } else if (!is64 && (invertedImm & 0xFFFFFFFF) > 0x7FFFFFFF) {
-                        int32_t signedVal = (int32_t)invertedImm;
+                        int32_t signedVal = static_cast<int32_t>(invertedImm);
                         offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signedVal);
                     } else {
-                        offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", (unsigned long long)invertedImm);
+                        offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", static_cast<unsigned long long>(invertedImm));
                     }
                 } else {
                     // MOVZ/MOVK/MOV: Display as: #0x<imm16>, lsl #<shift> (not pre-shifted)
@@ -5345,12 +5346,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     offset += snprintf(buffer + offset, bufferSize - offset, "lsl #%u", shiftAmount);
                 }
                 // If zero, don't display anything (it's optional)
-            } else if (op.field1Start == 5 && op.field1Width == 16) {
+            } else {
                 // This is a standalone imm16 field (in MOVK/MOVN as separate operand)
                 // Format as hex for consistency with MOV/MOVZ
                 offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", field1Val);
-            } else {
-                offset += snprintf(buffer + offset, bufferSize - offset, "#%u", field1Val);
             }
             break;
 
@@ -5404,8 +5403,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                                 ((uint64_t)g << 49) | ((uint64_t)h << 48);
 
                 uint64_t bits = sign | exp | mant;
-                double value;
-                memcpy(&value, &bits, sizeof(value));
+                double value = std::bit_cast<double>(bits);
                 offset += snprintf(buffer + offset, bufferSize - offset, "#%.1f", value);
             } else {
                 // Single precision (32-bit)
@@ -5423,8 +5421,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 uint32_t mant = (e << 22) | (f << 21) | (g << 20) | (h << 19);
 
                 uint32_t bits = sign | exp | mant;
-                float value;
-                memcpy(&value, &bits, sizeof(value));
+                float value = std::bit_cast<float>(bits);
                 offset += snprintf(buffer + offset, bufferSize - offset, "#%.1f", value);
             }
             break;
