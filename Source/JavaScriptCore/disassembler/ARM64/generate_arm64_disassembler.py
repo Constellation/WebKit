@@ -964,6 +964,25 @@ class ARM64InstructionParser:
                 # Default to generic SIMD register
                 return Operand('REG_SIMD_V', None, primary_field or 'Rd', None, is_optional, hover)
 
+        # Register pair operands (CASP instructions) - Check BEFORE regular GP registers
+        # WsPlus1, WtPlus1, XsPlus1, XtPlus1 represent register+1 in register pairs
+        # These don't have field encodings; they derive from Rs/Rt fields
+        if 'plus1' in link_lower:
+            # Determine base field from link name
+            # WsPlus1 -> Rs, WtPlus1 -> Rt, XsPlus1 -> Rs, XtPlus1 -> Rt
+            if 'ws' in link_lower:
+                base_field = 'Rs'
+                return Operand('REG_GPR_W_PLUS1', None, base_field, None, is_optional, hover)
+            elif 'wt' in link_lower:
+                base_field = 'Rt'
+                return Operand('REG_GPR_W_PLUS1', None, base_field, None, is_optional, hover)
+            elif 'xs' in link_lower:
+                base_field = 'Rs'
+                return Operand('REG_GPR_X_PLUS1', None, base_field, None, is_optional, hover)
+            elif 'xt' in link_lower:
+                base_field = 'Rt'
+                return Operand('REG_GPR_X_PLUS1', None, base_field, None, is_optional, hover)
+
         # GP registers - check for specific register patterns at word boundaries
         # Use more specific checks to avoid false matches like 'xn' in 'extend_option'
         if link_lower.startswith(('xd', 'xn', 'xm', 'xa', 'xt', 'xs')) or \
@@ -1204,6 +1223,8 @@ class CodeGenerator:
         'REG_GPR_XSP': 3, 'REG_GPR_WSP': 4,
         'REG_GPR_XZR': 5, 'REG_GPR_WZR': 6,
         'REG_GPR_SIZED': 7,  # GP register with width determined by field (like imm5 in INS)
+        'REG_GPR_W_PLUS1': 8,  # GP register +1 for CASP pairs (Ws+1, Wt+1)
+        'REG_GPR_X_PLUS1': 9,  # GP register +1 for CASP pairs (Xs+1, Xt+1)
         'REG_FP_B': 10, 'REG_FP_H': 11, 'REG_FP_S': 12,
         'REG_FP_D': 13, 'REG_FP_Q': 14, 'REG_SIMD_V': 15,
         'REG_SIMD_SIZED': 16,  # SIMD register with size determined by field
@@ -1983,6 +2004,34 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
+            break;
+
+        case REG_GPR_W_PLUS1:
+            // Register pair: field1Val contains base register (Rs or Rt)
+            // Output is (field1Val + 1) & 31 to handle wraparound
+            {
+                uint32_t pairReg = (field1Val + 1) & 0x1F;
+                if (pairReg == 31)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
+                else
+                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", pairReg);
+            }
+            break;
+
+        case REG_GPR_X_PLUS1:
+            // Register pair: field1Val contains base register (Rs or Rt)
+            // Output is (field1Val + 1) & 31 to handle wraparound
+            {
+                uint32_t pairReg = (field1Val + 1) & 0x1F;
+                if (pairReg == 31)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "xzr");
+                else if (pairReg == 29)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+                else if (pairReg == 30)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "lr");
+                else
+                    offset += snprintf(buffer + offset, bufferSize - offset, "x%u", pairReg);
+            }
             break;
 
         case REG_GPR_SIZED:

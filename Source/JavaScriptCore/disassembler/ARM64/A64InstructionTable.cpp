@@ -91,6 +91,8 @@ enum class OperandType : uint8_t {
     REG_GPR_XZR = 5,
     REG_GPR_WZR = 6,
     REG_GPR_SIZED = 7,
+    REG_GPR_W_PLUS1 = 8,
+    REG_GPR_X_PLUS1 = 9,
     REG_FP_B = 10,
     REG_FP_H = 11,
     REG_FP_S = 12,
@@ -224,13 +226,13 @@ const OperandDesc g_operandTable[] = {
     { REG_GPR_WZR, 0, 16, 5, 255, 0 },
     { REG_GPR_WZR, 0, 0, 5, 255, 0 },
     { REG_GPR_W, 0, 16, 5, 255, 0 },
-    { REG_GPR_WSP, 0, 255, 0, 255, 0 },
+    { REG_GPR_W_PLUS1, 0, 16, 5, 255, 0 },
     { REG_GPR_W, 0, 0, 5, 255, 0 },
-    { REG_GPR_W, 0, 255, 0, 255, 0 },
+    { REG_GPR_W_PLUS1, 0, 0, 5, 255, 0 },
     { REG_GPR_X, 0, 16, 5, 255, 0 },
-    { REG_GPR_XSP, 0, 255, 0, 255, 0 },
+    { REG_GPR_X_PLUS1, 0, 16, 5, 255, 0 },
     { REG_GPR_X, 0, 0, 5, 255, 0 },
-    { REG_GPR_X, 0, 255, 0, 255, 0 },
+    { REG_GPR_X_PLUS1, 0, 0, 5, 255, 0 },
     { REG_GPR_XZR, 0, 16, 5, 255, 0 },
     { REG_GPR_XZR, 0, 0, 5, 255, 0 },
     { REG_GPR_WZR, 0, 10, 5, 255, 0 },
@@ -385,7 +387,7 @@ const uint8_t g_operandIndices[] = {
 106, 190, 106, 117, 106, 118, 188, 191, 96, 180, 192, 106, 180, 192, 117, 193, 
 119, 193, 118, 194, 120, 194, 96, 117, 95, 195, 106, 118, 105, 195, 96, 184, 
 106, 184, 96, 117, 180, 106, 118, 180, 96, 117, 180, 192, 106, 118, 180, 192, 
-119, 117, 193, 96, 117, 193, 96, 117, 188, 195, 106, 118, 188, 195, 120, 118, 194, 106, 118, 194, 96, 196, 106, 196, 96, 197, 198, 106, 197, 198, 199, 199, 200, 103, 201, 106, 103, 202, 190, 96, 190, 203, 118, 120, 204, 205, 206, 95, 2, 105, 2, 96, 207, 106, 207, 106, 105, 2, 96, 95, 2, 96, 95, 207, 
+119, 117, 193, 96, 117, 193, 96, 117, 188, 195, 106, 118, 188, 195, 120, 118, 194, 106, 118, 194, 96, 196, 106, 196, 96, 197, 198, 106, 197, 198, 199, 199, 200, 103, 201, 106, 104, 202, 190, 96, 190, 203, 118, 120, 204, 205, 206, 95, 2, 105, 2, 96, 207, 106, 207, 106, 105, 2, 96, 95, 2, 96, 95, 207, 
 106, 105, 207, 2, 208, 50, 96, 50, 106, 50, 180, 105, 2, 106, 209, 118, 
 210, 118, 105, 96, 211, 106, 211, 96, 2, 212, 96, 213, 2, 208, 211, 120, 2, 212, 120, 213, 120, 211, 106, 2, 212, 106, 213, 106, 89, 96, 214, 106, 214, 2, 208, 214, 39, 208, 190, 96, 215, 106, 215, 114, 216, 96, 117, 105, 
 120, 114, 105, 106, 118, 216, 106, 114, 105, 106, 114, 216, 106, 117, 95, 118, 217, 117, 95, 215, 118, 105, 215, 117, 88, 215, 118, 88, 215, 96, 117, 95, 215, 106, 118, 105, 215, 106, 118, 105, 108, 106, 117, 95, 108, 96, 117, 95, 107, 218, 50, 218, 211, 219, 211, 130, 211, 62, 211, 133, 211, 219, 50, 130, 50, 62, 50, 133, 50, 218, 2, 212, 219, 2, 212, 130, 2, 212, 62, 2, 212, 133, 2, 212, 218, 213, 219, 213, 130, 213, 62, 213, 133, 213, 218, 214, 
@@ -4706,6 +4708,34 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                 offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
             else
                 offset += snprintf(buffer + offset, bufferSize - offset, "w%u", field1Val);
+            break;
+
+        case REG_GPR_W_PLUS1:
+            // Register pair: field1Val contains base register (Rs or Rt)
+            // Output is (field1Val + 1) & 31 to handle wraparound
+            {
+                uint32_t pairReg = (field1Val + 1) & 0x1F;
+                if (pairReg == 31)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "wzr");
+                else
+                    offset += snprintf(buffer + offset, bufferSize - offset, "w%u", pairReg);
+            }
+            break;
+
+        case REG_GPR_X_PLUS1:
+            // Register pair: field1Val contains base register (Rs or Rt)
+            // Output is (field1Val + 1) & 31 to handle wraparound
+            {
+                uint32_t pairReg = (field1Val + 1) & 0x1F;
+                if (pairReg == 31)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "xzr");
+                else if (pairReg == 29)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "fp");
+                else if (pairReg == 30)
+                    offset += snprintf(buffer + offset, bufferSize - offset, "lr");
+                else
+                    offset += snprintf(buffer + offset, bufferSize - offset, "x%u", pairReg);
+            }
             break;
 
         case REG_GPR_SIZED:
