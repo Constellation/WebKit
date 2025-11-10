@@ -4890,11 +4890,30 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     uint32_t Q = extractBits(opcode, 30, 1);
                     uint32_t size = field2Val & 0x3;
 
-                    // Element count based on Q and size
-                    if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
-                    else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
-                    else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
-                    else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
+                    // Special handling for narrowing instructions (ADDHN, SUBHN, RADDHN, RSUBHN)
+                    // These have destination with size-based elements, but sources with double-width
+                    bool isNarrowingInstr = (entry->mnemonicEnum == Mnemonic::ARM64_ADDHN ||
+                                            entry->mnemonicEnum == Mnemonic::ARM64_SUBHN ||
+                                            entry->mnemonicEnum == Mnemonic::ARM64_RADDHN ||
+                                            entry->mnemonicEnum == Mnemonic::ARM64_RSUBHN);
+
+                    if (isNarrowingInstr && i > startOperand) {
+                        // This is a source operand (Vn or Vm) - use double-width elements
+                        // size determines destination element width; sources are (size+1)
+                        // Destination: size=0→8b, size=1→4h, size=2→2s
+                        // Sources:     size=0→8h, size=1→4s, size=2→2d
+                        if (size == 0) arrangement = "8h";        // Source for 8b destination
+                        else if (size == 1) arrangement = "4s";   // Source for 4h destination
+                        else if (size == 2) arrangement = "2d";   // Source for 2s destination
+                        // size=3 is UNDEFINED for narrowing ops
+                    } else {
+                        // Normal size-based arrangement
+                        // Element count based on Q and size
+                        if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
+                        else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
+                        else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
+                        else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
+                    }
                 } else if (op.field2Start == 16 && op.field2Width == 5) {
                     // imm5 field (bits 20-16) - DUP type
                     // Element size from lowest set bit, arrangement from Q bit
