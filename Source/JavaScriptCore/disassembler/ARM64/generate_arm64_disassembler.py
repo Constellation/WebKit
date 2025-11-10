@@ -1309,6 +1309,10 @@ class CodeGenerator:
             'orr': 30,     # Base instruction
             'mov': 60,     # Alias of ORR with Rm==Rn condition (lower priority)
 
+            # System instructions - IC before DC (IC uses op1=000, DC uses op1=011/001/100)
+            'ic': 35,      # Instruction cache operations (higher priority)
+            'dc': 55,      # Data cache operations (lower priority)
+
             # Move-wide base instructions (lower priority than MOV alias)
             'movz': 70,    # Base instruction for move wide immediate
             'movn': 70,    # Base instruction

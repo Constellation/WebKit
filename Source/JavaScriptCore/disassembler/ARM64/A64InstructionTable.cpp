@@ -3217,8 +3217,8 @@ const InstructionEntry g_instructionTable[] = {
     { "brb", 0xffffff00U, 0xd5097200U, 0, Mnemonic::ARM64_BRB, 0, 0 }, // BRB_SYS_CR_systeminstrs
     { "msr", 0xfff8f01fU, 0xd500401fU, 1103, Mnemonic::ARM64_MSR, 2, 0 }, // MSR_SI_pstate
     { "at", 0xfff8fe00U, 0xd5087800U, 671, Mnemonic::ARM64_AT, 1, 0 }, // AT_SYS_CR_systeminstrs
-    { "dc", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_DC, 1, 0 }, // DC_SYS_CR_systeminstrs
     { "ic", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_IC, 1, 0 }, // IC_SYS_CR_systeminstrs
+    { "dc", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_DC, 1, 0 }, // DC_SYS_CR_systeminstrs
     { "smc", 0xffe0001fU, 0xd4000003U, 1097, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
     { "retaasppc", 0xffe0001fU, 0x5500001fU, 1031, Mnemonic::ARM64_RETAASPPC, 1, 0 }, // RETAASPPC_only_miscbranch
     { "retabsppc", 0xffe0001fU, 0x5520001fU, 1031, Mnemonic::ARM64_RETABSPPC, 1, 0 }, // RETABSPPC_only_miscbranch
@@ -4890,30 +4890,11 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     uint32_t Q = extractBits(opcode, 30, 1);
                     uint32_t size = field2Val & 0x3;
 
-                    // Special handling for narrowing instructions (ADDHN, SUBHN, RADDHN, RSUBHN)
-                    // These have destination with size-based elements, but sources with double-width
-                    bool isNarrowingInstr = (entry->mnemonicEnum == Mnemonic::ARM64_ADDHN ||
-                                            entry->mnemonicEnum == Mnemonic::ARM64_SUBHN ||
-                                            entry->mnemonicEnum == Mnemonic::ARM64_RADDHN ||
-                                            entry->mnemonicEnum == Mnemonic::ARM64_RSUBHN);
-
-                    if (isNarrowingInstr && i > startOperand) {
-                        // This is a source operand (Vn or Vm) - use double-width elements
-                        // size determines destination element width; sources are (size+1)
-                        // Destination: size=0→8b, size=1→4h, size=2→2s
-                        // Sources:     size=0→8h, size=1→4s, size=2→2d
-                        if (size == 0) arrangement = "8h";        // Source for 8b destination
-                        else if (size == 1) arrangement = "4s";   // Source for 4h destination
-                        else if (size == 2) arrangement = "2d";   // Source for 2s destination
-                        // size=3 is UNDEFINED for narrowing ops
-                    } else {
-                        // Normal size-based arrangement
-                        // Element count based on Q and size
-                        if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
-                        else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
-                        else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
-                        else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
-                    }
+                    // Element count based on Q and size
+                    if (size == 0) arrangement = Q ? "16b" : "8b";   // 8-bit
+                    else if (size == 1) arrangement = Q ? "8h" : "4h";    // 16-bit
+                    else if (size == 2) arrangement = Q ? "4s" : "2s";    // 32-bit
+                    else if (size == 3) arrangement = Q ? "2d" : "1d";    // 64-bit
                 } else if (op.field2Start == 16 && op.field2Width == 5) {
                     // imm5 field (bits 20-16) - DUP type
                     // Element size from lowest set bit, arrangement from Q bit
@@ -5350,14 +5331,6 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             if (isLslLsrAsr && i == (startOperand + 2)) {
                 // This is the shift operand for LSL/LSR/ASR - use computed value
                 offset += snprintf(buffer + offset, bufferSize - offset, "#%u", computedShift);
-            }
-            // Check if this is ADDG/SUBG uimm6 field (needs *16 scaling)
-            // uimm6 is at bits 21-16 (width 6, start 16) and represents multiples of 16
-            else if ((entry->mnemonicEnum == Mnemonic::ARM64_ADDG || entry->mnemonicEnum == Mnemonic::ARM64_SUBG) &&
-                     op.field1Width == 6 && op.field1Start == 16) {
-                // Scale by 16 (uimm6 represents multiples of 16)
-                unsigned scaled = field1Val * 16;
-                offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", scaled);
             }
             // Check if this is a bit position (TBNZ/TBZ style: b40 + b5*32)
             else if (op.field1Width == 5 && op.field1Start == 19 &&
