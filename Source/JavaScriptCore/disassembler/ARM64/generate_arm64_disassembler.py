@@ -1281,7 +1281,6 @@ enum class OperandType : uint8_t;
 
 // Instruction entry
 struct InstructionEntry {
-    const char* name;
     const char* mnemonic;
     uint32_t mask;
     uint32_t pattern;
@@ -1481,9 +1480,7 @@ static const char* const g_extendNames[8] = {
             # Convert mnemonic to lowercase for table
             lowercase_mnemonic = instr.mnemonic.lower()
 
-            code += f"    {{ \"{instr.name}\", \"{lowercase_mnemonic}\", "
-            code += f"0x{instr.mask:08x}U, 0x{instr.pattern:08x}U, "
-            code += f"{start_offset}, {operand_count}, {flags} }},\n"
+            code += f"    {{ \"{lowercase_mnemonic}\", 0x{instr.mask:08x}U, 0x{instr.pattern:08x}U, {start_offset}, {operand_count}, {flags} }}, // {instr.name}\n"
 
         code += "};\n\n"
         code += f"const size_t g_instructionTableSize = {len(self.instructions)};\n\n"

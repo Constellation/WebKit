@@ -41,7 +41,6 @@ enum class OperandType : uint8_t;
 
 // Instruction entry
 struct InstructionEntry {
-    const char* name;
     const char* mnemonic;
     uint32_t mask;
     uint32_t pattern;
