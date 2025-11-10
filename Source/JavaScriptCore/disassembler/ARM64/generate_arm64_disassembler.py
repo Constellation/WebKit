@@ -1419,20 +1419,20 @@ static inline uint32_t extractBits(uint32_t value, unsigned start, unsigned widt
 
 static inline int32_t signExtend(uint32_t value, unsigned bits)
 {
-    if (bits == 0 || bits >= 32) return (int32_t)value;
+    if (bits == 0 || bits >= 32) return static_cast<int32_t>(value);
     uint32_t signBit = 1U << (bits - 1);
     if (value & signBit)
-        return (int32_t)(value | (~0U << bits));
-    return (int32_t)value;
+        return static_cast<int32_t>(value | (~0U << bits));
+    return static_cast<int32_t>(value);
 }
 
 static inline int64_t signExtend64(uint64_t value, unsigned bits)
 {
-    if (bits == 0 || bits >= 64) return (int64_t)value;
+    if (bits == 0 || bits >= 64) return static_cast<int64_t>(value);
     uint64_t signBit = 1ULL << (bits - 1);
     if (value & signBit)
-        return (int64_t)(value | (~0ULL << bits));
-    return (int64_t)value;
+        return static_cast<int64_t>(value | (~0ULL << bits));
+    return static_cast<int64_t>(value);
 }
 
 // Condition names
@@ -1714,9 +1714,8 @@ static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms, boo
 
     // Replicate
     uint64_t wmask = 0;
-    for (unsigned i = 0; i < (is64bit ? 64 : 32); i += esize) {
+    for (unsigned i = 0; i < (is64bit ? 64 : 32); i += esize)
         wmask |= welem << i;
-    }
 
     if (!is64bit)
         wmask &= 0xFFFFFFFFULL;
@@ -1732,8 +1731,7 @@ static bool decodeLogicalImmediate(uint32_t n, uint32_t immr, uint32_t imms, boo
         return """
 const InstructionEntry* findInstruction(uint32_t opcode)
 {
-    // Two-level hash table lookup using bits 25-28
-    // Average case: ~16x faster than linear search
+    // Two-level hash table lookup using bits 25-28 (primary opcode).
 
     // Extract bits 25-28 (major instruction class)
     unsigned bucketIndex = (opcode >> 25) & 0xF;
@@ -1808,7 +1806,6 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     pos = mnemonicLength;
 
     // Add "2" suffix if needed (before condition suffix)
-    // Example: smull2
     if (appendTwo)
         mnemonicBuffer[pos++] = '2';
 
@@ -1831,7 +1828,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
     offset = snprintf(buffer, bufferSize, "   %-9s", mnemonicBuffer.data());
 
-    if (offset < 0 || (size_t)offset >= bufferSize)
+    if (offset < 0 || static_cast<size_t>(offset) >= bufferSize)
         return;
 
     // Special handling for bitfield shift aliases (LSL, LSR, ASR)
@@ -1885,10 +1882,10 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
         }
 
         // Add separator
-        if (i > startOperand && offset > 0 && (size_t)offset < bufferSize)
+        if (i > startOperand && offset > 0 && static_cast<size_t>(offset) < bufferSize)
             offset += snprintf(buffer + offset, bufferSize - offset, ", ");
 
-        if (offset < 0 || (size_t)offset >= bufferSize)
+        if (offset < 0 || static_cast<size_t>(offset) >= bufferSize)
             return;
 
         // Extract field values
@@ -2664,9 +2661,9 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
             if (decodeLogicalImmediate(n, immr, imms, is64, &decodedImm)) {
                 if (is64)
-                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", (unsigned long long)decodedImm);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%llx", static_cast<unsigned long long>(decodedImm));
                 else
-                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", (uint32_t)decodedImm);
+                    offset += snprintf(buffer + offset, bufferSize - offset, "#0x%x", static_cast<uint32_t>(decodedImm));
             } else
                 offset += snprintf(buffer + offset, bufferSize - offset, "#?");
             break;
@@ -2686,14 +2683,14 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
         case LABEL_PCREL: {
             int32_t signedOffset = signExtend(field1Val, op.field1Width);
             // PC-relative in ARM64 is in instructions (4 bytes each)
-            int64_t target = (int64_t)pc + (signedOffset * 4);
+            intptr_t target = reinterpret_cast<intptr_t>(pc) + (signedOffset * 4);
 
             // Format based on whether target is in range
-            if (startPC && endPC && (uint32_t*)target >= startPC && (uint32_t*)target < endPC) {
-                unsigned byte_offset = ((uint32_t*)target - startPC) * 4;
-                offset += snprintf(buffer + offset, bufferSize - offset, "%p (<%u>)", (void*)target, byte_offset);
+            if (startPC && endPC && reinterpret_cast<uint32_t*>(target) >= startPC && reinterpret_cast<uint32_t*>(target) < endPC) {
+                unsigned byte_offset = (reinterpret_cast<uint32_t*>(target) - startPC) * 4;
+                offset += snprintf(buffer + offset, bufferSize - offset, "%p (<%u>)", reinterpret_cast<void*>(target), byte_offset);
             } else
-                offset += snprintf(buffer + offset, bufferSize - offset, "%p", (void*)target);
+                offset += snprintf(buffer + offset, bufferSize - offset, "%p", reinterpret_cast<void*>(target));
             break;
         }
 
@@ -2885,7 +2882,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
     // For LSL/LSR/ASR with only 2 operands, append the shift amount
     if (isLslLsrAsr && entry->operandCount == 2 + (hasConditionSuffix ? 1 : 0)) {
         // Add separator and shift amount
-        if (offset > 0 && (size_t)offset < bufferSize)
+        if (offset > 0 && static_cast<size_t>(offset) < bufferSize)
             offset += snprintf(buffer + offset, bufferSize - offset, ", #%u", computedShift);
     }
 }
