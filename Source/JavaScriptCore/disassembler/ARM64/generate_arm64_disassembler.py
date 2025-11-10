@@ -524,7 +524,14 @@ class ARM64InstructionParser:
                                     elif 't' in arrangement_link and '_option' in arrangement_link:
                                         # Generic arrangement - try size:Q for arithmetic ops, or imm5:Q for DUP-style ops
                                         # Check which field exists in this instruction
-                                        if 'size' in field_map:
+
+                                        # Special case: SIMD logical operations (AND, ORR, EOR, BIC, ORN, BIT, BIF, BSL)
+                                        # always use Q-only encoding (bytes only), even though they have a size field.
+                                        # The size field distinguishes between operations, not element sizes.
+                                        logical_ops = {'and', 'orr', 'eor', 'bic', 'orn', 'bit', 'bif', 'bsl', 'eon'}
+                                        if mnemonic.lower() in logical_ops and 'advsimd' in instruction_id.lower():
+                                            arrangementField = 'Q'
+                                        elif 'size' in field_map:
                                             arrangementField = 'size:Q'
                                         elif 'imm5' in field_map:
                                             arrangementField = 'imm5:Q'
@@ -1259,6 +1266,10 @@ class CodeGenerator:
             # SIMD extension aliases (Q-bit controlled)
             'sxtl': 0,     # High priority for Q-bit controlled variant
             'uxtl': 0,     # High priority for Q-bit controlled variant
+
+            # SIMD logical operations and aliases
+            'orr': 30,     # Base instruction
+            'mov': 60,     # Alias of ORR with Rm==Rn condition (lower priority)
 
             # Base instructions (lowest priority)
             'ubfm': 100,
@@ -2108,9 +2119,21 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     // Comprehensive element size inference from opcode bits
                     uint32_t Q = field2Val & 0x1;
 
+                    // First check for logical operations (AND, ORR, EOR, BIC, ORN, BIT, BIF, BSL)
+                    // Pattern: bits[28:21] = 0111_0xx1 (where xx varies), bits[15:11] = 00011, bit[10] = 1
+                    // These always use byte arrangements regardless of size field value
+                    uint32_t bits2821 = extractBits(opcode, 21, 8);  // bits[28:21]
+                    uint32_t bits1510 = extractBits(opcode, 10, 6);   // bits[15:10]
+                    bool isLogicalOp = ((bits2821 & 0xF1) == 0x71) && (bits1510 == 0x07);  // 0111_0xx1 and 000111
+
+                    if (isLogicalOp) {
+                        // Logical operations always use byte arrangements
+                        arrangement = Q ? "16b" : "8b";
+                    }
                     // Detect FP SIMD instructions that use size:Q encoding (FAMAX, FAMIN, etc.)
                     // Pattern: bits[28:24]=01110 (SIMD FP class), bit[23]=1 (FP with size field)
                     // This matches FAMAX, FAMIN, and other FP SIMD instructions
+                    else {
                     uint32_t bits2824 = extractBits(opcode, 24, 5);
                     uint32_t bit23 = extractBits(opcode, 23, 1);
                     bool isFPSIMDWithSizeQ = (bits2824 == 0x0E && bit23 == 1);
@@ -2148,7 +2171,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                             // Fallback
                             arrangement = Q ? "16b" : "8b";
                         }
-                    } else {
+                    }  // end of isFPSIMDWithSizeQ check
+                    else {
                         // Non-FP-SIMD instructions - use comprehensive inference
                     // Key bit ranges for classification:
                     uint32_t bits3129 = extractBits(opcode, 29, 3);  // Top-level class
@@ -2232,6 +2256,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                         arrangement = Q ? "16b" : "8b";
                     }
                     }  // End of non-FAMAX comprehensive inference
+                    }  // End of isLogicalOp else block
                 } else if (op.field2Start == 22 && op.field2Width == 1) {
                     // sz field (bit 22) - FMUL/FABS/etc. floating-point type
                     // Could be standalone or with Q bit - check if Q varies

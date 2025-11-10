@@ -134,23 +134,23 @@ const OperandDesc g_operandTable[] = {
     { REG_SVE_Z, 0, 16, 4, 255, 0 },
     { MEMORY_BASE, 0, 12, 2, 255, 0 },
     { REG_SVE_Z, 0, 0, 5, 255, 0 },
+    { REG_SVE_Z, 0, 1, 4, 255, 0 },
+    { REG_SVE_Z, 0, 1, 1, 255, 0 },
+    { REG_SVE_Z, 0, 0, 2, 255, 0 },
+    { MEMORY_OFFSET, 0, 13, 2, 255, 0 },
+    { MEMORY_BASE, 0, 12, 3, 255, 0 },
+    { MEMORY_OFFSET, 0, 13, 2, 5, 3 },
     { MEMORY_OFFSET, 0, 13, 2, 5, 2 },
     { REG_SVE_Z, 0, 6, 1, 255, 0 },
     { MEMORY_OFFSET, 0, 13, 2, 5, 1 },
     { REG_SVE_Z, 0, 5, 2, 255, 0 },
-    { MEMORY_OFFSET, 0, 13, 2, 255, 0 },
-    { REG_SVE_Z, 0, 1, 4, 255, 0 },
-    { MEMORY_OFFSET, 0, 13, 2, 5, 3 },
-    { REG_SVE_Z, 0, 1, 1, 255, 0 },
-    { REG_SVE_Z, 0, 0, 2, 255, 0 },
-    { MEMORY_BASE, 0, 12, 3, 255, 0 },
     { REG_SVE_Z, 0, 5, 5, 255, 0 },
-    { REG_SVE_Z, 0, 5, 3, 255, 0 },
     { REG_SVE_Z, 0, 0, 3, 255, 0 },
-    { REG_SVE_Z, 0, 7, 1, 255, 0 },
-    { REG_SVE_Z, 0, 6, 2, 255, 0 },
+    { REG_SVE_Z, 0, 5, 3, 255, 0 },
     { REG_SVE_Z, 0, 2, 1, 255, 0 },
     { REG_SVE_Z, 0, 1, 2, 255, 0 },
+    { REG_SVE_Z, 0, 7, 1, 255, 0 },
+    { REG_SVE_Z, 0, 6, 2, 255, 0 },
     { MEMORY_OFFSET, 0, 13, 2, 0, 4 },
     { MEMORY_BASE, 0, 16, 1, 255, 0 },
     { MEMORY_BASE, 0, 16, 2, 255, 0 },
@@ -212,8 +212,8 @@ const OperandDesc g_operandTable[] = {
     { IMM_SINT, 0, 16, 5, 255, 0 },
     { REG_FP_S, 0, 10, 2, 255, 0 },
     { MEMORY_BASE, 0, 22, 2, 255, 0 },
-    { IMM_UINT, 0, 16, 5, 255, 0 },
     { REG_FP_S, 0, 5, 13, 255, 0 },
+    { IMM_UINT, 0, 16, 5, 255, 0 },
     { MEMORY_OFFSET, 0, 5, 5, 255, 0 },
     { MEMORY_OFFSET, 0, 5, 5, 16, 6 },
     { MEMORY_OFFSET, 0, 5, 5, 22, 1 },
@@ -320,9 +320,9 @@ const OperandDesc g_operandTable[] = {
     { IMM_LOGICAL, 0, 10, 6, 255, 0 },
     { IMM_LOGICAL, 0, 22, 1, 22, 1 },
     { IMM_UINT, 0, 255, 0, 10, 6 },
-    { IMM_UINT, 0, 5, 16, 21, 2 },
     { IMM_UINT, 0, 5, 16, 255, 0 },
     { IMM_UINT, 0, 21, 2, 255, 0 },
+    { IMM_UINT, 0, 5, 16, 21, 2 },
     { REG_FP_S, 0, 255, 0, 255, 0 },
     { IMM_UINT, 0, 8, 4, 255, 0 },
     { REG_GPR_X, 0, 0, 5, 0, 5 },
@@ -361,15 +361,15 @@ const OperandDesc g_operandTable[] = {
 // Total instructions: 4013, Unique sequences: 478
 // Compression: 1456 indices vs 12135 original (88.0% reduction)
 const uint8_t g_operandIndices[] = {
-0, 1, 2, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 7, 8, 4, 4, 9, 4, 4, 10, 11, 4, 4, 12, 13, 
-14, 14, 14, 14, 3, 5, 5, 4, 4, 15, 1, 5, 5, 16, 0, 5, 5, 17, 13, 5, 5, 8, 8, 8, 18, 0, 5, 5, 5, 5, 14, 14, 19, 4, 4, 20, 13, 21, 13, 5, 5, 14, 14, 15, 17, 17, 17, 17, 17, 17, 1, 5, 5, 5, 5, 14, 14, 22, 9, 14, 14, 23, 11, 14, 14, 20, 13, 24, 1, 5, 5, 25, 0, 5, 5, 3, 5, 5, 5, 5, 
-26, 4, 4, 19, 27, 17, 17, 17, 17, 19, 27, 0, 19, 5, 6, 4, 4, 19, 28, 17, 17, 17, 17, 19, 28, 8, 29, 8, 30, 15, 8, 31, 9, 8, 32, 11, 8, 33, 13, 3, 5, 5, 6, 34, 1, 19, 6, 1, 19, 5, 6, 14, 14, 19, 35, 21, 21, 19, 35, 17, 36, 37, 19, 4, 4, 19, 38, 0, 5, 5, 6, 39, 8, 8, 8, 40, 3, 5, 5, 6, 41, 14, 14, 19, 42, 21, 21, 19, 42, 3, 19, 5, 6, 3, 19, 6, 
-1, 5, 5, 6, 39, 21, 36, 37, 19, 14, 14, 19, 38, 4, 4, 36, 4, 4, 4, 4, 3, 5, 5, 6, 39, 8, 8, 8, 43, 5, 5, 36, 44, 5, 5, 5, 5, 36, 44, 26, 36, 19, 45, 3, 36, 19, 46, 1, 36, 19, 47, 0, 36, 19, 48, 13, 36, 19, 8, 19, 49, 8, 36, 29, 
-8, 36, 30, 15, 8, 36, 31, 9, 8, 36, 32, 11, 8, 36, 33, 13, 
-5, 5, 5, 5, 36, 50, 51, 1, 19, 6, 39, 8, 19, 52, 53, 36, 37, 19, 38, 3, 19, 6, 39, 14, 14, 36, 14, 14, 14, 14, 17, 36, 37, 19, 38, 21, 36, 37, 19, 38, 48, 13, 36, 50, 26, 36, 50, 47, 0, 36, 50, 46, 1, 36, 50, 45, 3, 36, 50, 54, 55, 56, 54, 55, 
+0, 1, 2, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 7, 8, 9, 9, 9, 9, 3, 5, 5, 1, 5, 5, 10, 0, 5, 5, 11, 12, 5, 5, 8, 8, 8, 13, 4, 4, 14, 4, 4, 15, 4, 4, 16, 17, 4, 4, 18, 12, 0, 5, 5, 5, 5, 9, 9, 19, 20, 12, 5, 5, 9, 9, 14, 11, 11, 11, 11, 11, 11, 4, 4, 21, 12, 1, 5, 5, 5, 5, 22, 1, 5, 5, 23, 0, 5, 5, 9, 9, 24, 15, 9, 9, 25, 17, 9, 9, 21, 12, 3, 5, 5, 5, 5, 
+26, 4, 4, 19, 27, 11, 11, 11, 11, 19, 27, 0, 19, 5, 6, 4, 4, 19, 28, 11, 11, 11, 11, 19, 28, 8, 29, 8, 30, 14, 8, 31, 15, 8, 32, 17, 8, 33, 12, 3, 5, 5, 6, 34, 1, 19, 6, 1, 19, 5, 6, 9, 9, 19, 35, 20, 20, 19, 35, 11, 36, 37, 19, 4, 4, 19, 38, 0, 5, 5, 6, 39, 8, 8, 8, 40, 3, 5, 5, 6, 41, 9, 9, 19, 42, 20, 20, 19, 42, 3, 19, 5, 6, 3, 19, 6, 
+1, 5, 5, 6, 39, 20, 36, 37, 19, 9, 9, 19, 38, 4, 4, 36, 4, 4, 4, 4, 3, 5, 5, 6, 39, 8, 8, 8, 43, 5, 5, 36, 44, 5, 5, 5, 5, 36, 44, 26, 36, 19, 45, 3, 36, 19, 46, 1, 36, 19, 47, 0, 36, 19, 48, 12, 36, 19, 8, 19, 49, 8, 36, 29, 
+8, 36, 30, 14, 8, 36, 31, 15, 8, 36, 32, 17, 8, 36, 33, 12, 
+5, 5, 5, 5, 36, 50, 51, 1, 19, 6, 39, 8, 19, 52, 53, 36, 37, 19, 38, 3, 19, 6, 39, 9, 9, 36, 9, 9, 9, 9, 11, 36, 37, 19, 38, 20, 36, 37, 19, 38, 48, 12, 36, 50, 26, 36, 50, 47, 0, 36, 50, 46, 1, 36, 50, 45, 3, 36, 50, 54, 55, 56, 54, 55, 
 54, 55, 54, 57, 55, 54, 19, 8, 55, 54, 54, 58, 59, 8, 8, 19, 
-54, 19, 60, 8, 60, 55, 8, 36, 8, 61, 62, 55, 62, 55, 62, 54, 58, 63, 8, 64, 65, 54, 19, 66, 8, 66, 55, 54, 57, 55, 54, 57, 55, 54, 54, 19, 39, 8, 39, 55, 8, 36, 19, 8, 36, 8, 19, 8, 8, 19, 67, 54, 57, 68, 55, 62, 62, 69, 8, 69, 54, 36, 19, 54, 55, 64, 8, 8, 19, 69, 8, 36, 8, 43, 8, 19, 70, 71, 8, 19, 6, 72, 8, 19, 38, 8, 8, 38, 19, 73, 36, 19, 8, 19, 19, 8, 8, 19, 74, 62, 36, 62, 19, 75, 75, 62, 36, 19, 8, 8, 76, 8, 8, 77, 8, 78, 8, 19, 39, 8, 19, 79, 8, 19, 70, 39, 54, 57, 55, 64, 8, 19, 6, 39, 8, 36, 80, 19, 8, 36, 8, 19, 81, 8, 19, 38, 82, 8, 19, 43, 8, 5, 5, 36, 44, 8, 36, 44, 8, 5, 36, 44, 8, 83, 84, 8, 5, 5, 5, 36, 44, 8, 19, 70, 71, 85, 
-8, 19, 6, 72, 85, 8, 8, 19, 43, 8, 19, 38, 86, 8, 50, 8, 19, 19, 38, 8, 84, 8, 19, 19, 38, 86, 8, 36, 50, 8, 5, 5, 5, 36, 50, 8, 19, 19, 87, 8, 8, 19, 87, 8, 8, 88, 8, 5, 36, 50, 8, 5, 5, 36, 50, 54, 89, 36, 90, 8, 36, 19, 38, 8, 19, 38, 39, 8, 91, 54, 36, 19, 38, 54, 36, 38, 19, 54, 36, 19, 84, 8, 36, 90, 8, 19, 38, 85, 8, 89, 8, 64, 78, 54, 57, 55, 92, 8, 64, 76, 8, 36, 38, 19, 54, 36, 19, 93, 8, 36, 19, 38, 94, 95, 96, 2, 97, 98, 99, 100, 2, 101, 102, 103, 104, 2, 105, 106, 2, 95, 96, 107, 2, 95, 106, 108, 2, 95, 106, 2, 106, 108, 2, 109, 
+54, 19, 60, 8, 60, 55, 8, 36, 8, 61, 62, 55, 62, 55, 62, 54, 58, 63, 8, 64, 65, 54, 19, 66, 8, 66, 55, 54, 57, 55, 54, 57, 55, 54, 54, 19, 39, 8, 39, 55, 8, 36, 19, 8, 36, 8, 19, 8, 8, 19, 67, 54, 57, 68, 55, 62, 62, 69, 8, 69, 54, 36, 19, 54, 55, 64, 8, 8, 19, 69, 8, 36, 8, 43, 8, 19, 38, 8, 19, 70, 71, 8, 19, 6, 72, 8, 8, 38, 19, 73, 36, 19, 8, 19, 19, 8, 8, 19, 74, 62, 36, 62, 19, 75, 75, 62, 36, 19, 8, 8, 76, 8, 8, 77, 8, 78, 8, 19, 39, 54, 57, 55, 64, 8, 19, 79, 8, 19, 70, 39, 8, 19, 6, 39, 8, 36, 80, 19, 8, 36, 8, 19, 81, 8, 19, 38, 82, 8, 19, 43, 8, 5, 5, 36, 44, 8, 36, 44, 8, 5, 36, 44, 8, 83, 84, 8, 5, 5, 5, 36, 44, 8, 19, 70, 71, 85, 
+8, 19, 6, 72, 85, 8, 8, 19, 43, 8, 19, 38, 86, 8, 50, 8, 19, 19, 38, 8, 84, 8, 19, 19, 38, 86, 8, 8, 87, 8, 36, 50, 
+8, 5, 5, 5, 36, 50, 8, 19, 19, 88, 8, 8, 19, 88, 8, 5, 36, 50, 8, 5, 5, 36, 50, 54, 89, 36, 90, 8, 36, 19, 38, 8, 19, 38, 39, 8, 91, 54, 36, 19, 38, 54, 36, 38, 19, 54, 36, 19, 84, 8, 36, 90, 8, 19, 38, 85, 8, 89, 8, 64, 78, 54, 57, 55, 92, 8, 64, 76, 8, 36, 38, 19, 54, 36, 19, 93, 8, 36, 19, 38, 94, 95, 96, 2, 97, 98, 99, 100, 2, 101, 102, 103, 104, 2, 105, 106, 2, 95, 96, 107, 2, 95, 106, 108, 2, 95, 106, 2, 106, 108, 2, 109, 
 106, 108, 110, 106, 108, 111, 96, 107, 111, 96, 107, 2, 109, 96, 107, 110, 
 96, 95, 106, 105, 112, 95, 113, 114, 97, 113, 96, 95, 115, 106, 105, 115, 
 116, 95, 115, 117, 105, 115, 118, 112, 95, 113, 119, 114, 97, 113, 96, 112, 95, 113, 106, 114, 97, 113, 96, 116, 95, 115, 106, 117, 105, 115, 120, 2, 
@@ -382,11 +382,10 @@ const uint8_t g_operandIndices[] = {
 106, 189, 106, 116, 106, 117, 187, 190, 96, 179, 191, 106, 179, 191, 116, 192, 
 118, 192, 117, 193, 119, 193, 96, 116, 95, 194, 106, 117, 105, 194, 96, 183, 
 106, 183, 96, 116, 179, 106, 117, 179, 96, 116, 179, 191, 106, 117, 179, 191, 
-118, 116, 192, 96, 116, 192, 96, 116, 187, 194, 106, 117, 187, 194, 96, 195, 
-106, 195, 119, 117, 193, 96, 196, 197, 106, 196, 197, 106, 117, 193, 198, 198, 199, 103, 200, 106, 103, 201, 189, 96, 189, 202, 117, 119, 103, 203, 204, 95, 2, 105, 2, 96, 205, 106, 205, 106, 105, 2, 96, 95, 2, 96, 95, 205, 
+118, 116, 192, 96, 116, 192, 96, 116, 187, 194, 106, 117, 187, 194, 119, 117, 193, 96, 195, 196, 106, 195, 196, 106, 117, 193, 96, 197, 106, 197, 198, 198, 199, 103, 200, 106, 103, 201, 189, 96, 189, 202, 117, 119, 103, 203, 204, 95, 2, 105, 2, 96, 205, 106, 205, 106, 105, 2, 96, 95, 2, 96, 95, 205, 
 106, 105, 205, 2, 206, 50, 96, 50, 106, 50, 179, 105, 2, 106, 207, 117, 
 208, 117, 105, 96, 209, 106, 209, 96, 2, 210, 96, 211, 2, 206, 209, 119, 2, 210, 119, 211, 119, 209, 106, 2, 210, 106, 211, 106, 89, 96, 212, 106, 212, 2, 206, 212, 39, 206, 189, 96, 213, 106, 213, 114, 214, 96, 116, 105, 
-119, 114, 105, 106, 117, 214, 106, 114, 105, 106, 114, 214, 106, 116, 95, 117, 215, 116, 95, 213, 117, 105, 213, 116, 87, 213, 117, 87, 213, 96, 116, 95, 213, 106, 117, 105, 213, 106, 117, 105, 108, 106, 116, 95, 108, 96, 116, 95, 107, 216, 50, 216, 209, 217, 209, 129, 209, 62, 209, 132, 209, 217, 50, 129, 50, 62, 50, 132, 50, 216, 2, 210, 217, 2, 210, 129, 2, 210, 62, 2, 210, 132, 2, 210, 216, 211, 217, 211, 129, 211, 62, 211, 132, 211, 216, 212, 
+119, 114, 105, 106, 117, 214, 106, 114, 105, 106, 114, 214, 106, 116, 95, 117, 215, 116, 95, 213, 117, 105, 213, 116, 88, 213, 117, 88, 213, 96, 116, 95, 213, 106, 117, 105, 213, 106, 117, 105, 108, 106, 116, 95, 108, 96, 116, 95, 107, 216, 50, 216, 209, 217, 209, 129, 209, 62, 209, 132, 209, 217, 50, 129, 50, 62, 50, 132, 50, 216, 2, 210, 217, 2, 210, 129, 2, 210, 62, 2, 210, 132, 2, 210, 216, 211, 217, 211, 129, 211, 62, 211, 132, 211, 216, 212, 
 217, 212, 129, 212, 62, 212, 132, 212, 129, 189, 62, 189, 132, 189, 217, 218, 
 129, 219, 62, 220, 96, 218, 106, 218, 96, 219, 106, 219, 96, 220, 106, 220, 
 217, 219, 217, 116, 129, 116, 62, 116, 217, 117, 129, 117, 62, 117, 129, 218, 
@@ -428,12 +427,9 @@ const InstructionEntry g_instructionTable[] = {
     { "bfmax", 0xfff0ffe3U, 0xc120a900U, 14, Mnemonic::ARM64_BFMAX, 5, 0 }, // bfmax_mz_zzv_4x1
     { "fmin", 0xff23ffe3U, 0xc120b901U, 8, Mnemonic::ARM64_FMIN, 6, 0 }, // fmin_mz_zzw_4x4
     { "uzp", 0xff3ffc63U, 0xc136e002U, 4, Mnemonic::ARM64_UZP, 4, 0 }, // uzp_mz_z_4
-    { "mov", 0xffff1f83U, 0xc0060400U, 21, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz4_za_b1
-    { "mov", 0xffff1f83U, 0xc0460400U, 24, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz4_za_h1
-    { "mov", 0xffff1f83U, 0xc0860400U, 28, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz4_za_w1
     { "smin", 0xff23ffe3U, 0xc120b820U, 8, Mnemonic::ARM64_SMIN, 6, 0 }, // smin_mz_zzw_4x4
-    { "frinta", 0xfffffc21U, 0xc1ace000U, 32, Mnemonic::ARM64_FRINTA, 4, 0 }, // frinta_mz_z_2
-    { "bfsub", 0xffff9c78U, 0xc1e51c08U, 36, Mnemonic::ARM64_BFSUB, 3, 0 }, // bfsub_za_zw_4x4_16
+    { "frinta", 0xfffffc21U, 0xc1ace000U, 21, Mnemonic::ARM64_FRINTA, 4, 0 }, // frinta_mz_z_2
+    { "bfsub", 0xffff9c78U, 0xc1e51c08U, 25, Mnemonic::ARM64_BFSUB, 3, 0 }, // bfsub_za_zw_4x4_16
     { "bfmin", 0xfff0ffe1U, 0xc120a101U, 14, Mnemonic::ARM64_BFMIN, 5, 0 }, // bfmin_mz_zzv_2x1
     { "bfmin", 0xffe1ffe1U, 0xc120b101U, 8, Mnemonic::ARM64_BFMIN, 6, 0 }, // bfmin_mz_zzw_2x2
     { "bfminnm", 0xffe1ffe1U, 0xc120b121U, 8, Mnemonic::ARM64_BFMINNM, 6, 0 }, // bfminnm_mz_zzw_2x2
@@ -444,111 +440,114 @@ const InstructionEntry g_instructionTable[] = {
     { "fminnm", 0xff23ffe3U, 0xc120b921U, 8, Mnemonic::ARM64_FMINNM, 6, 0 }, // fminnm_mz_zzw_4x4
     { "umax", 0xff23ffe3U, 0xc120b801U, 8, Mnemonic::ARM64_UMAX, 6, 0 }, // umax_mz_zzw_4x4
     { "famin", 0xff23ffe3U, 0xc120b941U, 8, Mnemonic::ARM64_FAMIN, 6, 0 }, // famin_mz_zzw_4x4
-    { "mov", 0xffff9f03U, 0xc0060c00U, 39, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz_za4_1
-    { "frintm", 0xfffffc21U, 0xc1aae000U, 32, Mnemonic::ARM64_FRINTM, 4, 0 }, // frintm_mz_z_2
-    { "mova", 0xffff1c7cU, 0xc0040400U, 42, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za4_z_b1
-    { "mova", 0xffff1c7cU, 0xc0440400U, 45, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za4_z_h1
-    { "mova", 0xffff1c7cU, 0xc0840400U, 49, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za4_z_w1
-    { "mov", 0xffff9c78U, 0xc0040c00U, 36, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za_mz4_1
+    { "frintm", 0xfffffc21U, 0xc1aae000U, 21, Mnemonic::ARM64_FRINTM, 4, 0 }, // frintm_mz_z_2
+    { "mova", 0xffff1c7cU, 0xc0040400U, 28, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za4_z_b1
+    { "mova", 0xffff1c7cU, 0xc0440400U, 31, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za4_z_h1
+    { "mova", 0xffff1c7cU, 0xc0840400U, 35, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za4_z_w1
     { "zero", 0xffffff00U, 0xc0080000U, 0, Mnemonic::ARM64_ZERO, 0, 0 }, // zero_za_i_
-    { "fcvtn", 0xfffffc60U, 0xc134e020U, 53, Mnemonic::ARM64_FCVTN, 3, 0 }, // fcvtn_z8_mz4_
-    { "movt", 0xffff8fe0U, 0xc04c03e0U, 56, Mnemonic::ARM64_MOVT, 1, 0 }, // movt_r_zt_
+    { "fcvtn", 0xfffffc60U, 0xc134e020U, 39, Mnemonic::ARM64_FCVTN, 3, 0 }, // fcvtn_z8_mz4_
+    { "movt", 0xffff8fe0U, 0xc04c03e0U, 42, Mnemonic::ARM64_MOVT, 1, 0 }, // movt_r_zt_
     { "zip", 0xff3ffc63U, 0xc136e000U, 4, Mnemonic::ARM64_ZIP, 4, 0 }, // zip_mz_z_4
-    { "fsub", 0xffff9c78U, 0xc1a51c08U, 36, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_4x4_16
-    { "mov", 0xffff1c7cU, 0xc0040400U, 42, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za4_z_b1
-    { "mov", 0xffff1c7cU, 0xc0440400U, 45, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za4_z_h1
-    { "mov", 0xffff1c7cU, 0xc0840400U, 49, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za4_z_w1
+    { "fsub", 0xffff9c78U, 0xc1a51c08U, 25, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_4x4_16
     { "fmax", 0xff23ffe3U, 0xc120b900U, 8, Mnemonic::ARM64_FMAX, 6, 0 }, // fmax_mz_zzw_4x4
     { "srshl", 0xff23ffe3U, 0xc120ba20U, 8, Mnemonic::ARM64_SRSHL, 6, 0 }, // srshl_mz_zzw_4x4
     { "sqdmulh", 0xff23ffe3U, 0xc120bc00U, 8, Mnemonic::ARM64_SQDMULH, 6, 0 }, // sqdmulh_mz_zzw_4x4
-    { "fadd", 0xffff9c78U, 0xc1a51c00U, 36, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_4x4_16
-    { "ucvtf", 0xfffffc21U, 0xc122e020U, 32, Mnemonic::ARM64_UCVTF, 4, 0 }, // ucvtf_mz_z_2
+    { "fadd", 0xffff9c78U, 0xc1a51c00U, 25, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_4x4_16
+    { "ucvtf", 0xfffffc21U, 0xc122e020U, 21, Mnemonic::ARM64_UCVTF, 4, 0 }, // ucvtf_mz_z_2
     { "smax", 0xff23ffe3U, 0xc120b800U, 8, Mnemonic::ARM64_SMAX, 6, 0 }, // smax_mz_zzw_4x4
     { "bfmax", 0xfff0ffe1U, 0xc120a100U, 14, Mnemonic::ARM64_BFMAX, 5, 0 }, // bfmax_mz_zzv_2x1
-    { "movaz", 0xffff9f03U, 0xc0060e00U, 39, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz_za4_1
+    { "movaz", 0xffff9f03U, 0xc0060e00U, 43, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz_za4_1
     { "bfmax", 0xffe1ffe1U, 0xc120b100U, 8, Mnemonic::ARM64_BFMAX, 6, 0 }, // bfmax_mz_zzw_2x2
-    { "mova", 0xffff1f83U, 0xc0060400U, 21, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz4_za_b1
-    { "mova", 0xffff1f83U, 0xc0460400U, 24, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz4_za_h1
-    { "mova", 0xffff1f83U, 0xc0860400U, 28, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz4_za_w1
+    { "mova", 0xffff1f83U, 0xc0060400U, 46, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz4_za_b1
+    { "mova", 0xffff1f83U, 0xc0460400U, 49, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz4_za_h1
+    { "mova", 0xffff1f83U, 0xc0860400U, 53, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz4_za_w1
     { "urshl", 0xff23ffe3U, 0xc120ba21U, 8, Mnemonic::ARM64_URSHL, 6, 0 }, // urshl_mz_zzw_4x4
-    { "scvtf", 0xfffffc21U, 0xc122e000U, 32, Mnemonic::ARM64_SCVTF, 4, 0 }, // scvtf_mz_z_2
-    { "fcvtzs", 0xfffffc21U, 0xc121e000U, 32, Mnemonic::ARM64_FCVTZS, 4, 0 }, // fcvtzs_mz_z_2
+    { "scvtf", 0xfffffc21U, 0xc122e000U, 21, Mnemonic::ARM64_SCVTF, 4, 0 }, // scvtf_mz_z_2
+    { "fcvtzs", 0xfffffc21U, 0xc121e000U, 21, Mnemonic::ARM64_FCVTZS, 4, 0 }, // fcvtzs_mz_z_2
     { "famax", 0xff23ffe3U, 0xc120b940U, 8, Mnemonic::ARM64_FAMAX, 6, 0 }, // famax_mz_zzw_4x4
     { "umin", 0xff23ffe3U, 0xc120b821U, 8, Mnemonic::ARM64_UMIN, 6, 0 }, // umin_mz_zzw_4x4
-    { "fcvt", 0xfffffc60U, 0xc134e000U, 53, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_z8_mz4_
+    { "fcvt", 0xfffffc60U, 0xc134e000U, 39, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_z8_mz4_
     { "fscale", 0xff23ffe3U, 0xc120b980U, 8, Mnemonic::ARM64_FSCALE, 6, 0 }, // fscale_mz_zzw_4x4
-    { "bfadd", 0xffff9c78U, 0xc1e51c00U, 36, Mnemonic::ARM64_BFADD, 3, 0 }, // bfadd_za_zw_4x4_16
-    { "mova", 0xffff9c78U, 0xc0040c00U, 36, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za_mz4_1
-    { "fcvtzu", 0xfffffc21U, 0xc121e020U, 32, Mnemonic::ARM64_FCVTZU, 4, 0 }, // fcvtzu_mz_z_2
-    { "frintn", 0xfffffc21U, 0xc1a8e000U, 32, Mnemonic::ARM64_FRINTN, 4, 0 }, // frintn_mz_z_2
-    { "frintp", 0xfffffc21U, 0xc1a9e000U, 32, Mnemonic::ARM64_FRINTP, 4, 0 }, // frintp_mz_z_2
-    { "movaz", 0xffff1f83U, 0xc0060600U, 21, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz4_za_b1
-    { "movaz", 0xffff1f83U, 0xc0460600U, 24, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz4_za_h1
-    { "movaz", 0xffff1f83U, 0xc0860600U, 28, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz4_za_w1
-    { "mova", 0xffff9f03U, 0xc0060c00U, 39, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz_za4_1
-    { "movt", 0xffff8fe0U, 0xc04e03e0U, 56, Mnemonic::ARM64_MOVT, 1, 0 }, // movt_zt_r_
+    { "bfadd", 0xffff9c78U, 0xc1e51c00U, 25, Mnemonic::ARM64_BFADD, 3, 0 }, // bfadd_za_zw_4x4_16
+    { "mova", 0xffff9c78U, 0xc0040c00U, 25, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za_mz4_1
+    { "fcvtzu", 0xfffffc21U, 0xc121e020U, 21, Mnemonic::ARM64_FCVTZU, 4, 0 }, // fcvtzu_mz_z_2
+    { "frintn", 0xfffffc21U, 0xc1a8e000U, 21, Mnemonic::ARM64_FRINTN, 4, 0 }, // frintn_mz_z_2
+    { "frintp", 0xfffffc21U, 0xc1a9e000U, 21, Mnemonic::ARM64_FRINTP, 4, 0 }, // frintp_mz_z_2
+    { "movaz", 0xffff1f83U, 0xc0060600U, 46, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz4_za_b1
+    { "movaz", 0xffff1f83U, 0xc0460600U, 49, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz4_za_h1
+    { "movaz", 0xffff1f83U, 0xc0860600U, 53, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz4_za_w1
+    { "mova", 0xffff9f03U, 0xc0060c00U, 43, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz_za4_1
+    { "movt", 0xffff8fe0U, 0xc04e03e0U, 42, Mnemonic::ARM64_MOVT, 1, 0 }, // movt_zt_r_
+    { "mov", 0xffff1f83U, 0xc0060400U, 46, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz4_za_b1
+    { "mov", 0xffff1f83U, 0xc0460400U, 49, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz4_za_h1
+    { "mov", 0xffff1f83U, 0xc0860400U, 53, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz4_za_w1
+    { "mov", 0xffff9f03U, 0xc0060c00U, 43, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz_za4_1
+    { "mov", 0xffff9c78U, 0xc0040c00U, 25, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za_mz4_1
+    { "mov", 0xffff1c7cU, 0xc0040400U, 28, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za4_z_b1
+    { "mov", 0xffff1c7cU, 0xc0440400U, 31, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za4_z_h1
+    { "mov", 0xffff1c7cU, 0xc0840400U, 35, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za4_z_w1
     { "fmlall", 0xffe39c7eU, 0xc1a10020U, 57, Mnemonic::ARM64_FMLALL, 5, 0 }, // fmlall_za32_z8z8w_4x4
     { "bf1cvtl", 0xfffffc01U, 0xc166e001U, 62, Mnemonic::ARM64_BF1CVTL, 3, 0 }, // bf1cvtl_mz2_z8_
     { "bf2cvtl", 0xfffffc01U, 0xc1e6e001U, 62, Mnemonic::ARM64_BF2CVTL, 3, 0 }, // bf2cvtl_mz2_z8_
     { "fmin", 0xff30ffe3U, 0xc120a901U, 14, Mnemonic::ARM64_FMIN, 5, 0 }, // fmin_mz_zzv_4x1
     { "smin", 0xff30ffe3U, 0xc120a820U, 14, Mnemonic::ARM64_SMIN, 5, 0 }, // smin_mz_zzv_4x1
-    { "mov", 0xffff1f03U, 0xc0c60400U, 65, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz4_za_d1
-    { "sqcvtu", 0xff7ffc60U, 0xc173e000U, 53, Mnemonic::ARM64_SQCVTU, 3, 0 }, // sqcvtu_z_mz4_
-    { "bfsub", 0xffff9c38U, 0xc1e41c08U, 36, Mnemonic::ARM64_BFSUB, 3, 0 }, // bfsub_za_zw_2x2_16
-    { "sqcvtu", 0xfffffc20U, 0xc163e000U, 53, Mnemonic::ARM64_SQCVTU, 3, 0 }, // sqcvtu_z_mz2_
+    { "sqcvtu", 0xff7ffc60U, 0xc173e000U, 39, Mnemonic::ARM64_SQCVTU, 3, 0 }, // sqcvtu_z_mz4_
+    { "bfsub", 0xffff9c38U, 0xc1e41c08U, 25, Mnemonic::ARM64_BFSUB, 3, 0 }, // bfsub_za_zw_2x2_16
+    { "sqcvtu", 0xfffffc20U, 0xc163e000U, 39, Mnemonic::ARM64_SQCVTU, 3, 0 }, // sqcvtu_z_mz2_
     { "umax", 0xff30ffe3U, 0xc120a801U, 14, Mnemonic::ARM64_UMAX, 5, 0 }, // umax_mz_zzv_4x1
     { "bf1cvt", 0xfffffc01U, 0xc166e000U, 62, Mnemonic::ARM64_BF1CVT, 3, 0 }, // bf1cvt_mz2_z8_
     { "bf2cvt", 0xfffffc01U, 0xc1e6e000U, 62, Mnemonic::ARM64_BF2CVT, 3, 0 }, // bf2cvt_mz2_z8_
-    { "mov", 0xffff9c38U, 0xc0040800U, 36, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za_mz2_1
     { "fminnm", 0xff30ffe3U, 0xc120a921U, 14, Mnemonic::ARM64_FMINNM, 5, 0 }, // fminnm_mz_zzv_4x1
     { "fmaxnm", 0xff30ffe3U, 0xc120a920U, 14, Mnemonic::ARM64_FMAXNM, 5, 0 }, // fmaxnm_mz_zzv_4x1
-    { "sqcvt", 0xfffffc20U, 0xc123e000U, 53, Mnemonic::ARM64_SQCVT, 3, 0 }, // sqcvt_z_mz2_
-    { "add", 0xffbf9c78U, 0xc1a11c10U, 36, Mnemonic::ARM64_ADD, 3, 0 }, // add_za_zw_4x4
-    { "mova", 0xffff1c78U, 0xc0c40400U, 69, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za4_z_d1
+    { "sqcvt", 0xfffffc20U, 0xc123e000U, 39, Mnemonic::ARM64_SQCVT, 3, 0 }, // sqcvt_z_mz2_
+    { "add", 0xffbf9c78U, 0xc1a11c10U, 25, Mnemonic::ARM64_ADD, 3, 0 }, // add_za_zw_4x4
+    { "mova", 0xffff1c78U, 0xc0c40400U, 65, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za4_z_d1
     { "f1cvtl", 0xfffffc01U, 0xc126e001U, 62, Mnemonic::ARM64_F1CVTL, 3, 0 }, // f1cvtl_mz2_z8_
     { "f2cvtl", 0xfffffc01U, 0xc1a6e001U, 62, Mnemonic::ARM64_F2CVTL, 3, 0 }, // f2cvtl_mz2_z8_
-    { "mov", 0xffff9f01U, 0xc0060800U, 73, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz_za2_1
-    { "fsub", 0xffff9c38U, 0xc1a41c08U, 36, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_2x2_16
-    { "fsub", 0xffbf9c78U, 0xc1a11c08U, 36, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_4x4
-    { "sqcvt", 0xff7ffc60U, 0xc133e000U, 53, Mnemonic::ARM64_SQCVT, 3, 0 }, // sqcvt_z_mz4_
+    { "fsub", 0xffff9c38U, 0xc1a41c08U, 25, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_2x2_16
+    { "fsub", 0xffbf9c78U, 0xc1a11c08U, 25, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_4x4
+    { "sqcvt", 0xff7ffc60U, 0xc133e000U, 39, Mnemonic::ARM64_SQCVT, 3, 0 }, // sqcvt_z_mz4_
     { "fcvtl", 0xfffffc01U, 0xc1a0e001U, 62, Mnemonic::ARM64_FCVTL, 3, 0 }, // fcvtl_mz2_z_
-    { "mov", 0xffff1c78U, 0xc0c40400U, 69, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za4_z_d1
     { "uunpk", 0xff3ffc23U, 0xc135e001U, 4, Mnemonic::ARM64_UUNPK, 4, 0 }, // uunpk_mz_z_4
-    { "movaz", 0xffff9f01U, 0xc0060a00U, 73, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz_za2_1
+    { "movaz", 0xffff9f01U, 0xc0060a00U, 69, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz_za2_1
     { "luti4", 0xffffcc23U, 0xc08b0000U, 4, Mnemonic::ARM64_LUTI4, 4, 0 }, // luti4_mz4_ztmz2_1
-    { "luti4", 0xffffcc2cU, 0xc09b0000U, 76, Mnemonic::ARM64_LUTI4, 6, 0 }, // luti4_mz4_ztmz2_4
+    { "luti4", 0xffffcc2cU, 0xc09b0000U, 72, Mnemonic::ARM64_LUTI4, 6, 0 }, // luti4_mz4_ztmz2_4
     { "srshl", 0xff30ffe3U, 0xc120aa20U, 14, Mnemonic::ARM64_SRSHL, 5, 0 }, // srshl_mz_zzv_4x1
-    { "sub", 0xffbf9c78U, 0xc1a11c18U, 36, Mnemonic::ARM64_SUB, 3, 0 }, // sub_za_zw_4x4
-    { "uqcvt", 0xfffffc20U, 0xc123e020U, 53, Mnemonic::ARM64_UQCVT, 3, 0 }, // uqcvt_z_mz2_
+    { "sub", 0xffbf9c78U, 0xc1a11c18U, 25, Mnemonic::ARM64_SUB, 3, 0 }, // sub_za_zw_4x4
+    { "uqcvt", 0xfffffc20U, 0xc123e020U, 39, Mnemonic::ARM64_UQCVT, 3, 0 }, // uqcvt_z_mz2_
     { "fmax", 0xff30ffe3U, 0xc120a900U, 14, Mnemonic::ARM64_FMAX, 5, 0 }, // fmax_mz_zzv_4x1
-    { "fcvtn", 0xfffffc20U, 0xc120e020U, 53, Mnemonic::ARM64_FCVTN, 3, 0 }, // fcvtn_z_mz2_
+    { "fcvtn", 0xfffffc20U, 0xc120e020U, 39, Mnemonic::ARM64_FCVTN, 3, 0 }, // fcvtn_z_mz2_
     { "smax", 0xff30ffe3U, 0xc120a800U, 14, Mnemonic::ARM64_SMAX, 5, 0 }, // smax_mz_zzv_4x1
-    { "fcvt", 0xfffffc20U, 0xc120e000U, 53, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_z_mz2_
-    { "fadd", 0xffff9c38U, 0xc1a41c00U, 36, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_2x2_16
-    { "fadd", 0xffbf9c78U, 0xc1a11c00U, 36, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_4x4
+    { "fcvt", 0xfffffc20U, 0xc120e000U, 39, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_z_mz2_
+    { "fadd", 0xffff9c38U, 0xc1a41c00U, 25, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_2x2_16
+    { "fadd", 0xffbf9c78U, 0xc1a11c00U, 25, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_4x4
     { "sqdmulh", 0xff30ffe3U, 0xc120ac00U, 14, Mnemonic::ARM64_SQDMULH, 5, 0 }, // sqdmulh_mz_zzv_4x1
     { "urshl", 0xff30ffe3U, 0xc120aa21U, 14, Mnemonic::ARM64_URSHL, 5, 0 }, // urshl_mz_zzv_4x1
-    { "sqcvtun", 0xff7ffc60U, 0xc173e040U, 53, Mnemonic::ARM64_SQCVTUN, 3, 0 }, // sqcvtun_z_mz4_
+    { "sqcvtun", 0xff7ffc60U, 0xc173e040U, 39, Mnemonic::ARM64_SQCVTUN, 3, 0 }, // sqcvtun_z_mz4_
     { "sunpk", 0xff3ffc23U, 0xc135e000U, 4, Mnemonic::ARM64_SUNPK, 4, 0 }, // sunpk_mz_z_4
-    { "uqcvt", 0xff7ffc60U, 0xc133e020U, 53, Mnemonic::ARM64_UQCVT, 3, 0 }, // uqcvt_z_mz4_
-    { "mova", 0xffff1f03U, 0xc0c60400U, 65, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz4_za_d1
-    { "bfcvtn", 0xfffffc20U, 0xc160e020U, 53, Mnemonic::ARM64_BFCVTN, 3, 0 }, // bfcvtn_z_mz2_
-    { "bfcvt", 0xfffffc20U, 0xc160e000U, 53, Mnemonic::ARM64_BFCVT, 3, 0 }, // bfcvt_z_mz2_
+    { "uqcvt", 0xff7ffc60U, 0xc133e020U, 39, Mnemonic::ARM64_UQCVT, 3, 0 }, // uqcvt_z_mz4_
+    { "mova", 0xffff1f03U, 0xc0c60400U, 78, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz4_za_d1
+    { "bfcvtn", 0xfffffc20U, 0xc160e020U, 39, Mnemonic::ARM64_BFCVTN, 3, 0 }, // bfcvtn_z_mz2_
+    { "bfcvt", 0xfffffc20U, 0xc160e000U, 39, Mnemonic::ARM64_BFCVT, 3, 0 }, // bfcvt_z_mz2_
     { "fscale", 0xff30ffe3U, 0xc120a980U, 14, Mnemonic::ARM64_FSCALE, 5, 0 }, // fscale_mz_zzv_4x1
-    { "bfcvt", 0xfffffc20U, 0xc164e000U, 53, Mnemonic::ARM64_BFCVT, 3, 0 }, // bfcvt_z8_mz2_
+    { "bfcvt", 0xfffffc20U, 0xc164e000U, 39, Mnemonic::ARM64_BFCVT, 3, 0 }, // bfcvt_z8_mz2_
     { "umin", 0xff30ffe3U, 0xc120a821U, 14, Mnemonic::ARM64_UMIN, 5, 0 }, // umin_mz_zzv_4x1
-    { "mova", 0xffff9f01U, 0xc0060800U, 73, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz_za2_1
-    { "bfadd", 0xffff9c38U, 0xc1e41c00U, 36, Mnemonic::ARM64_BFADD, 3, 0 }, // bfadd_za_zw_2x2_16
-    { "sqcvtn", 0xff7ffc60U, 0xc133e040U, 53, Mnemonic::ARM64_SQCVTN, 3, 0 }, // sqcvtn_z_mz4_
+    { "mova", 0xffff9f01U, 0xc0060800U, 69, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz_za2_1
+    { "bfadd", 0xffff9c38U, 0xc1e41c00U, 25, Mnemonic::ARM64_BFADD, 3, 0 }, // bfadd_za_zw_2x2_16
+    { "sqcvtn", 0xff7ffc60U, 0xc133e040U, 39, Mnemonic::ARM64_SQCVTN, 3, 0 }, // sqcvtn_z_mz4_
     { "usmlall", 0xffe39c7eU, 0xc1a10004U, 57, Mnemonic::ARM64_USMLALL, 5, 0 }, // usmlall_za_zzw_s4x4
-    { "movaz", 0xffff1f03U, 0xc0c60600U, 65, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz4_za_d1
+    { "movaz", 0xffff1f03U, 0xc0c60600U, 78, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz4_za_d1
     { "f1cvt", 0xfffffc01U, 0xc126e000U, 62, Mnemonic::ARM64_F1CVT, 3, 0 }, // f1cvt_mz2_z8_
     { "f2cvt", 0xfffffc01U, 0xc1a6e000U, 62, Mnemonic::ARM64_F2CVT, 3, 0 }, // f2cvt_mz2_z8_
-    { "uqcvtn", 0xff7ffc60U, 0xc133e060U, 53, Mnemonic::ARM64_UQCVTN, 3, 0 }, // uqcvtn_z_mz4_
-    { "fcvt", 0xfffffc20U, 0xc124e000U, 53, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_z8_mz2_
+    { "uqcvtn", 0xff7ffc60U, 0xc133e060U, 39, Mnemonic::ARM64_UQCVTN, 3, 0 }, // uqcvtn_z_mz4_
+    { "fcvt", 0xfffffc20U, 0xc124e000U, 39, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_z8_mz2_
     { "add", 0xff30ffe3U, 0xc120ab00U, 14, Mnemonic::ARM64_ADD, 5, 0 }, // add_mz_zzv_4x1
     { "fcvt", 0xfffffc01U, 0xc1a0e000U, 62, Mnemonic::ARM64_FCVT, 3, 0 }, // fcvt_mz2_z_
-    { "mova", 0xffff9c38U, 0xc0040800U, 36, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za_mz2_1
+    { "mova", 0xffff9c38U, 0xc0040800U, 25, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za_mz2_1
+    { "mov", 0xffff1f03U, 0xc0c60400U, 78, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz4_za_d1
+    { "mov", 0xffff9c38U, 0xc0040800U, 25, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za_mz2_1
+    { "mov", 0xffff9f01U, 0xc0060800U, 69, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz_za2_1
+    { "mov", 0xffff1c78U, 0xc0c40400U, 65, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za4_z_d1
     { "bfmlsl", 0xffe39c7cU, 0xc1a10818U, 82, Mnemonic::ARM64_BFMLSL, 5, 0 }, // bfmlsl_za_zzw_4x4
     { "fmin", 0xff21ffe1U, 0xc120b101U, 8, Mnemonic::ARM64_FMIN, 6, 0 }, // fmin_mz_zzw_2x2
     { "fmin", 0xff30ffe1U, 0xc120a101U, 14, Mnemonic::ARM64_FMIN, 5, 0 }, // fmin_mz_zzv_2x1
@@ -567,40 +566,32 @@ const InstructionEntry g_instructionTable[] = {
     { "umax", 0xff21ffe1U, 0xc120b001U, 8, Mnemonic::ARM64_UMAX, 6, 0 }, // umax_mz_zzw_2x2
     { "umlsl", 0xffe39c7cU, 0xc1e10818U, 82, Mnemonic::ARM64_UMLSL, 5, 0 }, // umlsl_za_zzw_4x4
     { "famin", 0xff21ffe1U, 0xc120b141U, 8, Mnemonic::ARM64_FAMIN, 6, 0 }, // famin_mz_zzw_2x2
-    { "mov", 0xffff1f01U, 0xc0060000U, 73, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz2_za_b1
-    { "mov", 0xffff1f01U, 0xc0460000U, 87, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz2_za_h1
-    { "mov", 0xffff1f01U, 0xc0860000U, 91, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz2_za_w1
-    { "mov", 0xffff1f01U, 0xc0c60000U, 95, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz2_za_d1
-    { "mova", 0xffff1c38U, 0xc0040000U, 36, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za2_z_b1
-    { "mova", 0xffff1c38U, 0xc0440000U, 99, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za2_z_h1
-    { "mova", 0xffff1c38U, 0xc0840000U, 103, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za2_z_w1
-    { "mova", 0xffff1c38U, 0xc0c40000U, 69, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za2_z_d1
+    { "mova", 0xffff1c38U, 0xc0040000U, 25, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_za2_z_b1
+    { "mova", 0xffff1c38U, 0xc0440000U, 87, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za2_z_h1
+    { "mova", 0xffff1c38U, 0xc0840000U, 91, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za2_z_w1
+    { "mova", 0xffff1c38U, 0xc0c40000U, 65, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_za2_z_d1
     { "smlsl", 0xffe39c7cU, 0xc1e10808U, 82, Mnemonic::ARM64_SMLSL, 5, 0 }, // smlsl_za_zzw_4x4
-    { "add", 0xffbf9c38U, 0xc1a01c10U, 36, Mnemonic::ARM64_ADD, 3, 0 }, // add_za_zw_2x2
+    { "add", 0xffbf9c38U, 0xc1a01c10U, 25, Mnemonic::ARM64_ADD, 3, 0 }, // add_za_zw_2x2
     { "umlsll", 0xffa39c7eU, 0xc1a10018U, 57, Mnemonic::ARM64_UMLSLL, 5, 0 }, // umlsll_za_zzw_4x4
-    { "fsub", 0xffbf9c38U, 0xc1a01c08U, 36, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_2x2
+    { "fsub", 0xffbf9c38U, 0xc1a01c08U, 25, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_za_zw_2x2
     { "fmax", 0xff21ffe1U, 0xc120b100U, 8, Mnemonic::ARM64_FMAX, 6, 0 }, // fmax_mz_zzw_2x2
     { "srshl", 0xff21ffe1U, 0xc120b220U, 8, Mnemonic::ARM64_SRSHL, 6, 0 }, // srshl_mz_zzw_2x2
     { "srshl", 0xff30ffe1U, 0xc120a220U, 14, Mnemonic::ARM64_SRSHL, 5, 0 }, // srshl_mz_zzv_2x1
-    { "sub", 0xffbf9c38U, 0xc1a01c18U, 36, Mnemonic::ARM64_SUB, 3, 0 }, // sub_za_zw_2x2
+    { "sub", 0xffbf9c38U, 0xc1a01c18U, 25, Mnemonic::ARM64_SUB, 3, 0 }, // sub_za_zw_2x2
     { "fmax", 0xff30ffe1U, 0xc120a100U, 14, Mnemonic::ARM64_FMAX, 5, 0 }, // fmax_mz_zzv_2x1
     { "sqdmulh", 0xff21ffe1U, 0xc120b400U, 8, Mnemonic::ARM64_SQDMULH, 6, 0 }, // sqdmulh_mz_zzw_2x2
     { "smax", 0xff30ffe1U, 0xc120a000U, 14, Mnemonic::ARM64_SMAX, 5, 0 }, // smax_mz_zzv_2x1
     { "bfmlal", 0xffe39c7cU, 0xc1a10810U, 82, Mnemonic::ARM64_BFMLAL, 5, 0 }, // bfmlal_za_zzw_4x4
-    { "fadd", 0xffbf9c38U, 0xc1a01c00U, 36, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_2x2
+    { "fadd", 0xffbf9c38U, 0xc1a01c00U, 25, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_za_zw_2x2
     { "smax", 0xff21ffe1U, 0xc120b000U, 8, Mnemonic::ARM64_SMAX, 6, 0 }, // smax_mz_zzw_2x2
     { "sqdmulh", 0xff30ffe1U, 0xc120a400U, 14, Mnemonic::ARM64_SQDMULH, 5, 0 }, // sqdmulh_mz_zzv_2x1
     { "urshl", 0xff30ffe1U, 0xc120a221U, 14, Mnemonic::ARM64_URSHL, 5, 0 }, // urshl_mz_zzv_2x1
-    { "mov", 0xffff1c38U, 0xc0040000U, 36, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za2_z_b1
-    { "mov", 0xffff1c38U, 0xc0440000U, 99, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za2_z_h1
-    { "mov", 0xffff1c38U, 0xc0840000U, 103, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za2_z_w1
-    { "mov", 0xffff1c38U, 0xc0c40000U, 69, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za2_z_d1
     { "urshl", 0xff21ffe1U, 0xc120b221U, 8, Mnemonic::ARM64_URSHL, 6, 0 }, // urshl_mz_zzw_2x2
     { "fmlsl", 0xffe39c7cU, 0xc1a10808U, 82, Mnemonic::ARM64_FMLSL, 5, 0 }, // fmlsl_za_zzw_4x4
-    { "movaz", 0xffff1f01U, 0xc0060200U, 73, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz2_za_b1
-    { "movaz", 0xffff1f01U, 0xc0460200U, 87, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz2_za_h1
-    { "movaz", 0xffff1f01U, 0xc0860200U, 91, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz2_za_w1
-    { "movaz", 0xffff1f01U, 0xc0c60200U, 95, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz2_za_d1
+    { "movaz", 0xffff1f01U, 0xc0060200U, 69, Mnemonic::ARM64_MOVAZ, 3, 0 }, // movaz_mz2_za_b1
+    { "movaz", 0xffff1f01U, 0xc0460200U, 95, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz2_za_h1
+    { "movaz", 0xffff1f01U, 0xc0860200U, 99, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz2_za_w1
+    { "movaz", 0xffff1f01U, 0xc0c60200U, 103, Mnemonic::ARM64_MOVAZ, 4, 0 }, // movaz_mz2_za_d1
     { "fscale", 0xff30ffe1U, 0xc120a180U, 14, Mnemonic::ARM64_FSCALE, 5, 0 }, // fscale_mz_zzv_2x1
     { "umin", 0xff30ffe1U, 0xc120a021U, 14, Mnemonic::ARM64_UMIN, 5, 0 }, // umin_mz_zzv_2x1
     { "famax", 0xff21ffe1U, 0xc120b140U, 8, Mnemonic::ARM64_FAMAX, 6, 0 }, // famax_mz_zzw_2x2
@@ -609,10 +600,18 @@ const InstructionEntry g_instructionTable[] = {
     { "umlal", 0xffe39c7cU, 0xc1e10810U, 82, Mnemonic::ARM64_UMLAL, 5, 0 }, // umlal_za_zzw_4x4
     { "add", 0xff30ffe1U, 0xc120a300U, 14, Mnemonic::ARM64_ADD, 5, 0 }, // add_mz_zzv_2x1
     { "smlal", 0xffe39c7cU, 0xc1e10800U, 82, Mnemonic::ARM64_SMLAL, 5, 0 }, // smlal_za_zzw_4x4
-    { "mova", 0xffff1f01U, 0xc0060000U, 73, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz2_za_b1
-    { "mova", 0xffff1f01U, 0xc0460000U, 87, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz2_za_h1
-    { "mova", 0xffff1f01U, 0xc0860000U, 91, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz2_za_w1
-    { "mova", 0xffff1f01U, 0xc0c60000U, 95, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz2_za_d1
+    { "mova", 0xffff1f01U, 0xc0060000U, 69, Mnemonic::ARM64_MOVA, 3, 0 }, // mova_mz2_za_b1
+    { "mova", 0xffff1f01U, 0xc0460000U, 95, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz2_za_h1
+    { "mova", 0xffff1f01U, 0xc0860000U, 99, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz2_za_w1
+    { "mova", 0xffff1f01U, 0xc0c60000U, 103, Mnemonic::ARM64_MOVA, 4, 0 }, // mova_mz2_za_d1
+    { "mov", 0xffff1f01U, 0xc0060000U, 69, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_mz2_za_b1
+    { "mov", 0xffff1f01U, 0xc0460000U, 95, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz2_za_h1
+    { "mov", 0xffff1f01U, 0xc0860000U, 99, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz2_za_w1
+    { "mov", 0xffff1f01U, 0xc0c60000U, 103, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_mz2_za_d1
+    { "mov", 0xffff1c38U, 0xc0040000U, 25, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za2_z_b1
+    { "mov", 0xffff1c38U, 0xc0440000U, 87, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za2_z_h1
+    { "mov", 0xffff1c38U, 0xc0840000U, 91, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za2_z_w1
+    { "mov", 0xffff1c38U, 0xc0c40000U, 65, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za2_z_d1
     { "fmlall", 0xffe19c3eU, 0xc1a00020U, 57, Mnemonic::ARM64_FMLALL, 5, 0 }, // fmlall_za32_z8z8w_2x2
     { "bfmla", 0xffe39c78U, 0xc1e11008U, 107, Mnemonic::ARM64_BFMLA, 5, 0 }, // bfmla_za_zzw_4x4_16
     { "bfdot", 0xffe39c78U, 0xc1a11010U, 107, Mnemonic::ARM64_BFDOT, 5, 0 }, // bfdot_za_zzw_4x4
@@ -898,21 +897,11 @@ const InstructionEntry g_instructionTable[] = {
     { "fmlall", 0xfff09038U, 0xc1900020U, 179, Mnemonic::ARM64_FMLALL, 5, 0 }, // fmlall_za32_z8z8i_2xi
     { "stnt1b", 0xfff0e003U, 0xa0608001U, 237, Mnemonic::ARM64_STNT1B, 4, 0 }, // stnt1b_mz_p_bi_4
     { "ld1b", 0xfff0e00cU, 0xa1408000U, 241, Mnemonic::ARM64_LD1B, 6, 0 }, // ld1b_mzx_p_bi_4x4
-    { "mov", 0xffff0200U, 0xc0020000U, 269, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_z_p_rza_b
-    { "mov", 0xffff0200U, 0xc0420000U, 272, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_h
-    { "mov", 0xffff0200U, 0xc0820000U, 276, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_w
-    { "mov", 0xffff0200U, 0xc0c20000U, 280, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_d
-    { "mov", 0xffff0200U, 0xc0c30000U, 284, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_q
     { "fmls", 0xffb09c18U, 0xc1201808U, 201, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_za_zzv_2x1
     { "fmls", 0xffb09c18U, 0xc1301808U, 201, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_za_zzv_4x1
     { "umlall", 0xfff09038U, 0xc1100010U, 179, Mnemonic::ARM64_UMLALL, 5, 0 }, // umlall_za_zzi_s2xi
     { "fclamp", 0xff20fc03U, 0xc120c800U, 175, Mnemonic::ARM64_FCLAMP, 4, 0 }, // fclamp_mz_zz_4
     { "sumlall", 0xfff09038U, 0xc1100030U, 179, Mnemonic::ARM64_SUMLALL, 5, 0 }, // sumlall_za_zzi_s2xi
-    { "mov", 0xffff0010U, 0xc0000000U, 247, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za_p_rz_b
-    { "mov", 0xffff0010U, 0xc0400000U, 250, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_h
-    { "mov", 0xffff0010U, 0xc0800000U, 254, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_w
-    { "mov", 0xffff0010U, 0xc0c00000U, 258, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_d
-    { "mov", 0xffff0010U, 0xc0c10000U, 262, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_q
     { "add", 0xffb09c18U, 0xc1201810U, 201, Mnemonic::ARM64_ADD, 4, 0 }, // add_za_zzv_2x1
     { "add", 0xffb09c18U, 0xc1301810U, 201, Mnemonic::ARM64_ADD, 4, 0 }, // add_za_zzv_4x1
     { "ld1d", 0xfff0e00cU, 0xa140e000U, 241, Mnemonic::ARM64_LD1D, 6, 0 }, // ld1d_mzx_p_bi_4x4
@@ -922,6 +911,16 @@ const InstructionEntry g_instructionTable[] = {
     { "fmlal", 0xfff09038U, 0xc1901000U, 208, Mnemonic::ARM64_FMLAL, 5, 0 }, // fmlal_za_zzi_2xi
     { "st1h", 0xfff0e00cU, 0xa160a000U, 241, Mnemonic::ARM64_ST1H, 6, 0 }, // st1h_mzx_p_bi_4x4
     { "fmlal", 0xfff09070U, 0xc1909020U, 208, Mnemonic::ARM64_FMLAL, 5, 0 }, // fmlal_za_z8z8i_4xi
+    { "mov", 0xffff0200U, 0xc0020000U, 269, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_z_p_rza_b
+    { "mov", 0xffff0200U, 0xc0420000U, 272, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_h
+    { "mov", 0xffff0200U, 0xc0820000U, 276, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_w
+    { "mov", 0xffff0200U, 0xc0c20000U, 280, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_d
+    { "mov", 0xffff0200U, 0xc0c30000U, 284, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_z_p_rza_q
+    { "mov", 0xffff0010U, 0xc0000000U, 247, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_mova_za_p_rz_b
+    { "mov", 0xffff0010U, 0xc0400000U, 250, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_h
+    { "mov", 0xffff0010U, 0xc0800000U, 254, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_w
+    { "mov", 0xffff0010U, 0xc0c00000U, 258, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_d
+    { "mov", 0xffff0010U, 0xc0c10000U, 262, Mnemonic::ARM64_MOV, 4, 0 }, // MOV_mova_za_p_rz_q
     { "fmls", 0xfff09030U, 0xc1101010U, 228, Mnemonic::ARM64_FMLS, 5, 0 }, // fmls_za_zzi_h2xi
     { "st1b", 0xfff0e001U, 0xa0600000U, 237, Mnemonic::ARM64_ST1B, 4, 0 }, // st1b_mz_p_bi_2
     { "st1h", 0xffe0e00cU, 0xa120a000U, 288, Mnemonic::ARM64_ST1H, 6, 0 }, // st1h_mzx_p_br_4x4
@@ -1103,8 +1102,8 @@ const InstructionEntry g_instructionTable[] = {
     { "rdffr", 0xfffffff0U, 0x2519f000U, 347, Mnemonic::ARM64_RDFFR, 1, 0 }, // rdffr_p_f_
     { "pfalse", 0xfffffff0U, 0x2518e400U, 347, Mnemonic::ARM64_PFALSE, 1, 0 }, // pfalse_p_
     { "wrffr", 0xfffffe1fU, 0x25289000U, 348, Mnemonic::ARM64_WRFFR, 1, 0 }, // wrffr_f_p_
-    { "aesmc", 0xffffffe0U, 0x4520e000U, 53, Mnemonic::ARM64_AESMC, 2, 0 }, // aesmc_z_z_
-    { "aesimc", 0xffffffe0U, 0x4520e400U, 53, Mnemonic::ARM64_AESIMC, 2, 0 }, // aesimc_z_z_
+    { "aesmc", 0xffffffe0U, 0x4520e000U, 39, Mnemonic::ARM64_AESMC, 2, 0 }, // aesmc_z_z_
+    { "aesimc", 0xffffffe0U, 0x4520e400U, 39, Mnemonic::ARM64_AESIMC, 2, 0 }, // aesimc_z_z_
     { "ptrue", 0xff3ffff8U, 0x25207810U, 349, Mnemonic::ARM64_PTRUE, 1, 0 }, // ptrue_pn_i_
     { "fmov", 0xff3fffe0U, 0x2538c000U, 20, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_dup_z_i_
     { "rdffr", 0xfffffe10U, 0x2518f000U, 350, Mnemonic::ARM64_RDFFR, 2, 0 }, // rdffr_p_p_f_
@@ -1113,14 +1112,14 @@ const InstructionEntry g_instructionTable[] = {
     { "ptest", 0xffffc21fU, 0x2550c000U, 355, Mnemonic::ARM64_PTEST, 2, 0 }, // ptest_p_p_
     { "punpkhi", 0xfffffe10U, 0x05314000U, 350, Mnemonic::ARM64_PUNPKHI, 2, 0 }, // punpkhi_p_p_
     { "punpklo", 0xfffffe10U, 0x05304000U, 350, Mnemonic::ARM64_PUNPKLO, 2, 0 }, // punpklo_p_p_
-    { "fcvtnt", 0xfffffc20U, 0x650a3c00U, 53, Mnemonic::ARM64_FCVTNT, 3, 0 }, // fcvtnt_z8_mz2_s2b
-    { "fcvtn", 0xfffffc20U, 0x650a3000U, 53, Mnemonic::ARM64_FCVTN, 3, 0 }, // fcvtn_z8_mz2_h2b
-    { "fcvtnb", 0xfffffc20U, 0x650a3400U, 53, Mnemonic::ARM64_FCVTNB, 3, 0 }, // fcvtnb_z8_mz2_s2b
-    { "sqcvtun", 0xfffffc20U, 0x45315000U, 53, Mnemonic::ARM64_SQCVTUN, 3, 0 }, // sqcvtun_z_mz2_
-    { "uqcvtn", 0xfffffc20U, 0x45314800U, 53, Mnemonic::ARM64_UQCVTN, 3, 0 }, // uqcvtn_z_mz2_
+    { "fcvtnt", 0xfffffc20U, 0x650a3c00U, 39, Mnemonic::ARM64_FCVTNT, 3, 0 }, // fcvtnt_z8_mz2_s2b
+    { "fcvtn", 0xfffffc20U, 0x650a3000U, 39, Mnemonic::ARM64_FCVTN, 3, 0 }, // fcvtn_z8_mz2_h2b
+    { "fcvtnb", 0xfffffc20U, 0x650a3400U, 39, Mnemonic::ARM64_FCVTNB, 3, 0 }, // fcvtnb_z8_mz2_s2b
+    { "sqcvtun", 0xfffffc20U, 0x45315000U, 39, Mnemonic::ARM64_SQCVTUN, 3, 0 }, // sqcvtun_z_mz2_
+    { "uqcvtn", 0xfffffc20U, 0x45314800U, 39, Mnemonic::ARM64_UQCVTN, 3, 0 }, // uqcvtn_z_mz2_
     { "pmov", 0xfffffc10U, 0x052a3800U, 357, Mnemonic::ARM64_PMOV, 2, 0 }, // pmov_p_zi_b
-    { "bfcvtn", 0xfffffc20U, 0x650a3800U, 53, Mnemonic::ARM64_BFCVTN, 3, 0 }, // bfcvtn_z8_mz2_bf2b
-    { "sqcvtn", 0xfffffc20U, 0x45314000U, 53, Mnemonic::ARM64_SQCVTN, 3, 0 }, // sqcvtn_z_mz2_
+    { "bfcvtn", 0xfffffc20U, 0x650a3800U, 39, Mnemonic::ARM64_BFCVTN, 3, 0 }, // bfcvtn_z8_mz2_bf2b
+    { "sqcvtn", 0xfffffc20U, 0x45314000U, 39, Mnemonic::ARM64_SQCVTN, 3, 0 }, // sqcvtn_z_mz2_
     { "pmov", 0xfffffe00U, 0x052b3800U, 359, Mnemonic::ARM64_PMOV, 2, 0 }, // pmov_z_pi_b
     { "rev", 0xff3ffe10U, 0x05344000U, 350, Mnemonic::ARM64_REV, 2, 0 }, // rev_p_p_
     { "pext", 0xff3ffe10U, 0x25207410U, 361, Mnemonic::ARM64_PEXT, 4, 0 }, // pext_pp_rr_
@@ -1175,7 +1174,6 @@ const InstructionEntry g_instructionTable[] = {
     { "uqdecp", 0xff3ffe00U, 0x252b8000U, 359, Mnemonic::ARM64_UQDECP, 2, 0 }, // uqdecp_z_p_z_
     { "brkbs", 0xffffc210U, 0x25d04000U, 395, Mnemonic::ARM64_BRKBS, 3, 0 }, // brkbs_p_p_p_z
     { "rev", 0xff3ffc00U, 0x05383800U, 266, Mnemonic::ARM64_REV, 2, 0 }, // rev_z_z_
-    { "mov", 0xff3ffc00U, 0x05203800U, 20, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_dup_z_r_
     { "dup", 0xff3ffc00U, 0x05203800U, 20, Mnemonic::ARM64_DUP, 1, 0 }, // dup_z_r_
     { "insr", 0xff3ffc00U, 0x05343800U, 20, Mnemonic::ARM64_INSR, 1, 0 }, // insr_z_v_
     { "frecpe", 0xff3ffc00U, 0x650e3000U, 266, Mnemonic::ARM64_FRECPE, 2, 0 }, // frecpe_z_z_
@@ -1192,6 +1190,7 @@ const InstructionEntry g_instructionTable[] = {
     { "frsqrte", 0xff3ffc00U, 0x650f3000U, 266, Mnemonic::ARM64_FRSQRTE, 2, 0 }, // frsqrte_z_z_
     { "brkas", 0xffffc210U, 0x25504000U, 395, Mnemonic::ARM64_BRKAS, 3, 0 }, // brkas_p_p_p_z
     { "pmov", 0xffb9fe00U, 0x05a93800U, 405, Mnemonic::ARM64_PMOV, 3, 0 }, // pmov_z_pi_d
+    { "mov", 0xff3ffc00U, 0x05203800U, 20, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_dup_z_r_
     { "sqxtnb", 0xffa7fc00U, 0x45204000U, 266, Mnemonic::ARM64_SQXTNB, 2, 0 }, // sqxtnb_z_zz_
     { "ucvtf", 0xffffe000U, 0x6553a000U, 408, Mnemonic::ARM64_UCVTF, 3, 0 }, // ucvtf_z_p_z_h2fp16
     { "ucvtf", 0xffffe000U, 0x6555a000U, 408, Mnemonic::ARM64_UCVTF, 3, 0 }, // ucvtf_z_p_z_w2fp16
@@ -1341,26 +1340,28 @@ const InstructionEntry g_instructionTable[] = {
     { "asr", 0xff3fe000U, 0x04108000U, 411, Mnemonic::ARM64_ASR, 4, 0 }, // asr_z_p_zz_
     { "lsr", 0xff3fe000U, 0x04118000U, 411, Mnemonic::ARM64_LSR, 4, 0 }, // lsr_z_p_zz_
     { "lsr", 0xff3fe000U, 0x04018000U, 438, Mnemonic::ARM64_LSR, 4, 0 }, // lsr_z_p_zi_
+    { "orr", 0xffe0fc00U, 0x04603000U, 442, Mnemonic::ARM64_ORR, 3, 0 }, // orr_z_zz_
+    { "orr", 0xff3fe000U, 0x04180000U, 411, Mnemonic::ARM64_ORR, 4, 0 }, // orr_z_p_zz_
     { "suqadd", 0xff3fe000U, 0x441c8000U, 411, Mnemonic::ARM64_SUQADD, 4, 0 }, // suqadd_z_p_zz_
-    { "sqrdmulh", 0xffe0fc00U, 0x44a0f400U, 442, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // sqrdmulh_z_zzi_s
-    { "sqrdmulh", 0xffe0fc00U, 0x44e0f400U, 446, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // sqrdmulh_z_zzi_d
+    { "sqrdmulh", 0xffe0fc00U, 0x44a0f400U, 445, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // sqrdmulh_z_zzi_s
+    { "sqrdmulh", 0xffe0fc00U, 0x44e0f400U, 449, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // sqrdmulh_z_zzi_d
     { "asrr", 0xff3fe000U, 0x04148000U, 411, Mnemonic::ARM64_ASRR, 4, 0 }, // asrr_z_p_zz_
-    { "fmls", 0xffe0fc00U, 0x64a00400U, 442, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_zzzi_s
-    { "fmls", 0xffe0fc00U, 0x64e00400U, 446, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_zzzi_d
-    { "fmlalltb", 0xffe0fc00U, 0x6420a800U, 450, Mnemonic::ARM64_FMLALLTB, 3, 0 }, // fmlalltb_z32_z8z8z8_
-    { "mlapt", 0xffe0fc00U, 0x44c0d000U, 450, Mnemonic::ARM64_MLAPT, 3, 0 }, // mlapt_z_zzz_
+    { "fmls", 0xffe0fc00U, 0x64a00400U, 445, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_zzzi_s
+    { "fmls", 0xffe0fc00U, 0x64e00400U, 449, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_zzzi_d
+    { "fmlalltb", 0xffe0fc00U, 0x6420a800U, 442, Mnemonic::ARM64_FMLALLTB, 3, 0 }, // fmlalltb_z32_z8z8z8_
+    { "mlapt", 0xffe0fc00U, 0x44c0d000U, 442, Mnemonic::ARM64_MLAPT, 3, 0 }, // mlapt_z_zzz_
     { "sqrshl", 0xff3fe000U, 0x440a8000U, 411, Mnemonic::ARM64_SQRSHL, 4, 0 }, // sqrshl_z_p_zz_
     { "fscale", 0xff3fe000U, 0x65098000U, 411, Mnemonic::ARM64_FSCALE, 4, 0 }, // fscale_z_p_zz_
     { "abs", 0xff3fe000U, 0x0416a000U, 408, Mnemonic::ARM64_ABS, 3, 0 }, // abs_z_p_z_
     { "eor3", 0xffe0fc00U, 0x04203800U, 453, Mnemonic::ARM64_EOR3, 4, 0 }, // eor3_z_zzz_
-    { "bfmlslt", 0xffe0fc00U, 0x64e0a400U, 450, Mnemonic::ARM64_BFMLSLT, 3, 0 }, // bfmlslt_z_zzz_
+    { "bfmlslt", 0xffe0fc00U, 0x64e0a400U, 442, Mnemonic::ARM64_BFMLSLT, 3, 0 }, // bfmlslt_z_zzz_
     { "udivr", 0xff3fe000U, 0x04170000U, 411, Mnemonic::ARM64_UDIVR, 4, 0 }, // udivr_z_p_zz_
     { "umin", 0xff3fe000U, 0x040b0000U, 411, Mnemonic::ARM64_UMIN, 4, 0 }, // umin_z_p_zz_
     { "famax", 0xff3fe000U, 0x650e8000U, 411, Mnemonic::ARM64_FAMAX, 4, 0 }, // famax_z_p_zz_
     { "eor", 0xff3fe000U, 0x04190000U, 411, Mnemonic::ARM64_EOR, 4, 0 }, // eor_z_p_zz_
     { "fsqrt", 0xff3fe000U, 0x650da000U, 408, Mnemonic::ARM64_FSQRT, 3, 0 }, // fsqrt_z_p_z_
-    { "uzp1", 0xffe0fc00U, 0x05a00800U, 450, Mnemonic::ARM64_UZP1, 3, 0 }, // uzp1_z_zz_q
-    { "uzp2", 0xffe0fc00U, 0x05a00c00U, 450, Mnemonic::ARM64_UZP2, 3, 0 }, // uzp2_z_zz_q
+    { "uzp1", 0xffe0fc00U, 0x05a00800U, 442, Mnemonic::ARM64_UZP1, 3, 0 }, // uzp1_z_zz_q
+    { "uzp2", 0xffe0fc00U, 0x05a00c00U, 442, Mnemonic::ARM64_UZP2, 3, 0 }, // uzp2_z_zz_q
     { "umaxqv", 0xff3fe000U, 0x040d2000U, 457, Mnemonic::ARM64_UMAXQV, 3, 0 }, // umaxqv_z_p_z_
     { "splice", 0xff3fe000U, 0x052d8000U, 460, Mnemonic::ARM64_SPLICE, 3, 0 }, // splice_z_p_zz_con
     { "splice", 0xff3fe000U, 0x052c8000U, 365, Mnemonic::ARM64_SPLICE, 3, 0 }, // splice_z_p_zz_des
@@ -1370,42 +1371,42 @@ const InstructionEntry g_instructionTable[] = {
     { "bic", 0xff3fe000U, 0x041b0000U, 411, Mnemonic::ARM64_BIC, 4, 0 }, // bic_z_p_zz_
     { "asrd", 0xff3fe000U, 0x04048000U, 438, Mnemonic::ARM64_ASRD, 4, 0 }, // asrd_z_p_zi_
     { "fminp", 0xff3fe000U, 0x64178000U, 411, Mnemonic::ARM64_FMINP, 4, 0 }, // fminp_z_p_zz_
-    { "bfsub", 0xffe0fc00U, 0x65000400U, 450, Mnemonic::ARM64_BFSUB, 3, 0 }, // bfsub_z_zz_
+    { "bfsub", 0xffe0fc00U, 0x65000400U, 442, Mnemonic::ARM64_BFSUB, 3, 0 }, // bfsub_z_zz_
     { "sqadd", 0xff3fe000U, 0x44188000U, 411, Mnemonic::ARM64_SQADD, 4, 0 }, // sqadd_z_p_zz_
-    { "ummla", 0xffe0fc00U, 0x45c09800U, 450, Mnemonic::ARM64_UMMLA, 3, 0 }, // ummla_z_zzz_
-    { "fmlallbt", 0xffe0fc00U, 0x64209800U, 450, Mnemonic::ARM64_FMLALLBT, 3, 0 }, // fmlallbt_z32_z8z8z8_
-    { "fmlalb", 0xffe0fc00U, 0x64a08800U, 450, Mnemonic::ARM64_FMLALB, 3, 0 }, // fmlalb_z_z8z8z8_
+    { "ummla", 0xffe0fc00U, 0x45c09800U, 442, Mnemonic::ARM64_UMMLA, 3, 0 }, // ummla_z_zzz_
+    { "fmlallbt", 0xffe0fc00U, 0x64209800U, 442, Mnemonic::ARM64_FMLALLBT, 3, 0 }, // fmlallbt_z32_z8z8z8_
+    { "fmlalb", 0xffe0fc00U, 0x64a08800U, 442, Mnemonic::ARM64_FMLALB, 3, 0 }, // fmlalb_z_z8z8z8_
     { "ftmad", 0xff38fc00U, 0x65108000U, 463, Mnemonic::ARM64_FTMAD, 4, 0 }, // ftmad_z_zzi_
     { "sdivr", 0xff3fe000U, 0x04160000U, 411, Mnemonic::ARM64_SDIVR, 4, 0 }, // sdivr_z_p_zz_
     { "fmulx", 0xff3fe000U, 0x650a8000U, 411, Mnemonic::ARM64_FMULX, 4, 0 }, // fmulx_z_p_zz_
     { "lasta", 0xff3fe000U, 0x0520a000U, 248, Mnemonic::ARM64_LASTA, 2, 0 }, // lasta_r_p_z_
     { "not", 0xff3fe000U, 0x041ea000U, 408, Mnemonic::ARM64_NOT, 3, 0 }, // not_z_p_z_
-    { "fdot", 0xffe0fc00U, 0x64208000U, 450, Mnemonic::ARM64_FDOT, 3, 0 }, // fdot_z_zzz_
-    { "pmullb", 0xffe0fc00U, 0x45006800U, 450, Mnemonic::ARM64_PMULLB, 3, 0 }, // pmullb_z_zz_q
+    { "fdot", 0xffe0fc00U, 0x64208000U, 442, Mnemonic::ARM64_FDOT, 3, 0 }, // fdot_z_zzz_
+    { "pmullb", 0xffe0fc00U, 0x45006800U, 442, Mnemonic::ARM64_PMULLB, 3, 0 }, // pmullb_z_zz_q
     { "fabd", 0xff3fe000U, 0x65088000U, 411, Mnemonic::ARM64_FABD, 4, 0 }, // fabd_z_p_zz_
     { "fsubr", 0xff3fe000U, 0x65038000U, 411, Mnemonic::ARM64_FSUBR, 4, 0 }, // fsubr_z_p_zz_
     { "lastb", 0xff3fe000U, 0x05238000U, 248, Mnemonic::ARM64_LASTB, 2, 0 }, // lastb_v_p_z_
     { "bsl1n", 0xffe0fc00U, 0x04603c00U, 453, Mnemonic::ARM64_BSL1N, 4, 0 }, // bsl1n_z_zzz_
     { "uqadd", 0xff3fe000U, 0x44198000U, 411, Mnemonic::ARM64_UQADD, 4, 0 }, // uqadd_z_p_zz_
-    { "rax1", 0xffe0fc00U, 0x4520f400U, 450, Mnemonic::ARM64_RAX1, 3, 0 }, // rax1_z_zz_
+    { "rax1", 0xffe0fc00U, 0x4520f400U, 442, Mnemonic::ARM64_RAX1, 3, 0 }, // rax1_z_zz_
     { "sqrshlr", 0xff3fe000U, 0x440e8000U, 411, Mnemonic::ARM64_SQRSHLR, 4, 0 }, // sqrshlr_z_p_zz_
     { "cnot", 0xff3fe000U, 0x041ba000U, 408, Mnemonic::ARM64_CNOT, 3, 0 }, // cnot_z_p_z_
-    { "fmlalt", 0xffe0fc00U, 0x64a08400U, 450, Mnemonic::ARM64_FMLALT, 3, 0 }, // fmlalt_z_zzz_
+    { "fmlalt", 0xffe0fc00U, 0x64a08400U, 442, Mnemonic::ARM64_FMLALT, 3, 0 }, // fmlalt_z_zzz_
     { "cls", 0xff3fe000U, 0x0418a000U, 408, Mnemonic::ARM64_CLS, 3, 0 }, // cls_z_p_z_
     { "sabd", 0xff3fe000U, 0x040c0000U, 411, Mnemonic::ARM64_SABD, 4, 0 }, // sabd_z_p_zz_
     { "sminv", 0xff3fe000U, 0x040a2000U, 248, Mnemonic::ARM64_SMINV, 2, 0 }, // sminv_r_p_z_
     { "shsubr", 0xff3fe000U, 0x44168000U, 411, Mnemonic::ARM64_SHSUBR, 4, 0 }, // shsubr_z_p_zz_
     { "sqabs", 0xff3fe000U, 0x4408a000U, 408, Mnemonic::ARM64_SQABS, 3, 0 }, // sqabs_z_p_z_
     { "smaxqv", 0xff3fe000U, 0x040c2000U, 457, Mnemonic::ARM64_SMAXQV, 3, 0 }, // smaxqv_z_p_z_
-    { "usdot", 0xffe0fc00U, 0x44a01800U, 442, Mnemonic::ARM64_USDOT, 4, 0 }, // usdot_z_zzzi_s
+    { "usdot", 0xffe0fc00U, 0x44a01800U, 445, Mnemonic::ARM64_USDOT, 4, 0 }, // usdot_z_zzzi_s
     { "clastb", 0xff3fe000U, 0x052b8000U, 467, Mnemonic::ARM64_CLASTB, 4, 0 }, // clastb_v_p_z_
     { "fsub", 0xff3fe000U, 0x65018000U, 411, Mnemonic::ARM64_FSUB, 4, 0 }, // fsub_z_p_zz_
     { "add", 0xff3fe000U, 0x04000000U, 411, Mnemonic::ARM64_ADD, 4, 0 }, // add_z_p_zz_
     { "whilele", 0xff20fc11U, 0x25205411U, 471, Mnemonic::ARM64_WHILELE, 2, 0 }, // whilele_pp_rr_
     { "clasta", 0xff3fe000U, 0x0530a000U, 467, Mnemonic::ARM64_CLASTA, 4, 0 }, // clasta_r_p_z_
     { "umulh", 0xff3fe000U, 0x04130000U, 411, Mnemonic::ARM64_UMULH, 4, 0 }, // umulh_z_p_zz_
-    { "sqrdmlsh", 0xffe0fc00U, 0x44a01400U, 442, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // sqrdmlsh_z_zzzi_s
-    { "sqrdmlsh", 0xffe0fc00U, 0x44e01400U, 446, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // sqrdmlsh_z_zzzi_d
+    { "sqrdmlsh", 0xffe0fc00U, 0x44a01400U, 445, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // sqrdmlsh_z_zzzi_s
+    { "sqrdmlsh", 0xffe0fc00U, 0x44e01400U, 449, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // sqrdmlsh_z_zzzi_d
     { "srshl", 0xff3fe000U, 0x44028000U, 411, Mnemonic::ARM64_SRSHL, 4, 0 }, // srshl_z_p_zz_
     { "whilelo", 0xff20fc11U, 0x25205c10U, 471, Mnemonic::ARM64_WHILELO, 2, 0 }, // whilelo_pp_rr_
     { "sqsub", 0xff3fe000U, 0x441a8000U, 411, Mnemonic::ARM64_SQSUB, 4, 0 }, // sqsub_z_p_zz_
@@ -1413,23 +1414,21 @@ const InstructionEntry g_instructionTable[] = {
     { "lsrr", 0xff3fe000U, 0x04158000U, 411, Mnemonic::ARM64_LSRR, 4, 0 }, // lsrr_z_p_zz_
     { "uaddv", 0xff3fe000U, 0x04012000U, 473, Mnemonic::ARM64_UADDV, 3, 0 }, // uaddv_r_p_z_
     { "madpt", 0xffe0fc00U, 0x44c0d800U, 454, Mnemonic::ARM64_MADPT, 3, 0 }, // madpt_z_zzz_
-    { "fdot", 0xffe0fc00U, 0x64604400U, 442, Mnemonic::ARM64_FDOT, 4, 0 }, // fdot_z32_zz8z8i_
+    { "fdot", 0xffe0fc00U, 0x64604400U, 445, Mnemonic::ARM64_FDOT, 4, 0 }, // fdot_z32_zz8z8i_
     { "faddv", 0xff3fe000U, 0x65002000U, 248, Mnemonic::ARM64_FADDV, 2, 0 }, // faddv_v_p_z_
-    { "zip2", 0xffe0fc00U, 0x05a00400U, 450, Mnemonic::ARM64_ZIP2, 3, 0 }, // zip2_z_zz_q
-    { "zip1", 0xffe0fc00U, 0x05a00000U, 450, Mnemonic::ARM64_ZIP1, 3, 0 }, // zip1_z_zz_q
-    { "sdot", 0xffe0fc00U, 0x4400c800U, 450, Mnemonic::ARM64_SDOT, 3, 0 }, // sdot_z32_zzz_
-    { "mov", 0xffe0fc00U, 0x04603000U, 266, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_orr_z_zz_
+    { "zip2", 0xffe0fc00U, 0x05a00400U, 442, Mnemonic::ARM64_ZIP2, 3, 0 }, // zip2_z_zz_q
+    { "zip1", 0xffe0fc00U, 0x05a00000U, 442, Mnemonic::ARM64_ZIP1, 3, 0 }, // zip1_z_zz_q
+    { "sdot", 0xffe0fc00U, 0x4400c800U, 442, Mnemonic::ARM64_SDOT, 3, 0 }, // sdot_z32_zzz_
     { "sqshl", 0xff3fe000U, 0x04068000U, 438, Mnemonic::ARM64_SQSHL, 4, 0 }, // sqshl_z_p_zi_
-    { "orr", 0xffe0fc00U, 0x04603000U, 450, Mnemonic::ARM64_ORR, 3, 0 }, // orr_z_zz_
     { "sqneg", 0xff3fe000U, 0x4409a000U, 408, Mnemonic::ARM64_SQNEG, 3, 0 }, // sqneg_z_p_z_
     { "and", 0xff3fe000U, 0x041a0000U, 411, Mnemonic::ARM64_AND, 4, 0 }, // and_z_p_zz_
-    { "usmmla", 0xffe0fc00U, 0x45809800U, 450, Mnemonic::ARM64_USMMLA, 3, 0 }, // usmmla_z_zzz_
+    { "usmmla", 0xffe0fc00U, 0x45809800U, 442, Mnemonic::ARM64_USMMLA, 3, 0 }, // usmmla_z_zzz_
     { "uqshl", 0xff3fe000U, 0x44098000U, 411, Mnemonic::ARM64_UQSHL, 4, 0 }, // uqshl_z_p_zz_
     { "urshr", 0xff3fe000U, 0x040d8000U, 438, Mnemonic::ARM64_URSHR, 4, 0 }, // urshr_z_p_zi_
     { "whilegt", 0xff20fc11U, 0x25205011U, 471, Mnemonic::ARM64_WHILEGT, 2, 0 }, // whilegt_pp_rr_
-    { "bfmlalb", 0xffe0fc00U, 0x64e08000U, 450, Mnemonic::ARM64_BFMLALB, 3, 0 }, // bfmlalb_z_zzz_
-    { "mls", 0xffe0fc00U, 0x44a00c00U, 442, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_zzzi_s
-    { "mls", 0xffe0fc00U, 0x44e00c00U, 446, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_zzzi_d
+    { "bfmlalb", 0xffe0fc00U, 0x64e08000U, 442, Mnemonic::ARM64_BFMLALB, 3, 0 }, // bfmlalb_z_zzz_
+    { "mls", 0xffe0fc00U, 0x44a00c00U, 445, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_zzzi_s
+    { "mls", 0xffe0fc00U, 0x44e00c00U, 449, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_zzzi_d
     { "smaxp", 0xff3fe000U, 0x4414a000U, 411, Mnemonic::ARM64_SMAXP, 4, 0 }, // smaxp_z_p_zz_
     { "uqrshl", 0xff3fe000U, 0x440b8000U, 411, Mnemonic::ARM64_UQRSHL, 4, 0 }, // uqrshl_z_p_zz_
     { "subr", 0xff3fe000U, 0x04030000U, 411, Mnemonic::ARM64_SUBR, 4, 0 }, // subr_z_p_zz_
@@ -1438,10 +1437,10 @@ const InstructionEntry g_instructionTable[] = {
     { "sxth", 0xff3fe000U, 0x0412a000U, 408, Mnemonic::ARM64_SXTH, 3, 0 }, // sxth_z_p_z_
     { "sxtw", 0xff3fe000U, 0x0414a000U, 408, Mnemonic::ARM64_SXTW, 3, 0 }, // sxtw_z_p_z_
     { "smax", 0xff3fe000U, 0x04080000U, 411, Mnemonic::ARM64_SMAX, 4, 0 }, // smax_z_p_zz_
-    { "fmlslb", 0xffe0fc00U, 0x64a0a000U, 450, Mnemonic::ARM64_FMLSLB, 3, 0 }, // fmlslb_z_zzz_
+    { "fmlslb", 0xffe0fc00U, 0x64a0a000U, 442, Mnemonic::ARM64_FMLSLB, 3, 0 }, // fmlslb_z_zzz_
     { "neg", 0xff3fe000U, 0x0417a000U, 408, Mnemonic::ARM64_NEG, 3, 0 }, // neg_z_p_z_
     { "uhsubr", 0xff3fe000U, 0x44178000U, 411, Mnemonic::ARM64_UHSUBR, 4, 0 }, // uhsubr_z_p_zz_
-    { "udot", 0xffe0fc00U, 0x4400cc00U, 450, Mnemonic::ARM64_UDOT, 3, 0 }, // udot_z32_zzz_
+    { "udot", 0xffe0fc00U, 0x4400cc00U, 442, Mnemonic::ARM64_UDOT, 3, 0 }, // udot_z32_zzz_
     { "uqshl", 0xff3fe000U, 0x04078000U, 438, Mnemonic::ARM64_UQSHL, 4, 0 }, // uqshl_z_p_zi_
     { "sub", 0xff3fe000U, 0x04010000U, 411, Mnemonic::ARM64_SUB, 4, 0 }, // sub_z_p_zz_
     { "fadd", 0xff3fe000U, 0x65008000U, 411, Mnemonic::ARM64_FADD, 4, 0 }, // fadd_z_p_zz_
@@ -1452,30 +1451,30 @@ const InstructionEntry g_instructionTable[] = {
     { "rbit", 0xff3fe000U, 0x05278000U, 408, Mnemonic::ARM64_RBIT, 3, 0 }, // rbit_z_p_z_
     { "udiv", 0xff3fe000U, 0x04150000U, 411, Mnemonic::ARM64_UDIV, 4, 0 }, // udiv_z_p_zz_
     { "fmaxv", 0xff3fe000U, 0x65062000U, 248, Mnemonic::ARM64_FMAXV, 2, 0 }, // fmaxv_v_p_z_
-    { "bfadd", 0xffe0fc00U, 0x65000000U, 450, Mnemonic::ARM64_BFADD, 3, 0 }, // bfadd_z_zz_
+    { "bfadd", 0xffe0fc00U, 0x65000000U, 442, Mnemonic::ARM64_BFADD, 3, 0 }, // bfadd_z_zz_
     { "mul", 0xff3fe000U, 0x2530c000U, 476, Mnemonic::ARM64_MUL, 3, 0 }, // mul_z_zi_
     { "usqadd", 0xff3fe000U, 0x441d8000U, 411, Mnemonic::ARM64_USQADD, 4, 0 }, // usqadd_z_p_zz_
     { "srshr", 0xff3fe000U, 0x040c8000U, 438, Mnemonic::ARM64_SRSHR, 4, 0 }, // srshr_z_p_zi_
     { "sqshl", 0xff3fe000U, 0x44088000U, 411, Mnemonic::ARM64_SQSHL, 4, 0 }, // sqshl_z_p_zz_
-    { "bic", 0xffe0fc00U, 0x04e03000U, 450, Mnemonic::ARM64_BIC, 3, 0 }, // bic_z_zz_
+    { "bic", 0xffe0fc00U, 0x04e03000U, 442, Mnemonic::ARM64_BIC, 3, 0 }, // bic_z_zz_
     { "umaxp", 0xff3fe000U, 0x4415a000U, 411, Mnemonic::ARM64_UMAXP, 4, 0 }, // umaxp_z_p_zz_
     { "fminqv", 0xff3fe000U, 0x6417a000U, 457, Mnemonic::ARM64_FMINQV, 3, 0 }, // fminqv_z_p_z_
     { "uxtb", 0xff3fe000U, 0x0411a000U, 408, Mnemonic::ARM64_UXTB, 3, 0 }, // uxtb_z_p_z_
     { "uxth", 0xff3fe000U, 0x0413a000U, 408, Mnemonic::ARM64_UXTH, 3, 0 }, // uxth_z_p_z_
     { "uxtw", 0xff3fe000U, 0x0415a000U, 408, Mnemonic::ARM64_UXTW, 3, 0 }, // uxtw_z_p_z_
     { "clastb", 0xff3fe000U, 0x05298000U, 411, Mnemonic::ARM64_CLASTB, 4, 0 }, // clastb_z_p_zz_
-    { "bfdot", 0xffe0fc00U, 0x64608000U, 450, Mnemonic::ARM64_BFDOT, 3, 0 }, // bfdot_z_zzz_
-    { "mul", 0xffe0fc00U, 0x44a0f800U, 442, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_zzi_s
-    { "mul", 0xffe0fc00U, 0x44e0f800U, 446, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_zzi_d
-    { "udot", 0xffe0fc00U, 0x44a00400U, 442, Mnemonic::ARM64_UDOT, 4, 0 }, // udot_z_zzzi_s
-    { "udot", 0xffe0fc00U, 0x44e00400U, 446, Mnemonic::ARM64_UDOT, 4, 0 }, // udot_z_zzzi_d
-    { "fmul", 0xffe0fc00U, 0x64a02000U, 442, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_zzi_s
-    { "fmul", 0xffe0fc00U, 0x64e02000U, 446, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_zzi_d
-    { "fmlalltt", 0xffe0fc00U, 0x6420b800U, 450, Mnemonic::ARM64_FMLALLTT, 3, 0 }, // fmlalltt_z32_z8z8z8_
+    { "bfdot", 0xffe0fc00U, 0x64608000U, 442, Mnemonic::ARM64_BFDOT, 3, 0 }, // bfdot_z_zzz_
+    { "mul", 0xffe0fc00U, 0x44a0f800U, 445, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_zzi_s
+    { "mul", 0xffe0fc00U, 0x44e0f800U, 449, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_zzi_d
+    { "udot", 0xffe0fc00U, 0x44a00400U, 445, Mnemonic::ARM64_UDOT, 4, 0 }, // udot_z_zzzi_s
+    { "udot", 0xffe0fc00U, 0x44e00400U, 449, Mnemonic::ARM64_UDOT, 4, 0 }, // udot_z_zzzi_d
+    { "fmul", 0xffe0fc00U, 0x64a02000U, 445, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_zzi_s
+    { "fmul", 0xffe0fc00U, 0x64e02000U, 449, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_zzi_d
+    { "fmlalltt", 0xffe0fc00U, 0x6420b800U, 442, Mnemonic::ARM64_FMLALLTT, 3, 0 }, // fmlalltt_z32_z8z8z8_
     { "fminnm", 0xff3fe000U, 0x65058000U, 411, Mnemonic::ARM64_FMINNM, 4, 0 }, // fminnm_z_p_zz_
-    { "fmlalt", 0xffe0fc00U, 0x64a09800U, 450, Mnemonic::ARM64_FMLALT, 3, 0 }, // fmlalt_z_z8z8z8_
-    { "sqdmulh", 0xffe0fc00U, 0x44a0f000U, 442, Mnemonic::ARM64_SQDMULH, 4, 0 }, // sqdmulh_z_zzi_s
-    { "sqdmulh", 0xffe0fc00U, 0x44e0f000U, 446, Mnemonic::ARM64_SQDMULH, 4, 0 }, // sqdmulh_z_zzi_d
+    { "fmlalt", 0xffe0fc00U, 0x64a09800U, 442, Mnemonic::ARM64_FMLALT, 3, 0 }, // fmlalt_z_z8z8z8_
+    { "sqdmulh", 0xffe0fc00U, 0x44a0f000U, 445, Mnemonic::ARM64_SQDMULH, 4, 0 }, // sqdmulh_z_zzi_s
+    { "sqdmulh", 0xffe0fc00U, 0x44e0f000U, 449, Mnemonic::ARM64_SQDMULH, 4, 0 }, // sqdmulh_z_zzi_d
     { "uhadd", 0xff3fe000U, 0x44118000U, 411, Mnemonic::ARM64_UHADD, 4, 0 }, // uhadd_z_p_zz_
     { "clz", 0xff3fe000U, 0x0419a000U, 408, Mnemonic::ARM64_CLZ, 3, 0 }, // clz_z_p_z_
     { "fmaxnm", 0xff3fe000U, 0x65048000U, 411, Mnemonic::ARM64_FMAXNM, 4, 0 }, // fmaxnm_z_p_zz_
@@ -1484,19 +1483,19 @@ const InstructionEntry g_instructionTable[] = {
     { "fmaxp", 0xff3fe000U, 0x64168000U, 411, Mnemonic::ARM64_FMAXP, 4, 0 }, // fmaxp_z_p_zz_
     { "orqv", 0xff3fe000U, 0x041c2000U, 457, Mnemonic::ARM64_ORQV, 3, 0 }, // orqv_z_p_z_
     { "umax", 0xff3fe000U, 0x2529c000U, 479, Mnemonic::ARM64_UMAX, 3, 0 }, // umax_z_zi_
-    { "and", 0xffe0fc00U, 0x04203000U, 450, Mnemonic::ARM64_AND, 3, 0 }, // and_z_zz_
+    { "and", 0xffe0fc00U, 0x04203000U, 442, Mnemonic::ARM64_AND, 3, 0 }, // and_z_zz_
     { "whilelt", 0xff20fc11U, 0x25205410U, 471, Mnemonic::ARM64_WHILELT, 2, 0 }, // whilelt_pp_rr_
     { "revb", 0xff3fe000U, 0x05248000U, 408, Mnemonic::ARM64_REVB, 3, 0 }, // revb_z_z_
     { "revh", 0xff3fe000U, 0x05258000U, 408, Mnemonic::ARM64_REVH, 3, 0 }, // revh_z_z_
     { "revw", 0xff3fe000U, 0x05268000U, 408, Mnemonic::ARM64_REVW, 3, 0 }, // revw_z_z_
-    { "sm4ekey", 0xffe0fc00U, 0x4520f000U, 450, Mnemonic::ARM64_SM4EKEY, 3, 0 }, // sm4ekey_z_zz_
+    { "sm4ekey", 0xffe0fc00U, 0x4520f000U, 442, Mnemonic::ARM64_SM4EKEY, 3, 0 }, // sm4ekey_z_zz_
     { "uminqv", 0xff3fe000U, 0x040f2000U, 457, Mnemonic::ARM64_UMINQV, 3, 0 }, // uminqv_z_p_z_
     { "uqrshlr", 0xff3fe000U, 0x440f8000U, 411, Mnemonic::ARM64_UQRSHLR, 4, 0 }, // uqrshlr_z_p_zz_
     { "clasta", 0xff3fe000U, 0x05288000U, 411, Mnemonic::ARM64_CLASTA, 4, 0 }, // clasta_z_p_zz_
     { "fmaxnmp", 0xff3fe000U, 0x64148000U, 411, Mnemonic::ARM64_FMAXNMP, 4, 0 }, // fmaxnmp_z_p_zz_
     { "fneg", 0xff3fe000U, 0x041da000U, 408, Mnemonic::ARM64_FNEG, 3, 0 }, // fneg_z_p_z_
-    { "bfmlalt", 0xffe0fc00U, 0x64e08400U, 450, Mnemonic::ARM64_BFMLALT, 3, 0 }, // bfmlalt_z_zzz_
-    { "bfdot", 0xffe0fc00U, 0x64604000U, 442, Mnemonic::ARM64_BFDOT, 4, 0 }, // bfdot_z_zzzi_
+    { "bfmlalt", 0xffe0fc00U, 0x64e08400U, 442, Mnemonic::ARM64_BFMLALT, 3, 0 }, // bfmlalt_z_zzz_
+    { "bfdot", 0xffe0fc00U, 0x64604000U, 445, Mnemonic::ARM64_BFDOT, 4, 0 }, // bfdot_z_zzzi_
     { "saddv", 0xff3fe000U, 0x04002000U, 473, Mnemonic::ARM64_SADDV, 3, 0 }, // saddv_r_p_z_
     { "fmov", 0xff3fe000U, 0x2539c000U, 482, Mnemonic::ARM64_FMOV, 2, 0 }, // FMOV_fdup_z_i_
     { "mul", 0xff3fe000U, 0x04100000U, 411, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_p_zz_
@@ -1513,33 +1512,32 @@ const InstructionEntry g_instructionTable[] = {
     { "fdiv", 0xff3fe000U, 0x650d8000U, 411, Mnemonic::ARM64_FDIV, 4, 0 }, // fdiv_z_p_zz_
     { "dupq", 0xffe0fc00U, 0x05202400U, 484, Mnemonic::ARM64_DUPQ, 3, 0 }, // dupq_z_zi_
     { "nbsl", 0xffe0fc00U, 0x04e03c00U, 453, Mnemonic::ARM64_NBSL, 4, 0 }, // nbsl_z_zzz_
-    { "fmlallbb", 0xffe0fc00U, 0x64208800U, 450, Mnemonic::ARM64_FMLALLBB, 3, 0 }, // fmlallbb_z32_z8z8z8_
+    { "fmlallbb", 0xffe0fc00U, 0x64208800U, 442, Mnemonic::ARM64_FMLALLBB, 3, 0 }, // fmlallbb_z32_z8z8z8_
     { "srhadd", 0xff3fe000U, 0x44148000U, 411, Mnemonic::ARM64_SRHADD, 4, 0 }, // srhadd_z_p_zz_
-    { "fmlslt", 0xffe0fc00U, 0x64a0a400U, 450, Mnemonic::ARM64_FMLSLT, 3, 0 }, // fmlslt_z_zzz_
-    { "trn1", 0xffe0fc00U, 0x05a01800U, 450, Mnemonic::ARM64_TRN1, 3, 0 }, // trn1_z_zz_q
-    { "trn2", 0xffe0fc00U, 0x05a01c00U, 450, Mnemonic::ARM64_TRN2, 3, 0 }, // trn2_z_zz_q
+    { "fmlslt", 0xffe0fc00U, 0x64a0a400U, 442, Mnemonic::ARM64_FMLSLT, 3, 0 }, // fmlslt_z_zzz_
+    { "trn1", 0xffe0fc00U, 0x05a01800U, 442, Mnemonic::ARM64_TRN1, 3, 0 }, // trn1_z_zz_q
+    { "trn2", 0xffe0fc00U, 0x05a01c00U, 442, Mnemonic::ARM64_TRN2, 3, 0 }, // trn2_z_zz_q
     { "urshlr", 0xff3fe000U, 0x44078000U, 411, Mnemonic::ARM64_URSHLR, 4, 0 }, // urshlr_z_p_zz_
-    { "sdot", 0xffe0fc00U, 0x44a00000U, 442, Mnemonic::ARM64_SDOT, 4, 0 }, // sdot_z_zzzi_s
-    { "sdot", 0xffe0fc00U, 0x44e00000U, 446, Mnemonic::ARM64_SDOT, 4, 0 }, // sdot_z_zzzi_d
+    { "sdot", 0xffe0fc00U, 0x44a00000U, 445, Mnemonic::ARM64_SDOT, 4, 0 }, // sdot_z_zzzi_s
+    { "sdot", 0xffe0fc00U, 0x44e00000U, 449, Mnemonic::ARM64_SDOT, 4, 0 }, // sdot_z_zzzi_d
     { "fminnmv", 0xff3fe000U, 0x65052000U, 248, Mnemonic::ARM64_FMINNMV, 2, 0 }, // fminnmv_v_p_z_
-    { "udot", 0xffe0fc00U, 0x4480cc00U, 442, Mnemonic::ARM64_UDOT, 4, 0 }, // udot_z32_zzzi_
+    { "udot", 0xffe0fc00U, 0x4480cc00U, 445, Mnemonic::ARM64_UDOT, 4, 0 }, // udot_z32_zzzi_
     { "fmaxnmv", 0xff3fe000U, 0x65042000U, 248, Mnemonic::ARM64_FMAXNMV, 2, 0 }, // fmaxnmv_v_p_z_
     { "shadd", 0xff3fe000U, 0x44108000U, 411, Mnemonic::ARM64_SHADD, 4, 0 }, // shadd_z_p_zz_
     { "faddp", 0xff3fe000U, 0x64108000U, 411, Mnemonic::ARM64_FADDP, 4, 0 }, // faddp_z_p_zz_
     { "flogb", 0xfff9e000U, 0x6518a000U, 408, Mnemonic::ARM64_FLOGB, 3, 0 }, // flogb_z_p_z_
     { "sqshlr", 0xff3fe000U, 0x440c8000U, 411, Mnemonic::ARM64_SQSHLR, 4, 0 }, // sqshlr_z_p_zz_
     { "smin", 0xff3fe000U, 0x252ac000U, 476, Mnemonic::ARM64_SMIN, 3, 0 }, // smin_z_zi_
-    { "fdot", 0xffe0fc00U, 0x64204000U, 442, Mnemonic::ARM64_FDOT, 4, 0 }, // fdot_z_zzzi_
+    { "fdot", 0xffe0fc00U, 0x64204000U, 445, Mnemonic::ARM64_FDOT, 4, 0 }, // fdot_z_zzzi_
     { "andv", 0xff3fe000U, 0x041a2000U, 248, Mnemonic::ARM64_ANDV, 2, 0 }, // andv_r_p_z_
-    { "pmullt", 0xffe0fc00U, 0x45006c00U, 450, Mnemonic::ARM64_PMULLT, 3, 0 }, // pmullt_z_zz_q
-    { "fmla", 0xffe0fc00U, 0x64a00000U, 442, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_zzzi_s
-    { "fmla", 0xffe0fc00U, 0x64e00000U, 446, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_zzzi_d
+    { "pmullt", 0xffe0fc00U, 0x45006c00U, 442, Mnemonic::ARM64_PMULLT, 3, 0 }, // pmullt_z_zz_q
+    { "fmla", 0xffe0fc00U, 0x64a00000U, 445, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_zzzi_s
+    { "fmla", 0xffe0fc00U, 0x64e00000U, 449, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_zzzi_d
     { "sdiv", 0xff3fe000U, 0x04140000U, 411, Mnemonic::ARM64_SDIV, 4, 0 }, // sdiv_z_p_zz_
     { "bcax", 0xffe0fc00U, 0x04603800U, 453, Mnemonic::ARM64_BCAX, 4, 0 }, // bcax_z_zzz_
-    { "orr", 0xff3fe000U, 0x04180000U, 411, Mnemonic::ARM64_ORR, 4, 0 }, // orr_z_p_zz_
     { "urecpe", 0xff3fe000U, 0x4400a000U, 408, Mnemonic::ARM64_URECPE, 3, 0 }, // urecpe_z_p_z_
     { "fminnmp", 0xff3fe000U, 0x64158000U, 411, Mnemonic::ARM64_FMINNMP, 4, 0 }, // fminnmp_z_p_zz_
-    { "subpt", 0xffe0fc00U, 0x04e00c00U, 450, Mnemonic::ARM64_SUBPT, 3, 0 }, // subpt_z_zz_
+    { "subpt", 0xffe0fc00U, 0x04e00c00U, 442, Mnemonic::ARM64_SUBPT, 3, 0 }, // subpt_z_zz_
     { "sminqv", 0xff3fe000U, 0x040e2000U, 457, Mnemonic::ARM64_SMINQV, 3, 0 }, // sminqv_z_p_z_
     { "addqv", 0xff3fe000U, 0x04052000U, 457, Mnemonic::ARM64_ADDQV, 3, 0 }, // addqv_z_p_z_
     { "smaxv", 0xff3fe000U, 0x04082000U, 248, Mnemonic::ARM64_SMAXV, 2, 0 }, // smaxv_r_p_z_
@@ -1548,22 +1546,21 @@ const InstructionEntry g_instructionTable[] = {
     { "bsl", 0xffe0fc00U, 0x04203c00U, 453, Mnemonic::ARM64_BSL, 4, 0 }, // bsl_z_zzz_
     { "bsl2n", 0xffe0fc00U, 0x04a03c00U, 453, Mnemonic::ARM64_BSL2N, 4, 0 }, // bsl2n_z_zzz_
     { "andqv", 0xff3fe000U, 0x041e2000U, 457, Mnemonic::ARM64_ANDQV, 3, 0 }, // andqv_z_p_z_
-    { "sudot", 0xffe0fc00U, 0x44a01c00U, 442, Mnemonic::ARM64_SUDOT, 4, 0 }, // sudot_z_zzzi_s
-    { "bfclamp", 0xffe0fc00U, 0x64202400U, 450, Mnemonic::ARM64_BFCLAMP, 3, 0 }, // bfclamp_z_zz_
-    { "smmla", 0xffe0fc00U, 0x45009800U, 450, Mnemonic::ARM64_SMMLA, 3, 0 }, // smmla_z_zzz_
-    { "bfmlslb", 0xffe0fc00U, 0x64e0a000U, 450, Mnemonic::ARM64_BFMLSLB, 3, 0 }, // bfmlslb_z_zzz_
-    { "mov", 0xff3fe000U, 0x05208000U, 269, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_cpy_z_p_v_
+    { "sudot", 0xffe0fc00U, 0x44a01c00U, 445, Mnemonic::ARM64_SUDOT, 4, 0 }, // sudot_z_zzzi_s
+    { "bfclamp", 0xffe0fc00U, 0x64202400U, 442, Mnemonic::ARM64_BFCLAMP, 3, 0 }, // bfclamp_z_zz_
+    { "smmla", 0xffe0fc00U, 0x45009800U, 442, Mnemonic::ARM64_SMMLA, 3, 0 }, // smmla_z_zzz_
+    { "bfmlslb", 0xffe0fc00U, 0x64e0a000U, 442, Mnemonic::ARM64_BFMLSLB, 3, 0 }, // bfmlslb_z_zzz_
     { "fadda", 0xff3fe000U, 0x65182000U, 467, Mnemonic::ARM64_FADDA, 4, 0 }, // fadda_v_p_z_
     { "faddqv", 0xff3fe000U, 0x6410a000U, 457, Mnemonic::ARM64_FADDQV, 3, 0 }, // faddqv_z_p_z_
-    { "bfmul", 0xffe0fc00U, 0x65000800U, 450, Mnemonic::ARM64_BFMUL, 3, 0 }, // bfmul_z_zz_
+    { "bfmul", 0xffe0fc00U, 0x65000800U, 442, Mnemonic::ARM64_BFMUL, 3, 0 }, // bfmul_z_zz_
     { "uadalp", 0xff3fe000U, 0x4405a000U, 408, Mnemonic::ARM64_UADALP, 3, 0 }, // uadalp_z_p_z_
-    { "fmmla", 0xffe0fc00U, 0x64a0e400U, 450, Mnemonic::ARM64_FMMLA, 3, 0 }, // fmmla_z_zzz_s
-    { "fmmla", 0xffe0fc00U, 0x64e0e400U, 450, Mnemonic::ARM64_FMMLA, 3, 0 }, // fmmla_z_zzz_d
-    { "usdot", 0xffe0fc00U, 0x44807800U, 450, Mnemonic::ARM64_USDOT, 3, 0 }, // usdot_z_zzz_s
-    { "sqrdmlah", 0xffe0fc00U, 0x44a01000U, 442, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // sqrdmlah_z_zzzi_s
-    { "sqrdmlah", 0xffe0fc00U, 0x44e01000U, 446, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // sqrdmlah_z_zzzi_d
+    { "fmmla", 0xffe0fc00U, 0x64a0e400U, 442, Mnemonic::ARM64_FMMLA, 3, 0 }, // fmmla_z_zzz_s
+    { "fmmla", 0xffe0fc00U, 0x64e0e400U, 442, Mnemonic::ARM64_FMMLA, 3, 0 }, // fmmla_z_zzz_d
+    { "usdot", 0xffe0fc00U, 0x44807800U, 442, Mnemonic::ARM64_USDOT, 3, 0 }, // usdot_z_zzz_s
+    { "sqrdmlah", 0xffe0fc00U, 0x44a01000U, 445, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // sqrdmlah_z_zzzi_s
+    { "sqrdmlah", 0xffe0fc00U, 0x44e01000U, 449, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // sqrdmlah_z_zzzi_d
     { "uhsub", 0xff3fe000U, 0x44138000U, 411, Mnemonic::ARM64_UHSUB, 4, 0 }, // uhsub_z_p_zz_
-    { "eor", 0xffe0fc00U, 0x04a03000U, 450, Mnemonic::ARM64_EOR, 3, 0 }, // eor_z_zz_
+    { "eor", 0xffe0fc00U, 0x04a03000U, 442, Mnemonic::ARM64_EOR, 3, 0 }, // eor_z_zz_
     { "smin", 0xff3fe000U, 0x040a0000U, 411, Mnemonic::ARM64_SMIN, 4, 0 }, // smin_z_p_zz_
     { "smax", 0xff3fe000U, 0x2528c000U, 476, Mnemonic::ARM64_SMAX, 3, 0 }, // smax_z_zi_
     { "compact", 0xff3fe000U, 0x05218000U, 408, Mnemonic::ARM64_COMPACT, 3, 0 }, // compact_z_p_z_
@@ -1571,291 +1568,291 @@ const InstructionEntry g_instructionTable[] = {
     { "sminp", 0xff3fe000U, 0x4416a000U, 411, Mnemonic::ARM64_SMINP, 4, 0 }, // sminp_z_p_zz_
     { "addp", 0xff3fe000U, 0x4411a000U, 411, Mnemonic::ARM64_ADDP, 4, 0 }, // addp_z_p_zz_
     { "fminnmqv", 0xff3fe000U, 0x6415a000U, 457, Mnemonic::ARM64_FMINNMQV, 3, 0 }, // fminnmqv_z_p_z_
-    { "addpt", 0xffe0fc00U, 0x04e00800U, 450, Mnemonic::ARM64_ADDPT, 3, 0 }, // addpt_z_zz_
+    { "addpt", 0xffe0fc00U, 0x04e00800U, 442, Mnemonic::ARM64_ADDPT, 3, 0 }, // addpt_z_zz_
     { "uabd", 0xff3fe000U, 0x040d0000U, 411, Mnemonic::ARM64_UABD, 4, 0 }, // uabd_z_p_zz_
     { "lasta", 0xff3fe000U, 0x05228000U, 248, Mnemonic::ARM64_LASTA, 2, 0 }, // lasta_v_p_z_
-    { "mla", 0xffe0fc00U, 0x44a00800U, 442, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_zzzi_s
-    { "mla", 0xffe0fc00U, 0x44e00800U, 446, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_zzzi_d
+    { "mla", 0xffe0fc00U, 0x44a00800U, 445, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_zzzi_s
+    { "mla", 0xffe0fc00U, 0x44e00800U, 449, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_zzzi_d
     { "lastb", 0xff3fe000U, 0x0521a000U, 248, Mnemonic::ARM64_LASTB, 2, 0 }, // lastb_r_p_z_
     { "uqshlr", 0xff3fe000U, 0x440d8000U, 411, Mnemonic::ARM64_UQSHLR, 4, 0 }, // uqshlr_z_p_zz_
     { "fminv", 0xff3fe000U, 0x65072000U, 248, Mnemonic::ARM64_FMINV, 2, 0 }, // fminv_v_p_z_
-    { "fdot", 0xffe0fc00U, 0x64608400U, 450, Mnemonic::ARM64_FDOT, 3, 0 }, // fdot_z32_zz8z8_
+    { "fdot", 0xffe0fc00U, 0x64608400U, 442, Mnemonic::ARM64_FDOT, 3, 0 }, // fdot_z32_zz8z8_
     { "uminv", 0xff3fe000U, 0x040b2000U, 248, Mnemonic::ARM64_UMINV, 2, 0 }, // uminv_r_p_z_
     { "eorv", 0xff3fe000U, 0x04192000U, 248, Mnemonic::ARM64_EORV, 2, 0 }, // eorv_r_p_z_
     { "fdivr", 0xff3fe000U, 0x650c8000U, 411, Mnemonic::ARM64_FDIVR, 4, 0 }, // fdivr_z_p_zz_
     { "shsub", 0xff3fe000U, 0x44128000U, 411, Mnemonic::ARM64_SHSUB, 4, 0 }, // shsub_z_p_zz_
-    { "mov", 0xff3fe000U, 0x0528a000U, 269, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_cpy_z_p_r_
     { "clastb", 0xff3fe000U, 0x0531a000U, 467, Mnemonic::ARM64_CLASTB, 4, 0 }, // clastb_r_p_z_
-    { "fdot", 0xffe0fc00U, 0x64208400U, 450, Mnemonic::ARM64_FDOT, 3, 0 }, // fdot_z_zz8z8_
+    { "fdot", 0xffe0fc00U, 0x64208400U, 442, Mnemonic::ARM64_FDOT, 3, 0 }, // fdot_z_zz8z8_
     { "fmaxqv", 0xff3fe000U, 0x6416a000U, 457, Mnemonic::ARM64_FMAXQV, 3, 0 }, // fmaxqv_z_p_z_
     { "whilege", 0xff20fc11U, 0x25205010U, 471, Mnemonic::ARM64_WHILEGE, 2, 0 }, // whilege_pp_rr_
     { "sqshlu", 0xff3fe000U, 0x040f8000U, 438, Mnemonic::ARM64_SQSHLU, 4, 0 }, // sqshlu_z_p_zi_
     { "lslr", 0xff3fe000U, 0x04178000U, 411, Mnemonic::ARM64_LSLR, 4, 0 }, // lslr_z_p_zz_
-    { "fmlalb", 0xffe0fc00U, 0x64a08000U, 450, Mnemonic::ARM64_FMLALB, 3, 0 }, // fmlalb_z_zzz_
+    { "fmlalb", 0xffe0fc00U, 0x64a08000U, 442, Mnemonic::ARM64_FMLALB, 3, 0 }, // fmlalb_z_zzz_
     { "uminp", 0xff3fe000U, 0x4417a000U, 411, Mnemonic::ARM64_UMINP, 4, 0 }, // uminp_z_p_zz_
     { "fabs", 0xff3fe000U, 0x041ca000U, 408, Mnemonic::ARM64_FABS, 3, 0 }, // fabs_z_p_z_
     { "clasta", 0xff3fe000U, 0x052a8000U, 467, Mnemonic::ARM64_CLASTA, 4, 0 }, // clasta_v_p_z_
-    { "sdot", 0xffe0fc00U, 0x4480c800U, 442, Mnemonic::ARM64_SDOT, 4, 0 }, // sdot_z32_zzzi_
+    { "sdot", 0xffe0fc00U, 0x4480c800U, 445, Mnemonic::ARM64_SDOT, 4, 0 }, // sdot_z32_zzzi_
     { "sadalp", 0xff3fe000U, 0x4404a000U, 408, Mnemonic::ARM64_SADALP, 3, 0 }, // sadalp_z_p_z_
     { "whilehi", 0xff20fc11U, 0x25205811U, 471, Mnemonic::ARM64_WHILEHI, 2, 0 }, // whilehi_pp_rr_
     { "uqsubr", 0xff3fe000U, 0x441f8000U, 411, Mnemonic::ARM64_UQSUBR, 4, 0 }, // uqsubr_z_p_zz_
-    { "pmul", 0xffe0fc00U, 0x04206400U, 450, Mnemonic::ARM64_PMUL, 3, 0 }, // pmul_z_zz_
+    { "pmul", 0xffe0fc00U, 0x04206400U, 442, Mnemonic::ARM64_PMUL, 3, 0 }, // pmul_z_zz_
     { "whilels", 0xff20fc11U, 0x25205c11U, 471, Mnemonic::ARM64_WHILELS, 2, 0 }, // whilels_pp_rr_
     { "umin", 0xff3fe000U, 0x252bc000U, 479, Mnemonic::ARM64_UMIN, 3, 0 }, // umin_z_zi_
     { "fmaxnmqv", 0xff3fe000U, 0x6414a000U, 457, Mnemonic::ARM64_FMAXNMQV, 3, 0 }, // fmaxnmqv_z_p_z_
-    { "bfmmla", 0xffe0fc00U, 0x6460e400U, 450, Mnemonic::ARM64_BFMMLA, 3, 0 }, // bfmmla_z_zzz_
+    { "bfmmla", 0xffe0fc00U, 0x6460e400U, 442, Mnemonic::ARM64_BFMMLA, 3, 0 }, // bfmmla_z_zzz_
     { "fmul", 0xff3fe000U, 0x65028000U, 411, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_p_zz_
     { "srshlr", 0xff3fe000U, 0x44068000U, 411, Mnemonic::ARM64_SRSHLR, 4, 0 }, // srshlr_z_p_zz_
     { "eorqv", 0xff3fe000U, 0x041d2000U, 457, Mnemonic::ARM64_EORQV, 3, 0 }, // eorqv_z_p_z_
     { "cpy", 0xff3fe000U, 0x05208000U, 269, Mnemonic::ARM64_CPY, 2, 0 }, // cpy_z_p_v_
     { "urhadd", 0xff3fe000U, 0x44158000U, 411, Mnemonic::ARM64_URHADD, 4, 0 }, // urhadd_z_p_zz_
-    { "ushllb", 0xffa0fc00U, 0x4500a800U, 487, Mnemonic::ARM64_USHLLB, 3, 0 }, // ushllb_z_zi_
-    { "sqrdmulh", 0xffa0fc00U, 0x4420f400U, 490, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // sqrdmulh_z_zzi_h
-    { "fmls", 0xffa0fc00U, 0x64200400U, 490, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_zzzi_h
-    { "bfmlalb", 0xffe0f400U, 0x64e04000U, 490, Mnemonic::ARM64_BFMLALB, 4, 0 }, // bfmlalb_z_zzzi_
-    { "orns", 0xfff0c210U, 0x25c04010U, 494, Mnemonic::ARM64_ORNS, 4, 0 }, // orns_p_p_pp_z
-    { "umlalt", 0xffe0f400U, 0x44a09400U, 490, Mnemonic::ARM64_UMLALT, 4, 0 }, // umlalt_z_zzzi_s
+    { "mov", 0xffe0fc00U, 0x04603000U, 266, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_orr_z_zz_
+    { "mov", 0xff3fe000U, 0x05208000U, 269, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_cpy_z_p_v_
+    { "mov", 0xff3fe000U, 0x0528a000U, 269, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_cpy_z_p_r_
+    { "orr", 0xfff0c210U, 0x25804000U, 487, Mnemonic::ARM64_ORR, 4, 0 }, // orr_p_p_pp_z
+    { "ushllb", 0xffa0fc00U, 0x4500a800U, 491, Mnemonic::ARM64_USHLLB, 3, 0 }, // ushllb_z_zi_
+    { "sqrdmulh", 0xffa0fc00U, 0x4420f400U, 494, Mnemonic::ARM64_SQRDMULH, 4, 0 }, // sqrdmulh_z_zzi_h
+    { "fmls", 0xffa0fc00U, 0x64200400U, 494, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_zzzi_h
+    { "bfmlalb", 0xffe0f400U, 0x64e04000U, 494, Mnemonic::ARM64_BFMLALB, 4, 0 }, // bfmlalb_z_zzzi_
+    { "orns", 0xfff0c210U, 0x25c04010U, 487, Mnemonic::ARM64_ORNS, 4, 0 }, // orns_p_p_pp_z
+    { "umlalt", 0xffe0f400U, 0x44a09400U, 494, Mnemonic::ARM64_UMLALT, 4, 0 }, // umlalt_z_zzzi_s
     { "umlalt", 0xffe0f400U, 0x44e09400U, 498, Mnemonic::ARM64_UMLALT, 4, 0 }, // umlalt_z_zzzi_d
     { "whilegt", 0xff20dc18U, 0x25204018U, 349, Mnemonic::ARM64_WHILEGT, 1, 0 }, // whilegt_pn_rr_
     { "uqsub", 0xff3fc000U, 0x2527c000U, 479, Mnemonic::ARM64_UQSUB, 3, 0 }, // uqsub_z_zi_
-    { "bics", 0xfff0c210U, 0x25404010U, 494, Mnemonic::ARM64_BICS, 4, 0 }, // bics_p_p_pp_z
-    { "sqdmlalt", 0xffe0f400U, 0x44a02400U, 490, Mnemonic::ARM64_SQDMLALT, 4, 0 }, // sqdmlalt_z_zzzi_s
+    { "bics", 0xfff0c210U, 0x25404010U, 487, Mnemonic::ARM64_BICS, 4, 0 }, // bics_p_p_pp_z
+    { "sqdmlalt", 0xffe0f400U, 0x44a02400U, 494, Mnemonic::ARM64_SQDMLALT, 4, 0 }, // sqdmlalt_z_zzzi_s
     { "sqdmlalt", 0xffe0f400U, 0x44e02400U, 498, Mnemonic::ARM64_SQDMLALT, 4, 0 }, // sqdmlalt_z_zzzi_d
-    { "smlslb", 0xffe0f400U, 0x44a0a000U, 490, Mnemonic::ARM64_SMLSLB, 4, 0 }, // smlslb_z_zzzi_s
+    { "smlslb", 0xffe0f400U, 0x44a0a000U, 494, Mnemonic::ARM64_SMLSLB, 4, 0 }, // smlslb_z_zzzi_s
     { "smlslb", 0xffe0f400U, 0x44e0a000U, 498, Mnemonic::ARM64_SMLSLB, 4, 0 }, // smlslb_z_zzzi_d
-    { "shrnb", 0xffa0fc00U, 0x45201000U, 487, Mnemonic::ARM64_SHRNB, 3, 0 }, // shrnb_z_zi_
+    { "shrnb", 0xffa0fc00U, 0x45201000U, 491, Mnemonic::ARM64_SHRNB, 3, 0 }, // shrnb_z_zi_
     { "whilelo", 0xff20dc18U, 0x25204c10U, 349, Mnemonic::ARM64_WHILELO, 1, 0 }, // whilelo_pn_rr_
-    { "uqrshrnb", 0xffa0fc00U, 0x45203800U, 487, Mnemonic::ARM64_UQRSHRNB, 3, 0 }, // uqrshrnb_z_zi_
-    { "fmlslb", 0xffe0f400U, 0x64a06000U, 490, Mnemonic::ARM64_FMLSLB, 4, 0 }, // fmlslb_z_zzzi_s
-    { "uqshrnb", 0xffa0fc00U, 0x45203000U, 487, Mnemonic::ARM64_UQSHRNB, 3, 0 }, // uqshrnb_z_zi_
-    { "rshrnt", 0xffa0fc00U, 0x45201c00U, 487, Mnemonic::ARM64_RSHRNT, 3, 0 }, // rshrnt_z_zi_
-    { "fdot", 0xffe0f400U, 0x64204400U, 490, Mnemonic::ARM64_FDOT, 4, 0 }, // fdot_z_zz8z8i_
-    { "sqdmlalb", 0xffe0f400U, 0x44a02000U, 490, Mnemonic::ARM64_SQDMLALB, 4, 0 }, // sqdmlalb_z_zzzi_s
+    { "uqrshrnb", 0xffa0fc00U, 0x45203800U, 491, Mnemonic::ARM64_UQRSHRNB, 3, 0 }, // uqrshrnb_z_zi_
+    { "fmlslb", 0xffe0f400U, 0x64a06000U, 494, Mnemonic::ARM64_FMLSLB, 4, 0 }, // fmlslb_z_zzzi_s
+    { "uqshrnb", 0xffa0fc00U, 0x45203000U, 491, Mnemonic::ARM64_UQSHRNB, 3, 0 }, // uqshrnb_z_zi_
+    { "rshrnt", 0xffa0fc00U, 0x45201c00U, 491, Mnemonic::ARM64_RSHRNT, 3, 0 }, // rshrnt_z_zi_
+    { "fdot", 0xffe0f400U, 0x64204400U, 494, Mnemonic::ARM64_FDOT, 4, 0 }, // fdot_z_zz8z8i_
+    { "sqdmlalb", 0xffe0f400U, 0x44a02000U, 494, Mnemonic::ARM64_SQDMLALB, 4, 0 }, // sqdmlalb_z_zzzi_s
     { "sqdmlalb", 0xffe0f400U, 0x44e02000U, 498, Mnemonic::ARM64_SQDMLALB, 4, 0 }, // sqdmlalb_z_zzzi_d
-    { "sqdmullt", 0xffe0f400U, 0x44a0e400U, 490, Mnemonic::ARM64_SQDMULLT, 4, 0 }, // sqdmullt_z_zzi_s
+    { "sqdmullt", 0xffe0f400U, 0x44a0e400U, 494, Mnemonic::ARM64_SQDMULLT, 4, 0 }, // sqdmullt_z_zzi_s
     { "sqdmullt", 0xffe0f400U, 0x44e0e400U, 498, Mnemonic::ARM64_SQDMULLT, 4, 0 }, // sqdmullt_z_zzi_d
     { "sqsub", 0xff3fc000U, 0x2526c000U, 479, Mnemonic::ARM64_SQSUB, 3, 0 }, // sqsub_z_zi_
-    { "umlalb", 0xffe0f400U, 0x44a09000U, 490, Mnemonic::ARM64_UMLALB, 4, 0 }, // umlalb_z_zzzi_s
+    { "umlalb", 0xffe0f400U, 0x44a09000U, 494, Mnemonic::ARM64_UMLALB, 4, 0 }, // umlalb_z_zzzi_s
     { "umlalb", 0xffe0f400U, 0x44e09000U, 498, Mnemonic::ARM64_UMLALB, 4, 0 }, // umlalb_z_zzzi_d
-    { "bfmlalt", 0xffe0f400U, 0x64e04400U, 490, Mnemonic::ARM64_BFMLALT, 4, 0 }, // bfmlalt_z_zzzi_
-    { "nand", 0xfff0c210U, 0x25804210U, 494, Mnemonic::ARM64_NAND, 4, 0 }, // nand_p_p_pp_z
-    { "bfmls", 0xffa0fc00U, 0x64200c00U, 490, Mnemonic::ARM64_BFMLS, 4, 0 }, // bfmls_z_zzzi_h
-    { "sqrshrunt", 0xffa0fc00U, 0x45200c00U, 487, Mnemonic::ARM64_SQRSHRUNT, 3, 0 }, // sqrshrunt_z_zi_
-    { "fmlslt", 0xffe0f400U, 0x64a06400U, 490, Mnemonic::ARM64_FMLSLT, 4, 0 }, // fmlslt_z_zzzi_s
-    { "sqshrunb", 0xffa0fc00U, 0x45200000U, 487, Mnemonic::ARM64_SQSHRUNB, 3, 0 }, // sqshrunb_z_zi_
-    { "sqshrnb", 0xffa0fc00U, 0x45202000U, 487, Mnemonic::ARM64_SQSHRNB, 3, 0 }, // sqshrnb_z_zi_
-    { "mov", 0xfff0c210U, 0x25004000U, 395, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_and_p_p_pp_z
-    { "smlslt", 0xffe0f400U, 0x44a0a400U, 490, Mnemonic::ARM64_SMLSLT, 4, 0 }, // smlslt_z_zzzi_s
+    { "bfmlalt", 0xffe0f400U, 0x64e04400U, 494, Mnemonic::ARM64_BFMLALT, 4, 0 }, // bfmlalt_z_zzzi_
+    { "nand", 0xfff0c210U, 0x25804210U, 487, Mnemonic::ARM64_NAND, 4, 0 }, // nand_p_p_pp_z
+    { "bfmls", 0xffa0fc00U, 0x64200c00U, 494, Mnemonic::ARM64_BFMLS, 4, 0 }, // bfmls_z_zzzi_h
+    { "sqrshrunt", 0xffa0fc00U, 0x45200c00U, 491, Mnemonic::ARM64_SQRSHRUNT, 3, 0 }, // sqrshrunt_z_zi_
+    { "fmlslt", 0xffe0f400U, 0x64a06400U, 494, Mnemonic::ARM64_FMLSLT, 4, 0 }, // fmlslt_z_zzzi_s
+    { "sqshrunb", 0xffa0fc00U, 0x45200000U, 491, Mnemonic::ARM64_SQSHRUNB, 3, 0 }, // sqshrunb_z_zi_
+    { "sqshrnb", 0xffa0fc00U, 0x45202000U, 491, Mnemonic::ARM64_SQSHRNB, 3, 0 }, // sqshrnb_z_zi_
+    { "smlslt", 0xffe0f400U, 0x44a0a400U, 494, Mnemonic::ARM64_SMLSLT, 4, 0 }, // smlslt_z_zzzi_s
     { "smlslt", 0xffe0f400U, 0x44e0a400U, 498, Mnemonic::ARM64_SMLSLT, 4, 0 }, // smlslt_z_zzzi_d
     { "whilehs", 0xff20dc18U, 0x25204810U, 349, Mnemonic::ARM64_WHILEHS, 1, 0 }, // whilehs_pn_rr_
-    { "orr", 0xfff0c210U, 0x25804000U, 494, Mnemonic::ARM64_ORR, 4, 0 }, // orr_p_p_pp_z
     { "movs", 0xfff0c210U, 0x25c04000U, 350, Mnemonic::ARM64_MOVS, 2, 0 }, // MOVS_orrs_p_p_pp_z
-    { "sqrdmlsh", 0xffa0fc00U, 0x44201400U, 490, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // sqrdmlsh_z_zzzi_h
-    { "sqrshrnb", 0xffa0fc00U, 0x45202800U, 487, Mnemonic::ARM64_SQRSHRNB, 3, 0 }, // sqrshrnb_z_zi_
+    { "sqrdmlsh", 0xffa0fc00U, 0x44201400U, 494, Mnemonic::ARM64_SQRDMLSH, 4, 0 }, // sqrdmlsh_z_zzzi_h
+    { "sqrshrnb", 0xffa0fc00U, 0x45202800U, 491, Mnemonic::ARM64_SQRSHRNB, 3, 0 }, // sqrshrnb_z_zi_
     { "addsvl", 0xffe0f800U, 0x04205800U, 388, Mnemonic::ARM64_ADDSVL, 1, 0 }, // addsvl_r_ri_
-    { "bfmlslt", 0xffe0f400U, 0x64e06400U, 490, Mnemonic::ARM64_BFMLSLT, 4, 0 }, // bfmlslt_z_zzzi_
-    { "brkpb", 0xfff0c210U, 0x2500c010U, 494, Mnemonic::ARM64_BRKPB, 4, 0 }, // brkpb_p_p_pp_
-    { "umlslb", 0xffe0f400U, 0x44a0b000U, 490, Mnemonic::ARM64_UMLSLB, 4, 0 }, // umlslb_z_zzzi_s
+    { "bfmlslt", 0xffe0f400U, 0x64e06400U, 494, Mnemonic::ARM64_BFMLSLT, 4, 0 }, // bfmlslt_z_zzzi_
+    { "brkpb", 0xfff0c210U, 0x2500c010U, 487, Mnemonic::ARM64_BRKPB, 4, 0 }, // brkpb_p_p_pp_
+    { "umlslb", 0xffe0f400U, 0x44a0b000U, 494, Mnemonic::ARM64_UMLSLB, 4, 0 }, // umlslb_z_zzzi_s
     { "umlslb", 0xffe0f400U, 0x44e0b000U, 498, Mnemonic::ARM64_UMLSLB, 4, 0 }, // umlslb_z_zzzi_d
     { "addvl", 0xffe0f800U, 0x04205000U, 388, Mnemonic::ARM64_ADDVL, 1, 0 }, // addvl_r_ri_
-    { "sel", 0xfff0c210U, 0x25004210U, 494, Mnemonic::ARM64_SEL, 4, 0 }, // sel_p_p_pp_
-    { "sshllt", 0xffa0fc00U, 0x4500a400U, 487, Mnemonic::ARM64_SSHLLT, 3, 0 }, // sshllt_z_zi_
-    { "sqdmlslb", 0xffe0f400U, 0x44a03000U, 490, Mnemonic::ARM64_SQDMLSLB, 4, 0 }, // sqdmlslb_z_zzzi_s
+    { "sel", 0xfff0c210U, 0x25004210U, 487, Mnemonic::ARM64_SEL, 4, 0 }, // sel_p_p_pp_
+    { "sshllt", 0xffa0fc00U, 0x4500a400U, 491, Mnemonic::ARM64_SSHLLT, 3, 0 }, // sshllt_z_zi_
+    { "sqdmlslb", 0xffe0f400U, 0x44a03000U, 494, Mnemonic::ARM64_SQDMLSLB, 4, 0 }, // sqdmlslb_z_zzzi_s
     { "sqdmlslb", 0xffe0f400U, 0x44e03000U, 498, Mnemonic::ARM64_SQDMLSLB, 4, 0 }, // sqdmlslb_z_zzzi_d
-    { "umullt", 0xffe0f400U, 0x44a0d400U, 490, Mnemonic::ARM64_UMULLT, 4, 0 }, // umullt_z_zzi_s
+    { "umullt", 0xffe0f400U, 0x44a0d400U, 494, Mnemonic::ARM64_UMULLT, 4, 0 }, // umullt_z_zzi_s
     { "umullt", 0xffe0f400U, 0x44e0d400U, 498, Mnemonic::ARM64_UMULLT, 4, 0 }, // umullt_z_zzi_d
     { "sqadd", 0xff3fc000U, 0x2524c000U, 479, Mnemonic::ARM64_SQADD, 3, 0 }, // sqadd_z_zi_
-    { "smlalt", 0xffe0f400U, 0x44a08400U, 490, Mnemonic::ARM64_SMLALT, 4, 0 }, // smlalt_z_zzzi_s
+    { "smlalt", 0xffe0f400U, 0x44a08400U, 494, Mnemonic::ARM64_SMLALT, 4, 0 }, // smlalt_z_zzzi_s
     { "smlalt", 0xffe0f400U, 0x44e08400U, 498, Mnemonic::ARM64_SMLALT, 4, 0 }, // smlalt_z_zzzi_d
-    { "mls", 0xffa0fc00U, 0x44200c00U, 490, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_zzzi_h
-    { "fmlalt", 0xffe0f400U, 0x64a04400U, 490, Mnemonic::ARM64_FMLALT, 4, 0 }, // fmlalt_z_zzzi_s
+    { "mls", 0xffa0fc00U, 0x44200c00U, 494, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_zzzi_h
+    { "fmlalt", 0xffe0f400U, 0x64a04400U, 494, Mnemonic::ARM64_FMLALT, 4, 0 }, // fmlalt_z_zzzi_s
     { "addpl", 0xffe0f800U, 0x04605000U, 388, Mnemonic::ARM64_ADDPL, 1, 0 }, // addpl_r_ri_
-    { "sqdmlslt", 0xffe0f400U, 0x44a03400U, 490, Mnemonic::ARM64_SQDMLSLT, 4, 0 }, // sqdmlslt_z_zzzi_s
+    { "sqdmlslt", 0xffe0f400U, 0x44a03400U, 494, Mnemonic::ARM64_SQDMLSLT, 4, 0 }, // sqdmlslt_z_zzzi_s
     { "sqdmlslt", 0xffe0f400U, 0x44e03400U, 498, Mnemonic::ARM64_SQDMLSLT, 4, 0 }, // sqdmlslt_z_zzzi_d
-    { "nors", 0xfff0c210U, 0x25c04200U, 494, Mnemonic::ARM64_NORS, 4, 0 }, // nors_p_p_pp_z
-    { "smullt", 0xffe0f400U, 0x44a0c400U, 490, Mnemonic::ARM64_SMULLT, 4, 0 }, // smullt_z_zzi_s
+    { "nors", 0xfff0c210U, 0x25c04200U, 487, Mnemonic::ARM64_NORS, 4, 0 }, // nors_p_p_pp_z
+    { "smullt", 0xffe0f400U, 0x44a0c400U, 494, Mnemonic::ARM64_SMULLT, 4, 0 }, // smullt_z_zzi_s
     { "smullt", 0xffe0f400U, 0x44e0c400U, 498, Mnemonic::ARM64_SMULLT, 4, 0 }, // smullt_z_zzi_d
-    { "umlslt", 0xffe0f400U, 0x44a0b400U, 490, Mnemonic::ARM64_UMLSLT, 4, 0 }, // umlslt_z_zzzi_s
+    { "umlslt", 0xffe0f400U, 0x44a0b400U, 494, Mnemonic::ARM64_UMLSLT, 4, 0 }, // umlslt_z_zzzi_s
     { "umlslt", 0xffe0f400U, 0x44e0b400U, 498, Mnemonic::ARM64_UMLSLT, 4, 0 }, // umlslt_z_zzzi_d
-    { "bfmlslb", 0xffe0f400U, 0x64e06000U, 490, Mnemonic::ARM64_BFMLSLB, 4, 0 }, // bfmlslb_z_zzzi_
+    { "bfmlslb", 0xffe0f400U, 0x64e06000U, 494, Mnemonic::ARM64_BFMLSLB, 4, 0 }, // bfmlslb_z_zzzi_
     { "addspl", 0xffe0f800U, 0x04605800U, 388, Mnemonic::ARM64_ADDSPL, 1, 0 }, // addspl_r_ri_
     { "whilele", 0xff20dc18U, 0x25204418U, 349, Mnemonic::ARM64_WHILELE, 1, 0 }, // whilele_pn_rr_
     { "nots", 0xfff0c210U, 0x25404200U, 395, Mnemonic::ARM64_NOTS, 3, 0 }, // NOTS_eors_p_p_pp_z
-    { "fmlalb", 0xffe0f400U, 0x64a04000U, 490, Mnemonic::ARM64_FMLALB, 4, 0 }, // fmlalb_z_zzzi_s
-    { "adclb", 0xffa0fc00U, 0x4500d000U, 450, Mnemonic::ARM64_ADCLB, 3, 0 }, // adclb_z_zzz_
+    { "fmlalb", 0xffe0f400U, 0x64a04000U, 494, Mnemonic::ARM64_FMLALB, 4, 0 }, // fmlalb_z_zzzi_s
+    { "adclb", 0xffa0fc00U, 0x4500d000U, 442, Mnemonic::ARM64_ADCLB, 3, 0 }, // adclb_z_zzz_
     { "uqadd", 0xff3fc000U, 0x2525c000U, 479, Mnemonic::ARM64_UQADD, 3, 0 }, // uqadd_z_zi_
-    { "orn", 0xfff0c210U, 0x25804010U, 494, Mnemonic::ARM64_ORN, 4, 0 }, // orn_p_p_pp_z
-    { "sbclb", 0xffa0fc00U, 0x4580d000U, 450, Mnemonic::ARM64_SBCLB, 3, 0 }, // sbclb_z_zzz_
-    { "smlalb", 0xffe0f400U, 0x44a08000U, 490, Mnemonic::ARM64_SMLALB, 4, 0 }, // smlalb_z_zzzi_s
+    { "orn", 0xfff0c210U, 0x25804010U, 487, Mnemonic::ARM64_ORN, 4, 0 }, // orn_p_p_pp_z
+    { "sbclb", 0xffa0fc00U, 0x4580d000U, 442, Mnemonic::ARM64_SBCLB, 3, 0 }, // sbclb_z_zzz_
+    { "smlalb", 0xffe0f400U, 0x44a08000U, 494, Mnemonic::ARM64_SMLALB, 4, 0 }, // smlalb_z_zzzi_s
     { "smlalb", 0xffe0f400U, 0x44e08000U, 498, Mnemonic::ARM64_SMLALB, 4, 0 }, // smlalb_z_zzzi_d
-    { "orrs", 0xfff0c210U, 0x25c04000U, 494, Mnemonic::ARM64_ORRS, 4, 0 }, // orrs_p_p_pp_z
-    { "mul", 0xffa0fc00U, 0x4420f800U, 490, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_zzi_h
-    { "fmul", 0xffa0fc00U, 0x64202000U, 490, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_zzi_h
+    { "orrs", 0xfff0c210U, 0x25c04000U, 487, Mnemonic::ARM64_ORRS, 4, 0 }, // orrs_p_p_pp_z
+    { "mul", 0xffa0fc00U, 0x4420f800U, 494, Mnemonic::ARM64_MUL, 4, 0 }, // mul_z_zzi_h
+    { "fmul", 0xffa0fc00U, 0x64202000U, 494, Mnemonic::ARM64_FMUL, 4, 0 }, // fmul_z_zzi_h
     { "movprfx", 0xff3ee000U, 0x04102000U, 502, Mnemonic::ARM64_MOVPRFX, 4, 0 }, // movprfx_z_p_z_
-    { "uqshrnt", 0xffa0fc00U, 0x45203400U, 487, Mnemonic::ARM64_UQSHRNT, 3, 0 }, // uqshrnt_z_zi_
-    { "uqrshrnt", 0xffa0fc00U, 0x45203c00U, 487, Mnemonic::ARM64_UQRSHRNT, 3, 0 }, // uqrshrnt_z_zi_
-    { "sqdmulh", 0xffa0fc00U, 0x4420f000U, 490, Mnemonic::ARM64_SQDMULH, 4, 0 }, // sqdmulh_z_zzi_h
-    { "umullb", 0xffe0f400U, 0x44a0d000U, 490, Mnemonic::ARM64_UMULLB, 4, 0 }, // umullb_z_zzi_s
+    { "uqshrnt", 0xffa0fc00U, 0x45203400U, 491, Mnemonic::ARM64_UQSHRNT, 3, 0 }, // uqshrnt_z_zi_
+    { "uqrshrnt", 0xffa0fc00U, 0x45203c00U, 491, Mnemonic::ARM64_UQRSHRNT, 3, 0 }, // uqrshrnt_z_zi_
+    { "sqdmulh", 0xffa0fc00U, 0x4420f000U, 494, Mnemonic::ARM64_SQDMULH, 4, 0 }, // sqdmulh_z_zzi_h
+    { "umullb", 0xffe0f400U, 0x44a0d000U, 494, Mnemonic::ARM64_UMULLB, 4, 0 }, // umullb_z_zzi_s
     { "umullb", 0xffe0f400U, 0x44e0d000U, 498, Mnemonic::ARM64_UMULLB, 4, 0 }, // umullb_z_zzi_d
-    { "eor", 0xfff0c210U, 0x25004200U, 494, Mnemonic::ARM64_EOR, 4, 0 }, // eor_p_p_pp_z
-    { "shrnt", 0xffa0fc00U, 0x45201400U, 487, Mnemonic::ARM64_SHRNT, 3, 0 }, // shrnt_z_zi_
-    { "brkpas", 0xfff0c210U, 0x2540c000U, 494, Mnemonic::ARM64_BRKPAS, 4, 0 }, // brkpas_p_p_pp_
-    { "bic", 0xfff0c210U, 0x25004010U, 494, Mnemonic::ARM64_BIC, 4, 0 }, // bic_p_p_pp_z
-    { "bfmla", 0xffa0fc00U, 0x64200800U, 490, Mnemonic::ARM64_BFMLA, 4, 0 }, // bfmla_z_zzzi_h
+    { "eor", 0xfff0c210U, 0x25004200U, 487, Mnemonic::ARM64_EOR, 4, 0 }, // eor_p_p_pp_z
+    { "shrnt", 0xffa0fc00U, 0x45201400U, 491, Mnemonic::ARM64_SHRNT, 3, 0 }, // shrnt_z_zi_
+    { "brkpas", 0xfff0c210U, 0x2540c000U, 487, Mnemonic::ARM64_BRKPAS, 4, 0 }, // brkpas_p_p_pp_
+    { "bic", 0xfff0c210U, 0x25004010U, 487, Mnemonic::ARM64_BIC, 4, 0 }, // bic_p_p_pp_z
+    { "bfmla", 0xffa0fc00U, 0x64200800U, 494, Mnemonic::ARM64_BFMLA, 4, 0 }, // bfmla_z_zzzi_h
     { "whilerw", 0xff20fc10U, 0x25203010U, 347, Mnemonic::ARM64_WHILERW, 1, 0 }, // whilerw_p_rr_
-    { "ushllt", 0xffa0fc00U, 0x4500ac00U, 487, Mnemonic::ARM64_USHLLT, 3, 0 }, // ushllt_z_zi_
-    { "smullb", 0xffe0f400U, 0x44a0c000U, 490, Mnemonic::ARM64_SMULLB, 4, 0 }, // smullb_z_zzi_s
+    { "ushllt", 0xffa0fc00U, 0x4500ac00U, 491, Mnemonic::ARM64_USHLLT, 3, 0 }, // ushllt_z_zi_
+    { "smullb", 0xffe0f400U, 0x44a0c000U, 494, Mnemonic::ARM64_SMULLB, 4, 0 }, // smullb_z_zzi_s
     { "smullb", 0xffe0f400U, 0x44e0c000U, 498, Mnemonic::ARM64_SMULLB, 4, 0 }, // smullb_z_zzi_d
-    { "mov", 0xfff0c210U, 0x25004210U, 395, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_sel_p_p_pp_
     { "whilege", 0xff20dc18U, 0x25204010U, 349, Mnemonic::ARM64_WHILEGE, 1, 0 }, // whilege_pn_rr_
     { "sub", 0xff3fc000U, 0x2521c000U, 479, Mnemonic::ARM64_SUB, 3, 0 }, // sub_z_zi_
     { "whilewr", 0xff20fc10U, 0x25203000U, 347, Mnemonic::ARM64_WHILEWR, 1, 0 }, // whilewr_p_rr_
-    { "sqshrnt", 0xffa0fc00U, 0x45202400U, 487, Mnemonic::ARM64_SQSHRNT, 3, 0 }, // sqshrnt_z_zi_
-    { "sqshrunt", 0xffa0fc00U, 0x45200400U, 487, Mnemonic::ARM64_SQSHRUNT, 3, 0 }, // sqshrunt_z_zi_
-    { "brkpa", 0xfff0c210U, 0x2500c000U, 494, Mnemonic::ARM64_BRKPA, 4, 0 }, // brkpa_p_p_pp_
+    { "sqshrnt", 0xffa0fc00U, 0x45202400U, 491, Mnemonic::ARM64_SQSHRNT, 3, 0 }, // sqshrnt_z_zi_
+    { "sqshrunt", 0xffa0fc00U, 0x45200400U, 491, Mnemonic::ARM64_SQSHRUNT, 3, 0 }, // sqshrunt_z_zi_
+    { "brkpa", 0xfff0c210U, 0x2500c000U, 487, Mnemonic::ARM64_BRKPA, 4, 0 }, // brkpa_p_p_pp_
     { "whilels", 0xff20dc18U, 0x25204c18U, 349, Mnemonic::ARM64_WHILELS, 1, 0 }, // whilels_pn_rr_
     { "whilehi", 0xff20dc18U, 0x25204818U, 349, Mnemonic::ARM64_WHILEHI, 1, 0 }, // whilehi_pn_rr_
     { "dup", 0xff3fc000U, 0x2538c000U, 477, Mnemonic::ARM64_DUP, 2, 0 }, // dup_z_i_
-    { "nands", 0xfff0c210U, 0x25c04210U, 494, Mnemonic::ARM64_NANDS, 4, 0 }, // nands_p_p_pp_z
-    { "adclt", 0xffa0fc00U, 0x4500d400U, 450, Mnemonic::ARM64_ADCLT, 3, 0 }, // adclt_z_zzz_
-    { "sqrshrunb", 0xffa0fc00U, 0x45200800U, 487, Mnemonic::ARM64_SQRSHRUNB, 3, 0 }, // sqrshrunb_z_zi_
-    { "fmla", 0xffa0fc00U, 0x64200000U, 490, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_zzzi_h
-    { "sbclt", 0xffa0fc00U, 0x4580d400U, 450, Mnemonic::ARM64_SBCLT, 3, 0 }, // sbclt_z_zzz_
-    { "rshrnb", 0xffa0fc00U, 0x45201800U, 487, Mnemonic::ARM64_RSHRNB, 3, 0 }, // rshrnb_z_zi_
+    { "nands", 0xfff0c210U, 0x25c04210U, 487, Mnemonic::ARM64_NANDS, 4, 0 }, // nands_p_p_pp_z
+    { "adclt", 0xffa0fc00U, 0x4500d400U, 442, Mnemonic::ARM64_ADCLT, 3, 0 }, // adclt_z_zzz_
+    { "sqrshrunb", 0xffa0fc00U, 0x45200800U, 491, Mnemonic::ARM64_SQRSHRUNB, 3, 0 }, // sqrshrunb_z_zi_
+    { "fmla", 0xffa0fc00U, 0x64200000U, 494, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_zzzi_h
+    { "sbclt", 0xffa0fc00U, 0x4580d400U, 442, Mnemonic::ARM64_SBCLT, 3, 0 }, // sbclt_z_zzz_
+    { "rshrnb", 0xffa0fc00U, 0x45201800U, 491, Mnemonic::ARM64_RSHRNB, 3, 0 }, // rshrnb_z_zi_
     { "whilelt", 0xff20dc18U, 0x25204410U, 349, Mnemonic::ARM64_WHILELT, 1, 0 }, // whilelt_pn_rr_
     { "not", 0xfff0c210U, 0x25004200U, 395, Mnemonic::ARM64_NOT, 3, 0 }, // NOT_eor_p_p_pp_z
-    { "ands", 0xfff0c210U, 0x25404000U, 494, Mnemonic::ARM64_ANDS, 4, 0 }, // ands_p_p_pp_z
+    { "ands", 0xfff0c210U, 0x25404000U, 487, Mnemonic::ARM64_ANDS, 4, 0 }, // ands_p_p_pp_z
     { "add", 0xff3fc000U, 0x2520c000U, 479, Mnemonic::ARM64_ADD, 3, 0 }, // add_z_zi_
-    { "and", 0xfff0c210U, 0x25004000U, 494, Mnemonic::ARM64_AND, 4, 0 }, // and_p_p_pp_z
-    { "sshllb", 0xffa0fc00U, 0x4500a000U, 487, Mnemonic::ARM64_SSHLLB, 3, 0 }, // sshllb_z_zi_
-    { "mov", 0xfff0c210U, 0x25804000U, 350, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_orr_p_p_pp_z
-    { "sqrdmlah", 0xffa0fc00U, 0x44201000U, 490, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // sqrdmlah_z_zzzi_h
-    { "bfmul", 0xffa0fc00U, 0x64202800U, 490, Mnemonic::ARM64_BFMUL, 4, 0 }, // bfmul_z_zzi_h
+    { "and", 0xfff0c210U, 0x25004000U, 487, Mnemonic::ARM64_AND, 4, 0 }, // and_p_p_pp_z
+    { "sshllb", 0xffa0fc00U, 0x4500a000U, 491, Mnemonic::ARM64_SSHLLB, 3, 0 }, // sshllb_z_zi_
+    { "sqrdmlah", 0xffa0fc00U, 0x44201000U, 494, Mnemonic::ARM64_SQRDMLAH, 4, 0 }, // sqrdmlah_z_zzzi_h
+    { "bfmul", 0xffa0fc00U, 0x64202800U, 494, Mnemonic::ARM64_BFMUL, 4, 0 }, // bfmul_z_zzi_h
     { "subr", 0xff3fc000U, 0x2523c000U, 479, Mnemonic::ARM64_SUBR, 3, 0 }, // subr_z_zi_
-    { "nor", 0xfff0c210U, 0x25804200U, 494, Mnemonic::ARM64_NOR, 4, 0 }, // nor_p_p_pp_z
-    { "sqrshrnt", 0xffa0fc00U, 0x45202c00U, 487, Mnemonic::ARM64_SQRSHRNT, 3, 0 }, // sqrshrnt_z_zi_
-    { "sqdmullb", 0xffe0f400U, 0x44a0e000U, 490, Mnemonic::ARM64_SQDMULLB, 4, 0 }, // sqdmullb_z_zzi_s
+    { "nor", 0xfff0c210U, 0x25804200U, 487, Mnemonic::ARM64_NOR, 4, 0 }, // nor_p_p_pp_z
+    { "sqrshrnt", 0xffa0fc00U, 0x45202c00U, 491, Mnemonic::ARM64_SQRSHRNT, 3, 0 }, // sqrshrnt_z_zi_
+    { "sqdmullb", 0xffe0f400U, 0x44a0e000U, 494, Mnemonic::ARM64_SQDMULLB, 4, 0 }, // sqdmullb_z_zzi_s
     { "sqdmullb", 0xffe0f400U, 0x44e0e000U, 498, Mnemonic::ARM64_SQDMULLB, 4, 0 }, // sqdmullb_z_zzi_d
-    { "mla", 0xffa0fc00U, 0x44200800U, 490, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_zzzi_h
-    { "mov", 0xff3fc000U, 0x2538c000U, 477, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_dup_z_i_
-    { "brkpbs", 0xfff0c210U, 0x2540c010U, 494, Mnemonic::ARM64_BRKPBS, 4, 0 }, // brkpbs_p_p_pp_
+    { "mla", 0xffa0fc00U, 0x44200800U, 494, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_zzzi_h
+    { "brkpbs", 0xfff0c210U, 0x2540c010U, 487, Mnemonic::ARM64_BRKPBS, 4, 0 }, // brkpbs_p_p_pp_
     { "movs", 0xfff0c210U, 0x25404000U, 395, Mnemonic::ARM64_MOVS, 3, 0 }, // MOVS_ands_p_p_pp_z
     { "fcadd", 0xff3ee000U, 0x64008000U, 506, Mnemonic::ARM64_FCADD, 5, 0 }, // fcadd_z_p_zz_
-    { "eors", 0xfff0c210U, 0x25404200U, 494, Mnemonic::ARM64_EORS, 4, 0 }, // eors_p_p_pp_z
+    { "eors", 0xfff0c210U, 0x25404200U, 487, Mnemonic::ARM64_EORS, 4, 0 }, // eors_p_p_pp_z
     { "luti4", 0xff60fc00U, 0x4560a400U, 511, Mnemonic::ARM64_LUTI4, 4, 0 }, // luti4_z_zz_8
-    { "lsl", 0xff20fc00U, 0x04208c00U, 450, Mnemonic::ARM64_LSL, 3, 0 }, // lsl_z_zw_
+    { "mov", 0xfff0c210U, 0x25004000U, 395, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_and_p_p_pp_z
+    { "mov", 0xfff0c210U, 0x25004210U, 395, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_sel_p_p_pp_
+    { "mov", 0xfff0c210U, 0x25804000U, 350, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_orr_p_p_pp_z
+    { "mov", 0xff3fc000U, 0x2538c000U, 477, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_dup_z_i_
+    { "lsl", 0xff20fc00U, 0x04208c00U, 442, Mnemonic::ARM64_LSL, 3, 0 }, // lsl_z_zw_
     { "lsl", 0xff20fc00U, 0x04209c00U, 515, Mnemonic::ARM64_LSL, 3, 0 }, // lsl_z_zi_
-    { "asr", 0xff20fc00U, 0x04208000U, 450, Mnemonic::ARM64_ASR, 3, 0 }, // asr_z_zw_
-    { "lsr", 0xff20fc00U, 0x04208400U, 450, Mnemonic::ARM64_LSR, 3, 0 }, // lsr_z_zw_
+    { "asr", 0xff20fc00U, 0x04208000U, 442, Mnemonic::ARM64_ASR, 3, 0 }, // asr_z_zw_
+    { "lsr", 0xff20fc00U, 0x04208400U, 442, Mnemonic::ARM64_LSR, 3, 0 }, // lsr_z_zw_
     { "asr", 0xff20fc00U, 0x04209000U, 515, Mnemonic::ARM64_ASR, 3, 0 }, // asr_z_zi_
     { "lsr", 0xff20fc00U, 0x04209400U, 515, Mnemonic::ARM64_LSR, 3, 0 }, // lsr_z_zi_
-    { "bext", 0xff20fc00U, 0x4500b000U, 450, Mnemonic::ARM64_BEXT, 3, 0 }, // bext_z_zz_
+    { "bext", 0xff20fc00U, 0x4500b000U, 442, Mnemonic::ARM64_BEXT, 3, 0 }, // bext_z_zz_
     { "ld3h", 0xfff0e000U, 0xa4c0e000U, 518, Mnemonic::ARM64_LD3H, 5, 0 }, // ld3h_z_p_bi_contiguous
-    { "ssubwb", 0xff20fc00U, 0x45005000U, 450, Mnemonic::ARM64_SSUBWB, 3, 0 }, // ssubwb_z_zz_
-    { "usublb", 0xff20fc00U, 0x45001800U, 450, Mnemonic::ARM64_USUBLB, 3, 0 }, // usublb_z_zz_
+    { "ssubwb", 0xff20fc00U, 0x45005000U, 442, Mnemonic::ARM64_SSUBWB, 3, 0 }, // ssubwb_z_zz_
+    { "usublb", 0xff20fc00U, 0x45001800U, 442, Mnemonic::ARM64_USUBLB, 3, 0 }, // usublb_z_zz_
     { "ld1rqd", 0xfff0e000U, 0xa5802000U, 523, Mnemonic::ARM64_LD1RQD, 3, 0 }, // ld1rqd_z_p_bi_u64
     { "ld1roh", 0xfff0e000U, 0xa4a02000U, 523, Mnemonic::ARM64_LD1ROH, 3, 0 }, // ld1roh_z_p_bi_u16
-    { "ssubltb", 0xff20fc00U, 0x45008c00U, 450, Mnemonic::ARM64_SSUBLTB, 3, 0 }, // ssubltb_z_zz_
-    { "uabalb", 0xff20fc00U, 0x4500c800U, 450, Mnemonic::ARM64_UABALB, 3, 0 }, // uabalb_z_zzz_
+    { "ssubltb", 0xff20fc00U, 0x45008c00U, 442, Mnemonic::ARM64_SSUBLTB, 3, 0 }, // ssubltb_z_zz_
+    { "uabalb", 0xff20fc00U, 0x4500c800U, 442, Mnemonic::ARM64_UABALB, 3, 0 }, // uabalb_z_zzz_
     { "ld2d", 0xfff0e000U, 0xa5a0e000U, 526, Mnemonic::ARM64_LD2D, 4, 0 }, // ld2d_z_p_bi_contiguous
     { "index", 0xff20fc00U, 0x04204000U, 530, Mnemonic::ARM64_INDEX, 3, 0 }, // index_z_ii_
-    { "uzp1", 0xff20fc00U, 0x05206800U, 450, Mnemonic::ARM64_UZP1, 3, 0 }, // uzp1_z_zz_
-    { "uzp2", 0xff20fc00U, 0x05206c00U, 450, Mnemonic::ARM64_UZP2, 3, 0 }, // uzp2_z_zz_
+    { "uzp1", 0xff20fc00U, 0x05206800U, 442, Mnemonic::ARM64_UZP1, 3, 0 }, // uzp1_z_zz_
+    { "uzp2", 0xff20fc00U, 0x05206c00U, 442, Mnemonic::ARM64_UZP2, 3, 0 }, // uzp2_z_zz_
     { "stnt1h", 0xfff0e000U, 0xe490e000U, 523, Mnemonic::ARM64_STNT1H, 3, 0 }, // stnt1h_z_p_bi_contiguous
     { "ld1rqw", 0xfff0e000U, 0xa5002000U, 523, Mnemonic::ARM64_LD1RQW, 3, 0 }, // ld1rqw_z_p_bi_u32
     { "prfh", 0xffe0e010U, 0xc460a000U, 292, Mnemonic::ARM64_PRFH, 2, 1 }, // prfh_i_p_bz_d_64_scaled
     { "ld2w", 0xfff0e000U, 0xa520e000U, 526, Mnemonic::ARM64_LD2W, 4, 0 }, // ld2w_z_p_bi_contiguous
-    { "umlalb", 0xff20fc00U, 0x44004800U, 450, Mnemonic::ARM64_UMLALB, 3, 0 }, // umlalb_z_zzz_
-    { "smullb", 0xff20fc00U, 0x45007000U, 450, Mnemonic::ARM64_SMULLB, 3, 0 }, // smullb_z_zz_
-    { "sqsub", 0xff20fc00U, 0x04201800U, 450, Mnemonic::ARM64_SQSUB, 3, 0 }, // sqsub_z_zz_
-    { "saddlt", 0xff20fc00U, 0x45000400U, 450, Mnemonic::ARM64_SADDLT, 3, 0 }, // saddlt_z_zz_
+    { "umlalb", 0xff20fc00U, 0x44004800U, 442, Mnemonic::ARM64_UMLALB, 3, 0 }, // umlalb_z_zzz_
+    { "smullb", 0xff20fc00U, 0x45007000U, 442, Mnemonic::ARM64_SMULLB, 3, 0 }, // smullb_z_zz_
+    { "sqsub", 0xff20fc00U, 0x04201800U, 442, Mnemonic::ARM64_SQSUB, 3, 0 }, // sqsub_z_zz_
+    { "saddlt", 0xff20fc00U, 0x45000400U, 442, Mnemonic::ARM64_SADDLT, 3, 0 }, // saddlt_z_zz_
     { "st4h", 0xfff0e000U, 0xe4f0e000U, 533, Mnemonic::ARM64_ST4H, 6, 0 }, // st4h_z_p_bi_contiguous
-    { "uaddwt", 0xff20fc00U, 0x45004c00U, 450, Mnemonic::ARM64_UADDWT, 3, 0 }, // uaddwt_z_zz_
-    { "fmlalb", 0xffe0f000U, 0x64205000U, 490, Mnemonic::ARM64_FMLALB, 4, 0 }, // fmlalb_z_z8z8z8i_
+    { "uaddwt", 0xff20fc00U, 0x45004c00U, 442, Mnemonic::ARM64_UADDWT, 3, 0 }, // uaddwt_z_zz_
+    { "fmlalb", 0xffe0f000U, 0x64205000U, 494, Mnemonic::ARM64_FMLALB, 4, 0 }, // fmlalb_z_z8z8z8i_
     { "whilegt", 0xff20ec10U, 0x25200010U, 347, Mnemonic::ARM64_WHILEGT, 1, 0 }, // whilegt_p_p_rr_
-    { "uabdlb", 0xff20fc00U, 0x45003800U, 450, Mnemonic::ARM64_UABDLB, 3, 0 }, // uabdlb_z_zz_
-    { "sqrdmulh", 0xff20fc00U, 0x04207400U, 450, Mnemonic::ARM64_SQRDMULH, 3, 0 }, // sqrdmulh_z_zz_
-    { "sqdmullb", 0xff20fc00U, 0x45006000U, 450, Mnemonic::ARM64_SQDMULLB, 3, 0 }, // sqdmullb_z_zz_
+    { "uabdlb", 0xff20fc00U, 0x45003800U, 442, Mnemonic::ARM64_UABDLB, 3, 0 }, // uabdlb_z_zz_
+    { "sqrdmulh", 0xff20fc00U, 0x04207400U, 442, Mnemonic::ARM64_SQRDMULH, 3, 0 }, // sqrdmulh_z_zz_
+    { "sqdmullb", 0xff20fc00U, 0x45006000U, 442, Mnemonic::ARM64_SQDMULLB, 3, 0 }, // sqdmullb_z_zz_
     { "ldnf1sw", 0xfff0e000U, 0xa490a000U, 523, Mnemonic::ARM64_LDNF1SW, 3, 0 }, // ldnf1sw_z_p_bi_s64
-    { "sabalb", 0xff20fc00U, 0x4500c000U, 450, Mnemonic::ARM64_SABALB, 3, 0 }, // sabalb_z_zzz_
-    { "uclamp", 0xff20fc00U, 0x4400c400U, 450, Mnemonic::ARM64_UCLAMP, 3, 0 }, // uclamp_z_zz_
+    { "sabalb", 0xff20fc00U, 0x4500c000U, 442, Mnemonic::ARM64_SABALB, 3, 0 }, // sabalb_z_zzz_
+    { "uclamp", 0xff20fc00U, 0x4400c400U, 442, Mnemonic::ARM64_UCLAMP, 3, 0 }, // uclamp_z_zz_
     { "st2q", 0xfff0e000U, 0xe4400000U, 526, Mnemonic::ARM64_ST2Q, 4, 0 }, // st2q_z_p_bi_contiguous
-    { "fsub", 0xff20fc00U, 0x65000400U, 450, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_z_zz_
+    { "fsub", 0xff20fc00U, 0x65000400U, 442, Mnemonic::ARM64_FSUB, 3, 0 }, // fsub_z_zz_
     { "ldnt1b", 0xfff0e000U, 0xa400e000U, 523, Mnemonic::ARM64_LDNT1B, 3, 0 }, // ldnt1b_z_p_bi_contiguous
-    { "pmullb", 0xff20fc00U, 0x45006800U, 450, Mnemonic::ARM64_PMULLB, 3, 0 }, // pmullb_z_zz_
-    { "subhnt", 0xff20fc00U, 0x45207400U, 450, Mnemonic::ARM64_SUBHNT, 3, 0 }, // subhnt_z_zz_
-    { "sqdmlslt", 0xff20fc00U, 0x44006c00U, 450, Mnemonic::ARM64_SQDMLSLT, 3, 0 }, // sqdmlslt_z_zzz_
+    { "pmullb", 0xff20fc00U, 0x45006800U, 442, Mnemonic::ARM64_PMULLB, 3, 0 }, // pmullb_z_zz_
+    { "subhnt", 0xff20fc00U, 0x45207400U, 442, Mnemonic::ARM64_SUBHNT, 3, 0 }, // subhnt_z_zz_
+    { "sqdmlslt", 0xff20fc00U, 0x44006c00U, 442, Mnemonic::ARM64_SQDMLSLT, 3, 0 }, // sqdmlslt_z_zzz_
     { "fcmla", 0xffe0f000U, 0x64a01000U, 539, Mnemonic::ARM64_FCMLA, 5, 0 }, // fcmla_z_zzzi_h
     { "fcmla", 0xffe0f000U, 0x64e01000U, 544, Mnemonic::ARM64_FCMLA, 5, 0 }, // fcmla_z_zzzi_s
     { "index", 0xff20fc00U, 0x04204c00U, 20, Mnemonic::ARM64_INDEX, 1, 0 }, // index_z_rr_
     { "ldnf1h", 0xfff0e000U, 0xa4b0a000U, 523, Mnemonic::ARM64_LDNF1H, 3, 0 }, // ldnf1h_z_p_bi_u16
     { "ldnf1h", 0xfff0e000U, 0xa4d0a000U, 523, Mnemonic::ARM64_LDNF1H, 3, 0 }, // ldnf1h_z_p_bi_u32
     { "ldnf1h", 0xfff0e000U, 0xa4f0a000U, 523, Mnemonic::ARM64_LDNF1H, 3, 0 }, // ldnf1h_z_p_bi_u64
-    { "uqsub", 0xff20fc00U, 0x04201c00U, 450, Mnemonic::ARM64_UQSUB, 3, 0 }, // uqsub_z_zz_
-    { "rsubhnb", 0xff20fc00U, 0x45207800U, 450, Mnemonic::ARM64_RSUBHNB, 3, 0 }, // rsubhnb_z_zz_
-    { "fmlalt", 0xffe0f000U, 0x64a05000U, 490, Mnemonic::ARM64_FMLALT, 4, 0 }, // fmlalt_z_z8z8z8i_
+    { "uqsub", 0xff20fc00U, 0x04201c00U, 442, Mnemonic::ARM64_UQSUB, 3, 0 }, // uqsub_z_zz_
+    { "rsubhnb", 0xff20fc00U, 0x45207800U, 442, Mnemonic::ARM64_RSUBHNB, 3, 0 }, // rsubhnb_z_zz_
+    { "fmlalt", 0xffe0f000U, 0x64a05000U, 494, Mnemonic::ARM64_FMLALT, 4, 0 }, // fmlalt_z_z8z8z8i_
     { "whilehs", 0xff20ec10U, 0x25200800U, 347, Mnemonic::ARM64_WHILEHS, 1, 0 }, // whilehs_p_p_rr_
     { "st2b", 0xfff0e000U, 0xe430e000U, 526, Mnemonic::ARM64_ST2B, 4, 0 }, // st2b_z_p_bi_contiguous
-    { "smlalb", 0xff20fc00U, 0x44004000U, 450, Mnemonic::ARM64_SMLALB, 3, 0 }, // smlalb_z_zzz_
-    { "usubwt", 0xff20fc00U, 0x45005c00U, 450, Mnemonic::ARM64_USUBWT, 3, 0 }, // usubwt_z_zz_
-    { "fmlalltb", 0xffe0f000U, 0x64a0c000U, 490, Mnemonic::ARM64_FMLALLTB, 4, 0 }, // fmlalltb_z32_z8z8z8i_
-    { "ssublt", 0xff20fc00U, 0x45001400U, 450, Mnemonic::ARM64_SSUBLT, 3, 0 }, // ssublt_z_zz_
+    { "smlalb", 0xff20fc00U, 0x44004000U, 442, Mnemonic::ARM64_SMLALB, 3, 0 }, // smlalb_z_zzz_
+    { "usubwt", 0xff20fc00U, 0x45005c00U, 442, Mnemonic::ARM64_USUBWT, 3, 0 }, // usubwt_z_zz_
+    { "fmlalltb", 0xffe0f000U, 0x64a0c000U, 494, Mnemonic::ARM64_FMLALLTB, 4, 0 }, // fmlalltb_z32_z8z8z8i_
+    { "ssublt", 0xff20fc00U, 0x45001400U, 442, Mnemonic::ARM64_SSUBLT, 3, 0 }, // ssublt_z_zz_
     { "ldnt1h", 0xfff0e000U, 0xa480e000U, 523, Mnemonic::ARM64_LDNT1H, 3, 0 }, // ldnt1h_z_p_bi_contiguous
     { "ld4d", 0xfff0e000U, 0xa5e0e000U, 533, Mnemonic::ARM64_LD4D, 6, 0 }, // ld4d_z_p_bi_contiguous
-    { "uaba", 0xff20fc00U, 0x4500fc00U, 450, Mnemonic::ARM64_UABA, 3, 0 }, // uaba_z_zzz_
+    { "uaba", 0xff20fc00U, 0x4500fc00U, 442, Mnemonic::ARM64_UABA, 3, 0 }, // uaba_z_zzz_
     { "st3w", 0xfff0e000U, 0xe550e000U, 518, Mnemonic::ARM64_ST3W, 5, 0 }, // st3w_z_p_bi_contiguous
     { "ldnf1b", 0xfff0e000U, 0xa410a000U, 523, Mnemonic::ARM64_LDNF1B, 3, 0 }, // ldnf1b_z_p_bi_u8
     { "ldnf1b", 0xfff0e000U, 0xa430a000U, 523, Mnemonic::ARM64_LDNF1B, 3, 0 }, // ldnf1b_z_p_bi_u16
     { "ldnf1b", 0xfff0e000U, 0xa450a000U, 523, Mnemonic::ARM64_LDNF1B, 3, 0 }, // ldnf1b_z_p_bi_u32
     { "ldnf1b", 0xfff0e000U, 0xa470a000U, 523, Mnemonic::ARM64_LDNF1B, 3, 0 }, // ldnf1b_z_p_bi_u64
-    { "uqadd", 0xff20fc00U, 0x04201400U, 450, Mnemonic::ARM64_UQADD, 3, 0 }, // uqadd_z_zz_
-    { "sdot", 0xff20fc00U, 0x44000000U, 450, Mnemonic::ARM64_SDOT, 3, 0 }, // sdot_z_zzz_
-    { "umlslt", 0xff20fc00U, 0x44005c00U, 450, Mnemonic::ARM64_UMLSLT, 3, 0 }, // umlslt_z_zzz_
-    { "ftsmul", 0xff20fc00U, 0x65000c00U, 450, Mnemonic::ARM64_FTSMUL, 3, 0 }, // ftsmul_z_zz_
+    { "uqadd", 0xff20fc00U, 0x04201400U, 442, Mnemonic::ARM64_UQADD, 3, 0 }, // uqadd_z_zz_
+    { "sdot", 0xff20fc00U, 0x44000000U, 442, Mnemonic::ARM64_SDOT, 3, 0 }, // sdot_z_zzz_
+    { "umlslt", 0xff20fc00U, 0x44005c00U, 442, Mnemonic::ARM64_UMLSLT, 3, 0 }, // umlslt_z_zzz_
+    { "ftsmul", 0xff20fc00U, 0x65000c00U, 442, Mnemonic::ARM64_FTSMUL, 3, 0 }, // ftsmul_z_zz_
     { "whilege", 0xff20ec10U, 0x25200000U, 347, Mnemonic::ARM64_WHILEGE, 1, 0 }, // whilege_p_p_rr_
-    { "zip2", 0xff20fc00U, 0x05206400U, 450, Mnemonic::ARM64_ZIP2, 3, 0 }, // zip2_z_zz_
-    { "zip1", 0xff20fc00U, 0x05206000U, 450, Mnemonic::ARM64_ZIP1, 3, 0 }, // zip1_z_zz_
+    { "zip2", 0xff20fc00U, 0x05206400U, 442, Mnemonic::ARM64_ZIP2, 3, 0 }, // zip2_z_zz_
+    { "zip1", 0xff20fc00U, 0x05206000U, 442, Mnemonic::ARM64_ZIP1, 3, 0 }, // zip1_z_zz_
     { "xar", 0xff20fc00U, 0x04203400U, 549, Mnemonic::ARM64_XAR, 4, 0 }, // xar_z_zzi_
-    { "mul", 0xff20fc00U, 0x04206000U, 450, Mnemonic::ARM64_MUL, 3, 0 }, // mul_z_zz_
-    { "umullt", 0xff20fc00U, 0x45007c00U, 450, Mnemonic::ARM64_UMULLT, 3, 0 }, // umullt_z_zz_
+    { "mul", 0xff20fc00U, 0x04206000U, 442, Mnemonic::ARM64_MUL, 3, 0 }, // mul_z_zz_
+    { "umullt", 0xff20fc00U, 0x45007c00U, 442, Mnemonic::ARM64_UMULLT, 3, 0 }, // umullt_z_zz_
     { "cdot", 0xffe0f000U, 0x44a04000U, 539, Mnemonic::ARM64_CDOT, 5, 0 }, // cdot_z_zzzi_s
     { "cdot", 0xffe0f000U, 0x44e04000U, 544, Mnemonic::ARM64_CDOT, 5, 0 }, // cdot_z_zzzi_d
-    { "ssublbt", 0xff20fc00U, 0x45008800U, 450, Mnemonic::ARM64_SSUBLBT, 3, 0 }, // ssublbt_z_zz_
-    { "uaddlb", 0xff20fc00U, 0x45000800U, 450, Mnemonic::ARM64_UADDLB, 3, 0 }, // uaddlb_z_zz_
-    { "saddwb", 0xff20fc00U, 0x45004000U, 450, Mnemonic::ARM64_SADDWB, 3, 0 }, // saddwb_z_zz_
-    { "sabdlt", 0xff20fc00U, 0x45003400U, 450, Mnemonic::ARM64_SABDLT, 3, 0 }, // sabdlt_z_zz_
+    { "ssublbt", 0xff20fc00U, 0x45008800U, 442, Mnemonic::ARM64_SSUBLBT, 3, 0 }, // ssublbt_z_zz_
+    { "uaddlb", 0xff20fc00U, 0x45000800U, 442, Mnemonic::ARM64_UADDLB, 3, 0 }, // uaddlb_z_zz_
+    { "saddwb", 0xff20fc00U, 0x45004000U, 442, Mnemonic::ARM64_SADDWB, 3, 0 }, // saddwb_z_zz_
+    { "sabdlt", 0xff20fc00U, 0x45003400U, 442, Mnemonic::ARM64_SABDLT, 3, 0 }, // sabdlt_z_zz_
     { "st2h", 0xfff0e000U, 0xe4b0e000U, 526, Mnemonic::ARM64_ST2H, 4, 0 }, // st2h_z_p_bi_contiguous
     { "sri", 0xff20fc00U, 0x4500f000U, 515, Mnemonic::ARM64_SRI, 3, 0 }, // sri_z_zzi_
-    { "sqdmulh", 0xff20fc00U, 0x04207000U, 450, Mnemonic::ARM64_SQDMULH, 3, 0 }, // sqdmulh_z_zz_
+    { "sqdmulh", 0xff20fc00U, 0x04207000U, 442, Mnemonic::ARM64_SQDMULH, 3, 0 }, // sqdmulh_z_zz_
     { "sli", 0xff20fc00U, 0x4500f400U, 515, Mnemonic::ARM64_SLI, 3, 0 }, // sli_z_zzi_
-    { "fadd", 0xff20fc00U, 0x65000000U, 450, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_z_zz_
-    { "frecps", 0xff20fc00U, 0x65001800U, 450, Mnemonic::ARM64_FRECPS, 3, 0 }, // frecps_z_zz_
+    { "fadd", 0xff20fc00U, 0x65000000U, 442, Mnemonic::ARM64_FADD, 3, 0 }, // fadd_z_zz_
+    { "frecps", 0xff20fc00U, 0x65001800U, 442, Mnemonic::ARM64_FRECPS, 3, 0 }, // frecps_z_zz_
     { "cmla", 0xffe0f000U, 0x44a06000U, 539, Mnemonic::ARM64_CMLA, 5, 0 }, // cmla_z_zzzi_h
     { "cmla", 0xffe0f000U, 0x44e06000U, 544, Mnemonic::ARM64_CMLA, 5, 0 }, // cmla_z_zzzi_s
     { "ld4w", 0xfff0e000U, 0xa560e000U, 533, Mnemonic::ARM64_LD4W, 6, 0 }, // ld4w_z_p_bi_contiguous
     { "st3d", 0xfff0e000U, 0xe5d0e000U, 518, Mnemonic::ARM64_ST3D, 5, 0 }, // st3d_z_p_bi_contiguous
     { "dup", 0xff20fc00U, 0x05202000U, 484, Mnemonic::ARM64_DUP, 3, 0 }, // dup_z_zi_
     { "ld1rob", 0xfff0e000U, 0xa4202000U, 523, Mnemonic::ARM64_LD1ROB, 3, 0 }, // ld1rob_z_p_bi_u8
-    { "mov", 0xff20fc00U, 0x05202000U, 484, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_dup_z_zi_
-    { "mov", 0xff20fc00U, 0x05202000U, 20, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_dup_z_zi_
-    { "raddhnt", 0xff20fc00U, 0x45206c00U, 450, Mnemonic::ARM64_RADDHNT, 3, 0 }, // raddhnt_z_zz_
+    { "raddhnt", 0xff20fc00U, 0x45206c00U, 442, Mnemonic::ARM64_RADDHNT, 3, 0 }, // raddhnt_z_zz_
     { "stnt1b", 0xfff0e000U, 0xe410e000U, 523, Mnemonic::ARM64_STNT1B, 3, 0 }, // stnt1b_z_p_bi_contiguous
     { "ld1w", 0xfff0e000U, 0xa540a000U, 523, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bi_u32
     { "ld1w", 0xfff0e000U, 0xa560a000U, 523, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bi_u64
     { "ld1w", 0xfff0e000U, 0xa5102000U, 523, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bi_u128
     { "ld3b", 0xfff0e000U, 0xa440e000U, 518, Mnemonic::ARM64_LD3B, 5, 0 }, // ld3b_z_p_bi_contiguous
-    { "saba", 0xff20fc00U, 0x4500f800U, 450, Mnemonic::ARM64_SABA, 3, 0 }, // saba_z_zzz_
+    { "saba", 0xff20fc00U, 0x4500f800U, 442, Mnemonic::ARM64_SABA, 3, 0 }, // saba_z_zzz_
     { "st4q", 0xfff0e000U, 0xe4c00000U, 533, Mnemonic::ARM64_ST4Q, 6, 0 }, // st4q_z_p_bi_contiguous
-    { "sqrdmlah", 0xff20fc00U, 0x44007000U, 450, Mnemonic::ARM64_SQRDMLAH, 3, 0 }, // sqrdmlah_z_zzz_
+    { "sqrdmlah", 0xff20fc00U, 0x44007000U, 442, Mnemonic::ARM64_SQRDMLAH, 3, 0 }, // sqrdmlah_z_zzz_
     { "prfd", 0xffe0e010U, 0x8580c000U, 292, Mnemonic::ARM64_PRFD, 2, 0 }, // prfd_i_p_br_s
     { "prfd", 0xffe0e010U, 0x8580e000U, 292, Mnemonic::ARM64_PRFD, 2, 0 }, // prfd_i_p_ai_s
     { "prfd", 0xffe0e010U, 0xc580e000U, 292, Mnemonic::ARM64_PRFD, 2, 0 }, // prfd_i_p_ai_d
-    { "udot", 0xff20fc00U, 0x44000400U, 450, Mnemonic::ARM64_UDOT, 3, 0 }, // udot_z_zzz_
+    { "udot", 0xff20fc00U, 0x44000400U, 442, Mnemonic::ARM64_UDOT, 3, 0 }, // udot_z_zzz_
     { "ld1sw", 0xfff0e000U, 0xa480a000U, 523, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_bi_s64
-    { "smlslt", 0xff20fc00U, 0x44005400U, 450, Mnemonic::ARM64_SMLSLT, 3, 0 }, // smlslt_z_zzz_
-    { "sqadd", 0xff20fc00U, 0x04201000U, 450, Mnemonic::ARM64_SQADD, 3, 0 }, // sqadd_z_zz_
-    { "zipq1", 0xff20fc00U, 0x4400e000U, 450, Mnemonic::ARM64_ZIPQ1, 3, 0 }, // zipq1_z_zz_
-    { "uzpq2", 0xff20fc00U, 0x4400ec00U, 450, Mnemonic::ARM64_UZPQ2, 3, 0 }, // uzpq2_z_zz_
+    { "smlslt", 0xff20fc00U, 0x44005400U, 442, Mnemonic::ARM64_SMLSLT, 3, 0 }, // smlslt_z_zzz_
+    { "sqadd", 0xff20fc00U, 0x04201000U, 442, Mnemonic::ARM64_SQADD, 3, 0 }, // sqadd_z_zz_
+    { "zipq1", 0xff20fc00U, 0x4400e000U, 442, Mnemonic::ARM64_ZIPQ1, 3, 0 }, // zipq1_z_zz_
+    { "uzpq2", 0xff20fc00U, 0x4400ec00U, 442, Mnemonic::ARM64_UZPQ2, 3, 0 }, // uzpq2_z_zz_
     { "ld1d", 0xfff0e000U, 0xa5e0a000U, 523, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_bi_u64
     { "ld1d", 0xfff0e000U, 0xa5902000U, 523, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_bi_u128
     { "prfw", 0xffe0e010U, 0x8500c000U, 292, Mnemonic::ARM64_PRFW, 2, 0 }, // prfw_i_p_br_s
@@ -1864,54 +1861,54 @@ const InstructionEntry g_instructionTable[] = {
     { "ld3q", 0xfff0e000U, 0xa510e000U, 518, Mnemonic::ARM64_LD3Q, 5, 0 }, // ld3q_z_p_bi_contiguous
     { "st4b", 0xfff0e000U, 0xe470e000U, 533, Mnemonic::ARM64_ST4B, 6, 0 }, // st4b_z_p_bi_contiguous
     { "prfb", 0xffe0e010U, 0xc4608000U, 292, Mnemonic::ARM64_PRFB, 2, 1 }, // prfb_i_p_bz_d_64_scaled
-    { "fmlallbt", 0xffe0f000U, 0x6460c000U, 490, Mnemonic::ARM64_FMLALLBT, 4, 0 }, // fmlallbt_z32_z8z8z8i_
-    { "addhnb", 0xff20fc00U, 0x45206000U, 450, Mnemonic::ARM64_ADDHNB, 3, 0 }, // addhnb_z_zz_
-    { "sqdmlalb", 0xff20fc00U, 0x44006000U, 450, Mnemonic::ARM64_SQDMLALB, 3, 0 }, // sqdmlalb_z_zzz_
-    { "umlslb", 0xff20fc00U, 0x44005800U, 450, Mnemonic::ARM64_UMLSLB, 3, 0 }, // umlslb_z_zzz_
-    { "uabdlt", 0xff20fc00U, 0x45003c00U, 450, Mnemonic::ARM64_UABDLT, 3, 0 }, // uabdlt_z_zz_
-    { "sqdmlslbt", 0xff20fc00U, 0x44000c00U, 450, Mnemonic::ARM64_SQDMLSLBT, 3, 0 }, // sqdmlslbt_z_zzz_
-    { "uaddwb", 0xff20fc00U, 0x45004800U, 450, Mnemonic::ARM64_UADDWB, 3, 0 }, // uaddwb_z_zz_
-    { "saddlb", 0xff20fc00U, 0x45000000U, 450, Mnemonic::ARM64_SADDLB, 3, 0 }, // saddlb_z_zz_
+    { "fmlallbt", 0xffe0f000U, 0x6460c000U, 494, Mnemonic::ARM64_FMLALLBT, 4, 0 }, // fmlallbt_z32_z8z8z8i_
+    { "addhnb", 0xff20fc00U, 0x45206000U, 442, Mnemonic::ARM64_ADDHNB, 3, 0 }, // addhnb_z_zz_
+    { "sqdmlalb", 0xff20fc00U, 0x44006000U, 442, Mnemonic::ARM64_SQDMLALB, 3, 0 }, // sqdmlalb_z_zzz_
+    { "umlslb", 0xff20fc00U, 0x44005800U, 442, Mnemonic::ARM64_UMLSLB, 3, 0 }, // umlslb_z_zzz_
+    { "uabdlt", 0xff20fc00U, 0x45003c00U, 442, Mnemonic::ARM64_UABDLT, 3, 0 }, // uabdlt_z_zz_
+    { "sqdmlslbt", 0xff20fc00U, 0x44000c00U, 442, Mnemonic::ARM64_SQDMLSLBT, 3, 0 }, // sqdmlslbt_z_zzz_
+    { "uaddwb", 0xff20fc00U, 0x45004800U, 442, Mnemonic::ARM64_UADDWB, 3, 0 }, // uaddwb_z_zz_
+    { "saddlb", 0xff20fc00U, 0x45000000U, 442, Mnemonic::ARM64_SADDLB, 3, 0 }, // saddlb_z_zz_
     { "st1w", 0xfff0e000U, 0xe500e000U, 523, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bi_u128
     { "ldnf1w", 0xfff0e000U, 0xa550a000U, 523, Mnemonic::ARM64_LDNF1W, 3, 0 }, // ldnf1w_z_p_bi_u32
     { "ldnf1w", 0xfff0e000U, 0xa570a000U, 523, Mnemonic::ARM64_LDNF1W, 3, 0 }, // ldnf1w_z_p_bi_u64
-    { "smullt", 0xff20fc00U, 0x45007400U, 450, Mnemonic::ARM64_SMULLT, 3, 0 }, // smullt_z_zz_
-    { "histseg", 0xff20fc00U, 0x4520a000U, 450, Mnemonic::ARM64_HISTSEG, 3, 0 }, // histseg_z_zz_
+    { "smullt", 0xff20fc00U, 0x45007400U, 442, Mnemonic::ARM64_SMULLT, 3, 0 }, // smullt_z_zz_
+    { "histseg", 0xff20fc00U, 0x4520a000U, 442, Mnemonic::ARM64_HISTSEG, 3, 0 }, // histseg_z_zz_
     { "st3b", 0xfff0e000U, 0xe450e000U, 518, Mnemonic::ARM64_ST3B, 5, 0 }, // st3b_z_p_bi_contiguous
     { "ld4q", 0xfff0e000U, 0xa590e000U, 533, Mnemonic::ARM64_LD4Q, 6, 0 }, // ld4q_z_p_bi_contiguous
     { "srsra", 0xff20fc00U, 0x4500e800U, 515, Mnemonic::ARM64_SRSRA, 3, 0 }, // srsra_z_zi_
     { "ldnf1sh", 0xfff0e000U, 0xa530a000U, 523, Mnemonic::ARM64_LDNF1SH, 3, 0 }, // ldnf1sh_z_p_bi_s32
     { "ldnf1sh", 0xfff0e000U, 0xa510a000U, 523, Mnemonic::ARM64_LDNF1SH, 3, 0 }, // ldnf1sh_z_p_bi_s64
-    { "tbx", 0xff20fc00U, 0x05202c00U, 450, Mnemonic::ARM64_TBX, 3, 0 }, // tbx_z_zz_
-    { "bdep", 0xff20fc00U, 0x4500b400U, 450, Mnemonic::ARM64_BDEP, 3, 0 }, // bdep_z_zz_
-    { "usublt", 0xff20fc00U, 0x45001c00U, 450, Mnemonic::ARM64_USUBLT, 3, 0 }, // usublt_z_zz_
-    { "ssubwt", 0xff20fc00U, 0x45005400U, 450, Mnemonic::ARM64_SSUBWT, 3, 0 }, // ssubwt_z_zz_
-    { "sub", 0xff20fc00U, 0x04200400U, 450, Mnemonic::ARM64_SUB, 3, 0 }, // sub_z_zz_
+    { "tbx", 0xff20fc00U, 0x05202c00U, 442, Mnemonic::ARM64_TBX, 3, 0 }, // tbx_z_zz_
+    { "bdep", 0xff20fc00U, 0x4500b400U, 442, Mnemonic::ARM64_BDEP, 3, 0 }, // bdep_z_zz_
+    { "usublt", 0xff20fc00U, 0x45001c00U, 442, Mnemonic::ARM64_USUBLT, 3, 0 }, // usublt_z_zz_
+    { "ssubwt", 0xff20fc00U, 0x45005400U, 442, Mnemonic::ARM64_SSUBWT, 3, 0 }, // ssubwt_z_zz_
+    { "sub", 0xff20fc00U, 0x04200400U, 442, Mnemonic::ARM64_SUB, 3, 0 }, // sub_z_zz_
     { "whilele", 0xff20ec10U, 0x25200410U, 347, Mnemonic::ARM64_WHILELE, 1, 0 }, // whilele_p_p_rr_
     { "st1d", 0xfff0e000U, 0xe5e0e000U, 523, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_bi_
     { "st1d", 0xfff0e000U, 0xe5c0e000U, 523, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_bi_u128
     { "st3q", 0xfff0e000U, 0xe4800000U, 518, Mnemonic::ARM64_ST3Q, 5, 0 }, // st3q_z_p_bi_contiguous
     { "ld4b", 0xfff0e000U, 0xa460e000U, 533, Mnemonic::ARM64_LD4B, 6, 0 }, // ld4b_z_p_bi_contiguous
-    { "saddlbt", 0xff20fc00U, 0x45008000U, 450, Mnemonic::ARM64_SADDLBT, 3, 0 }, // saddlbt_z_zz_
+    { "saddlbt", 0xff20fc00U, 0x45008000U, 442, Mnemonic::ARM64_SADDLBT, 3, 0 }, // saddlbt_z_zz_
     { "luti2", 0xff20fc00U, 0x4520b000U, 553, Mnemonic::ARM64_LUTI2, 4, 0 }, // luti2_z_zz_8
     { "ldnf1d", 0xfff0e000U, 0xa5f0a000U, 523, Mnemonic::ARM64_LDNF1D, 3, 0 }, // ldnf1d_z_p_bi_u64
     { "adr", 0xffe0f000U, 0x0420a000U, 557, Mnemonic::ARM64_ADR, 2, 0 }, // adr_z_az_d_s32_scaled
     { "adr", 0xffe0f000U, 0x0460a000U, 557, Mnemonic::ARM64_ADR, 2, 0 }, // adr_z_az_d_u32_scaled
     { "prfd", 0xffe0e010U, 0xc460e000U, 292, Mnemonic::ARM64_PRFD, 2, 1 }, // prfd_i_p_bz_d_64_scaled
-    { "tbl", 0xff20fc00U, 0x05203000U, 450, Mnemonic::ARM64_TBL, 3, 0 }, // tbl_z_zz_1
+    { "tbl", 0xff20fc00U, 0x05203000U, 442, Mnemonic::ARM64_TBL, 3, 0 }, // tbl_z_zz_1
     { "tbl", 0xff20fc00U, 0x05202800U, 559, Mnemonic::ARM64_TBL, 4, 0 }, // tbl_z_zz_2
     { "ld1row", 0xfff0e000U, 0xa5202000U, 523, Mnemonic::ARM64_LD1ROW, 3, 0 }, // ld1row_z_p_bi_u32
-    { "trn1", 0xff20fc00U, 0x05207000U, 450, Mnemonic::ARM64_TRN1, 3, 0 }, // trn1_z_zz_
-    { "trn2", 0xff20fc00U, 0x05207400U, 450, Mnemonic::ARM64_TRN2, 3, 0 }, // trn2_z_zz_
+    { "trn1", 0xff20fc00U, 0x05207000U, 442, Mnemonic::ARM64_TRN1, 3, 0 }, // trn1_z_zz_
+    { "trn2", 0xff20fc00U, 0x05207400U, 442, Mnemonic::ARM64_TRN2, 3, 0 }, // trn2_z_zz_
     { "whilehi", 0xff20ec10U, 0x25200810U, 347, Mnemonic::ARM64_WHILEHI, 1, 0 }, // whilehi_p_p_rr_
     { "stnt1w", 0xfff0e000U, 0xe510e000U, 523, Mnemonic::ARM64_STNT1W, 3, 0 }, // stnt1w_z_p_bi_contiguous
-    { "smlslb", 0xff20fc00U, 0x44005000U, 450, Mnemonic::ARM64_SMLSLB, 3, 0 }, // smlslb_z_zzz_
-    { "rsubhnt", 0xff20fc00U, 0x45207c00U, 450, Mnemonic::ARM64_RSUBHNT, 3, 0 }, // rsubhnt_z_zz_
+    { "smlslb", 0xff20fc00U, 0x44005000U, 442, Mnemonic::ARM64_SMLSLB, 3, 0 }, // smlslb_z_zzz_
+    { "rsubhnt", 0xff20fc00U, 0x45207c00U, 442, Mnemonic::ARM64_RSUBHNT, 3, 0 }, // rsubhnt_z_zz_
     { "ld1b", 0xfff0e000U, 0xa400a000U, 523, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bi_u8
     { "ld1b", 0xfff0e000U, 0xa420a000U, 523, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bi_u16
     { "ld1b", 0xfff0e000U, 0xa440a000U, 523, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bi_u32
     { "ld1b", 0xfff0e000U, 0xa460a000U, 523, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bi_u64
-    { "ftssel", 0xff20fc00U, 0x0420b000U, 450, Mnemonic::ARM64_FTSSEL, 3, 0 }, // ftssel_z_zz_
+    { "ftssel", 0xff20fc00U, 0x0420b000U, 442, Mnemonic::ARM64_FTSSEL, 3, 0 }, // ftssel_z_zz_
     { "ld1sb", 0xfff0e000U, 0xa5c0a000U, 523, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bi_s16
     { "ld1sb", 0xfff0e000U, 0xa5a0a000U, 523, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bi_s32
     { "ld1sb", 0xfff0e000U, 0xa580a000U, 523, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bi_s64
@@ -1919,287 +1916,289 @@ const InstructionEntry g_instructionTable[] = {
     { "st4d", 0xfff0e000U, 0xe5f0e000U, 533, Mnemonic::ARM64_ST4D, 6, 0 }, // st4d_z_p_bi_contiguous
     { "ld3w", 0xfff0e000U, 0xa540e000U, 518, Mnemonic::ARM64_LD3W, 5, 0 }, // ld3w_z_p_bi_contiguous
     { "ssra", 0xff20fc00U, 0x4500e000U, 515, Mnemonic::ARM64_SSRA, 3, 0 }, // ssra_z_zi_
-    { "tbxq", 0xff20fc00U, 0x05203400U, 450, Mnemonic::ARM64_TBXQ, 3, 0 }, // tbxq_z_zz_
-    { "eorbt", 0xff20fc00U, 0x45009000U, 450, Mnemonic::ARM64_EORBT, 3, 0 }, // eorbt_z_zz_
-    { "subhnb", 0xff20fc00U, 0x45207000U, 450, Mnemonic::ARM64_SUBHNB, 3, 0 }, // subhnb_z_zz_
+    { "tbxq", 0xff20fc00U, 0x05203400U, 442, Mnemonic::ARM64_TBXQ, 3, 0 }, // tbxq_z_zz_
+    { "eorbt", 0xff20fc00U, 0x45009000U, 442, Mnemonic::ARM64_EORBT, 3, 0 }, // eorbt_z_zz_
+    { "subhnb", 0xff20fc00U, 0x45207000U, 442, Mnemonic::ARM64_SUBHNB, 3, 0 }, // subhnb_z_zz_
     { "st4w", 0xfff0e000U, 0xe570e000U, 533, Mnemonic::ARM64_ST4W, 6, 0 }, // st4w_z_p_bi_contiguous
     { "ld3d", 0xfff0e000U, 0xa5c0e000U, 518, Mnemonic::ARM64_LD3D, 5, 0 }, // ld3d_z_p_bi_contiguous
-    { "pmullt", 0xff20fc00U, 0x45006c00U, 450, Mnemonic::ARM64_PMULLT, 3, 0 }, // pmullt_z_zz_
+    { "pmullt", 0xff20fc00U, 0x45006c00U, 442, Mnemonic::ARM64_PMULLT, 3, 0 }, // pmullt_z_zz_
     { "whilels", 0xff20ec10U, 0x25200c10U, 347, Mnemonic::ARM64_WHILELS, 1, 0 }, // whilels_p_p_rr_
     { "prfb", 0xffe0e010U, 0x8400e000U, 292, Mnemonic::ARM64_PRFB, 2, 0 }, // prfb_i_p_ai_s
     { "prfb", 0xffe0e010U, 0xc400e000U, 292, Mnemonic::ARM64_PRFB, 2, 0 }, // prfb_i_p_ai_d
     { "prfb", 0xffe0e010U, 0x8400c000U, 292, Mnemonic::ARM64_PRFB, 2, 0 }, // prfb_i_p_br_s
     { "ld1rqh", 0xfff0e000U, 0xa4802000U, 523, Mnemonic::ARM64_LD1RQH, 3, 0 }, // ld1rqh_z_p_bi_u16
     { "ld1rod", 0xfff0e000U, 0xa5a02000U, 523, Mnemonic::ARM64_LD1ROD, 3, 0 }, // ld1rod_z_p_bi_u64
-    { "sqdmlalt", 0xff20fc00U, 0x44006400U, 450, Mnemonic::ARM64_SQDMLALT, 3, 0 }, // sqdmlalt_z_zzz_
+    { "sqdmlalt", 0xff20fc00U, 0x44006400U, 442, Mnemonic::ARM64_SQDMLALT, 3, 0 }, // sqdmlalt_z_zzz_
     { "prfw", 0xffe0e010U, 0xc460c000U, 292, Mnemonic::ARM64_PRFW, 2, 1 }, // prfw_i_p_bz_d_64_scaled
     { "ld2h", 0xfff0e000U, 0xa4a0e000U, 526, Mnemonic::ARM64_LD2H, 4, 0 }, // ld2h_z_p_bi_contiguous
-    { "sqdmullt", 0xff20fc00U, 0x45006400U, 450, Mnemonic::ARM64_SQDMULLT, 3, 0 }, // sqdmullt_z_zz_
+    { "sqdmullt", 0xff20fc00U, 0x45006400U, 442, Mnemonic::ARM64_SQDMULLT, 3, 0 }, // sqdmullt_z_zz_
     { "stnt1d", 0xfff0e000U, 0xe590e000U, 523, Mnemonic::ARM64_STNT1D, 3, 0 }, // stnt1d_z_p_bi_contiguous
     { "ld1h", 0xfff0e000U, 0xa4a0a000U, 523, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bi_u16
     { "ld1h", 0xfff0e000U, 0xa4c0a000U, 523, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bi_u32
     { "ld1h", 0xfff0e000U, 0xa4e0a000U, 523, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bi_u64
-    { "zipq2", 0xff20fc00U, 0x4400e400U, 450, Mnemonic::ARM64_ZIPQ2, 3, 0 }, // zipq2_z_zz_
-    { "uzpq1", 0xff20fc00U, 0x4400e800U, 450, Mnemonic::ARM64_UZPQ1, 3, 0 }, // uzpq1_z_zz_
+    { "zipq2", 0xff20fc00U, 0x4400e400U, 442, Mnemonic::ARM64_ZIPQ2, 3, 0 }, // zipq2_z_zz_
+    { "uzpq1", 0xff20fc00U, 0x4400e800U, 442, Mnemonic::ARM64_UZPQ1, 3, 0 }, // uzpq1_z_zz_
     { "ld1sh", 0xfff0e000U, 0xa520a000U, 523, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bi_s32
     { "ld1sh", 0xfff0e000U, 0xa500a000U, 523, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bi_s64
-    { "uabalt", 0xff20fc00U, 0x4500cc00U, 450, Mnemonic::ARM64_UABALT, 3, 0 }, // uabalt_z_zzz_
-    { "sabdlb", 0xff20fc00U, 0x45003000U, 450, Mnemonic::ARM64_SABDLB, 3, 0 }, // sabdlb_z_zz_
-    { "saddwt", 0xff20fc00U, 0x45004400U, 450, Mnemonic::ARM64_SADDWT, 3, 0 }, // saddwt_z_zz_
-    { "uaddlt", 0xff20fc00U, 0x45000c00U, 450, Mnemonic::ARM64_UADDLT, 3, 0 }, // uaddlt_z_zz_
+    { "uabalt", 0xff20fc00U, 0x4500cc00U, 442, Mnemonic::ARM64_UABALT, 3, 0 }, // uabalt_z_zzz_
+    { "sabdlb", 0xff20fc00U, 0x45003000U, 442, Mnemonic::ARM64_SABDLB, 3, 0 }, // sabdlb_z_zz_
+    { "saddwt", 0xff20fc00U, 0x45004400U, 442, Mnemonic::ARM64_SADDWT, 3, 0 }, // saddwt_z_zz_
+    { "uaddlt", 0xff20fc00U, 0x45000c00U, 442, Mnemonic::ARM64_UADDLT, 3, 0 }, // uaddlt_z_zz_
     { "whilelt", 0xff20ec10U, 0x25200400U, 347, Mnemonic::ARM64_WHILELT, 1, 0 }, // whilelt_p_p_rr_
     { "ld2q", 0xfff0e000U, 0xa490e000U, 526, Mnemonic::ARM64_LD2Q, 4, 0 }, // ld2q_z_p_bi_contiguous
-    { "umullb", 0xff20fc00U, 0x45007800U, 450, Mnemonic::ARM64_UMULLB, 3, 0 }, // umullb_z_zz_
-    { "sqrdmlsh", 0xff20fc00U, 0x44007400U, 450, Mnemonic::ARM64_SQRDMLSH, 3, 0 }, // sqrdmlsh_z_zzz_
-    { "umlalt", 0xff20fc00U, 0x44004c00U, 450, Mnemonic::ARM64_UMLALT, 3, 0 }, // umlalt_z_zzz_
+    { "umullb", 0xff20fc00U, 0x45007800U, 442, Mnemonic::ARM64_UMULLB, 3, 0 }, // umullb_z_zz_
+    { "sqrdmlsh", 0xff20fc00U, 0x44007400U, 442, Mnemonic::ARM64_SQRDMLSH, 3, 0 }, // sqrdmlsh_z_zzz_
+    { "umlalt", 0xff20fc00U, 0x44004c00U, 442, Mnemonic::ARM64_UMLALT, 3, 0 }, // umlalt_z_zzz_
     { "ld1rqb", 0xfff0e000U, 0xa4002000U, 523, Mnemonic::ARM64_LD1RQB, 3, 0 }, // ld1rqb_z_p_bi_u8
     { "sqrdcmlah", 0xffe0f000U, 0x44a07000U, 539, Mnemonic::ARM64_SQRDCMLAH, 5, 0 }, // sqrdcmlah_z_zzzi_h
     { "sqrdcmlah", 0xffe0f000U, 0x44e07000U, 544, Mnemonic::ARM64_SQRDCMLAH, 5, 0 }, // sqrdcmlah_z_zzzi_s
-    { "umulh", 0xff20fc00U, 0x04206c00U, 450, Mnemonic::ARM64_UMULH, 3, 0 }, // umulh_z_zz_
+    { "umulh", 0xff20fc00U, 0x04206c00U, 442, Mnemonic::ARM64_UMULH, 3, 0 }, // umulh_z_zz_
     { "ld2b", 0xfff0e000U, 0xa420e000U, 526, Mnemonic::ARM64_LD2B, 4, 0 }, // ld2b_z_p_bi_contiguous
-    { "fmlallbb", 0xffe0f000U, 0x6420c000U, 490, Mnemonic::ARM64_FMLALLBB, 4, 0 }, // fmlallbb_z32_z8z8z8i_
-    { "frsqrts", 0xff20fc00U, 0x65001c00U, 450, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // frsqrts_z_zz_
+    { "fmlallbb", 0xffe0f000U, 0x6420c000U, 494, Mnemonic::ARM64_FMLALLBB, 4, 0 }, // fmlallbb_z32_z8z8z8i_
+    { "frsqrts", 0xff20fc00U, 0x65001c00U, 442, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // frsqrts_z_zz_
     { "prfh", 0xffe0e010U, 0x8480c000U, 292, Mnemonic::ARM64_PRFH, 2, 0 }, // prfh_i_p_br_s
     { "prfh", 0xffe0e010U, 0x8480e000U, 292, Mnemonic::ARM64_PRFH, 2, 0 }, // prfh_i_p_ai_s
     { "prfh", 0xffe0e010U, 0xc480e000U, 292, Mnemonic::ARM64_PRFH, 2, 0 }, // prfh_i_p_ai_d
     { "index", 0xff20fc00U, 0x04204400U, 563, Mnemonic::ARM64_INDEX, 2, 0 }, // index_z_ri_
-    { "ssublb", 0xff20fc00U, 0x45001000U, 450, Mnemonic::ARM64_SSUBLB, 3, 0 }, // ssublb_z_zz_
-    { "usubwb", 0xff20fc00U, 0x45005800U, 450, Mnemonic::ARM64_USUBWB, 3, 0 }, // usubwb_z_zz_
-    { "fmul", 0xff20fc00U, 0x65000800U, 450, Mnemonic::ARM64_FMUL, 3, 0 }, // fmul_z_zz_
-    { "sabalt", 0xff20fc00U, 0x4500c400U, 450, Mnemonic::ARM64_SABALT, 3, 0 }, // sabalt_z_zzz_
-    { "bgrp", 0xff20fc00U, 0x4500b800U, 450, Mnemonic::ARM64_BGRP, 3, 0 }, // bgrp_z_zz_
-    { "fmlalltt", 0xffe0f000U, 0x64e0c000U, 490, Mnemonic::ARM64_FMLALLTT, 4, 0 }, // fmlalltt_z32_z8z8z8i_
-    { "addhnt", 0xff20fc00U, 0x45206400U, 450, Mnemonic::ARM64_ADDHNT, 3, 0 }, // addhnt_z_zz_
+    { "ssublb", 0xff20fc00U, 0x45001000U, 442, Mnemonic::ARM64_SSUBLB, 3, 0 }, // ssublb_z_zz_
+    { "usubwb", 0xff20fc00U, 0x45005800U, 442, Mnemonic::ARM64_USUBWB, 3, 0 }, // usubwb_z_zz_
+    { "fmul", 0xff20fc00U, 0x65000800U, 442, Mnemonic::ARM64_FMUL, 3, 0 }, // fmul_z_zz_
+    { "sabalt", 0xff20fc00U, 0x4500c400U, 442, Mnemonic::ARM64_SABALT, 3, 0 }, // sabalt_z_zzz_
+    { "bgrp", 0xff20fc00U, 0x4500b800U, 442, Mnemonic::ARM64_BGRP, 3, 0 }, // bgrp_z_zz_
+    { "fmlalltt", 0xffe0f000U, 0x64e0c000U, 494, Mnemonic::ARM64_FMLALLTT, 4, 0 }, // fmlalltt_z32_z8z8z8i_
+    { "addhnt", 0xff20fc00U, 0x45206400U, 442, Mnemonic::ARM64_ADDHNT, 3, 0 }, // addhnt_z_zz_
     { "st2d", 0xfff0e000U, 0xe5b0e000U, 526, Mnemonic::ARM64_ST2D, 4, 0 }, // st2d_z_p_bi_contiguous
     { "usra", 0xff20fc00U, 0x4500e400U, 515, Mnemonic::ARM64_USRA, 3, 0 }, // usra_z_zi_
     { "ldnf1sb", 0xfff0e000U, 0xa5d0a000U, 523, Mnemonic::ARM64_LDNF1SB, 3, 0 }, // ldnf1sb_z_p_bi_s16
     { "ldnf1sb", 0xfff0e000U, 0xa5b0a000U, 523, Mnemonic::ARM64_LDNF1SB, 3, 0 }, // ldnf1sb_z_p_bi_s32
     { "ldnf1sb", 0xfff0e000U, 0xa590a000U, 523, Mnemonic::ARM64_LDNF1SB, 3, 0 }, // ldnf1sb_z_p_bi_s64
-    { "fclamp", 0xff20fc00U, 0x64202400U, 450, Mnemonic::ARM64_FCLAMP, 3, 0 }, // fclamp_z_zz_
-    { "eortb", 0xff20fc00U, 0x45009400U, 450, Mnemonic::ARM64_EORTB, 3, 0 }, // eortb_z_zz_
+    { "fclamp", 0xff20fc00U, 0x64202400U, 442, Mnemonic::ARM64_FCLAMP, 3, 0 }, // fclamp_z_zz_
+    { "eortb", 0xff20fc00U, 0x45009400U, 442, Mnemonic::ARM64_EORTB, 3, 0 }, // eortb_z_zz_
     { "ldnt1w", 0xfff0e000U, 0xa500e000U, 523, Mnemonic::ARM64_LDNT1W, 3, 0 }, // ldnt1w_z_p_bi_contiguous
-    { "sqdmlslb", 0xff20fc00U, 0x44006800U, 450, Mnemonic::ARM64_SQDMLSLB, 3, 0 }, // sqdmlslb_z_zzz_
-    { "add", 0xff20fc00U, 0x04200000U, 450, Mnemonic::ARM64_ADD, 3, 0 }, // add_z_zz_
+    { "sqdmlslb", 0xff20fc00U, 0x44006800U, 442, Mnemonic::ARM64_SQDMLSLB, 3, 0 }, // sqdmlslb_z_zzz_
+    { "add", 0xff20fc00U, 0x04200000U, 442, Mnemonic::ARM64_ADD, 3, 0 }, // add_z_zz_
     { "st3h", 0xfff0e000U, 0xe4d0e000U, 518, Mnemonic::ARM64_ST3H, 5, 0 }, // st3h_z_p_bi_contiguous
-    { "sqdmlalbt", 0xff20fc00U, 0x44000800U, 450, Mnemonic::ARM64_SQDMLALBT, 3, 0 }, // sqdmlalbt_z_zzz_
+    { "sqdmlalbt", 0xff20fc00U, 0x44000800U, 442, Mnemonic::ARM64_SQDMLALBT, 3, 0 }, // sqdmlalbt_z_zzz_
     { "ldnt1d", 0xfff0e000U, 0xa580e000U, 523, Mnemonic::ARM64_LDNT1D, 3, 0 }, // ldnt1d_z_p_bi_contiguous
-    { "sclamp", 0xff20fc00U, 0x4400c000U, 450, Mnemonic::ARM64_SCLAMP, 3, 0 }, // sclamp_z_zz_
+    { "sclamp", 0xff20fc00U, 0x4400c000U, 442, Mnemonic::ARM64_SCLAMP, 3, 0 }, // sclamp_z_zz_
     { "whilelo", 0xff20ec10U, 0x25200c00U, 347, Mnemonic::ARM64_WHILELO, 1, 0 }, // whilelo_p_p_rr_
     { "ld4h", 0xfff0e000U, 0xa4e0e000U, 533, Mnemonic::ARM64_LD4H, 6, 0 }, // ld4h_z_p_bi_contiguous
-    { "smlalt", 0xff20fc00U, 0x44004400U, 450, Mnemonic::ARM64_SMLALT, 3, 0 }, // smlalt_z_zzz_
+    { "smlalt", 0xff20fc00U, 0x44004400U, 442, Mnemonic::ARM64_SMLALT, 3, 0 }, // smlalt_z_zzz_
     { "luti4", 0xff20fc00U, 0x4520b400U, 565, Mnemonic::ARM64_LUTI4, 5, 0 }, // luti4_z_zz_2x16
     { "luti4", 0xff20fc00U, 0x4520bc00U, 553, Mnemonic::ARM64_LUTI4, 4, 0 }, // luti4_z_zz_1x16
-    { "raddhnb", 0xff20fc00U, 0x45206800U, 450, Mnemonic::ARM64_RADDHNB, 3, 0 }, // raddhnb_z_zz_
+    { "raddhnb", 0xff20fc00U, 0x45206800U, 442, Mnemonic::ARM64_RADDHNB, 3, 0 }, // raddhnb_z_zz_
     { "st2w", 0xfff0e000U, 0xe530e000U, 526, Mnemonic::ARM64_ST2W, 4, 0 }, // st2w_z_p_bi_contiguous
-    { "tblq", 0xff20fc00U, 0x4400f800U, 450, Mnemonic::ARM64_TBLQ, 3, 0 }, // tblq_z_zz_
-    { "smulh", 0xff20fc00U, 0x04206800U, 450, Mnemonic::ARM64_SMULH, 3, 0 }, // smulh_z_zz_
+    { "tblq", 0xff20fc00U, 0x4400f800U, 442, Mnemonic::ARM64_TBLQ, 3, 0 }, // tblq_z_zz_
+    { "smulh", 0xff20fc00U, 0x04206800U, 442, Mnemonic::ARM64_SMULH, 3, 0 }, // smulh_z_zz_
     { "index", 0xff20fc00U, 0x04204800U, 530, Mnemonic::ARM64_INDEX, 2, 0 }, // index_z_ir_
-    { "ldnt1d", 0xffe0e000U, 0xa580c000U, 570, Mnemonic::ARM64_LDNT1D, 3, 0 }, // ldnt1d_z_p_br_contiguous
-    { "ldnt1sw", 0xffe0e000U, 0xc5008000U, 570, Mnemonic::ARM64_LDNT1SW, 3, 1 }, // ldnt1sw_z_p_ar_d_64_unscaled
-    { "ldff1d", 0xffe0e000U, 0xc5e0e000U, 570, Mnemonic::ARM64_LDFF1D, 3, 1 }, // ldff1d_z_p_bz_d_64_scaled
-    { "ldff1d", 0xffe0e000U, 0xc5c0e000U, 570, Mnemonic::ARM64_LDFF1D, 3, 1 }, // ldff1d_z_p_bz_d_64_unscaled
-    { "ld4h", 0xffe0e000U, 0xa4e0c000U, 573, Mnemonic::ARM64_LD4H, 6, 0 }, // ld4h_z_p_br_contiguous
-    { "ext", 0xffe0e000U, 0x05600000U, 579, Mnemonic::ARM64_EXT, 4, 0 }, // ext_z_zi_con
-    { "ext", 0xffe0e000U, 0x05200000U, 583, Mnemonic::ARM64_EXT, 4, 0 }, // ext_z_zi_des
-    { "bic", 0xfffc0000U, 0x05800000U, 587, Mnemonic::ARM64_BIC, 3, 0 }, // BIC_and_z_zi_
+    { "mov", 0xff20fc00U, 0x05202000U, 484, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_dup_z_zi_
+    { "mov", 0xff20fc00U, 0x05202000U, 20, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_dup_z_zi_
+    { "orr", 0xfffc0000U, 0x05000000U, 570, Mnemonic::ARM64_ORR, 3, 0 }, // orr_z_zi_
+    { "ldnt1d", 0xffe0e000U, 0xa580c000U, 573, Mnemonic::ARM64_LDNT1D, 3, 0 }, // ldnt1d_z_p_br_contiguous
+    { "ldnt1sw", 0xffe0e000U, 0xc5008000U, 573, Mnemonic::ARM64_LDNT1SW, 3, 1 }, // ldnt1sw_z_p_ar_d_64_unscaled
+    { "ldff1d", 0xffe0e000U, 0xc5e0e000U, 573, Mnemonic::ARM64_LDFF1D, 3, 1 }, // ldff1d_z_p_bz_d_64_scaled
+    { "ldff1d", 0xffe0e000U, 0xc5c0e000U, 573, Mnemonic::ARM64_LDFF1D, 3, 1 }, // ldff1d_z_p_bz_d_64_unscaled
+    { "ld4h", 0xffe0e000U, 0xa4e0c000U, 576, Mnemonic::ARM64_LD4H, 6, 0 }, // ld4h_z_p_br_contiguous
+    { "ext", 0xffe0e000U, 0x05600000U, 582, Mnemonic::ARM64_EXT, 4, 0 }, // ext_z_zi_con
+    { "ext", 0xffe0e000U, 0x05200000U, 586, Mnemonic::ARM64_EXT, 4, 0 }, // ext_z_zi_des
+    { "bic", 0xfffc0000U, 0x05800000U, 570, Mnemonic::ARM64_BIC, 3, 0 }, // BIC_and_z_zi_
     { "st2w", 0xffe0e000U, 0xe5206000U, 590, Mnemonic::ARM64_ST2W, 4, 0 }, // st2w_z_p_br_contiguous
-    { "stnt1h", 0xffe0e000U, 0xe4c02000U, 570, Mnemonic::ARM64_STNT1H, 3, 0 }, // stnt1h_z_p_ar_s_x32_unscaled
-    { "stnt1h", 0xffe0e000U, 0xe4802000U, 570, Mnemonic::ARM64_STNT1H, 3, 1 }, // stnt1h_z_p_ar_d_64_unscaled
-    { "ldff1b", 0xffe0e000U, 0x8420e000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_ai_s
-    { "ldff1b", 0xffe0e000U, 0xc420e000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_ai_d
-    { "ldff1b", 0xffe0e000U, 0xa4006000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u8
-    { "ldff1b", 0xffe0e000U, 0xa4206000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u16
-    { "ldff1b", 0xffe0e000U, 0xa4406000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u32
-    { "ldff1b", 0xffe0e000U, 0xa4606000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u64
+    { "stnt1h", 0xffe0e000U, 0xe4c02000U, 573, Mnemonic::ARM64_STNT1H, 3, 0 }, // stnt1h_z_p_ar_s_x32_unscaled
+    { "stnt1h", 0xffe0e000U, 0xe4802000U, 573, Mnemonic::ARM64_STNT1H, 3, 1 }, // stnt1h_z_p_ar_d_64_unscaled
+    { "ldff1b", 0xffe0e000U, 0x8420e000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_ai_s
+    { "ldff1b", 0xffe0e000U, 0xc420e000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_ai_d
+    { "ldff1b", 0xffe0e000U, 0xa4006000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u8
+    { "ldff1b", 0xffe0e000U, 0xa4206000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u16
+    { "ldff1b", 0xffe0e000U, 0xa4406000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u32
+    { "ldff1b", 0xffe0e000U, 0xa4606000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_br_u64
     { "prfh", 0xffa0e010U, 0x84202000U, 292, Mnemonic::ARM64_PRFH, 2, 0 }, // prfh_i_p_bz_s_x32_scaled
     { "prfh", 0xffa0e010U, 0xc4202000U, 292, Mnemonic::ARM64_PRFH, 2, 0 }, // prfh_i_p_bz_d_x32_scaled
-    { "ldff1sw", 0xffe0e000U, 0xc560a000U, 570, Mnemonic::ARM64_LDFF1SW, 3, 1 }, // ldff1sw_z_p_bz_d_64_scaled
-    { "ldff1sw", 0xffe0e000U, 0xc540a000U, 570, Mnemonic::ARM64_LDFF1SW, 3, 1 }, // ldff1sw_z_p_bz_d_64_unscaled
-    { "st1h", 0xffe0e000U, 0xe4a0a000U, 570, Mnemonic::ARM64_ST1H, 3, 1 }, // st1h_z_p_bz_d_64_scaled
-    { "st1h", 0xffe0e000U, 0xe480a000U, 570, Mnemonic::ARM64_ST1H, 3, 1 }, // st1h_z_p_bz_d_64_unscaled
+    { "ldff1sw", 0xffe0e000U, 0xc560a000U, 573, Mnemonic::ARM64_LDFF1SW, 3, 1 }, // ldff1sw_z_p_bz_d_64_scaled
+    { "ldff1sw", 0xffe0e000U, 0xc540a000U, 573, Mnemonic::ARM64_LDFF1SW, 3, 1 }, // ldff1sw_z_p_bz_d_64_unscaled
+    { "st1h", 0xffe0e000U, 0xe4a0a000U, 573, Mnemonic::ARM64_ST1H, 3, 1 }, // st1h_z_p_bz_d_64_scaled
+    { "st1h", 0xffe0e000U, 0xe480a000U, 573, Mnemonic::ARM64_ST1H, 3, 1 }, // st1h_z_p_bz_d_64_unscaled
     { "st2d", 0xffe0e000U, 0xe5a06000U, 590, Mnemonic::ARM64_ST2D, 4, 0 }, // st2d_z_p_br_contiguous
-    { "ldff1sb", 0xffe0e000U, 0xa5c06000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_br_s16
-    { "ldff1sb", 0xffe0e000U, 0xa5a06000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_br_s32
-    { "ldff1sb", 0xffe0e000U, 0xa5806000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_br_s64
-    { "ldff1sb", 0xffe0e000U, 0x8420a000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_ai_s
-    { "ldff1sb", 0xffe0e000U, 0xc420a000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_ai_d
-    { "ldnt1w", 0xffe0e000U, 0xa500c000U, 570, Mnemonic::ARM64_LDNT1W, 3, 0 }, // ldnt1w_z_p_br_contiguous
-    { "ldff1w", 0xffe0e000U, 0xc560e000U, 570, Mnemonic::ARM64_LDFF1W, 3, 1 }, // ldff1w_z_p_bz_d_64_scaled
-    { "ldff1w", 0xffe0e000U, 0xc540e000U, 570, Mnemonic::ARM64_LDFF1W, 3, 1 }, // ldff1w_z_p_bz_d_64_unscaled
+    { "ldff1sb", 0xffe0e000U, 0xa5c06000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_br_s16
+    { "ldff1sb", 0xffe0e000U, 0xa5a06000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_br_s32
+    { "ldff1sb", 0xffe0e000U, 0xa5806000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_br_s64
+    { "ldff1sb", 0xffe0e000U, 0x8420a000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_ai_s
+    { "ldff1sb", 0xffe0e000U, 0xc420a000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_ai_d
+    { "ldnt1w", 0xffe0e000U, 0xa500c000U, 573, Mnemonic::ARM64_LDNT1W, 3, 0 }, // ldnt1w_z_p_br_contiguous
+    { "ldff1w", 0xffe0e000U, 0xc560e000U, 573, Mnemonic::ARM64_LDFF1W, 3, 1 }, // ldff1w_z_p_bz_d_64_scaled
+    { "ldff1w", 0xffe0e000U, 0xc540e000U, 573, Mnemonic::ARM64_LDFF1W, 3, 1 }, // ldff1w_z_p_bz_d_64_unscaled
     { "st3h", 0xffe0e000U, 0xe4c06000U, 594, Mnemonic::ARM64_ST3H, 5, 0 }, // st3h_z_p_br_contiguous
-    { "ld1rqb", 0xffe0e000U, 0xa4000000U, 570, Mnemonic::ARM64_LD1RQB, 3, 0 }, // ld1rqb_z_p_br_contiguous
+    { "ld1rqb", 0xffe0e000U, 0xa4000000U, 573, Mnemonic::ARM64_LD1RQB, 3, 0 }, // ld1rqb_z_p_br_contiguous
     { "ldr", 0xffc0e010U, 0x85800000U, 599, Mnemonic::ARM64_LDR, 2, 0 }, // ldr_p_bi_
     { "ld2b", 0xffe0e000U, 0xa420c000U, 590, Mnemonic::ARM64_LD2B, 4, 0 }, // ld2b_z_p_br_contiguous
-    { "ldnt1b", 0xffe0e000U, 0x8400a000U, 570, Mnemonic::ARM64_LDNT1B, 3, 0 }, // ldnt1b_z_p_ar_s_x32_unscaled
-    { "ldnt1b", 0xffe0e000U, 0xc400c000U, 570, Mnemonic::ARM64_LDNT1B, 3, 1 }, // ldnt1b_z_p_ar_d_64_unscaled
+    { "ldnt1b", 0xffe0e000U, 0x8400a000U, 573, Mnemonic::ARM64_LDNT1B, 3, 0 }, // ldnt1b_z_p_ar_s_x32_unscaled
+    { "ldnt1b", 0xffe0e000U, 0xc400c000U, 573, Mnemonic::ARM64_LDNT1B, 3, 1 }, // ldnt1b_z_p_ar_d_64_unscaled
     { "prfh", 0xffc0e010U, 0x85c02000U, 601, Mnemonic::ARM64_PRFH, 2, 0 }, // prfh_i_p_bi_s
-    { "ld1h", 0xffe0e000U, 0x84a0c000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_ai_s
-    { "ld1h", 0xffe0e000U, 0xc4a0c000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_ai_d
-    { "ld1h", 0xffe0e000U, 0xa4a04000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_br_u16
-    { "ld1h", 0xffe0e000U, 0xa4c04000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_br_u32
-    { "ld1h", 0xffe0e000U, 0xa4e04000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_br_u64
-    { "ld1sh", 0xffe0e000U, 0x84a08000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_ai_s
-    { "ld1sh", 0xffe0e000U, 0xc4a08000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_ai_d
-    { "ld1sh", 0xffe0e000U, 0xa5204000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_br_s32
-    { "ld1sh", 0xffe0e000U, 0xa5004000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_br_s64
+    { "ld1h", 0xffe0e000U, 0x84a0c000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_ai_s
+    { "ld1h", 0xffe0e000U, 0xc4a0c000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_ai_d
+    { "ld1h", 0xffe0e000U, 0xa4a04000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_br_u16
+    { "ld1h", 0xffe0e000U, 0xa4c04000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_br_u32
+    { "ld1h", 0xffe0e000U, 0xa4e04000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_br_u64
+    { "ld1sh", 0xffe0e000U, 0x84a08000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_ai_s
+    { "ld1sh", 0xffe0e000U, 0xc4a08000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_ai_d
+    { "ld1sh", 0xffe0e000U, 0xa5204000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_br_s32
+    { "ld1sh", 0xffe0e000U, 0xa5004000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_br_s64
     { "ld2q", 0xffe0e000U, 0xa4a08000U, 590, Mnemonic::ARM64_LD2Q, 4, 0 }, // ld2q_z_p_br_contiguous
-    { "ldnt1h", 0xffe0e000U, 0x8480a000U, 570, Mnemonic::ARM64_LDNT1H, 3, 0 }, // ldnt1h_z_p_ar_s_x32_unscaled
-    { "ldnt1h", 0xffe0e000U, 0xc480c000U, 570, Mnemonic::ARM64_LDNT1H, 3, 1 }, // ldnt1h_z_p_ar_d_64_unscaled
-    { "st4w", 0xffe0e000U, 0xe5606000U, 573, Mnemonic::ARM64_ST4W, 6, 0 }, // st4w_z_p_br_contiguous
+    { "ldnt1h", 0xffe0e000U, 0x8480a000U, 573, Mnemonic::ARM64_LDNT1H, 3, 0 }, // ldnt1h_z_p_ar_s_x32_unscaled
+    { "ldnt1h", 0xffe0e000U, 0xc480c000U, 573, Mnemonic::ARM64_LDNT1H, 3, 1 }, // ldnt1h_z_p_ar_d_64_unscaled
+    { "st4w", 0xffe0e000U, 0xe5606000U, 576, Mnemonic::ARM64_ST4W, 6, 0 }, // st4w_z_p_br_contiguous
     { "bfmla", 0xffe0e000U, 0x65200000U, 603, Mnemonic::ARM64_BFMLA, 4, 0 }, // bfmla_z_p_zzz_
     { "ld3d", 0xffe0e000U, 0xa5c0c000U, 594, Mnemonic::ARM64_LD3D, 5, 0 }, // ld3d_z_p_br_contiguous
     { "prfb", 0xffc0e010U, 0x85c00000U, 601, Mnemonic::ARM64_PRFB, 2, 0 }, // prfb_i_p_bi_s
-    { "ld1rod", 0xffe0e000U, 0xa5a00000U, 570, Mnemonic::ARM64_LD1ROD, 3, 0 }, // ld1rod_z_p_br_contiguous
-    { "ld1rqh", 0xffe0e000U, 0xa4800000U, 570, Mnemonic::ARM64_LD1RQH, 3, 0 }, // ld1rqh_z_p_br_contiguous
+    { "ld1rod", 0xffe0e000U, 0xa5a00000U, 573, Mnemonic::ARM64_LD1ROD, 3, 0 }, // ld1rod_z_p_br_contiguous
+    { "ld1rqh", 0xffe0e000U, 0xa4800000U, 573, Mnemonic::ARM64_LD1RQH, 3, 0 }, // ld1rqh_z_p_br_contiguous
     { "ld2h", 0xffe0e000U, 0xa4a0c000U, 590, Mnemonic::ARM64_LD2H, 4, 0 }, // ld2h_z_p_br_contiguous
-    { "ld1d", 0xffe0e000U, 0xc5e0c000U, 570, Mnemonic::ARM64_LD1D, 3, 1 }, // ld1d_z_p_bz_d_64_scaled
-    { "ld1d", 0xffe0e000U, 0xc5c0c000U, 570, Mnemonic::ARM64_LD1D, 3, 1 }, // ld1d_z_p_bz_d_64_unscaled
-    { "stnt1d", 0xffe0e000U, 0xe5806000U, 570, Mnemonic::ARM64_STNT1D, 3, 0 }, // stnt1d_z_p_br_contiguous
-    { "ld1sw", 0xffe0e000U, 0xc5608000U, 570, Mnemonic::ARM64_LD1SW, 3, 1 }, // ld1sw_z_p_bz_d_64_scaled
-    { "ld1sw", 0xffe0e000U, 0xc5408000U, 570, Mnemonic::ARM64_LD1SW, 3, 1 }, // ld1sw_z_p_bz_d_64_unscaled
-    { "ld1row", 0xffe0e000U, 0xa5200000U, 570, Mnemonic::ARM64_LD1ROW, 3, 0 }, // ld1row_z_p_br_contiguous
-    { "ld1w", 0xffe0e000U, 0xc560c000U, 570, Mnemonic::ARM64_LD1W, 3, 1 }, // ld1w_z_p_bz_d_64_scaled
-    { "ld1w", 0xffe0e000U, 0xc540c000U, 570, Mnemonic::ARM64_LD1W, 3, 1 }, // ld1w_z_p_bz_d_64_unscaled
-    { "stnt1w", 0xffe0e000U, 0xe5006000U, 570, Mnemonic::ARM64_STNT1W, 3, 0 }, // stnt1w_z_p_br_contiguous
-    { "ld1b", 0xffe0e000U, 0xa4004000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u8
-    { "ld1b", 0xffe0e000U, 0xa4204000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u16
-    { "ld1b", 0xffe0e000U, 0xa4404000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u32
-    { "ld1b", 0xffe0e000U, 0xa4604000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u64
-    { "ld1b", 0xffe0e000U, 0x8420c000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_ai_s
-    { "ld1b", 0xffe0e000U, 0xc420c000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_ai_d
-    { "st1q", 0xffe0e000U, 0xe4202000U, 570, Mnemonic::ARM64_ST1Q, 3, 1 }, // st1q_z_p_ar_d_64_unscaled
-    { "ld1sb", 0xffe0e000U, 0xa5c04000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_br_s16
-    { "ld1sb", 0xffe0e000U, 0xa5a04000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_br_s32
-    { "ld1sb", 0xffe0e000U, 0xa5804000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_br_s64
-    { "ld1sb", 0xffe0e000U, 0x84208000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_ai_s
-    { "ld1sb", 0xffe0e000U, 0xc4208000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_ai_d
-    { "st4d", 0xffe0e000U, 0xe5e06000U, 573, Mnemonic::ARM64_ST4D, 6, 0 }, // st4d_z_p_br_contiguous
+    { "ld1d", 0xffe0e000U, 0xc5e0c000U, 573, Mnemonic::ARM64_LD1D, 3, 1 }, // ld1d_z_p_bz_d_64_scaled
+    { "ld1d", 0xffe0e000U, 0xc5c0c000U, 573, Mnemonic::ARM64_LD1D, 3, 1 }, // ld1d_z_p_bz_d_64_unscaled
+    { "stnt1d", 0xffe0e000U, 0xe5806000U, 573, Mnemonic::ARM64_STNT1D, 3, 0 }, // stnt1d_z_p_br_contiguous
+    { "ld1sw", 0xffe0e000U, 0xc5608000U, 573, Mnemonic::ARM64_LD1SW, 3, 1 }, // ld1sw_z_p_bz_d_64_scaled
+    { "ld1sw", 0xffe0e000U, 0xc5408000U, 573, Mnemonic::ARM64_LD1SW, 3, 1 }, // ld1sw_z_p_bz_d_64_unscaled
+    { "ld1row", 0xffe0e000U, 0xa5200000U, 573, Mnemonic::ARM64_LD1ROW, 3, 0 }, // ld1row_z_p_br_contiguous
+    { "ld1w", 0xffe0e000U, 0xc560c000U, 573, Mnemonic::ARM64_LD1W, 3, 1 }, // ld1w_z_p_bz_d_64_scaled
+    { "ld1w", 0xffe0e000U, 0xc540c000U, 573, Mnemonic::ARM64_LD1W, 3, 1 }, // ld1w_z_p_bz_d_64_unscaled
+    { "stnt1w", 0xffe0e000U, 0xe5006000U, 573, Mnemonic::ARM64_STNT1W, 3, 0 }, // stnt1w_z_p_br_contiguous
+    { "ld1b", 0xffe0e000U, 0xa4004000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u8
+    { "ld1b", 0xffe0e000U, 0xa4204000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u16
+    { "ld1b", 0xffe0e000U, 0xa4404000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u32
+    { "ld1b", 0xffe0e000U, 0xa4604000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_br_u64
+    { "ld1b", 0xffe0e000U, 0x8420c000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_ai_s
+    { "ld1b", 0xffe0e000U, 0xc420c000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_ai_d
+    { "st1q", 0xffe0e000U, 0xe4202000U, 573, Mnemonic::ARM64_ST1Q, 3, 1 }, // st1q_z_p_ar_d_64_unscaled
+    { "ld1sb", 0xffe0e000U, 0xa5c04000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_br_s16
+    { "ld1sb", 0xffe0e000U, 0xa5a04000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_br_s32
+    { "ld1sb", 0xffe0e000U, 0xa5804000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_br_s64
+    { "ld1sb", 0xffe0e000U, 0x84208000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_ai_s
+    { "ld1sb", 0xffe0e000U, 0xc4208000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_ai_d
+    { "st4d", 0xffe0e000U, 0xe5e06000U, 576, Mnemonic::ARM64_ST4D, 6, 0 }, // st4d_z_p_br_contiguous
     { "ld3w", 0xffe0e000U, 0xa540c000U, 594, Mnemonic::ARM64_LD3W, 5, 0 }, // ld3w_z_p_br_contiguous
     { "str", 0xffc0e010U, 0xe5800000U, 599, Mnemonic::ARM64_STR, 2, 0 }, // str_p_bi_
-    { "stnt1b", 0xffe0e000U, 0xe4402000U, 570, Mnemonic::ARM64_STNT1B, 3, 0 }, // stnt1b_z_p_ar_s_x32_unscaled
-    { "stnt1b", 0xffe0e000U, 0xe4002000U, 570, Mnemonic::ARM64_STNT1B, 3, 1 }, // stnt1b_z_p_ar_d_64_unscaled
-    { "st1d", 0xffe0e000U, 0xe5c0a000U, 570, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_ai_d
-    { "st1d", 0xffe0e000U, 0xe5e04000U, 570, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_br_
-    { "st1d", 0xffe0e000U, 0xe5c04000U, 570, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_br_u128
+    { "stnt1b", 0xffe0e000U, 0xe4402000U, 573, Mnemonic::ARM64_STNT1B, 3, 0 }, // stnt1b_z_p_ar_s_x32_unscaled
+    { "stnt1b", 0xffe0e000U, 0xe4002000U, 573, Mnemonic::ARM64_STNT1B, 3, 1 }, // stnt1b_z_p_ar_d_64_unscaled
+    { "st1d", 0xffe0e000U, 0xe5c0a000U, 573, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_ai_d
+    { "st1d", 0xffe0e000U, 0xe5e04000U, 573, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_br_
+    { "st1d", 0xffe0e000U, 0xe5c04000U, 573, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_br_u128
     { "st3q", 0xffe0e000U, 0xe4a00000U, 594, Mnemonic::ARM64_ST3Q, 5, 0 }, // st3q_z_p_br_contiguous
-    { "ld4b", 0xffe0e000U, 0xa460c000U, 573, Mnemonic::ARM64_LD4B, 6, 0 }, // ld4b_z_p_br_contiguous
-    { "orr", 0xfffc0000U, 0x05000000U, 587, Mnemonic::ARM64_ORR, 3, 0 }, // orr_z_zi_
-    { "st1w", 0xffe0e000U, 0xe560a000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_ai_s
-    { "st1w", 0xffe0e000U, 0xe540a000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_ai_d
-    { "st1w", 0xffe0e000U, 0xe5004000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_br_u128
-    { "ldff1sh", 0xffe0e000U, 0x84a0a000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_ai_s
-    { "ldff1sh", 0xffe0e000U, 0xc4a0a000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_ai_d
-    { "ldff1sh", 0xffe0e000U, 0xa5206000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_br_s32
-    { "ldff1sh", 0xffe0e000U, 0xa5006000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_br_s64
+    { "ld4b", 0xffe0e000U, 0xa460c000U, 576, Mnemonic::ARM64_LD4B, 6, 0 }, // ld4b_z_p_br_contiguous
+    { "st1w", 0xffe0e000U, 0xe560a000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_ai_s
+    { "st1w", 0xffe0e000U, 0xe540a000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_ai_d
+    { "st1w", 0xffe0e000U, 0xe5004000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_br_u128
+    { "ldff1sh", 0xffe0e000U, 0x84a0a000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_ai_s
+    { "ldff1sh", 0xffe0e000U, 0xc4a0a000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_ai_d
+    { "ldff1sh", 0xffe0e000U, 0xa5206000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_br_s32
+    { "ldff1sh", 0xffe0e000U, 0xa5006000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_br_s64
     { "st3b", 0xffe0e000U, 0xe4406000U, 594, Mnemonic::ARM64_ST3B, 5, 0 }, // st3b_z_p_br_contiguous
-    { "ld4q", 0xffe0e000U, 0xa5a08000U, 573, Mnemonic::ARM64_LD4Q, 6, 0 }, // ld4q_z_p_br_contiguous
+    { "ld4q", 0xffe0e000U, 0xa5a08000U, 576, Mnemonic::ARM64_LD4Q, 6, 0 }, // ld4q_z_p_br_contiguous
     { "prfb", 0xffa0e010U, 0x84200000U, 292, Mnemonic::ARM64_PRFB, 2, 0 }, // prfb_i_p_bz_s_x32_scaled
     { "prfb", 0xffa0e010U, 0xc4200000U, 292, Mnemonic::ARM64_PRFB, 2, 0 }, // prfb_i_p_bz_d_x32_scaled
-    { "ldff1h", 0xffe0e000U, 0xa4a06000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_br_u16
-    { "ldff1h", 0xffe0e000U, 0xa4c06000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_br_u32
-    { "ldff1h", 0xffe0e000U, 0xa4e06000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_br_u64
-    { "ldff1h", 0xffe0e000U, 0x84a0e000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_ai_s
-    { "ldff1h", 0xffe0e000U, 0xc4a0e000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_ai_d
-    { "st1b", 0xffe0e000U, 0xe400a000U, 570, Mnemonic::ARM64_ST1B, 3, 1 }, // st1b_z_p_bz_d_64_unscaled
-    { "ld1d", 0xffe0e000U, 0xc5a0c000U, 570, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_ai_d
-    { "ld1d", 0xffe0e000U, 0xa5e04000U, 570, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_br_u64
-    { "ld1d", 0xffe0e000U, 0xa5808000U, 570, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_br_u128
+    { "ldff1h", 0xffe0e000U, 0xa4a06000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_br_u16
+    { "ldff1h", 0xffe0e000U, 0xa4c06000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_br_u32
+    { "ldff1h", 0xffe0e000U, 0xa4e06000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_br_u64
+    { "ldff1h", 0xffe0e000U, 0x84a0e000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_ai_s
+    { "ldff1h", 0xffe0e000U, 0xc4a0e000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_ai_d
+    { "st1b", 0xffe0e000U, 0xe400a000U, 573, Mnemonic::ARM64_ST1B, 3, 1 }, // st1b_z_p_bz_d_64_unscaled
+    { "ld1d", 0xffe0e000U, 0xc5a0c000U, 573, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_ai_d
+    { "ld1d", 0xffe0e000U, 0xa5e04000U, 573, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_br_u64
+    { "ld1d", 0xffe0e000U, 0xa5808000U, 573, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_br_u128
     { "st1w", 0xffd0e000U, 0xe540e000U, 523, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bi_
     { "prfw", 0xffc0e010U, 0x85c04000U, 601, Mnemonic::ARM64_PRFW, 2, 0 }, // prfw_i_p_bi_s
     { "ld3q", 0xffe0e000U, 0xa5208000U, 594, Mnemonic::ARM64_LD3Q, 5, 0 }, // ld3q_z_p_br_contiguous
-    { "st4b", 0xffe0e000U, 0xe4606000U, 573, Mnemonic::ARM64_ST4B, 6, 0 }, // st4b_z_p_br_contiguous
-    { "ld1rob", 0xffe0e000U, 0xa4200000U, 570, Mnemonic::ARM64_LD1ROB, 3, 0 }, // ld1rob_z_p_br_contiguous
-    { "ld1sb", 0xffe0e000U, 0xc4408000U, 570, Mnemonic::ARM64_LD1SB, 3, 1 }, // ld1sb_z_p_bz_d_64_unscaled
-    { "stnt1b", 0xffe0e000U, 0xe4006000U, 570, Mnemonic::ARM64_STNT1B, 3, 0 }, // stnt1b_z_p_br_contiguous
-    { "ld1b", 0xffe0e000U, 0xc440c000U, 570, Mnemonic::ARM64_LD1B, 3, 1 }, // ld1b_z_p_bz_d_64_unscaled
-    { "ld1w", 0xffe0e000U, 0x8520c000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_ai_s
-    { "ld1w", 0xffe0e000U, 0xc520c000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_ai_d
-    { "ld1w", 0xffe0e000U, 0xa5404000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_br_u32
-    { "ld1w", 0xffe0e000U, 0xa5604000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_br_u64
-    { "ld1w", 0xffe0e000U, 0xa5008000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_br_u128
+    { "st4b", 0xffe0e000U, 0xe4606000U, 576, Mnemonic::ARM64_ST4B, 6, 0 }, // st4b_z_p_br_contiguous
+    { "ld1rob", 0xffe0e000U, 0xa4200000U, 573, Mnemonic::ARM64_LD1ROB, 3, 0 }, // ld1rob_z_p_br_contiguous
+    { "ld1sb", 0xffe0e000U, 0xc4408000U, 573, Mnemonic::ARM64_LD1SB, 3, 1 }, // ld1sb_z_p_bz_d_64_unscaled
+    { "stnt1b", 0xffe0e000U, 0xe4006000U, 573, Mnemonic::ARM64_STNT1B, 3, 0 }, // stnt1b_z_p_br_contiguous
+    { "ld1b", 0xffe0e000U, 0xc440c000U, 573, Mnemonic::ARM64_LD1B, 3, 1 }, // ld1b_z_p_bz_d_64_unscaled
+    { "ld1w", 0xffe0e000U, 0x8520c000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_ai_s
+    { "ld1w", 0xffe0e000U, 0xc520c000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_ai_d
+    { "ld1w", 0xffe0e000U, 0xa5404000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_br_u32
+    { "ld1w", 0xffe0e000U, 0xa5604000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_br_u64
+    { "ld1w", 0xffe0e000U, 0xa5008000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_br_u128
     { "ld3b", 0xffe0e000U, 0xa440c000U, 594, Mnemonic::ARM64_LD3B, 5, 0 }, // ld3b_z_p_br_contiguous
-    { "st4q", 0xffe0e000U, 0xe4e00000U, 573, Mnemonic::ARM64_ST4Q, 6, 0 }, // st4q_z_p_br_contiguous
+    { "st4q", 0xffe0e000U, 0xe4e00000U, 576, Mnemonic::ARM64_ST4Q, 6, 0 }, // st4q_z_p_br_contiguous
     { "luti2", 0xff20ec00U, 0x4520a800U, 607, Mnemonic::ARM64_LUTI2, 4, 0 }, // luti2_z_zz_16
     { "prfd", 0xffc0e010U, 0x85c06000U, 601, Mnemonic::ARM64_PRFD, 2, 0 }, // prfd_i_p_bi_s
-    { "ld1sw", 0xffe0e000U, 0xc5208000U, 570, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_ai_d
-    { "ld1sw", 0xffe0e000U, 0xa4804000U, 570, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_br_s64
+    { "ld1sw", 0xffe0e000U, 0xc5208000U, 573, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_ai_d
+    { "ld1sw", 0xffe0e000U, 0xa4804000U, 573, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_br_s64
     { "adr", 0xffa0f000U, 0x04a0a000U, 611, Mnemonic::ARM64_ADR, 2, 0 }, // adr_z_az_sd_same_scaled
     { "prfd", 0xffa0e010U, 0x84206000U, 292, Mnemonic::ARM64_PRFD, 2, 0 }, // prfd_i_p_bz_s_x32_scaled
     { "prfd", 0xffa0e010U, 0xc4206000U, 292, Mnemonic::ARM64_PRFD, 2, 0 }, // prfd_i_p_bz_d_x32_scaled
-    { "st1d", 0xffe0e000U, 0xe5a0a000U, 570, Mnemonic::ARM64_ST1D, 3, 1 }, // st1d_z_p_bz_d_64_scaled
-    { "st1d", 0xffe0e000U, 0xe580a000U, 570, Mnemonic::ARM64_ST1D, 3, 1 }, // st1d_z_p_bz_d_64_unscaled
+    { "st1d", 0xffe0e000U, 0xe5a0a000U, 573, Mnemonic::ARM64_ST1D, 3, 1 }, // st1d_z_p_bz_d_64_scaled
+    { "st1d", 0xffe0e000U, 0xe580a000U, 573, Mnemonic::ARM64_ST1D, 3, 1 }, // st1d_z_p_bz_d_64_unscaled
     { "st2h", 0xffe0e000U, 0xe4a06000U, 590, Mnemonic::ARM64_ST2H, 4, 0 }, // st2h_z_p_br_contiguous
-    { "stnt1w", 0xffe0e000U, 0xe5402000U, 570, Mnemonic::ARM64_STNT1W, 3, 0 }, // stnt1w_z_p_ar_s_x32_unscaled
-    { "stnt1w", 0xffe0e000U, 0xe5002000U, 570, Mnemonic::ARM64_STNT1W, 3, 1 }, // stnt1w_z_p_ar_d_64_unscaled
-    { "ldnt1sh", 0xffe0e000U, 0x84808000U, 570, Mnemonic::ARM64_LDNT1SH, 3, 0 }, // ldnt1sh_z_p_ar_s_x32_unscaled
-    { "ldnt1sh", 0xffe0e000U, 0xc4808000U, 570, Mnemonic::ARM64_LDNT1SH, 3, 1 }, // ldnt1sh_z_p_ar_d_64_unscaled
-    { "and", 0xfffc0000U, 0x05800000U, 587, Mnemonic::ARM64_AND, 3, 0 }, // and_z_zi_
-    { "orn", 0xfffc0000U, 0x05000000U, 587, Mnemonic::ARM64_ORN, 3, 0 }, // ORN_orr_z_zi_
-    { "ld4w", 0xffe0e000U, 0xa560c000U, 573, Mnemonic::ARM64_LD4W, 6, 0 }, // ld4w_z_p_br_contiguous
+    { "stnt1w", 0xffe0e000U, 0xe5402000U, 573, Mnemonic::ARM64_STNT1W, 3, 0 }, // stnt1w_z_p_ar_s_x32_unscaled
+    { "stnt1w", 0xffe0e000U, 0xe5002000U, 573, Mnemonic::ARM64_STNT1W, 3, 1 }, // stnt1w_z_p_ar_d_64_unscaled
+    { "ldnt1sh", 0xffe0e000U, 0x84808000U, 573, Mnemonic::ARM64_LDNT1SH, 3, 0 }, // ldnt1sh_z_p_ar_s_x32_unscaled
+    { "ldnt1sh", 0xffe0e000U, 0xc4808000U, 573, Mnemonic::ARM64_LDNT1SH, 3, 1 }, // ldnt1sh_z_p_ar_d_64_unscaled
+    { "and", 0xfffc0000U, 0x05800000U, 570, Mnemonic::ARM64_AND, 3, 0 }, // and_z_zi_
+    { "orn", 0xfffc0000U, 0x05000000U, 570, Mnemonic::ARM64_ORN, 3, 0 }, // ORN_orr_z_zi_
+    { "ld4w", 0xffe0e000U, 0xa560c000U, 576, Mnemonic::ARM64_LD4W, 6, 0 }, // ld4w_z_p_br_contiguous
     { "st3d", 0xffe0e000U, 0xe5c06000U, 594, Mnemonic::ARM64_ST3D, 5, 0 }, // st3d_z_p_br_contiguous
-    { "dupm", 0xfffc0000U, 0x05c00000U, 588, Mnemonic::ARM64_DUPM, 2, 0 }, // dupm_z_i_
-    { "st1b", 0xffe0e000U, 0xe460a000U, 570, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_ai_s
-    { "st1b", 0xffe0e000U, 0xe440a000U, 570, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_ai_d
-    { "ld1q", 0xffe0e000U, 0xc400a000U, 570, Mnemonic::ARM64_LD1Q, 3, 1 }, // ld1q_z_p_ar_d_64_unscaled
-    { "mov", 0xfffc0000U, 0x05c00000U, 588, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_dupm_z_i_
-    { "ldnt1h", 0xffe0e000U, 0xa480c000U, 570, Mnemonic::ARM64_LDNT1H, 3, 0 }, // ldnt1h_z_p_br_contiguous
-    { "ld4d", 0xffe0e000U, 0xa5e0c000U, 573, Mnemonic::ARM64_LD4D, 6, 0 }, // ld4d_z_p_br_contiguous
-    { "ldff1h", 0xffe0e000U, 0xc4e0e000U, 570, Mnemonic::ARM64_LDFF1H, 3, 1 }, // ldff1h_z_p_bz_d_64_scaled
-    { "ldff1h", 0xffe0e000U, 0xc4c0e000U, 570, Mnemonic::ARM64_LDFF1H, 3, 1 }, // ldff1h_z_p_bz_d_64_unscaled
+    { "dupm", 0xfffc0000U, 0x05c00000U, 571, Mnemonic::ARM64_DUPM, 2, 0 }, // dupm_z_i_
+    { "st1b", 0xffe0e000U, 0xe460a000U, 573, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_ai_s
+    { "st1b", 0xffe0e000U, 0xe440a000U, 573, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_ai_d
+    { "ld1q", 0xffe0e000U, 0xc400a000U, 573, Mnemonic::ARM64_LD1Q, 3, 1 }, // ld1q_z_p_ar_d_64_unscaled
+    { "ldnt1h", 0xffe0e000U, 0xa480c000U, 573, Mnemonic::ARM64_LDNT1H, 3, 0 }, // ldnt1h_z_p_br_contiguous
+    { "ld4d", 0xffe0e000U, 0xa5e0c000U, 576, Mnemonic::ARM64_LD4D, 6, 0 }, // ld4d_z_p_br_contiguous
+    { "ldff1h", 0xffe0e000U, 0xc4e0e000U, 573, Mnemonic::ARM64_LDFF1H, 3, 1 }, // ldff1h_z_p_bz_d_64_scaled
+    { "ldff1h", 0xffe0e000U, 0xc4c0e000U, 573, Mnemonic::ARM64_LDFF1H, 3, 1 }, // ldff1h_z_p_bz_d_64_unscaled
     { "st3w", 0xffe0e000U, 0xe5406000U, 594, Mnemonic::ARM64_ST3W, 5, 0 }, // st3w_z_p_br_contiguous
     { "prfw", 0xffa0e010U, 0x84204000U, 292, Mnemonic::ARM64_PRFW, 2, 0 }, // prfw_i_p_bz_s_x32_scaled
     { "prfw", 0xffa0e010U, 0xc4204000U, 292, Mnemonic::ARM64_PRFW, 2, 0 }, // prfw_i_p_bz_d_x32_scaled
-    { "st1w", 0xffe0e000U, 0xe520a000U, 570, Mnemonic::ARM64_ST1W, 3, 1 }, // st1w_z_p_bz_d_64_scaled
-    { "st1w", 0xffe0e000U, 0xe500a000U, 570, Mnemonic::ARM64_ST1W, 3, 1 }, // st1w_z_p_bz_d_64_unscaled
-    { "ldff1sh", 0xffe0e000U, 0xc4e0a000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 1 }, // ldff1sh_z_p_bz_d_64_scaled
-    { "ldff1sh", 0xffe0e000U, 0xc4c0a000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 1 }, // ldff1sh_z_p_bz_d_64_unscaled
-    { "stnt1d", 0xffe0e000U, 0xe5802000U, 570, Mnemonic::ARM64_STNT1D, 3, 1 }, // stnt1d_z_p_ar_d_64_unscaled
-    { "ldnt1sb", 0xffe0e000U, 0x84008000U, 570, Mnemonic::ARM64_LDNT1SB, 3, 0 }, // ldnt1sb_z_p_ar_s_x32_unscaled
-    { "ldnt1sb", 0xffe0e000U, 0xc4008000U, 570, Mnemonic::ARM64_LDNT1SB, 3, 1 }, // ldnt1sb_z_p_ar_d_64_unscaled
-    { "ldff1d", 0xffe0e000U, 0xa5e06000U, 570, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_br_u64
-    { "ldff1d", 0xffe0e000U, 0xc5a0e000U, 570, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_ai_d
+    { "st1w", 0xffe0e000U, 0xe520a000U, 573, Mnemonic::ARM64_ST1W, 3, 1 }, // st1w_z_p_bz_d_64_scaled
+    { "st1w", 0xffe0e000U, 0xe500a000U, 573, Mnemonic::ARM64_ST1W, 3, 1 }, // st1w_z_p_bz_d_64_unscaled
+    { "ldff1sh", 0xffe0e000U, 0xc4e0a000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 1 }, // ldff1sh_z_p_bz_d_64_scaled
+    { "ldff1sh", 0xffe0e000U, 0xc4c0a000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 1 }, // ldff1sh_z_p_bz_d_64_unscaled
+    { "stnt1d", 0xffe0e000U, 0xe5802000U, 573, Mnemonic::ARM64_STNT1D, 3, 1 }, // stnt1d_z_p_ar_d_64_unscaled
+    { "ldnt1sb", 0xffe0e000U, 0x84008000U, 573, Mnemonic::ARM64_LDNT1SB, 3, 0 }, // ldnt1sb_z_p_ar_s_x32_unscaled
+    { "ldnt1sb", 0xffe0e000U, 0xc4008000U, 573, Mnemonic::ARM64_LDNT1SB, 3, 1 }, // ldnt1sb_z_p_ar_d_64_unscaled
+    { "ldff1d", 0xffe0e000U, 0xa5e06000U, 573, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_br_u64
+    { "ldff1d", 0xffe0e000U, 0xc5a0e000U, 573, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_ai_d
     { "st2b", 0xffe0e000U, 0xe4206000U, 590, Mnemonic::ARM64_ST2B, 4, 0 }, // st2b_z_p_br_contiguous
     { "bfmls", 0xffe0e000U, 0x65202000U, 603, Mnemonic::ARM64_BFMLS, 4, 0 }, // bfmls_z_p_zzz_
-    { "ldff1w", 0xffe0e000U, 0xa5406000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_br_u32
-    { "ldff1w", 0xffe0e000U, 0xa5606000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_br_u64
-    { "ldff1w", 0xffe0e000U, 0x8520e000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_ai_s
-    { "ldff1w", 0xffe0e000U, 0xc520e000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_ai_d
-    { "ldff1sb", 0xffe0e000U, 0xc440a000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 1 }, // ldff1sb_z_p_bz_d_64_unscaled
+    { "ldff1w", 0xffe0e000U, 0xa5406000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_br_u32
+    { "ldff1w", 0xffe0e000U, 0xa5606000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_br_u64
+    { "ldff1w", 0xffe0e000U, 0x8520e000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_ai_s
+    { "ldff1w", 0xffe0e000U, 0xc520e000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_ai_d
+    { "ldff1sb", 0xffe0e000U, 0xc440a000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 1 }, // ldff1sb_z_p_bz_d_64_unscaled
     { "st2q", 0xffe0e000U, 0xe4600000U, 590, Mnemonic::ARM64_ST2Q, 4, 0 }, // st2q_z_p_br_contiguous
-    { "ldnt1b", 0xffe0e000U, 0xa400c000U, 570, Mnemonic::ARM64_LDNT1B, 3, 0 }, // ldnt1b_z_p_br_contiguous
-    { "ldff1sw", 0xffe0e000U, 0xc520a000U, 570, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_ai_d
-    { "ldff1sw", 0xffe0e000U, 0xa4806000U, 570, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_br_s64
-    { "st1h", 0xffe0e000U, 0xe4e0a000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_ai_s
-    { "st1h", 0xffe0e000U, 0xe4c0a000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_ai_d
-    { "ldff1b", 0xffe0e000U, 0xc440e000U, 570, Mnemonic::ARM64_LDFF1B, 3, 1 }, // ldff1b_z_p_bz_d_64_unscaled
-    { "ld1rqw", 0xffe0e000U, 0xa5000000U, 570, Mnemonic::ARM64_LD1RQW, 3, 0 }, // ld1rqw_z_p_br_contiguous
+    { "ldnt1b", 0xffe0e000U, 0xa400c000U, 573, Mnemonic::ARM64_LDNT1B, 3, 0 }, // ldnt1b_z_p_br_contiguous
+    { "ldff1sw", 0xffe0e000U, 0xc520a000U, 573, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_ai_d
+    { "ldff1sw", 0xffe0e000U, 0xa4806000U, 573, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_br_s64
+    { "st1h", 0xffe0e000U, 0xe4e0a000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_ai_s
+    { "st1h", 0xffe0e000U, 0xe4c0a000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_ai_d
+    { "ldff1b", 0xffe0e000U, 0xc440e000U, 573, Mnemonic::ARM64_LDFF1B, 3, 1 }, // ldff1b_z_p_bz_d_64_unscaled
+    { "ld1rqw", 0xffe0e000U, 0xa5000000U, 573, Mnemonic::ARM64_LD1RQW, 3, 0 }, // ld1rqw_z_p_br_contiguous
     { "ld2w", 0xffe0e000U, 0xa520c000U, 590, Mnemonic::ARM64_LD2W, 4, 0 }, // ld2w_z_p_br_contiguous
-    { "eor", 0xfffc0000U, 0x05400000U, 587, Mnemonic::ARM64_EOR, 3, 0 }, // eor_z_zi_
-    { "ldnt1w", 0xffe0e000U, 0x8500a000U, 570, Mnemonic::ARM64_LDNT1W, 3, 0 }, // ldnt1w_z_p_ar_s_x32_unscaled
-    { "ldnt1w", 0xffe0e000U, 0xc500c000U, 570, Mnemonic::ARM64_LDNT1W, 3, 1 }, // ldnt1w_z_p_ar_d_64_unscaled
-    { "st4h", 0xffe0e000U, 0xe4e06000U, 573, Mnemonic::ARM64_ST4H, 6, 0 }, // st4h_z_p_br_contiguous
-    { "ldnt1d", 0xffe0e000U, 0xc580c000U, 570, Mnemonic::ARM64_LDNT1D, 3, 1 }, // ldnt1d_z_p_ar_d_64_unscaled
+    { "eor", 0xfffc0000U, 0x05400000U, 570, Mnemonic::ARM64_EOR, 3, 0 }, // eor_z_zi_
+    { "ldnt1w", 0xffe0e000U, 0x8500a000U, 573, Mnemonic::ARM64_LDNT1W, 3, 0 }, // ldnt1w_z_p_ar_s_x32_unscaled
+    { "ldnt1w", 0xffe0e000U, 0xc500c000U, 573, Mnemonic::ARM64_LDNT1W, 3, 1 }, // ldnt1w_z_p_ar_d_64_unscaled
+    { "st4h", 0xffe0e000U, 0xe4e06000U, 576, Mnemonic::ARM64_ST4H, 6, 0 }, // st4h_z_p_br_contiguous
+    { "ldnt1d", 0xffe0e000U, 0xc580c000U, 573, Mnemonic::ARM64_LDNT1D, 3, 1 }, // ldnt1d_z_p_ar_d_64_unscaled
     { "ld3h", 0xffe0e000U, 0xa4c0c000U, 594, Mnemonic::ARM64_LD3H, 5, 0 }, // ld3h_z_p_br_contiguous
-    { "ld1sh", 0xffe0e000U, 0xc4e08000U, 570, Mnemonic::ARM64_LD1SH, 3, 1 }, // ld1sh_z_p_bz_d_64_scaled
-    { "ld1sh", 0xffe0e000U, 0xc4c08000U, 570, Mnemonic::ARM64_LD1SH, 3, 1 }, // ld1sh_z_p_bz_d_64_unscaled
-    { "ld1roh", 0xffe0e000U, 0xa4a00000U, 570, Mnemonic::ARM64_LD1ROH, 3, 0 }, // ld1roh_z_p_br_contiguous
-    { "ld1rqd", 0xffe0e000U, 0xa5800000U, 570, Mnemonic::ARM64_LD1RQD, 3, 0 }, // ld1rqd_z_p_br_contiguous
+    { "ld1sh", 0xffe0e000U, 0xc4e08000U, 573, Mnemonic::ARM64_LD1SH, 3, 1 }, // ld1sh_z_p_bz_d_64_scaled
+    { "ld1sh", 0xffe0e000U, 0xc4c08000U, 573, Mnemonic::ARM64_LD1SH, 3, 1 }, // ld1sh_z_p_bz_d_64_unscaled
+    { "ld1roh", 0xffe0e000U, 0xa4a00000U, 573, Mnemonic::ARM64_LD1ROH, 3, 0 }, // ld1roh_z_p_br_contiguous
+    { "ld1rqd", 0xffe0e000U, 0xa5800000U, 573, Mnemonic::ARM64_LD1RQD, 3, 0 }, // ld1rqd_z_p_br_contiguous
     { "ld2d", 0xffe0e000U, 0xa5a0c000U, 590, Mnemonic::ARM64_LD2D, 4, 0 }, // ld2d_z_p_br_contiguous
-    { "eon", 0xfffc0000U, 0x05400000U, 587, Mnemonic::ARM64_EON, 3, 0 }, // EON_eor_z_zi_
-    { "ld1h", 0xffe0e000U, 0xc4e0c000U, 570, Mnemonic::ARM64_LD1H, 3, 1 }, // ld1h_z_p_bz_d_64_scaled
-    { "ld1h", 0xffe0e000U, 0xc4c0c000U, 570, Mnemonic::ARM64_LD1H, 3, 1 }, // ld1h_z_p_bz_d_64_unscaled
-    { "stnt1h", 0xffe0e000U, 0xe4806000U, 570, Mnemonic::ARM64_STNT1H, 3, 0 }, // stnt1h_z_p_br_contiguous
+    { "eon", 0xfffc0000U, 0x05400000U, 570, Mnemonic::ARM64_EON, 3, 0 }, // EON_eor_z_zi_
+    { "ld1h", 0xffe0e000U, 0xc4e0c000U, 573, Mnemonic::ARM64_LD1H, 3, 1 }, // ld1h_z_p_bz_d_64_scaled
+    { "ld1h", 0xffe0e000U, 0xc4c0c000U, 573, Mnemonic::ARM64_LD1H, 3, 1 }, // ld1h_z_p_bz_d_64_unscaled
+    { "stnt1h", 0xffe0e000U, 0xe4806000U, 573, Mnemonic::ARM64_STNT1H, 3, 0 }, // stnt1h_z_p_br_contiguous
+    { "mov", 0xfffc0000U, 0x05c00000U, 571, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_dupm_z_i_
     { "facgt", 0xff20e010U, 0x6500e010U, 613, Mnemonic::ARM64_FACGT, 4, 0 }, // facgt_p_p_zz_
     { "facge", 0xff20e010U, 0x6500c010U, 613, Mnemonic::ARM64_FACGE, 4, 0 }, // facge_p_p_zz_
-    { "ldff1d", 0xffa0e000U, 0xc5a06000U, 570, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_bz_d_x32_scaled
-    { "ldff1d", 0xffa0e000U, 0xc5806000U, 570, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_bz_d_x32_unscaled
+    { "ldff1d", 0xffa0e000U, 0xc5a06000U, 573, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_bz_d_x32_scaled
+    { "ldff1d", 0xffa0e000U, 0xc5806000U, 573, Mnemonic::ARM64_LDFF1D, 3, 0 }, // ldff1d_z_p_bz_d_x32_unscaled
     { "cmplo", 0xff20e010U, 0x24000010U, 617, Mnemonic::ARM64_CMPLO, 4, 0 }, // CMPLO_cmphi_p_p_zz_
-    { "ldff1sw", 0xffa0e000U, 0xc5202000U, 570, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_bz_d_x32_scaled
-    { "ldff1sw", 0xffa0e000U, 0xc5002000U, 570, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_bz_d_x32_unscaled
-    { "st1h", 0xffe0a000U, 0xe4e08000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_s_x32_scaled
-    { "st1h", 0xffe0a000U, 0xe4a08000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_d_x32_scaled
-    { "st1h", 0xffe0a000U, 0xe4808000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_d_x32_unscaled
-    { "st1h", 0xffe0a000U, 0xe4c08000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_s_x32_unscaled
+    { "ldff1sw", 0xffa0e000U, 0xc5202000U, 573, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_bz_d_x32_scaled
+    { "ldff1sw", 0xffa0e000U, 0xc5002000U, 573, Mnemonic::ARM64_LDFF1SW, 3, 0 }, // ldff1sw_z_p_bz_d_x32_unscaled
+    { "st1h", 0xffe0a000U, 0xe4e08000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_s_x32_scaled
+    { "st1h", 0xffe0a000U, 0xe4a08000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_d_x32_scaled
+    { "st1h", 0xffe0a000U, 0xe4808000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_d_x32_unscaled
+    { "st1h", 0xffe0a000U, 0xe4c08000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_bz_s_x32_unscaled
     { "cmpeq", 0xff20e010U, 0x25008000U, 621, Mnemonic::ARM64_CMPEQ, 4, 0 }, // cmpeq_p_p_zi_
     { "cmpgt", 0xff20e010U, 0x25000010U, 621, Mnemonic::ARM64_CMPGT, 4, 0 }, // cmpgt_p_p_zi_
     { "cmpge", 0xff20e010U, 0x25000000U, 621, Mnemonic::ARM64_CMPGE, 4, 0 }, // cmpge_p_p_zi_
@@ -2213,10 +2212,10 @@ const InstructionEntry g_instructionTable[] = {
     { "ld1rb", 0xffc0e000U, 0x8440a000U, 625, Mnemonic::ARM64_LD1RB, 3, 0 }, // ld1rb_z_p_bi_u16
     { "ld1rb", 0xffc0e000U, 0x8440c000U, 625, Mnemonic::ARM64_LD1RB, 3, 0 }, // ld1rb_z_p_bi_u32
     { "ld1rb", 0xffc0e000U, 0x8440e000U, 625, Mnemonic::ARM64_LD1RB, 3, 0 }, // ld1rb_z_p_bi_u64
-    { "ldff1w", 0xffa0e000U, 0x85206000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_s_x32_scaled
-    { "ldff1w", 0xffa0e000U, 0xc5206000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_d_x32_scaled
-    { "ldff1w", 0xffa0e000U, 0xc5006000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_d_x32_unscaled
-    { "ldff1w", 0xffa0e000U, 0x85006000U, 570, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_s_x32_unscaled
+    { "ldff1w", 0xffa0e000U, 0x85206000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_s_x32_scaled
+    { "ldff1w", 0xffa0e000U, 0xc5206000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_d_x32_scaled
+    { "ldff1w", 0xffa0e000U, 0xc5006000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_d_x32_unscaled
+    { "ldff1w", 0xffa0e000U, 0x85006000U, 573, Mnemonic::ARM64_LDFF1W, 3, 0 }, // ldff1w_z_p_bz_s_x32_unscaled
     { "cmpeq", 0xff20e010U, 0x2400a000U, 613, Mnemonic::ARM64_CMPEQ, 4, 0 }, // cmpeq_p_p_zz_
     { "cmpgt", 0xff20e010U, 0x24008010U, 613, Mnemonic::ARM64_CMPGT, 4, 0 }, // cmpgt_p_p_zz_
     { "cmpge", 0xff20e010U, 0x24008000U, 613, Mnemonic::ARM64_CMPGE, 4, 0 }, // cmpge_p_p_zz_
@@ -2230,46 +2229,46 @@ const InstructionEntry g_instructionTable[] = {
     { "str", 0xffc0e000U, 0xe5804000U, 632, Mnemonic::ARM64_STR, 2, 0 }, // str_z_bi_
     { "st1b", 0xff90e000U, 0xe400e000U, 523, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_bi_
     { "fcmle", 0xff20e010U, 0x65004000U, 617, Mnemonic::ARM64_FCMLE, 4, 0 }, // FCMLE_fcmge_p_p_zz_
-    { "ld1d", 0xffa0e000U, 0xc5a04000U, 570, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_bz_d_x32_scaled
-    { "ld1d", 0xffa0e000U, 0xc5804000U, 570, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_bz_d_x32_unscaled
+    { "ld1d", 0xffa0e000U, 0xc5a04000U, 573, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_bz_d_x32_scaled
+    { "ld1d", 0xffa0e000U, 0xc5804000U, 573, Mnemonic::ARM64_LD1D, 3, 0 }, // ld1d_z_p_bz_d_x32_unscaled
     { "nmatch", 0xff20e010U, 0x45208010U, 613, Mnemonic::ARM64_NMATCH, 4, 0 }, // nmatch_p_p_zz_
-    { "ld1sw", 0xffa0e000U, 0xc5200000U, 570, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_bz_d_x32_scaled
-    { "ld1sw", 0xffa0e000U, 0xc5000000U, 570, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_bz_d_x32_unscaled
+    { "ld1sw", 0xffa0e000U, 0xc5200000U, 573, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_bz_d_x32_scaled
+    { "ld1sw", 0xffa0e000U, 0xc5000000U, 573, Mnemonic::ARM64_LD1SW, 3, 0 }, // ld1sw_z_p_bz_d_x32_unscaled
     { "match", 0xff20e010U, 0x45208000U, 613, Mnemonic::ARM64_MATCH, 4, 0 }, // match_p_p_zz_
-    { "ld1w", 0xffa0e000U, 0x85204000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_s_x32_scaled
-    { "ld1w", 0xffa0e000U, 0xc5204000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_d_x32_scaled
-    { "ld1w", 0xffa0e000U, 0xc5004000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_d_x32_unscaled
-    { "ld1w", 0xffa0e000U, 0x85004000U, 570, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_s_x32_unscaled
+    { "ld1w", 0xffa0e000U, 0x85204000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_s_x32_scaled
+    { "ld1w", 0xffa0e000U, 0xc5204000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_d_x32_scaled
+    { "ld1w", 0xffa0e000U, 0xc5004000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_d_x32_unscaled
+    { "ld1w", 0xffa0e000U, 0x85004000U, 573, Mnemonic::ARM64_LD1W, 3, 0 }, // ld1w_z_p_bz_s_x32_unscaled
     { "cmple", 0xff20e010U, 0x24008000U, 617, Mnemonic::ARM64_CMPLE, 4, 0 }, // CMPLE_cmpge_p_p_zz_
-    { "st1w", 0xffc0e000U, 0xe5404000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_br_
+    { "st1w", 0xffc0e000U, 0xe5404000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_br_
     { "ldr", 0xffc0e000U, 0x85804000U, 632, Mnemonic::ARM64_LDR, 2, 0 }, // ldr_z_bi_
     { "ld1rh", 0xffc0e000U, 0x84c0a000U, 625, Mnemonic::ARM64_LD1RH, 3, 0 }, // ld1rh_z_p_bi_u16
     { "ld1rh", 0xffc0e000U, 0x84c0c000U, 625, Mnemonic::ARM64_LD1RH, 3, 0 }, // ld1rh_z_p_bi_u32
     { "ld1rh", 0xffc0e000U, 0x84c0e000U, 625, Mnemonic::ARM64_LD1RH, 3, 0 }, // ld1rh_z_p_bi_u64
     { "ld1rsh", 0xffc0e000U, 0x8540a000U, 625, Mnemonic::ARM64_LD1RSH, 3, 0 }, // ld1rsh_z_p_bi_s32
     { "ld1rsh", 0xffc0e000U, 0x85408000U, 625, Mnemonic::ARM64_LD1RSH, 3, 0 }, // ld1rsh_z_p_bi_s64
-    { "st1b", 0xffe0a000U, 0xe4008000U, 570, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_bz_d_x32_unscaled
-    { "st1b", 0xffe0a000U, 0xe4408000U, 570, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_bz_s_x32_unscaled
-    { "ld1sb", 0xffa0e000U, 0xc4000000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bz_d_x32_unscaled
-    { "ld1sb", 0xffa0e000U, 0x84000000U, 570, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bz_s_x32_unscaled
-    { "ld1b", 0xffa0e000U, 0xc4004000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bz_d_x32_unscaled
-    { "ld1b", 0xffa0e000U, 0x84004000U, 570, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bz_s_x32_unscaled
+    { "st1b", 0xffe0a000U, 0xe4008000U, 573, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_bz_d_x32_unscaled
+    { "st1b", 0xffe0a000U, 0xe4408000U, 573, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_bz_s_x32_unscaled
+    { "ld1sb", 0xffa0e000U, 0xc4000000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bz_d_x32_unscaled
+    { "ld1sb", 0xffa0e000U, 0x84000000U, 573, Mnemonic::ARM64_LD1SB, 3, 0 }, // ld1sb_z_p_bz_s_x32_unscaled
+    { "ld1b", 0xffa0e000U, 0xc4004000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bz_d_x32_unscaled
+    { "ld1b", 0xffa0e000U, 0x84004000U, 573, Mnemonic::ARM64_LD1B, 3, 0 }, // ld1b_z_p_bz_s_x32_unscaled
     { "fmov", 0xff30e000U, 0x0510c000U, 634, Mnemonic::ARM64_FMOV, 3, 0 }, // FMOV_fcpy_z_p_i_
-    { "st1d", 0xffe0a000U, 0xe5a08000U, 570, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_bz_d_x32_scaled
-    { "st1d", 0xffe0a000U, 0xe5808000U, 570, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_bz_d_x32_unscaled
+    { "st1d", 0xffe0a000U, 0xe5a08000U, 573, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_bz_d_x32_scaled
+    { "st1d", 0xffe0a000U, 0xe5808000U, 573, Mnemonic::ARM64_ST1D, 3, 0 }, // st1d_z_p_bz_d_x32_unscaled
     { "facle", 0xff20e010U, 0x6500c010U, 617, Mnemonic::ARM64_FACLE, 4, 0 }, // FACLE_facge_p_p_zz_
-    { "ldff1h", 0xffa0e000U, 0x84a06000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_s_x32_scaled
-    { "ldff1h", 0xffa0e000U, 0xc4a06000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_d_x32_scaled
-    { "ldff1h", 0xffa0e000U, 0xc4806000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_d_x32_unscaled
-    { "ldff1h", 0xffa0e000U, 0x84806000U, 570, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_s_x32_unscaled
-    { "st1w", 0xffe0a000U, 0xe5608000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_s_x32_scaled
-    { "st1w", 0xffe0a000U, 0xe5208000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_d_x32_scaled
-    { "st1w", 0xffe0a000U, 0xe5008000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_d_x32_unscaled
-    { "st1w", 0xffe0a000U, 0xe5408000U, 570, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_s_x32_unscaled
-    { "ldff1sh", 0xffa0e000U, 0x84a02000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_s_x32_scaled
-    { "ldff1sh", 0xffa0e000U, 0xc4a02000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_d_x32_scaled
-    { "ldff1sh", 0xffa0e000U, 0xc4802000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_d_x32_unscaled
-    { "ldff1sh", 0xffa0e000U, 0x84802000U, 570, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_s_x32_unscaled
+    { "ldff1h", 0xffa0e000U, 0x84a06000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_s_x32_scaled
+    { "ldff1h", 0xffa0e000U, 0xc4a06000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_d_x32_scaled
+    { "ldff1h", 0xffa0e000U, 0xc4806000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_d_x32_unscaled
+    { "ldff1h", 0xffa0e000U, 0x84806000U, 573, Mnemonic::ARM64_LDFF1H, 3, 0 }, // ldff1h_z_p_bz_s_x32_unscaled
+    { "st1w", 0xffe0a000U, 0xe5608000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_s_x32_scaled
+    { "st1w", 0xffe0a000U, 0xe5208000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_d_x32_scaled
+    { "st1w", 0xffe0a000U, 0xe5008000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_d_x32_unscaled
+    { "st1w", 0xffe0a000U, 0xe5408000U, 573, Mnemonic::ARM64_ST1W, 3, 0 }, // st1w_z_p_bz_s_x32_unscaled
+    { "ldff1sh", 0xffa0e000U, 0x84a02000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_s_x32_scaled
+    { "ldff1sh", 0xffa0e000U, 0xc4a02000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_d_x32_scaled
+    { "ldff1sh", 0xffa0e000U, 0xc4802000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_d_x32_unscaled
+    { "ldff1sh", 0xffa0e000U, 0x84802000U, 573, Mnemonic::ARM64_LDFF1SH, 3, 0 }, // ldff1sh_z_p_bz_s_x32_unscaled
     { "psel", 0xff20c210U, 0x25204000U, 637, Mnemonic::ARM64_PSEL, 4, 0 }, // psel_p_ppi_
     { "cmpls", 0xff20e010U, 0x24000000U, 617, Mnemonic::ARM64_CMPLS, 4, 0 }, // CMPLS_cmphs_p_p_zz_
     { "fcpy", 0xff30e000U, 0x0510c000U, 634, Mnemonic::ARM64_FCPY, 3, 0 }, // fcpy_z_p_i_
@@ -2293,25 +2292,23 @@ const InstructionEntry g_instructionTable[] = {
     { "cmpls", 0xff20e010U, 0x2400e010U, 613, Mnemonic::ARM64_CMPLS, 4, 0 }, // cmpls_p_p_zw_
     { "cmpne", 0xff20e010U, 0x24002010U, 613, Mnemonic::ARM64_CMPNE, 4, 0 }, // cmpne_p_p_zw_
     { "ld1rsw", 0xffc0e000U, 0x84c08000U, 625, Mnemonic::ARM64_LD1RSW, 3, 0 }, // ld1rsw_z_p_bi_s64
-    { "ldff1sb", 0xffa0e000U, 0xc4002000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_bz_d_x32_unscaled
-    { "ldff1sb", 0xffa0e000U, 0x84002000U, 570, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_bz_s_x32_unscaled
+    { "ldff1sb", 0xffa0e000U, 0xc4002000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_bz_d_x32_unscaled
+    { "ldff1sb", 0xffa0e000U, 0x84002000U, 573, Mnemonic::ARM64_LDFF1SB, 3, 0 }, // ldff1sb_z_p_bz_s_x32_unscaled
     { "faclt", 0xff20e010U, 0x6500e010U, 617, Mnemonic::ARM64_FACLT, 4, 0 }, // FACLT_facgt_p_p_zz_
-    { "ldff1b", 0xffa0e000U, 0xc4006000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_bz_d_x32_unscaled
-    { "ldff1b", 0xffa0e000U, 0x84006000U, 570, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_bz_s_x32_unscaled
+    { "ldff1b", 0xffa0e000U, 0xc4006000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_bz_d_x32_unscaled
+    { "ldff1b", 0xffa0e000U, 0x84006000U, 573, Mnemonic::ARM64_LDFF1B, 3, 0 }, // ldff1b_z_p_bz_s_x32_unscaled
     { "sqrdcmlah", 0xff20f000U, 0x44003000U, 628, Mnemonic::ARM64_SQRDCMLAH, 4, 0 }, // sqrdcmlah_z_zzz_
-    { "ld1sh", 0xffa0e000U, 0x84a00000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_s_x32_scaled
-    { "ld1sh", 0xffa0e000U, 0xc4a00000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_d_x32_scaled
-    { "ld1sh", 0xffa0e000U, 0xc4800000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_d_x32_unscaled
-    { "ld1sh", 0xffa0e000U, 0x84800000U, 570, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_s_x32_unscaled
-    { "ld1h", 0xffa0e000U, 0x84a04000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_s_x32_scaled
-    { "ld1h", 0xffa0e000U, 0xc4a04000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_d_x32_scaled
-    { "ld1h", 0xffa0e000U, 0xc4804000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_d_x32_unscaled
-    { "ld1h", 0xffa0e000U, 0x84804000U, 570, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_s_x32_unscaled
-    { "mov", 0xff30c000U, 0x05104000U, 641, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_cpy_z_p_i_
+    { "ld1sh", 0xffa0e000U, 0x84a00000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_s_x32_scaled
+    { "ld1sh", 0xffa0e000U, 0xc4a00000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_d_x32_scaled
+    { "ld1sh", 0xffa0e000U, 0xc4800000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_d_x32_unscaled
+    { "ld1sh", 0xffa0e000U, 0x84800000U, 573, Mnemonic::ARM64_LD1SH, 3, 0 }, // ld1sh_z_p_bz_s_x32_unscaled
+    { "ld1h", 0xffa0e000U, 0x84a04000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_s_x32_scaled
+    { "ld1h", 0xffa0e000U, 0xc4a04000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_d_x32_scaled
+    { "ld1h", 0xffa0e000U, 0xc4804000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_d_x32_unscaled
+    { "ld1h", 0xffa0e000U, 0x84804000U, 573, Mnemonic::ARM64_LD1H, 3, 0 }, // ld1h_z_p_bz_s_x32_unscaled
     { "cpy", 0xff30c000U, 0x05100000U, 641, Mnemonic::ARM64_CPY, 3, 0 }, // cpy_z_o_i_
     { "mls", 0xff20e000U, 0x04006000U, 603, Mnemonic::ARM64_MLS, 4, 0 }, // mls_z_p_zzz_
     { "cpy", 0xff30c000U, 0x05104000U, 641, Mnemonic::ARM64_CPY, 3, 0 }, // cpy_z_p_i_
-    { "mov", 0xff30c000U, 0x05100000U, 641, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_cpy_z_o_i_
     { "fnmls", 0xff20e000U, 0x65206000U, 603, Mnemonic::ARM64_FNMLS, 4, 0 }, // fnmls_z_p_zzz_
     { "fmls", 0xff20e000U, 0x65202000U, 603, Mnemonic::ARM64_FMLS, 4, 0 }, // fmls_z_p_zzz_
     { "fmsb", 0xff20e000U, 0x6520a000U, 603, Mnemonic::ARM64_FMSB, 4, 0 }, // fmsb_z_p_zzz_
@@ -2319,19 +2316,21 @@ const InstructionEntry g_instructionTable[] = {
     { "fnmad", 0xff20e000U, 0x6520c000U, 603, Mnemonic::ARM64_FNMAD, 4, 0 }, // fnmad_z_p_zzz_
     { "mla", 0xff20e000U, 0x04004000U, 603, Mnemonic::ARM64_MLA, 4, 0 }, // mla_z_p_zzz_
     { "fmad", 0xff20e000U, 0x65208000U, 603, Mnemonic::ARM64_FMAD, 4, 0 }, // fmad_z_p_zzz_
-    { "st1b", 0xff80e000U, 0xe4004000U, 570, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_br_
+    { "st1b", 0xff80e000U, 0xe4004000U, 573, Mnemonic::ARM64_ST1B, 3, 0 }, // st1b_z_p_br_
     { "fnmsb", 0xff20e000U, 0x6520e000U, 603, Mnemonic::ARM64_FNMSB, 4, 0 }, // fnmsb_z_p_zzz_
     { "mad", 0xff20e000U, 0x0400c000U, 644, Mnemonic::ARM64_MAD, 4, 0 }, // mad_z_p_zzz_
     { "fnmla", 0xff20e000U, 0x65204000U, 603, Mnemonic::ARM64_FNMLA, 4, 0 }, // fnmla_z_p_zzz_
-    { "st1h", 0xff80e000U, 0xe4804000U, 570, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_br_
+    { "st1h", 0xff80e000U, 0xe4804000U, 573, Mnemonic::ARM64_ST1H, 3, 0 }, // st1h_z_p_br_
     { "fmla", 0xff20e000U, 0x65200000U, 603, Mnemonic::ARM64_FMLA, 4, 0 }, // fmla_z_p_zzz_
     { "msb", 0xff20e000U, 0x0400e000U, 644, Mnemonic::ARM64_MSB, 4, 0 }, // msb_z_p_zzz_
+    { "mov", 0xff30c000U, 0x05104000U, 641, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_cpy_z_p_i_
+    { "mov", 0xff30c000U, 0x05100000U, 641, Mnemonic::ARM64_MOV, 3, 0 }, // MOV_cpy_z_o_i_
     { "cmphi", 0xff202010U, 0x24200010U, 648, Mnemonic::ARM64_CMPHI, 4, 0 }, // cmphi_p_p_zi_
     { "cmphs", 0xff202010U, 0x24200000U, 648, Mnemonic::ARM64_CMPHS, 4, 0 }, // cmphs_p_p_zi_
     { "cmplo", 0xff202010U, 0x24202000U, 648, Mnemonic::ARM64_CMPLO, 4, 0 }, // cmplo_p_p_zi_
     { "cmpls", 0xff202010U, 0x24202010U, 648, Mnemonic::ARM64_CMPLS, 4, 0 }, // cmpls_p_p_zi_
+    { "sel", 0xff20c000U, 0x0520c000U, 442, Mnemonic::ARM64_SEL, 3, 0 }, // sel_z_p_zz_
     { "mov", 0xff20c000U, 0x0520c000U, 266, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_sel_z_p_zz_
-    { "sel", 0xff20c000U, 0x0520c000U, 450, Mnemonic::ARM64_SEL, 3, 0 }, // sel_z_p_zz_
     { "fcmla", 0xff208000U, 0x64000000U, 652, Mnemonic::ARM64_FCMLA, 5, 0 }, // fcmla_z_p_zzz_
     { "casb", 0xffe0fc00U, 0x08a07c00U, 657, Mnemonic::ARM64_CASB, 3, 0 }, // CASB_C32_comswap
     { "casab", 0xffe0fc00U, 0x08e07c00U, 657, Mnemonic::ARM64_CASAB, 3, 0 }, // CASAB_C32_comswap
@@ -2445,14 +2444,14 @@ const InstructionEntry g_instructionTable[] = {
     { "adds", 0xffe00000U, 0xab200000U, 738, Mnemonic::ARM64_ADDS, 4, 1 }, // ADDS_64S_addsub_ext
     { "subs", 0xffe00000U, 0x6b200000U, 734, Mnemonic::ARM64_SUBS, 4, 0 }, // SUBS_32S_addsub_ext
     { "subs", 0xffe00000U, 0xeb200000U, 738, Mnemonic::ARM64_SUBS, 4, 1 }, // SUBS_64S_addsub_ext
+    { "orr", 0xff200000U, 0x2a000000U, 742, Mnemonic::ARM64_ORR, 4, 0 }, // ORR_32_log_shift
+    { "orr", 0xff200000U, 0xaa000000U, 746, Mnemonic::ARM64_ORR, 4, 1 }, // ORR_64_log_shift
     { "add", 0xff200000U, 0x0b000000U, 742, Mnemonic::ARM64_ADD, 4, 0 }, // ADD_32_addsub_shift
     { "add", 0xff200000U, 0x8b000000U, 746, Mnemonic::ARM64_ADD, 4, 1 }, // ADD_64_addsub_shift
     { "eor", 0xff200000U, 0x4a000000U, 742, Mnemonic::ARM64_EOR, 4, 0 }, // EOR_32_log_shift
     { "eor", 0xff200000U, 0xca000000U, 746, Mnemonic::ARM64_EOR, 4, 1 }, // EOR_64_log_shift
     { "bic", 0xff200000U, 0x0a200000U, 742, Mnemonic::ARM64_BIC, 4, 0 }, // BIC_32_log_shift
     { "bic", 0xff200000U, 0x8a200000U, 746, Mnemonic::ARM64_BIC, 4, 1 }, // BIC_64_log_shift
-    { "orr", 0xff200000U, 0x2a000000U, 742, Mnemonic::ARM64_ORR, 4, 0 }, // ORR_32_log_shift
-    { "orr", 0xff200000U, 0xaa000000U, 746, Mnemonic::ARM64_ORR, 4, 1 }, // ORR_64_log_shift
     { "orn", 0xff200000U, 0x2a200000U, 742, Mnemonic::ARM64_ORN, 4, 0 }, // ORN_32_log_shift
     { "orn", 0xff200000U, 0xaa200000U, 746, Mnemonic::ARM64_ORN, 4, 1 }, // ORN_64_log_shift
     { "adds", 0xff200000U, 0x2b000000U, 742, Mnemonic::ARM64_ADDS, 4, 0 }, // ADDS_32_addsub_shift
@@ -2754,8 +2753,6 @@ const InstructionEntry g_instructionTable[] = {
     { "cmle", 0xbf3ffc00U, 0x2e209800U, 846, Mnemonic::ARM64_CMLE, 2, 0 }, // CMLE_asimdmisc_Z
     { "rev64", 0xbf3ffc00U, 0x0e200800U, 846, Mnemonic::ARM64_REV64, 2, 0 }, // REV64_asimdmisc_R
     { "abs", 0xbf3ffc00U, 0x0e20b800U, 846, Mnemonic::ARM64_ABS, 2, 0 }, // ABS_asimdmisc_R
-    { "mov", 0xffe3fc00U, 0x0e003c00U, 855, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_W_w
-    { "mov", 0xffe3fc00U, 0x4e003c00U, 857, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_X_x
     { "cmlt", 0xbf3ffc00U, 0x0e20a800U, 846, Mnemonic::ARM64_CMLT, 2, 0 }, // CMLT_asimdmisc_Z
     { "sqabs", 0xbf3ffc00U, 0x0e207800U, 846, Mnemonic::ARM64_SQABS, 2, 0 }, // SQABS_asimdmisc_R
     { "usqadd", 0xbf3ffc00U, 0x2e203800U, 846, Mnemonic::ARM64_USQADD, 2, 0 }, // USQADD_asimdmisc_R
@@ -2772,6 +2769,8 @@ const InstructionEntry g_instructionTable[] = {
     { "addv", 0xbf3ffc00U, 0x0e31b800U, 850, Mnemonic::ARM64_ADDV, 2, 0 }, // ADDV_asimdall_only
     { "umaxv", 0xbf3ffc00U, 0x2e30a800U, 850, Mnemonic::ARM64_UMAXV, 2, 0 }, // UMAXV_asimdall_only
     { "uaddlp", 0xbf3ffc00U, 0x2e202800U, 846, Mnemonic::ARM64_UADDLP, 2, 0 }, // UADDLP_asimdmisc_P
+    { "mov", 0xffe3fc00U, 0x0e003c00U, 855, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_W_w
+    { "mov", 0xffe3fc00U, 0x4e003c00U, 857, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_UMOV_asimdins_X_x
     { "movi", 0xbff8fc00U, 0x0f00e400U, 834, Mnemonic::ARM64_MOVI, 1, 0 }, // MOVI_asimdimm_N_b
     { "fmov", 0xbff8fc00U, 0x0f00fc00U, 834, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_H_h
     { "fmov", 0xbff8fc00U, 0x0f00f400U, 834, Mnemonic::ARM64_FMOV, 1, 0 }, // FMOV_asimdimm_S_s
@@ -2798,8 +2797,9 @@ const InstructionEntry g_instructionTable[] = {
     { "fmlalltb", 0xffe0fc00U, 0x4e00c400U, 863, Mnemonic::ARM64_FMLALLTB, 3, 0 }, // FMLALLTB_asimdsame2_G
     { "fmlalltt", 0xffe0fc00U, 0x4e40c400U, 863, Mnemonic::ARM64_FMLALLTT, 3, 0 }, // FMLALLTT_asimdsame2_G
     { "ins", 0xffe0fc00U, 0x4e001c00U, 871, Mnemonic::ARM64_INS, 2, 0 }, // INS_asimdins_IR_r
-    { "mov", 0xffe0fc00U, 0x4e001c00U, 871, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_INS_asimdins_IR_r
     { "sha512h2", 0xffe0fc00U, 0xce608400U, 868, Mnemonic::ARM64_SHA512H2, 3, 0 }, // SHA512H2_QQV_cryptosha512_3
+    { "mov", 0xffe0fc00U, 0x4e001c00U, 871, Mnemonic::ARM64_MOV, 1, 0 }, // MOV_INS_asimdins_IR_r
+    { "orr", 0xbfe0fc00U, 0x0ea01c00U, 873, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_asimdsame_only
     { "fmlal", 0xbfe0fc00U, 0x0e20ec00U, 873, Mnemonic::ARM64_FMLAL, 3, 0 }, // FMLAL_asimdsame_F
     { "fmlal2", 0xbfe0fc00U, 0x2e20cc00U, 873, Mnemonic::ARM64_FMLAL2, 3, 0 }, // FMLAL2_asimdsame_F
     { "faddp", 0xbfe0fc00U, 0x2e401400U, 873, Mnemonic::ARM64_FADDP, 3, 0 }, // FADDP_asimdsamefp16_only
@@ -2807,7 +2807,6 @@ const InstructionEntry g_instructionTable[] = {
     { "fcmeq", 0xbfe0fc00U, 0x0e402400U, 873, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asimdsamefp16_only
     { "frsqrts", 0xbfe0fc00U, 0x0ec03c00U, 873, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asimdsamefp16_only
     { "famin", 0xbfe0fc00U, 0x2ec01c00U, 873, Mnemonic::ARM64_FAMIN, 3, 0 }, // FAMIN_asimdsamefp16_only
-    { "mov", 0xbfe0fc00U, 0x0ea01c00U, 834, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ORR_asimdsame_only
     { "bfdot", 0xbfe0fc00U, 0x2e40fc00U, 873, Mnemonic::ARM64_BFDOT, 3, 0 }, // BFDOT_asimdsame2_D
     { "fmin", 0xbfe0fc00U, 0x0ec03400U, 873, Mnemonic::ARM64_FMIN, 3, 0 }, // FMIN_asimdsamefp16_only
     { "bic", 0xbfe0fc00U, 0x0e601c00U, 873, Mnemonic::ARM64_BIC, 3, 0 }, // BIC_asimdsame_only
@@ -2815,7 +2814,6 @@ const InstructionEntry g_instructionTable[] = {
     { "fmaxp", 0xbfe0fc00U, 0x2e403400U, 873, Mnemonic::ARM64_FMAXP, 3, 0 }, // FMAXP_asimdsamefp16_only
     { "fsub", 0xbfe0fc00U, 0x0ec01400U, 873, Mnemonic::ARM64_FSUB, 3, 0 }, // FSUB_asimdsamefp16_only
     { "orn", 0xbfe0fc00U, 0x0ee01c00U, 873, Mnemonic::ARM64_ORN, 3, 0 }, // ORN_asimdsame_only
-    { "orr", 0xbfe0fc00U, 0x0ea01c00U, 873, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_asimdsame_only
     { "fminnmp", 0xbfe0fc00U, 0x2ec00400U, 873, Mnemonic::ARM64_FMINNMP, 3, 0 }, // FMINNMP_asimdsamefp16_only
     { "tbl", 0xbfe0fc00U, 0x0e000000U, 879, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L1_1
     { "tbl", 0xbfe0fc00U, 0x0e002000U, 882, Mnemonic::ARM64_TBL, 3, 0 }, // TBL_asimdtbl_L2_2
@@ -2857,13 +2855,14 @@ const InstructionEntry g_instructionTable[] = {
     { "fmla", 0xbfe0fc00U, 0x0e400c00U, 873, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdsamefp16_only
     { "fcmge", 0xbfe0fc00U, 0x2e402400U, 873, Mnemonic::ARM64_FCMGE, 3, 0 }, // FCMGE_asimdsamefp16_only
     { "dup", 0xbfe0fc00U, 0x0e000c00U, 897, Mnemonic::ARM64_DUP, 2, 0 }, // DUP_asimdins_DR_r
+    { "mov", 0xbfe0fc00U, 0x0ea01c00U, 834, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_ORR_asimdsame_only
+    { "orr", 0xbff81c00U, 0x0f001400U, 834, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_hl
+    { "orr", 0xbff81c00U, 0x0f001400U, 834, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_sl
     { "faddp", 0xbfa0fc00U, 0x2e20d400U, 899, Mnemonic::ARM64_FADDP, 3, 0 }, // FADDP_asimdsame_only
     { "sm3tt2b", 0xffe0cc00U, 0xce408c00U, 902, Mnemonic::ARM64_SM3TT2B, 2, 0 }, // SM3TT2B_VVV_crypto3_imm2
     { "facge", 0xbfa0fc00U, 0x2e20ec00U, 899, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asimdsame_only
     { "fcmeq", 0xbfa0fc00U, 0x0e20e400U, 899, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asimdsame_only
     { "frsqrts", 0xbfa0fc00U, 0x0ea0fc00U, 899, Mnemonic::ARM64_FRSQRTS, 3, 0 }, // FRSQRTS_asimdsame_only
-    { "orr", 0xbff81c00U, 0x0f001400U, 834, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_hl
-    { "orr", 0xbff81c00U, 0x0f001400U, 834, Mnemonic::ARM64_ORR, 1, 0 }, // ORR_asimdimm_L_sl
     { "famin", 0xbfa0fc00U, 0x2ea0dc00U, 904, Mnemonic::ARM64_FAMIN, 3, 0 }, // FAMIN_asimdsame_only
     { "fmlallbb", 0xffc0f400U, 0x2f008000U, 907, Mnemonic::ARM64_FMLALLBB, 2, 0 }, // FMLALLBB_asimdelem_J
     { "fmlallbt", 0xffc0f400U, 0x2f408000U, 907, Mnemonic::ARM64_FMLALLBT, 2, 0 }, // FMLALLBT_asimdelem_J
@@ -3032,12 +3031,12 @@ const InstructionEntry g_instructionTable[] = {
     { "srhadd", 0xbf20fc00U, 0x0e201400U, 921, Mnemonic::ARM64_SRHADD, 3, 0 }, // SRHADD_asimdsame_only
     { "smaxp", 0xbf20fc00U, 0x0e20a400U, 921, Mnemonic::ARM64_SMAXP, 3, 0 }, // SMAXP_asimdsame_only
     { "fmla", 0xbf80f400U, 0x0f801000U, 962, Mnemonic::ARM64_FMLA, 3, 0 }, // FMLA_asimdelem_R_SD
-    { "mov", 0xffe08400U, 0x6e000400U, 965, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_INS_asimdins_IV_v
     { "fcadd", 0xbf20ec00U, 0x2e00e400U, 921, Mnemonic::ARM64_FCADD, 3, 0 }, // FCADD_asimdsame2_C
     { "fmls", 0xbf80f400U, 0x0f805000U, 962, Mnemonic::ARM64_FMLS, 3, 0 }, // FMLS_asimdelem_R_SD
     { "fmul", 0xbf80f400U, 0x0f809000U, 962, Mnemonic::ARM64_FMUL, 3, 0 }, // FMUL_asimdelem_R_SD
     { "ins", 0xffe08400U, 0x6e000400U, 965, Mnemonic::ARM64_INS, 2, 0 }, // INS_asimdins_IV_v
     { "fmulx", 0xbf80f400U, 0x2f809000U, 962, Mnemonic::ARM64_FMULX, 3, 0 }, // FMULX_asimdelem_R_SD
+    { "mov", 0xffe08400U, 0x6e000400U, 965, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_INS_asimdins_IV_v
     { "udot", 0xbf00f400U, 0x2f00e000U, 946, Mnemonic::ARM64_UDOT, 3, 0 }, // UDOT_asimdelem_D
     { "mul", 0xbf00f400U, 0x0f008000U, 967, Mnemonic::ARM64_MUL, 4, 0 }, // MUL_asimdelem_R
     { "sqdmulh", 0xbf00f400U, 0x0f00c000U, 967, Mnemonic::ARM64_SQDMULH, 4, 0 }, // SQDMULH_asimdelem_R
@@ -3118,6 +3117,7 @@ const InstructionEntry g_instructionTable[] = {
     { "sbfx", 0xffc00000U, 0x93400000U, 1068, Mnemonic::ARM64_SBFX, 4, 1 }, // SBFX_SBFM_64M_bitfield
     { "ubfx", 0xffc00000U, 0x53000000U, 1064, Mnemonic::ARM64_UBFX, 4, 0 }, // UBFX_UBFM_32M_bitfield
     { "ubfx", 0xffc00000U, 0xd3400000U, 1068, Mnemonic::ARM64_UBFX, 4, 1 }, // UBFX_UBFM_64M_bitfield
+    { "orr", 0xffc00000U, 0x32000000U, 1072, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_32_log_imm
     { "ubfiz", 0xffc00000U, 0x53000000U, 1064, Mnemonic::ARM64_UBFIZ, 4, 0 }, // UBFIZ_UBFM_32M_bitfield
     { "ubfiz", 0xffc00000U, 0xd3400000U, 1068, Mnemonic::ARM64_UBFIZ, 4, 1 }, // UBFIZ_UBFM_64M_bitfield
     { "sbfiz", 0xffc00000U, 0x13000000U, 1064, Mnemonic::ARM64_SBFIZ, 4, 0 }, // SBFIZ_SBFM_32M_bitfield
@@ -3126,7 +3126,6 @@ const InstructionEntry g_instructionTable[] = {
     { "bfi", 0xffc00000U, 0xb3400000U, 1068, Mnemonic::ARM64_BFI, 4, 1 }, // BFI_BFM_64M_bitfield
     { "bfxil", 0xffc00000U, 0x33000000U, 1064, Mnemonic::ARM64_BFXIL, 4, 0 }, // BFXIL_BFM_32M_bitfield
     { "bfxil", 0xffc00000U, 0xb3400000U, 1068, Mnemonic::ARM64_BFXIL, 4, 1 }, // BFXIL_BFM_64M_bitfield
-    { "orr", 0xffc00000U, 0x32000000U, 1072, Mnemonic::ARM64_ORR, 3, 0 }, // ORR_32_log_imm
     { "eor", 0xffc00000U, 0x52000000U, 1072, Mnemonic::ARM64_EOR, 3, 0 }, // EOR_32_log_imm
     { "ands", 0xffc00000U, 0x72000000U, 1075, Mnemonic::ARM64_ANDS, 3, 0 }, // ANDS_32S_log_imm
     { "and", 0xffc00000U, 0x12000000U, 1072, Mnemonic::ARM64_AND, 3, 0 }, // AND_32_log_imm
@@ -3136,20 +3135,20 @@ const InstructionEntry g_instructionTable[] = {
     { "ubfm", 0xffc00000U, 0xd3400000U, 1082, Mnemonic::ARM64_UBFM, 4, 1 }, // UBFM_64M_bitfield
     { "sbfm", 0xffc00000U, 0x13000000U, 1078, Mnemonic::ARM64_SBFM, 4, 0 }, // SBFM_32M_bitfield
     { "sbfm", 0xffc00000U, 0x93400000U, 1082, Mnemonic::ARM64_SBFM, 4, 1 }, // SBFM_64M_bitfield
-    { "mov", 0xff800000U, 0x52800000U, 1086, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVZ_32_movewide
-    { "mov", 0xff800000U, 0xd2800000U, 1088, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVZ_64_movewide
-    { "mov", 0xff800000U, 0x12800000U, 1086, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVN_32_movewide
-    { "mov", 0xff800000U, 0x92800000U, 1088, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVN_64_movewide
-    { "orr", 0xff800000U, 0xb2000000U, 1090, Mnemonic::ARM64_ORR, 3, 1 }, // ORR_64_log_imm
-    { "movz", 0xff800000U, 0x52800000U, 1093, Mnemonic::ARM64_MOVZ, 3, 0 }, // MOVZ_32_movewide
-    { "movz", 0xff800000U, 0xd2800000U, 1096, Mnemonic::ARM64_MOVZ, 3, 1 }, // MOVZ_64_movewide
-    { "movn", 0xff800000U, 0x12800000U, 1093, Mnemonic::ARM64_MOVN, 3, 0 }, // MOVN_32_movewide
-    { "movn", 0xff800000U, 0x92800000U, 1096, Mnemonic::ARM64_MOVN, 3, 1 }, // MOVN_64_movewide
-    { "movk", 0xff800000U, 0x72800000U, 1093, Mnemonic::ARM64_MOVK, 3, 0 }, // MOVK_32_movewide
-    { "movk", 0xff800000U, 0xf2800000U, 1096, Mnemonic::ARM64_MOVK, 3, 1 }, // MOVK_64_movewide
-    { "eor", 0xff800000U, 0xd2000000U, 1090, Mnemonic::ARM64_EOR, 3, 1 }, // EOR_64_log_imm
-    { "ands", 0xff800000U, 0xf2000000U, 1099, Mnemonic::ARM64_ANDS, 3, 1 }, // ANDS_64S_log_imm
-    { "and", 0xff800000U, 0x92000000U, 1090, Mnemonic::ARM64_AND, 3, 1 }, // AND_64_log_imm
+    { "orr", 0xff800000U, 0xb2000000U, 1086, Mnemonic::ARM64_ORR, 3, 1 }, // ORR_64_log_imm
+    { "movz", 0xff800000U, 0x52800000U, 1089, Mnemonic::ARM64_MOVZ, 3, 0 }, // MOVZ_32_movewide
+    { "movz", 0xff800000U, 0xd2800000U, 1092, Mnemonic::ARM64_MOVZ, 3, 1 }, // MOVZ_64_movewide
+    { "movn", 0xff800000U, 0x12800000U, 1089, Mnemonic::ARM64_MOVN, 3, 0 }, // MOVN_32_movewide
+    { "movn", 0xff800000U, 0x92800000U, 1092, Mnemonic::ARM64_MOVN, 3, 1 }, // MOVN_64_movewide
+    { "movk", 0xff800000U, 0x72800000U, 1089, Mnemonic::ARM64_MOVK, 3, 0 }, // MOVK_32_movewide
+    { "movk", 0xff800000U, 0xf2800000U, 1092, Mnemonic::ARM64_MOVK, 3, 1 }, // MOVK_64_movewide
+    { "eor", 0xff800000U, 0xd2000000U, 1086, Mnemonic::ARM64_EOR, 3, 1 }, // EOR_64_log_imm
+    { "ands", 0xff800000U, 0xf2000000U, 1095, Mnemonic::ARM64_ANDS, 3, 1 }, // ANDS_64S_log_imm
+    { "and", 0xff800000U, 0x92000000U, 1086, Mnemonic::ARM64_AND, 3, 1 }, // AND_64_log_imm
+    { "mov", 0xff800000U, 0x52800000U, 1098, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVZ_32_movewide
+    { "mov", 0xff800000U, 0xd2800000U, 1100, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVZ_64_movewide
+    { "mov", 0xff800000U, 0x12800000U, 1098, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_MOVN_32_movewide
+    { "mov", 0xff800000U, 0x92800000U, 1100, Mnemonic::ARM64_MOV, 2, 1 }, // MOV_MOVN_64_movewide
     { "tsb", 0xffffffffU, 0xd503225fU, 0, Mnemonic::ARM64_TSB, 0, 0 }, // TSB_HC_hints
     { "pssbb", 0xffffffffU, 0xd503349fU, 0, Mnemonic::ARM64_PSSBB, 0, 0 }, // PSSBB_DSB_BO_barriers
     { "sevl", 0xffffffffU, 0xd50320bfU, 0, Mnemonic::ARM64_SEVL, 0, 0 }, // SEVL_HI_hints
@@ -3215,19 +3214,19 @@ const InstructionEntry g_instructionTable[] = {
     { "at", 0xfff8fe00U, 0xd5087800U, 671, Mnemonic::ARM64_AT, 1, 0 }, // AT_SYS_CR_systeminstrs
     { "dc", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_DC, 1, 0 }, // DC_SYS_CR_systeminstrs
     { "ic", 0xfff8f000U, 0xd5087000U, 671, Mnemonic::ARM64_IC, 1, 0 }, // IC_SYS_CR_systeminstrs
-    { "smc", 0xffe0001fU, 0xd4000003U, 1094, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
+    { "smc", 0xffe0001fU, 0xd4000003U, 1090, Mnemonic::ARM64_SMC, 1, 0 }, // SMC_EX_exception
     { "retaasppc", 0xffe0001fU, 0x5500001fU, 1031, Mnemonic::ARM64_RETAASPPC, 1, 0 }, // RETAASPPC_only_miscbranch
     { "retabsppc", 0xffe0001fU, 0x5520001fU, 1031, Mnemonic::ARM64_RETABSPPC, 1, 0 }, // RETABSPPC_only_miscbranch
-    { "hlt", 0xffe0001fU, 0xd4400000U, 1094, Mnemonic::ARM64_HLT, 1, 0 }, // HLT_EX_exception
+    { "hlt", 0xffe0001fU, 0xd4400000U, 1090, Mnemonic::ARM64_HLT, 1, 0 }, // HLT_EX_exception
     { "tlbi", 0xfff8e000U, 0xd5088000U, 671, Mnemonic::ARM64_TLBI, 1, 0 }, // TLBI_SYS_CR_systeminstrs
-    { "brk", 0xffe0001fU, 0xd4200000U, 1094, Mnemonic::ARM64_BRK, 1, 0 }, // BRK_EX_exception
-    { "tcancel", 0xffe0001fU, 0xd4600000U, 1094, Mnemonic::ARM64_TCANCEL, 1, 0 }, // TCANCEL_EX_exception
+    { "brk", 0xffe0001fU, 0xd4200000U, 1090, Mnemonic::ARM64_BRK, 1, 0 }, // BRK_EX_exception
+    { "tcancel", 0xffe0001fU, 0xd4600000U, 1090, Mnemonic::ARM64_TCANCEL, 1, 0 }, // TCANCEL_EX_exception
     { "tlbip", 0xfff8e000U, 0xd5488000U, 1105, Mnemonic::ARM64_TLBIP, 2, 0 }, // TLBIP_SYSP_CR_syspairinstrs
-    { "hvc", 0xffe0001fU, 0xd4000002U, 1094, Mnemonic::ARM64_HVC, 1, 0 }, // HVC_EX_exception
-    { "svc", 0xffe0001fU, 0xd4000001U, 1094, Mnemonic::ARM64_SVC, 1, 0 }, // SVC_EX_exception
-    { "dcps1", 0xffe0001fU, 0xd4a00001U, 1094, Mnemonic::ARM64_DCPS1, 1, 0 }, // DCPS1_DC_exception
-    { "dcps3", 0xffe0001fU, 0xd4a00003U, 1094, Mnemonic::ARM64_DCPS3, 1, 0 }, // DCPS3_DC_exception
-    { "dcps2", 0xffe0001fU, 0xd4a00002U, 1094, Mnemonic::ARM64_DCPS2, 1, 0 }, // DCPS2_DC_exception
+    { "hvc", 0xffe0001fU, 0xd4000002U, 1090, Mnemonic::ARM64_HVC, 1, 0 }, // HVC_EX_exception
+    { "svc", 0xffe0001fU, 0xd4000001U, 1090, Mnemonic::ARM64_SVC, 1, 0 }, // SVC_EX_exception
+    { "dcps1", 0xffe0001fU, 0xd4a00001U, 1090, Mnemonic::ARM64_DCPS1, 1, 0 }, // DCPS1_DC_exception
+    { "dcps3", 0xffe0001fU, 0xd4a00003U, 1090, Mnemonic::ARM64_DCPS3, 1, 0 }, // DCPS3_DC_exception
+    { "dcps2", 0xffe0001fU, 0xd4a00002U, 1090, Mnemonic::ARM64_DCPS2, 1, 0 }, // DCPS2_DC_exception
     { "sysp", 0xfff80000U, 0xd5480000U, 1105, Mnemonic::ARM64_SYSP, 2, 0 }, // SYSP_CR_syspairinstrs
     { "sys", 0xfff80000U, 0xd5080000U, 671, Mnemonic::ARM64_SYS, 1, 0 }, // SYS_CR_systeminstrs
     { "sysl", 0xfff80000U, 0xd5280000U, 671, Mnemonic::ARM64_SYSL, 1, 0 }, // SYSL_RC_systeminstrs
@@ -4286,7 +4285,6 @@ const InstructionEntry g_instructionTable[] = {
     { "fmul", 0xffe0fc00U, 0x1e600800U, 1314, Mnemonic::ARM64_FMUL, 2, 0 }, // FMUL_D_floatdp2
     { "urshl", 0xffe0fc00U, 0x7ee05400U, 863, Mnemonic::ARM64_URSHL, 3, 0 }, // URSHL_asisdsame_only
     { "cmeq", 0xffe0fc00U, 0x7ee08c00U, 863, Mnemonic::ARM64_CMEQ, 3, 0 }, // CMEQ_asisdsame_only
-    { "mov", 0xffe0fc00U, 0x5e000400U, 1370, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_DUP_asisdone_only
     { "sha1p", 0xffe0fc00U, 0x5e001000U, 1367, Mnemonic::ARM64_SHA1P, 3, 0 }, // SHA1P_QSV_cryptosha3
     { "fminnm", 0xffe0fc00U, 0x1ee07800U, 1310, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_H_floatdp2
     { "fminnm", 0xffe0fc00U, 0x1e207800U, 1312, Mnemonic::ARM64_FMINNM, 2, 0 }, // FMINNM_S_floatdp2
@@ -4299,6 +4297,7 @@ const InstructionEntry g_instructionTable[] = {
     { "sha1c", 0xffe0fc00U, 0x5e000000U, 1367, Mnemonic::ARM64_SHA1C, 3, 0 }, // SHA1C_QSV_cryptosha3
     { "add", 0xffe0fc00U, 0x5ee08400U, 863, Mnemonic::ARM64_ADD, 3, 0 }, // ADD_asisdsame_only
     { "fcmge", 0xffe0fc00U, 0x7e402400U, 1310, Mnemonic::ARM64_FCMGE, 2, 0 }, // FCMGE_asisdsamefp16_only
+    { "mov", 0xffe0fc00U, 0x5e000400U, 1370, Mnemonic::ARM64_MOV, 2, 0 }, // MOV_DUP_asisdone_only
     { "ushr", 0xffc0fc00U, 0x7f400400U, 1372, Mnemonic::ARM64_USHR, 3, 0 }, // USHR_asisdshf_R
     { "facge", 0xffa0fc00U, 0x7e20ec00U, 1375, Mnemonic::ARM64_FACGE, 3, 0 }, // FACGE_asisdsame_only
     { "fcmeq", 0xffa0fc00U, 0x5e20e400U, 1375, Mnemonic::ARM64_FCMEQ, 3, 0 }, // FCMEQ_asisdsame_only
@@ -4863,9 +4862,21 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     // Comprehensive element size inference from opcode bits
                     uint32_t Q = field2Val & 0x1;
 
+                    // First check for logical operations (AND, ORR, EOR, BIC, ORN, BIT, BIF, BSL)
+                    // Pattern: bits[28:21] = 0111_0xx1 (where xx varies), bits[15:11] = 00011, bit[10] = 1
+                    // These always use byte arrangements regardless of size field value
+                    uint32_t bits2821 = extractBits(opcode, 21, 8);  // bits[28:21]
+                    uint32_t bits1510 = extractBits(opcode, 10, 6);   // bits[15:10]
+                    bool isLogicalOp = ((bits2821 & 0xF1) == 0x71) && (bits1510 == 0x07);  // 0111_0xx1 and 000111
+
+                    if (isLogicalOp) {
+                        // Logical operations always use byte arrangements
+                        arrangement = Q ? "16b" : "8b";
+                    }
                     // Detect FP SIMD instructions that use size:Q encoding (FAMAX, FAMIN, etc.)
                     // Pattern: bits[28:24]=01110 (SIMD FP class), bit[23]=1 (FP with size field)
                     // This matches FAMAX, FAMIN, and other FP SIMD instructions
+                    else {
                     uint32_t bits2824 = extractBits(opcode, 24, 5);
                     uint32_t bit23 = extractBits(opcode, 23, 1);
                     bool isFPSIMDWithSizeQ = (bits2824 == 0x0E && bit23 == 1);
@@ -4903,7 +4914,8 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                             // Fallback
                             arrangement = Q ? "16b" : "8b";
                         }
-                    } else {
+                    }  // end of isFPSIMDWithSizeQ check
+                    else {
                         // Non-FP-SIMD instructions - use comprehensive inference
                     // Key bit ranges for classification:
                     uint32_t bits3129 = extractBits(opcode, 29, 3);  // Top-level class
@@ -4987,6 +4999,7 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                         arrangement = Q ? "16b" : "8b";
                     }
                     }  // End of non-FAMAX comprehensive inference
+                    }  // End of isLogicalOp else block
                 } else if (op.field2Start == 22 && op.field2Width == 1) {
                     // sz field (bit 22) - FMUL/FABS/etc. floating-point type
                     // Could be standalone or with Q bit - check if Q varies
