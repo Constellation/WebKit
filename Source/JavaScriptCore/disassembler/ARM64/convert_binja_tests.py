@@ -1,10 +1,28 @@
 #!/usr/bin/env python3
 """
-Convert BinaryNinja test cases to our test format
+Convert BinaryNinja test cases to our test format with normalization
 """
 
 import sys
 import re
+
+def normalize_disasm(disasm):
+    """Normalize disassembly to match our disassembler's output format"""
+
+    # Remove "rctx," from DVP instructions (cosmetic difference)
+    disasm = re.sub(r'\bdvp rctx,\s*', 'dvp ', disasm)
+
+    # Normalize scalar FP register names: d -> v, s -> v for certain instructions
+    # ABS d8, d13 -> ABS v8, v13 (our disassembler uses v for scalar operations)
+    if re.match(r'^(abs|neg|sqrt|fabs|fneg|fsqrt)\s+[ds]\d+', disasm):
+        disasm = re.sub(r'\b([ds])(\d+)\b', r'v\2', disasm)
+
+    # Fix extended register width for uxtx/sxtx: x register should be w register
+    # adds x6, x10, x2, uxtx #1 -> adds x6, x10, w2, uxtx #1
+    # Replace x<N> with w<N> when followed by extend type
+    disasm = re.sub(r'\bx(\d+), ([us]xt[xw])', r'w\1, \2', disasm)
+
+    return disasm
 
 def parse_test_cases(input_file):
     """Parse BinaryNinja test cases"""
@@ -52,6 +70,9 @@ def parse_test_cases(input_file):
             # Skip error cases
             if disasm == 'error':
                 continue
+
+            # Normalize the disassembly
+            disasm = normalize_disasm(disasm)
 
             # Convert to our format
             opcode = int(opcode_str, 16)
