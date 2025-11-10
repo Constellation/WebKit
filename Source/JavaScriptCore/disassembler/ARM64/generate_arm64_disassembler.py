@@ -336,40 +336,50 @@ class ARM64InstructionParser:
 
                 # Check if this is R_option (width specifier)
                 if link_lower in ['r_option', 'r_option__2', 'r_option__3', 'r_option__4']:
-                    # Store hover to determine width for next operand
-                    last_r_option = hover
+                    # Store hover and link to determine width for next operand
+                    last_r_option = (hover, link)  # Store both hover and link
                     i += 1
                     # Check if immediately followed by Rn_option/Rm_option (register number)
                     if i < len(parts) and parts[i][0] == 'operand':
                         next_link = parts[i][1].lower()
                         next_hover = parts[i][2]
                         # Pattern: R_option followed by register number operand
-                        if next_link in ['rn_option', 'rn_option__2', 'rm_option', 'rm_option__2', 'rd_option']:
+                        if next_link in ['rn_option', 'rn_option__2', 'rm_option', 'rm_option__2', 'rd_option', 'rt_option']:
                             # Extract register number field
                             reg_fields = re.findall(r'"([A-Za-z0-9_]+)"', next_hover)
                             reg_field = reg_fields[0] if reg_fields else 'Rn'
 
-                            # Check if width is encoded in imm5 (like INS instruction)
-                            # Look for "imm5" in the hover text or check if imm5 field exists
-                            if 'imm5' in last_r_option.lower() or 'imm5' in field_map:
-                                # Width is determined by imm5 at runtime (bit 3: D=X, else W)
+                            # Check if width is encoded in imm5 (like INS instruction) or b5 (like TBNZ)
+                            # First try to get field encoding from explanation data using R_option link
+                            r_hover, r_link = last_r_option
+                            width_field = get_field_encoding(r_link)
+
+                            if not width_field:
+                                # Fallback: check hover text or field map
+                                if 'imm5' in r_hover.lower() or 'imm5' in field_map:
+                                    width_field = 'imm5'
+                                elif 'b5' in r_hover.lower() or 'b5' in field_map:
+                                    width_field = 'b5'
+
+                            if width_field:
+                                # Width is determined at runtime by a field
                                 # Create REG_GPR_SIZED operand
-                                # field1 = register number, field2 = imm5 (size field)
-                                operand = Operand('REG_GPR_SIZED', None, reg_field, 'imm5', False, next_hover)
+                                # field1 = register number, field2 = width field (imm5, b5, etc.)
+                                operand = Operand('REG_GPR_SIZED', None, reg_field, width_field, False, next_hover)
                             else:
                                 # Determine register width from R_option hover
-                                is_64bit = 'x' in last_r_option.lower() or '64' in last_r_option or 'X' in last_r_option
+                                is_64bit = 'x' in r_hover.lower() or '64' in r_hover or 'X' in r_hover
 
                                 # Create appropriate register operand
                                 if is_64bit:
                                     # Check for ZR variant
-                                    if 'zr' in last_r_option.lower():
+                                    if 'zr' in r_hover.lower():
                                         operand = Operand('REG_GPR_XZR', None, reg_field, None, False, next_hover)
                                     else:
                                         operand = Operand('REG_GPR_X', None, reg_field, None, False, next_hover)
                                 else:
                                     # W register
-                                    if 'zr' in last_r_option.lower() or 'wzr' in last_r_option.lower():
+                                    if 'zr' in r_hover.lower() or 'wzr' in r_hover.lower():
                                         operand = Operand('REG_GPR_WZR', None, reg_field, None, False, next_hover)
                                     else:
                                         operand = Operand('REG_GPR_W', None, reg_field, None, False, next_hover)
@@ -896,7 +906,7 @@ class ARM64InstructionParser:
                           f"Register list: {num_registers} registers with {hardcoded_arrangement}")
 
     def _infer_operand(self, link: str, hover: str, field_map: Dict,
-                      is_64bit: bool, r_option_hover: Optional[str] = None,
+                      is_64bit: bool, r_option_data: Optional[Tuple[str, str]] = None,
                       v_option_data: Optional[Tuple[str, str]] = None,
                       t_option_data: Optional[Tuple[str, str]] = None) -> Optional[Operand]:
         """Infer operand type with field mapping
@@ -906,7 +916,7 @@ class ARM64InstructionParser:
             hover: Hover text from XML
             field_map: Map of field names to BitField objects
             is_64bit: Whether instruction is 64-bit
-            r_option_hover: R_option hover text for GP register width
+            r_option_data: Tuple of (hover, link) for R_option GP register width specifier
             v_option_data: Tuple of (hover, link) for V_option SIMD width specifier
             t_option_data: Tuple of (hover, link) for T_option element size specifier
         """
@@ -980,8 +990,10 @@ class ARM64InstructionParser:
             # the register is typically W when followed by an extend operand
             # Check if R_option indicates W register
             is_w_register = False
-            if r_option_hover and ('<w' in r_option_hover.lower() or '32-bit' in r_option_hover.lower()):
-                is_w_register = True
+            if r_option_data:
+                r_option_hover, r_option_link = r_option_data
+                if '<w' in r_option_hover.lower() or '32-bit' in r_option_hover.lower():
+                    is_w_register = True
 
             # Return the appropriate register type
             if is_w_register:
@@ -989,7 +1001,7 @@ class ARM64InstructionParser:
             else:
                 # For Rm_option specifically, default to W for extended register instructions
                 # ARM64 extended register instructions use W registers (Wm) not X registers
-                if link_lower == 'rm_option' and r_option_hover:
+                if link_lower == 'rm_option' and r_option_data:
                     # If we have R_option context, default to W for Rm
                     return Operand('REG_GPR_W', None, primary_field or 'Rm', secondary_field, is_optional, hover)
                 return Operand('REG_GPR_X', None, primary_field or 'Rm', secondary_field, is_optional, hover)
@@ -1974,14 +1986,21 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
             break;
 
         case REG_GPR_SIZED:
-            // field1 = register number, field2 = size field (typically imm5)
+            // field1 = register number, field2 = size field (typically imm5 or b5)
             // For INS: imm5 bit 3 determines W (0) vs X (1)
-            // Pattern: x1000 = D element = X register, else = W register
+            //   Pattern: x1000 = D element = X register, else = W register
+            // For TBNZ/TBZ: b5 (bit 31) directly determines W (0) vs X (1)
             {
                 bool use_x_reg = false;
                 if (op.field2Width > 0 && op.field2Start < 32) {
-                    // Check if bit 3 of the size field is set (D element)
-                    use_x_reg = (field2Val & 0x8) != 0;
+                    // Check if this is b5 field (1-bit at bit 31) or imm5 field (5-bit)
+                    if (op.field2Width == 1 && op.field2Start == 31) {
+                        // b5 field for TBNZ/TBZ: value directly indicates W(0) or X(1)
+                        use_x_reg = (field2Val & 0x1) != 0;
+                    } else {
+                        // imm5 field for INS: check bit 3 (D element)
+                        use_x_reg = (field2Val & 0x8) != 0;
+                    }
                 }
 
                 if (use_x_reg) {
@@ -2622,6 +2641,17 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
 
         case IMM_SINT: {
             int32_t signedVal = signExtend(field1Val, op.field1Width);
+
+            // Apply scaling for imm7 in load/store pair instructions (LDP/STP)
+            // imm7 is at bits 21-15 (width 7) and needs to be scaled:
+            // - 8 for 64-bit registers (X/D/Q)
+            // - 4 for 32-bit registers (W/S)
+            if (op.field1Width == 7 && op.field1Start == 15) {
+                // Check instruction size from entry flags (bit 0: is_64bit_variant)
+                int scale = (entry->flags & 1) ? 8 : 4;
+                signedVal *= scale;
+            }
+
             offset += snprintf(buffer + offset, bufferSize - offset, "#%d", signedVal);
             break;
         }

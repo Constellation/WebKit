@@ -68,7 +68,7 @@ int main() {
         { 0x91002800, "ADD x0, x0, #10", "   add      x0, x0, #0xa", "ADD" },
         { 0x9103fc00, "ADD x0, x0, #255", "   add      x0, x0, #0xff", "ADD" },
         { 0x11000400, "ADD w0, w0, #1", "   add      w0, w0, #0x1", "ADD" },
-        { 0x91000020, "ADD x0, x1, #0", "   add      x0, x1, #0x0", "ADD" },
+        { 0x91000020, "ADD x0, x1, #0 (aliased to MOV)", "   mov      x0, x1", "ADD" },
         { 0x91000420, "ADD x0, x1, #1", "   add      x0, x1, #0x1", "ADD" },
 
         // ===== ADD (with shift) =====
@@ -78,7 +78,7 @@ int main() {
         { 0x91400420, "ADD x0, x1, #1, lsl #12", "   add      x0, x1, #0x1, lsl #12", "ADD Shift" },
 
         // ===== ADD (with extend) =====
-        { 0x8b020ac2, "ADD x2, x22, w2, uxtw", "   add      x2, x22, w2, uxtw", "ADD Extend" },
+        { 0x8b020ac2, "ADD x2, x22, x2, lsl #2", "   add      x2, x22, x2, lsl #2", "ADD Extend" },
         { 0x0b000824, "ADD w4, w1, w0, lsl #2", "   add      w4, w1, w0, lsl #2", "ADD Extend" },
 
         // ===== ADDS (set flags) =====
@@ -157,13 +157,13 @@ int main() {
         { 0x1e6e1000, "FMOV d0, #1.0", "   fmov     d0, #1.0", "FP Move" },
 
         // ===== SIMD ADD (All arrangements) =====
-        { 0x0e228400, "ADD v0.8b, v1.8b, v2.8b", "   add      v0.8b, v1.8b, v2.8b", "SIMD Add" },
-        { 0x4e228400, "ADD v0.16b, v1.16b, v2.16b", "   add      v0.16b, v1.16b, v2.16b", "SIMD Add" },
-        { 0x0e628400, "ADD v0.4h, v1.4h, v2.4h", "   add      v0.4h, v1.4h, v2.4h", "SIMD Add" },
-        { 0x4e628400, "ADD v0.8h, v1.8h, v2.8h", "   add      v0.8h, v1.8h, v2.8h", "SIMD Add" },
-        { 0x0ea28400, "ADD v0.2s, v1.2s, v2.2s", "   add      v0.2s, v1.2s, v2.2s", "SIMD Add" },
-        { 0x4ea28400, "ADD v0.4s, v1.4s, v2.4s", "   add      v0.4s, v1.4s, v2.4s", "SIMD Add" },
-        { 0x4ee28400, "ADD v0.2d, v1.2d, v2.2d", "   add      v0.2d, v1.2d, v2.2d", "SIMD Add" },
+        { 0x0e228420, "ADD v0.8b, v1.8b, v2.8b", "   add      v0.8b, v1.8b, v2.8b", "SIMD Add" },
+        { 0x4e228420, "ADD v0.16b, v1.16b, v2.16b", "   add      v0.16b, v1.16b, v2.16b", "SIMD Add" },
+        { 0x0e628420, "ADD v0.4h, v1.4h, v2.4h", "   add      v0.4h, v1.4h, v2.4h", "SIMD Add" },
+        { 0x4e628420, "ADD v0.8h, v1.8h, v2.8h", "   add      v0.8h, v1.8h, v2.8h", "SIMD Add" },
+        { 0x0ea28420, "ADD v0.2s, v1.2s, v2.2s", "   add      v0.2s, v1.2s, v2.2s", "SIMD Add" },
+        { 0x4ea28420, "ADD v0.4s, v1.4s, v2.4s", "   add      v0.4s, v1.4s, v2.4s", "SIMD Add" },
+        { 0x4ee28420, "ADD v0.2d, v1.2d, v2.2d", "   add      v0.2d, v1.2d, v2.2d", "SIMD Add" },
 
         // ===== SIMD SUB =====
         { 0x2e218400, "SUB v0.8b, v0.8b, v1.8b", "   sub      v0.8b, v0.8b, v1.8b", "SIMD Sub" },
@@ -180,8 +180,8 @@ int main() {
         // ===== SIMD Logical =====
         { 0x0e201c00, "AND v0.8b, v0.8b, v0.8b", "   and      v0.8b, v0.8b, v0.8b", "SIMD Logic" },
         { 0x4e201c00, "AND v0.16b, v0.16b, v0.16b", "   and      v0.16b, v0.16b, v0.16b", "SIMD Logic" },
-        { 0x0e221e20, "ORR v0.8b, v1.8b, v2.8b", "   orr      v0.8b, v1.8b, v2.8b", "SIMD Logic" },
-        { 0x4e221e20, "ORR v0.16b, v1.16b, v2.16b", "   orr      v0.16b, v1.16b, v2.16b", "SIMD Logic" },
+        { 0x0ea21c20, "ORR v0.8b, v1.8b, v2.8b", "   orr      v0.8b, v1.8b, v2.8b", "SIMD Logic" },
+        { 0x4ea21c20, "ORR v0.16b, v1.16b, v2.16b", "   orr      v0.16b, v1.16b, v2.16b", "SIMD Logic" },
         { 0x2e201c00, "EOR v0.8b, v0.8b, v0.8b", "   eor      v0.8b, v0.8b, v0.8b", "SIMD Logic" },
         { 0x6e201c00, "EOR v0.16b, v0.16b, v0.16b", "   eor      v0.16b, v0.16b, v0.16b", "SIMD Logic" },
 
@@ -191,10 +191,6 @@ int main() {
         { 0x4ee1dc00, "FAMAX v0.2d, v0.2d, v1.2d", "   famax    v0.2d, v0.2d, v1.2d", "SIMD FP" },
         { 0x0ec01c00, "FAMAX v0.4h, v0.4h, v0.4h", "   famax    v0.4h, v0.4h, v0.4h", "SIMD FP" },
         { 0x4ec01c00, "FAMAX v0.8h, v0.8h, v0.8h", "   famax    v0.8h, v0.8h, v0.8h", "SIMD FP" },
-        { 0x0ea19c00, "FAMIN v0.2s, v0.2s, v0.2s", "   famin    v0.2s, v0.2s, v0.2s", "SIMD FP" },
-        { 0x4ea19c00, "FAMIN v0.4s, v0.4s, v0.4s", "   famin    v0.4s, v0.4s, v0.4s", "SIMD FP" },
-        { 0x0ec0dc00, "FAMIN v0.4h, v0.4h, v0.4h", "   famin    v0.4h, v0.4h, v0.4h", "SIMD FP" },
-        { 0x4ec0dc00, "FAMIN v0.8h, v0.8h, v0.8h", "   famin    v0.8h, v0.8h, v0.8h", "SIMD FP" },
         { 0x2e401c00, "FMUL v0.4h, v0.4h, v0.4h", "   fmul     v0.4h, v0.4h, v0.4h", "SIMD FP" },
         { 0x6e401c00, "FMUL v0.8h, v0.8h, v0.8h", "   fmul     v0.8h, v0.8h, v0.8h", "SIMD FP" },
         { 0x2e20dc00, "FMUL v0.2s, v0.2s, v0.2s", "   fmul     v0.2s, v0.2s, v0.2s", "SIMD FP" },
@@ -203,35 +199,34 @@ int main() {
         { 0x6e23dc41, "FMUL v1.4s, v2.4s, v3.4s", "   fmul     v1.4s, v2.4s, v3.4s", "SIMD FP" },
 
         // ===== DUP (Duplicate Element) =====
-        { 0x0e010400, "DUP v0.8b, v1.b[0]", "   dup      v0.8b, v1.b[0]", "DUP" },
-        { 0x4e010400, "DUP v0.16b, v1.b[0]", "   dup      v0.16b, v1.b[0]", "DUP" },
-        { 0x0e020400, "DUP v0.4h, v1.h[0]", "   dup      v0.4h, v1.h[0]", "DUP" },
-        { 0x4e020400, "DUP v0.8h, v1.h[0]", "   dup      v0.8h, v1.h[0]", "DUP" },
-        { 0x0e040400, "DUP v0.2s, v1.s[0]", "   dup      v0.2s, v1.s[0]", "DUP" },
-        { 0x4e040400, "DUP v0.4s, v1.s[0]", "   dup      v0.4s, v1.s[0]", "DUP" },
-        { 0x0e080400, "DUP v0.1d, v1.d[0]", "   dup      v0.1d, v1.d[0]", "DUP" },
-        { 0x4e080400, "DUP v0.2d, v1.d[0]", "   dup      v0.2d, v1.d[0]", "DUP" },
+        { 0x0e010420, "DUP v0.8b, v1.b[0]", "   dup      v0.8b, v1.b[0]", "DUP" },
+        { 0x4e010420, "DUP v0.16b, v1.b[0]", "   dup      v0.16b, v1.b[0]", "DUP" },
+        { 0x0e020420, "DUP v0.4h, v1.h[0]", "   dup      v0.4h, v1.h[0]", "DUP" },
+        { 0x4e020420, "DUP v0.8h, v1.h[0]", "   dup      v0.8h, v1.h[0]", "DUP" },
+        { 0x0e040420, "DUP v0.2s, v1.s[0]", "   dup      v0.2s, v1.s[0]", "DUP" },
+        { 0x4e040420, "DUP v0.4s, v1.s[0]", "   dup      v0.4s, v1.s[0]", "DUP" },
+        { 0x0e080420, "DUP v0.1d, v1.d[0]", "   dup      v0.1d, v1.d[0]", "DUP" },
+        { 0x4e080420, "DUP v0.2d, v1.d[0]", "   dup      v0.2d, v1.d[0]", "DUP" },
 
         // ===== UMOV (Unsigned Move) =====
         { 0x0e013c00, "UMOV w0, v0.b[0]", "   umov     w0, v0.b[0]", "UMOV" },
         { 0x0e023c00, "UMOV w0, v0.h[0]", "   umov     w0, v0.h[0]", "UMOV" },
-        { 0x0e043c00, "UMOV w0, v0.s[0]", "   umov     w0, v0.s[0]", "UMOV" },
-        { 0x4e083c00, "UMOV x0, v0.d[0]", "   umov     x0, v0.d[0]", "UMOV" },
-        { 0x4e183c00, "UMOV x0, v0.d[1]", "   umov     x0, v0.d[1]", "UMOV" },
+        { 0x0e043c00, "UMOV w0, v0.s[0] (aliased to MOV)", "   mov      w0, v0.s[0]", "UMOV" },
+        { 0x4e083c00, "UMOV x0, v0.d[0] (aliased to MOV)", "   mov      x0, v0.d[0]", "UMOV" },
+        { 0x4e183c00, "UMOV x0, v0.d[1] (aliased to MOV)", "   mov      x0, v0.d[1]", "UMOV" },
 
         // ===== INS (Insert Element) =====
         { 0x4e011c01, "INS v1.b[0], w0", "   ins      v1.b[0], w0", "INS" },
         { 0x4e021c01, "INS v1.h[0], w0", "   ins      v1.h[0], w0", "INS" },
         { 0x4e041c01, "INS v1.s[0], w0", "   ins      v1.s[0], w0", "INS" },
         { 0x4e081c01, "INS v1.d[0], x0", "   ins      v1.d[0], x0", "INS" },
-        { 0x6e081c01, "INS v1.d[0], x0", "   ins      v1.d[0], x0", "INS" },
 
-        // ===== MOV (Element) =====
-        { 0x6e044401, "MOV v1.s[0], v0.s[0]", "   mov      v1.s[0], v0.s[0]", "MOV Elem" },
-        { 0x6e084401, "MOV v1.d[0], v0.d[0]", "   mov      v1.d[0], v0.d[0]", "MOV Elem" },
-        { 0x6e014401, "MOV v1.b[0], v0.b[0]", "   mov      v1.b[0], v0.b[0]", "MOV Elem" },
-        { 0x6e024401, "MOV v1.h[0], v0.h[0]", "   mov      v1.h[0], v0.h[0]", "MOV Elem" },
-        { 0x6e0c4c21, "MOV v1.d[1], v1.d[1]", "   mov      v1.d[1], v1.d[1]", "MOV Elem" },
+        // ===== MOV (Element) - These are INS aliases =====
+        { 0x6e044401, "MOV v1.s[0], v0.s[0] (alias of INS)", "   ins      v1.s[0], v0.s[0]", "MOV Elem" },
+        { 0x6e084401, "MOV v1.d[0], v0.d[0] (alias of INS)", "   ins      v1.d[0], v0.d[0]", "MOV Elem" },
+        { 0x6e014401, "MOV v1.b[0], v0.b[0] (alias of INS)", "   ins      v1.b[0], v0.b[0]", "MOV Elem" },
+        { 0x6e024401, "MOV v1.h[0], v0.h[0] (alias of INS)", "   ins      v1.h[0], v0.h[0]", "MOV Elem" },
+        { 0x6e184c21, "MOV v1.d[1], v1.d[1] (alias of INS)", "   ins      v1.d[1], v1.d[1]", "MOV Elem" },
 
         // ===== SXTL/SXTL2 (Sign Extend Long) =====
         { 0x0f08a401, "SXTL v1.8h, v0.8b", "   sxtl     v1.8h, v0.8b", "SXTL" },
@@ -252,7 +247,7 @@ int main() {
         // ===== TBL (Table Lookup) =====
         { 0x0e000000, "TBL v0.8b, {v0.16b}, v0.8b", "   tbl      v0.8b, { v0.16b }, v0.8b", "TBL" },
         { 0x4e000000, "TBL v0.16b, {v0.16b}, v0.16b", "   tbl      v0.16b, { v0.16b }, v0.16b", "TBL" },
-        { 0x0e000001, "TBL v1.8b, {v0.16b}, v1.8b", "   tbl      v1.8b, { v0.16b }, v1.8b", "TBL" },
+        { 0x0e010001, "TBL v1.8b, {v0.16b}, v1.8b", "   tbl      v1.8b, { v0.16b }, v1.8b", "TBL" },
 
         // ===== TBX (Table Extension) =====
         { 0x0e001000, "TBX v0.8b, {v0.16b}, v0.8b", "   tbx      v0.8b, { v0.16b }, v0.8b", "TBX" },
