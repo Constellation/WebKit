@@ -59,13 +59,6 @@ struct OperandDesc {
     uint8_t field2Width;
 };
 
-// Field metadata
-struct FieldMeta {
-    const char* name;
-    uint8_t bitStart;
-    uint8_t bitWidth;
-};
-
 // Hash bucket for fast instruction lookup
 struct InstructionBucket {
     const InstructionEntry* start;
@@ -78,8 +71,6 @@ extern const size_t g_instructionTableSize;
 extern const InstructionBucket g_instructionBuckets[17];  // 16 buckets + 1 fallback
 extern const OperandDesc g_operandTable[];
 extern const uint8_t g_operandIndices[];  // Indices into g_operandTable
-extern const FieldMeta g_fieldMetadata[];
-extern const size_t g_fieldMetadataSize;
 
 // API
 const InstructionEntry* findInstruction(uint32_t opcode);

@@ -34,13 +34,6 @@ Operand = namedtuple('Operand', [
     'type', 'subtype', 'field_name', 'field_name2', 'is_optional', 'description'
 ])
 
-class FieldMetadata:
-    """Metadata for instruction fields"""
-    def __init__(self, name: str, bit_start: int, bit_width: int):
-        self.name = name
-        self.bit_start = bit_start
-        self.bit_width = bit_width
-
 class ARM64InstructionParser:
     """Enhanced parser with complete field tracking and explanation parsing"""
 
@@ -48,7 +41,6 @@ class ARM64InstructionParser:
         self.xml_directory = xml_directory
         self.instructions: List[InstructionEncoding] = []
         self.errors: List[str] = []
-        self.field_metadata: Dict[str, FieldMetadata] = {}
         # Map: (encoding_name, symbol_link) -> field encoding
         self.operand_explanations: Dict[Tuple[str, str], str] = {}
 
@@ -67,7 +59,6 @@ class ARM64InstructionParser:
                 self.errors.append(f"Error parsing {xml_file}: {e}")
 
         print(f"Parsed {len(xml_files)} files, found {len(self.instructions)} instruction encodings")
-        print(f"Collected {len(self.field_metadata)} unique fields with positions")
 
         if self.errors:
             print(f"Encountered {len(self.errors)} errors")
@@ -150,12 +141,6 @@ class ARM64InstructionParser:
 
         fields = self._parse_regdiagram(regdiagram)
 
-        # Store field metadata
-        for field in fields:
-            if not field.is_fixed and field.name not in self.field_metadata:
-                self.field_metadata[field.name] = FieldMetadata(
-                    field.name, field.bit_start, field.bit_width)
-
         # Override with encoding-specific boxes
         # Use bitdiffs attribute to get correct fixed field values
         bitdiffs = encoding_elem.get('bitdiffs', '')
@@ -203,10 +188,6 @@ class ARM64InstructionParser:
                 for ef in encoding_fields:
                     if ef.name in field_dict:
                         field_dict[ef.name] = ef
-                    # Update metadata
-                    if not ef.is_fixed and ef.name not in self.field_metadata:
-                        self.field_metadata[ef.name] = FieldMetadata(
-                            ef.name, ef.bit_start, ef.bit_width)
                 fields = list(field_dict.values())
 
         if not fields:
@@ -1181,10 +1162,8 @@ class CodeGenerator:
         'UNKNOWN': 127,
     }
 
-    def __init__(self, instructions: List[InstructionEncoding],
-                 field_metadata: Dict[str, FieldMetadata], output_dir: str):
+    def __init__(self, instructions: List[InstructionEncoding], output_dir: str):
         self.instructions = instructions
-        self.field_metadata = field_metadata
         self.output_dir = output_dir
 
         # Define systematic alias precedence based on condition specificity
@@ -1288,10 +1267,6 @@ class CodeGenerator:
         if current_bucket >= 0:
             self.buckets.append((current_bucket, bucket_start, len(self.instructions) - bucket_start))
 
-        # Build indices
-        self.field_names = sorted(field_metadata.keys())
-        self.field_index = {name: i for i, name in enumerate(self.field_names)}
-
     def generate_all(self):
         """Generate all files"""
         print("Generating complete disassembler with formatters...")
@@ -1335,13 +1310,6 @@ struct OperandDesc {
     uint8_t field2Width;
 };
 
-// Field metadata
-struct FieldMeta {
-    const char* name;
-    uint8_t bitStart;
-    uint8_t bitWidth;
-};
-
 // Hash bucket for fast instruction lookup
 struct InstructionBucket {
     const InstructionEntry* start;
@@ -1354,8 +1322,6 @@ extern const size_t g_instructionTableSize;
 extern const InstructionBucket g_instructionBuckets[17];  // 16 buckets + 1 fallback
 extern const OperandDesc g_operandTable[];
 extern const uint8_t g_operandIndices[];  // Indices into g_operandTable
-extern const FieldMeta g_fieldMetadata[];
-extern const size_t g_fieldMetadataSize;
 
 // API
 const InstructionEntry* findInstruction(uint32_t opcode);
@@ -1425,9 +1391,6 @@ static const char* const g_extendNames[8] = {
             # Generate opcode type enums
             f.write(self._generate_op_type_enum())
 
-            # Generate field metadata table
-            f.write(self._generate_field_metadata())
-
             # Generate operand table
             f.write(self._generate_operand_table())
 
@@ -1458,20 +1421,6 @@ static const char* const g_extendNames[8] = {
 
         code += "};\n\n"
         code += "using enum OperandType;\n\n"
-        return code
-
-
-    def _generate_field_metadata(self) -> str:
-        """Generate field metadata table"""
-        code = "// Field metadata table\n"
-        code += "const FieldMeta g_fieldMetadata[] = {\n"
-
-        for name in self.field_names:
-            meta = self.field_metadata[name]
-            code += f'    {{ "{meta.name}", {meta.bit_start}, {meta.bit_width} }},\n'
-
-        code += "};\n\n"
-        code += f"const size_t g_fieldMetadataSize = {len(self.field_names)};\n\n"
         return code
 
     def _generate_operand_table(self) -> str:
@@ -2713,11 +2662,10 @@ def main():
 
     # Generate
     print(f"\nGenerating complete C++ code with formatters...")
-    generator = CodeGenerator(instructions, parser.field_metadata, output_dir)
+    generator = CodeGenerator(instructions, output_dir)
     generator.generate_all()
 
     print(f"\nGenerated disassembler for {len(instructions)} instruction encodings")
-    print(f"Field metadata: {len(generator.field_names)} unique fields")
     print(f"Output written to: {output_dir}")
     print("\nGenerated files:")
     print("  - A64InstructionTable.h (API)")
