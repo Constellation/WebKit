@@ -4877,129 +4877,128 @@ void formatInstruction(const InstructionEntry* entry, uint32_t opcode, uint32_t*
                     // Pattern: bits[28:24]=01110 (SIMD FP class), bit[23]=1 (FP with size field)
                     // This matches FAMAX, FAMIN, and other FP SIMD instructions
                     else {
-                    uint32_t bits2824 = extractBits(opcode, 24, 5);
-                    uint32_t bit23 = extractBits(opcode, 23, 1);
-                    bool isFPSIMDWithSizeQ = (bits2824 == 0x0E && bit23 == 1);
+                        uint32_t bits2824 = extractBits(opcode, 24, 5);
+                        uint32_t bit23 = extractBits(opcode, 23, 1);
+                        bool isFPSIMDWithSizeQ = (bits2824 == 0x0E && bit23 == 1);
 
-                    if (isFPSIMDWithSizeQ) {
-                        // FP SIMD instructions (FAMAX, FAMIN, etc.) use size field + Q
-                        // size at bits[23:22] determines precision:
-                        // - 10 (bit[22]=0) → half-precision for FP16 ops
-                        // - 11 (bit[22]=1) → single-precision or half-precision depending on operation
-                        // Extract full size field
-                        uint32_t size = extractBits(opcode, 22, 2);
+                        if (isFPSIMDWithSizeQ) {
+                            // FP SIMD instructions (FAMAX, FAMIN, etc.) use size field + Q
+                            // size at bits[23:22] determines precision:
+                            // - 10 (bit[22]=0) → half-precision for FP16 ops
+                            // - 11 (bit[22]=1) → single-precision or half-precision depending on operation
+                            // Extract full size field
+                            uint32_t size = extractBits(opcode, 22, 2);
 
-                        // For half-precision FP16 ops (size[1:0]=10 with bits[22:21]=10)
-                        // or size[1:0]=11 (with various interpretations)
-                        if (size == 2) {
-                            // size=10 → half-precision FP16 operations
-                            arrangement = Q ? "8h" : "4h";
-                        } else if (size == 3) {
-                            // size=11 → need to distinguish between half, single, and double
-                            // Check bits[15:10] to distinguish operation class
-                            uint32_t bits1510 = extractBits(opcode, 10, 6);
-                            if (bits1510 == 0x07) {
-                                // FAMAX/FAMIN half-precision (bits[15:10]=000111)
+                            // For half-precision FP16 ops (size[1:0]=10 with bits[22:21]=10)
+                            // or size[1:0]=11 (with various interpretations)
+                            if (size == 2) {
+                                // size=10 → half-precision FP16 operations
                                 arrangement = Q ? "8h" : "4h";
-                            } else if (bits1510 == 0x37) {
-                                // FAMAX/FAMIN double-precision (bits[15:10]=110111=0x37)
-                                // Q=0 is UNDEFINED per ARM spec, but handle Q=1
-                                arrangement = Q ? "2d" : "1d";
+                            } else if (size == 3) {
+                                // size=11 → need to distinguish between half, single, and double
+                                // Check bits[15:10] to distinguish operation class
+                                uint32_t bits1510 = extractBits(opcode, 10, 6);
+                                if (bits1510 == 0x07) {
+                                    // FAMAX/FAMIN half-precision (bits[15:10]=000111)
+                                    arrangement = Q ? "8h" : "4h";
+                                } else if (bits1510 == 0x37) {
+                                    // FAMAX/FAMIN double-precision (bits[15:10]=110111=0x37)
+                                    // Q=0 is UNDEFINED per ARM spec, but handle Q=1
+                                    arrangement = Q ? "2d" : "1d";
+                                } else {
+                                    // Other operations - typically single-precision
+                                    arrangement = Q ? "4s" : "2s";
+                                }
                             } else {
-                                // Other operations - typically single-precision
-                                arrangement = Q ? "4s" : "2s";
+                                // size=00 or 01 → single/double precision (handled in field2Width=0)
+                                // Fallback
+                                arrangement = Q ? "16b" : "8b";
                             }
                         } else {
-                            // size=00 or 01 → single/double precision (handled in field2Width=0)
-                            // Fallback
-                            arrangement = Q ? "16b" : "8b";
-                        }
-                    }  // end of isFPSIMDWithSizeQ check
-                    else {
-                        // Non-FP-SIMD instructions - use comprehensive inference
-                    // Key bit ranges for classification:
-                    uint32_t bits3129 = extractBits(opcode, 29, 3);  // Top-level class
-                    uint32_t bits2321 = extractBits(opcode, 21, 3);  // Type/size indicator
-                    uint32_t bits1512 = extractBits(opcode, 12, 4);  // Opcode
-                    uint32_t bits1110 = extractBits(opcode, 10, 2);  // Sometimes size
+                            // Non-FP-SIMD instructions - use comprehensive inference
+                            // Key bit ranges for classification:
+                            uint32_t bits3129 = extractBits(opcode, 29, 3);  // Top-level class
+                            uint32_t bits2321 = extractBits(opcode, 21, 3);  // Type/size indicator
+                            uint32_t bits1512 = extractBits(opcode, 12, 4);  // Opcode
+                            uint32_t bits1110 = extractBits(opcode, 10, 2);  // Sometimes size
 
-                    // Category 1: FP16 (half-precision) instructions
-                    // Pattern: bits[23:21] = 010 OR bits[23:21] = x11 (FP16 suffix)
-                    if (bits2321 == 0b010 || (bits2321 & 0b011) == 0b011) {
-                        // FP16 operations: .4H/.8H
-                        arrangement = Q ? "8h" : "4h";
-                    }
-                    // Category 2: Table lookup (TBL/TBX) - always bytes
-                    // Pattern: bits[31:29] = 001 or 000, bits[15:12] = 0000 or 0001, bits[23:21] = 000
-                    else if (bits2321 == 0b000 && (bits1512 == 0b0000 || bits1512 == 0b0001)) {
-                        arrangement = Q ? "16b" : "8b";
-                    }
-                    // Category 3: Logical operations - always bytes
-                    // Pattern: bits[15:12] indicates logical ops (various values)
-                    // AND, ORR, EOR, BIC, BIT, BIF, BSL, NOT, MVN, ORN
-                    // Check bits[23:21] for common logical patterns
-                    else if (bits2321 == 0b001 || bits2321 == 0b011 || bits2321 == 0b101 || bits2321 == 0b111) {
-                        // Check if it's a logical op (bits[15:12] typically 0001 for 3-reg same)
-                        if (bits1512 == 0b0001 || bits1512 == 0b0101 || bits1512 == 0b0110 || bits1512 == 0b0111) {
-                            arrangement = Q ? "16b" : "8b";
-                        }
-                        // FP conversion/rounding with FP16 (bits[23:21] = x11)
-                        else if ((bits2321 & 0b011) == 0b011 && bits1512 >= 0b1000) {
-                            arrangement = Q ? "8h" : "4h";
-                        }
-                        // Default byte
-                        else {
-                            arrangement = Q ? "16b" : "8b";
-                        }
-                    }
-                    // Category 4: Immediate value instructions (MOVI, MVNI, ORR, BIC, FMOV)
-                    // Pattern: bits[31:29] = 000, 001, or 010, bits[15:12] = 0000 (MOVI), 0001 (ORR/BIC), 1111 (FMOV)
-                    else if ((bits3129 == 0b000 || bits3129 == 0b001 || bits3129 == 0b010) &&
-                             (bits1512 == 0b0000 || bits1512 == 0b0001 || bits1512 == 0b1111)) {
-                        // MOVI/MVNI/ORR/BIC typically use bytes
-                        // FMOV uses H or S based on bits[11:10]
-                        if (bits1512 == 0b1111) {
-                            // FMOV - check bits[11:10] for size
-                            if (bits1110 == 0b11) {
-                                arrangement = Q ? "8h" : "4h";  // FP16
-                            } else {
-                                arrangement = Q ? "4s" : "2s";  // FP32
+                            // Category 1: FP16 (half-precision) instructions
+                            // Pattern: bits[23:21] = 010 OR bits[23:21] = x11 (FP16 suffix)
+                            if (bits2321 == 0b010 || (bits2321 & 0b011) == 0b011) {
+                                // FP16 operations: .4H/.8H
+                                arrangement = Q ? "8h" : "4h";
                             }
-                        } else {
-                            arrangement = Q ? "16b" : "8b";
+                            // Category 2: Table lookup (TBL/TBX) - always bytes
+                            // Pattern: bits[31:29] = 001 or 000, bits[15:12] = 0000 or 0001, bits[23:21] = 000
+                            else if (bits2321 == 0b000 && (bits1512 == 0b0000 || bits1512 == 0b0001)) {
+                                arrangement = Q ? "16b" : "8b";
+                            }
+                            // Category 3: Logical operations - always bytes
+                            // Pattern: bits[15:12] indicates logical ops (various values)
+                            // AND, ORR, EOR, BIC, BIT, BIF, BSL, NOT, MVN, ORN
+                            // Check bits[23:21] for common logical patterns
+                            else if (bits2321 == 0b001 || bits2321 == 0b011 || bits2321 == 0b101 || bits2321 == 0b111) {
+                                // Check if it's a logical op (bits[15:12] typically 0001 for 3-reg same)
+                                if (bits1512 == 0b0001 || bits1512 == 0b0101 || bits1512 == 0b0110 || bits1512 == 0b0111) {
+                                    arrangement = Q ? "16b" : "8b";
+                                }
+                                // FP conversion/rounding with FP16 (bits[23:21] = x11)
+                                else if ((bits2321 & 0b011) == 0b011 && bits1512 >= 0b1000) {
+                                    arrangement = Q ? "8h" : "4h";
+                                }
+                                // Default byte
+                                else {
+                                    arrangement = Q ? "16b" : "8b";
+                                }
+                            }
+                            // Category 4: Immediate value instructions (MOVI, MVNI, ORR, BIC, FMOV)
+                            // Pattern: bits[31:29] = 000, 001, or 010, bits[15:12] = 0000 (MOVI), 0001 (ORR/BIC), 1111 (FMOV)
+                            else if ((bits3129 == 0b000 || bits3129 == 0b001 || bits3129 == 0b010) &&
+                                     (bits1512 == 0b0000 || bits1512 == 0b0001 || bits1512 == 0b1111)) {
+                                // MOVI/MVNI/ORR/BIC typically use bytes
+                                // FMOV uses H or S based on bits[11:10]
+                                if (bits1512 == 0b1111) {
+                                    // FMOV - check bits[11:10] for size
+                                    if (bits1110 == 0b11) {
+                                        arrangement = Q ? "8h" : "4h";  // FP16
+                                    } else {
+                                        arrangement = Q ? "4s" : "2s";  // FP32
+                                    }
+                                } else {
+                                    arrangement = Q ? "16b" : "8b";
+                                }
+                            }
+                            // Category 5: DOT products and special ops
+                            // Pattern: bits[15:12] = 1001 (DOT), 1100/1110 (FMLAL/FMLSL), etc.
+                            else if (bits1512 == 0b1001 || bits1512 == 0b1100 || bits1512 == 0b1110 ||
+                                     bits1512 == 0b1111 || bits1512 == 0b0000) {
+                                // DOT products typically use bytes or specific element sizes
+                                // FDOT, SDOT, UDOT → bytes
+                                // FMLAL/FMLSL → half-words
+                                // Check bits[23:21] to distinguish
+                                if (bits2321 == 0b000 || bits2321 == 0b100) {
+                                    // FDOT/DOT variants - bytes
+                                    arrangement = Q ? "16b" : "8b";
+                                } else if (bits2321 == 0b001) {
+                                    // FMLAL variants - half-words
+                                    arrangement = Q ? "8h" : "4h";
+                                } else if (bits2321 == 0b010) {
+                                    // BFDOT, FCVTN - half-words
+                                    arrangement = Q ? "8h" : "4h";
+                                } else {
+                                    arrangement = Q ? "16b" : "8b";
+                                }
+                            }
+                            // Category 6: EXT (extract) - always bytes
+                            else if (bits1512 == 0b0000 && bits2321 == 0b000 && bits3129 == 0b010) {
+                                arrangement = Q ? "16b" : "8b";
+                            }
+                            // Default: byte arrangement (safest default)
+                            else {
+                                arrangement = Q ? "16b" : "8b";
+                            }
                         }
                     }
-                    // Category 5: DOT products and special ops
-                    // Pattern: bits[15:12] = 1001 (DOT), 1100/1110 (FMLAL/FMLSL), etc.
-                    else if (bits1512 == 0b1001 || bits1512 == 0b1100 || bits1512 == 0b1110 ||
-                             bits1512 == 0b1111 || bits1512 == 0b0000) {
-                        // DOT products typically use bytes or specific element sizes
-                        // FDOT, SDOT, UDOT → bytes
-                        // FMLAL/FMLSL → half-words
-                        // Check bits[23:21] to distinguish
-                        if (bits2321 == 0b000 || bits2321 == 0b100) {
-                            // FDOT/DOT variants - bytes
-                            arrangement = Q ? "16b" : "8b";
-                        } else if (bits2321 == 0b001) {
-                            // FMLAL variants - half-words
-                            arrangement = Q ? "8h" : "4h";
-                        } else if (bits2321 == 0b010) {
-                            // BFDOT, FCVTN - half-words
-                            arrangement = Q ? "8h" : "4h";
-                        } else {
-                            arrangement = Q ? "16b" : "8b";
-                        }
-                    }
-                    // Category 6: EXT (extract) - always bytes
-                    else if (bits1512 == 0b0000 && bits2321 == 0b000 && bits3129 == 0b010) {
-                        arrangement = Q ? "16b" : "8b";
-                    }
-                    // Default: byte arrangement (safest default)
-                    else {
-                        arrangement = Q ? "16b" : "8b";
-                    }
-                    }  // End of non-FAMAX comprehensive inference
-                    }  // End of isLogicalOp else block
                 } else if (op.field2Start == 22 && op.field2Width == 1) {
                     // sz field (bit 22) - FMUL/FABS/etc. floating-point type
                     // Could be standalone or with Q bit - check if Q varies
