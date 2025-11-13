@@ -120,7 +120,6 @@ public:
     static constexpr uint8_t EntrySize = Traits::EntrySize;
     static constexpr uint8_t ChainOffset = Traits::EntrySize - 1;
 
-    static constexpr uint8_t LoadFactor = 1;
     static constexpr uint8_t InitialCapacity = 8;
     static constexpr TableSize LargeCapacity = 2 << 15;
 
@@ -165,7 +164,7 @@ public:
     ALWAYS_INLINE static constexpr void incrementDeletedEntryCount(Storage& storage) { OrderedHashTableTraits::increment(slot(storage, deletedEntryCountIndex())); }
 
     /* -------------------------------- Hash table -------------------------------- */
-    ALWAYS_INLINE static constexpr TableSize bucketCount(TableSize capacity) { return capacity / LoadFactor; }
+    ALWAYS_INLINE static constexpr TableSize bucketCount(TableSize capacity) { return capacity; }
 
     ALWAYS_INLINE static constexpr TableIndex hashTableStartIndex() { return iterationEntryIndex() + 1; }
     ALWAYS_INLINE static constexpr TableIndex hashTableEndIndex(TableSize capacity) { return hashTableStartIndex() + bucketCount(capacity) - 1; }
@@ -176,7 +175,7 @@ public:
     /* -------------------------------- Data table -------------------------------- */
     ALWAYS_INLINE static constexpr TableSize dataTableSize(TableSize capacity) { return capacity * EntrySize; }
 
-    ALWAYS_INLINE static constexpr TableIndex dataTableStartIndex(TableSize capacity) { return hashTableEndIndex(capacity) + 1; }
+    ALWAYS_INLINE static constexpr TableIndex dataTableStartIndex(TableSize capacity) { return hashTableStartIndex() + bucketCount(capacity); }
     ALWAYS_INLINE static constexpr TableIndex dataTableEndIndex(TableSize capacity) { return dataTableStartIndex(capacity) + dataTableSize(capacity) - 1; }
     ALWAYS_INLINE static constexpr TableIndex entryDataStartIndex(TableIndex dataTableStartIndex, Entry entry) { return dataTableStartIndex + entry * EntrySize; }
 
@@ -194,7 +193,7 @@ public:
     ALWAYS_INLINE static constexpr TableSize tableSize(TableSize capacity)
     {
         TableSize result = 4 /* AliveEntryCount, DeletedEntryCount, Capacity, and IterationEntry */
-            + capacity / LoadFactor /* BucketCount */
+            + capacity /* BucketCount */
             + capacity * EntrySize; /* DataTableSize */
         ASSERT(result == tableSizeSlow(capacity));
         return result;

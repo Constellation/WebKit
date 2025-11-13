@@ -2491,9 +2491,8 @@ void SpeculativeJIT::compileMapGetImpl(Node* node)
     loadPtr(Address(mapGPR, MapOrSet::offsetOfStorage()), mapStorageOrDataGPR);
     notPresentInTable.append(branchTestPtr(Zero, mapStorageOrDataGPR));
 
-    JIT_COMMENT(*this, "Compute the bucketCount = Capacity / LoadFactor and bucketIndex = hashTableStartIndex + (hash & bucketCount - 1).");
+    JIT_COMMENT(*this, "Compute the bucketCount = Capacity and bucketIndex = hashTableStartIndex + (hash & bucketCount - 1).");
     addPtr(TrustedImm32(JSCellButterfly::offsetOfData()), mapStorageOrDataGPR);
-    static_assert(MapOrSet::Helper::LoadFactor == 1);
     load32(Address(mapStorageOrDataGPR, MapOrSet::Helper::capacityIndex() * sizeof(uint64_t)), bucketCountGPR);
     sub32(bucketCountGPR, TrustedImm32(1), bucketIndexOrDeletedValueGPR);
     and32(hashGPR, bucketIndexOrDeletedValueGPR);

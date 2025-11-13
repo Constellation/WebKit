@@ -14143,7 +14143,7 @@ void SpeculativeJIT::compileMapIteratorNext(Node* node)
     flushRegisters();
     JSValueRegsFlushedCallResult result(this);
     JSValueRegs resultRegs = result.regs();
-    callOperation(node->child1().useKind() == MapIteratorObjectUse ? operationMapIteratorNext : operationSetIteratorNext, resultRegs, LinkableConstant::globalObject(*this, node), mapIteratorGPR);
+    callOperation(node->child1().useKind() == MapIteratorObjectUse ? operationMapIteratorNext : operationSetIteratorNext, resultRegs, TrustedImmPtr(&vm()), mapIteratorGPR);
     jsValueResult(resultRegs, node);
 }
 
@@ -14163,7 +14163,7 @@ void SpeculativeJIT::compileMapIteratorKey(Node* node)
     JSValueRegsFlushedCallResult result(this);
     JSValueRegs resultRegs = result.regs();
     auto operation = node->child1().useKind() == MapIteratorObjectUse ? operationMapIteratorKey : operationSetIteratorKey;
-    callOperation(operation, resultRegs, LinkableConstant::globalObject(*this, node), mapIteratorGPR);
+    callOperation(operation, resultRegs, TrustedImmPtr(&vm()), mapIteratorGPR);
     jsValueResult(resultRegs, node);
 }
 
@@ -14177,7 +14177,7 @@ void SpeculativeJIT::compileMapIteratorValue(Node* node)
     flushRegisters();
     JSValueRegsFlushedCallResult result(this);
     JSValueRegs resultRegs = result.regs();
-    callOperation(operationMapIteratorValue, resultRegs, LinkableConstant::globalObject(*this, node), mapIteratorGPR);
+    callOperation(operationMapIteratorValue, resultRegs, TrustedImmPtr(&vm()), mapIteratorGPR);
     jsValueResult(resultRegs, node);
 }
 
