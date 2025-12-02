@@ -26,10 +26,12 @@
 #include "config.h"
 #include "JSMicrotask.h"
 
+#include "AsyncGeneratorPrototype.h"
 #include "CatchScope.h"
 #include "Debugger.h"
 #include "DeferTermination.h"
 #include "GlobalObjectMethodTable.h"
+#include "JSAsyncGenerator.h"
 #include "JSGenerator.h"
 #include "JSGlobalObject.h"
 #include "JSObjectInlines.h"
@@ -413,6 +415,103 @@ void runInternalMicrotask(JSGlobalObject* globalObject, InternalMicrotask task, 
 
         scope.release();
         JSPromise::resolveWithInternalMicrotaskForAsyncAwait(globalObject, value, InternalMicrotask::AsyncFunctionResume, generator);
+        return;
+    }
+
+    case InternalMicrotask::AsyncGeneratorYieldAwaited: {
+        JSValue result = arguments[1];
+        auto* generator = jsCast<JSAsyncGenerator*>(arguments[3]);
+
+        VM& vm = globalObject->vm();
+
+        switch (static_cast<JSPromise::Status>(arguments[2].asInt32())) {
+        case JSPromise::Status::Pending:
+            RELEASE_ASSERT_NOT_REACHED();
+            break;
+        case JSPromise::Status::Rejected:
+            generator->setState(vm, static_cast<int32_t>(JSAsyncGenerator::AsyncGeneratorState::Completed));
+            scope.release();
+            asyncGeneratorReject(globalObject, generator, result);
+            return;
+        case JSPromise::Status::Fulfilled:
+            generator->setSuspendReason(vm, static_cast<int32_t>(JSAsyncGenerator::AsyncGeneratorSuspendReason::Yield));
+            scope.release();
+            asyncGeneratorResolve(globalObject, generator, result, false);
+            return;
+        }
+        return;
+    }
+
+    case InternalMicrotask::AsyncGeneratorBodyCallNormal: {
+        JSValue result = arguments[1];
+        auto* generator = jsCast<JSAsyncGenerator*>(arguments[3]);
+
+        switch (static_cast<JSPromise::Status>(arguments[2].asInt32())) {
+        case JSPromise::Status::Pending:
+            RELEASE_ASSERT_NOT_REACHED();
+            break;
+        case JSPromise::Status::Rejected: {
+            VM& vm = globalObject->vm();
+            generator->setState(vm, static_cast<int32_t>(JSAsyncGenerator::AsyncGeneratorState::Completed));
+            scope.release();
+            asyncGeneratorReject(globalObject, generator, result);
+            return;
+        }
+        case JSPromise::Status::Fulfilled: {
+            scope.release();
+            doAsyncGeneratorBodyCall(globalObject, generator, result, static_cast<int32_t>(JSGenerator::ResumeMode::NormalMode));
+            return;
+        }
+        }
+        return;
+    }
+
+    case InternalMicrotask::AsyncGeneratorBodyCallReturn: {
+        JSValue result = arguments[1];
+        auto* generator = jsCast<JSAsyncGenerator*>(arguments[3]);
+
+        switch (static_cast<JSPromise::Status>(arguments[2].asInt32())) {
+        case JSPromise::Status::Pending:
+            RELEASE_ASSERT_NOT_REACHED();
+            break;
+        case JSPromise::Status::Rejected: {
+            VM& vm = globalObject->vm();
+            generator->setState(vm, static_cast<int32_t>(JSAsyncGenerator::AsyncGeneratorState::Completed));
+            scope.release();
+            asyncGeneratorReject(globalObject, generator, result);
+            return;
+        }
+        case JSPromise::Status::Fulfilled: {
+            scope.release();
+            doAsyncGeneratorBodyCall(globalObject, generator, result, static_cast<int32_t>(JSGenerator::ResumeMode::ReturnMode));
+            return;
+        }
+        }
+        return;
+    }
+
+    case InternalMicrotask::AsyncGeneratorResumeNext: {
+        JSValue result = arguments[1];
+        auto* generator = jsCast<JSAsyncGenerator*>(arguments[3]);
+
+        VM& vm = globalObject->vm();
+        generator->setState(vm, static_cast<int32_t>(JSAsyncGenerator::AsyncGeneratorState::Completed));
+
+        switch (static_cast<JSPromise::Status>(arguments[2].asInt32())) {
+        case JSPromise::Status::Pending:
+            RELEASE_ASSERT_NOT_REACHED();
+            break;
+        case JSPromise::Status::Rejected: {
+            scope.release();
+            asyncGeneratorReject(globalObject, generator, result);
+            return;
+        }
+        case JSPromise::Status::Fulfilled: {
+            scope.release();
+            asyncGeneratorResolve(globalObject, generator, result, true);
+            return;
+        }
+        }
         return;
     }
 

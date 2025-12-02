@@ -82,6 +82,61 @@ public:
     static JSAsyncGenerator* create(VM&, Structure*);
     static Structure* createStructure(VM&, JSGlobalObject*, JSValue);
 
+    int32_t state() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::State)).get().asInt32AsAnyInt();
+    }
+
+    void setState(VM& vm, int32_t state)
+    {
+        Base::internalField(static_cast<unsigned>(Field::State)).set(vm, this, jsNumber(state));
+    }
+
+    int32_t suspendReason() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::SuspendReason)).get().asInt32AsAnyInt();
+    }
+
+    void setSuspendReason(VM& vm, int32_t reason)
+    {
+        Base::internalField(static_cast<unsigned>(Field::SuspendReason)).set(vm, this, jsNumber(reason));
+    }
+
+    JSValue next() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::Next)).get();
+    }
+
+    JSValue thisValue() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::This)).get();
+    }
+
+    JSValue frame() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::Frame)).get();
+    }
+
+    JSValue queueFirst() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::QueueFirst)).get();
+    }
+
+    void setQueueFirst(VM& vm, JSValue value)
+    {
+        Base::internalField(static_cast<unsigned>(Field::QueueFirst)).set(vm, this, value);
+    }
+
+    JSValue queueLast() const
+    {
+        return Base::internalField(static_cast<unsigned>(Field::QueueLast)).get();
+    }
+
+    void setQueueLast(VM& vm, JSValue value)
+    {
+        Base::internalField(static_cast<unsigned>(Field::QueueLast)).set(vm, this, value);
+    }
+
     DECLARE_EXPORT_INFO;
 
     DECLARE_VISIT_CHILDREN;

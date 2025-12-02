@@ -44,10 +44,10 @@ public:
         return &vm.plainObjectSpace();
     }
 
-    static AsyncGeneratorPrototype* create(VM& vm, JSGlobalObject*, Structure* structure)
+    static AsyncGeneratorPrototype* create(VM& vm, JSGlobalObject* globalObject, Structure* structure)
     {
         AsyncGeneratorPrototype* prototype = new (NotNull, allocateCell<AsyncGeneratorPrototype>(vm)) AsyncGeneratorPrototype(vm, structure);
-        prototype->finishCreation(vm);
+        prototype->finishCreation(vm, globalObject);
         return prototype;
     }
 
@@ -60,7 +60,16 @@ private:
         : Base(vm, structure)
     {
     }
-    void finishCreation(VM&);
+    void finishCreation(VM&, JSGlobalObject*);
 };
+
+class JSAsyncGenerator;
+
+void asyncGeneratorResolve(JSGlobalObject*, JSAsyncGenerator*, JSValue value, bool done);
+void asyncGeneratorReject(JSGlobalObject*, JSAsyncGenerator*, JSValue exception);
+void doAsyncGeneratorBodyCall(JSGlobalObject*, JSAsyncGenerator*, JSValue resumeValue, int32_t resumeMode);
+void asyncGeneratorResumeNext(JSGlobalObject*, JSAsyncGenerator*);
+
+JSC_DECLARE_HOST_FUNCTION(asyncGeneratorResumeNextOnRejected);
 
 } // namespace JSC

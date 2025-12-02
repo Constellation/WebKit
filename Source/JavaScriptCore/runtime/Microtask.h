@@ -47,6 +47,11 @@ enum class InternalMicrotask : uint16_t {
 
     AsyncFunctionResume,
 
+    AsyncGeneratorYieldAwaited,
+    AsyncGeneratorBodyCallNormal,
+    AsyncGeneratorBodyCallReturn,
+    AsyncGeneratorResumeNext,
+
     InvokeFunctionJob,
     Opaque, // Dispatch must handle everything.
 };
