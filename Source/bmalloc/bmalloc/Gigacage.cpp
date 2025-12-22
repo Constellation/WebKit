@@ -312,7 +312,7 @@ size_t size(Kind kind)
 
 size_t footprint(Kind kind)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) || BUSE(MIMALLOC)
     BUNUSED(kind);
     return 0;
 #else

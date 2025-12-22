@@ -16,7 +16,6 @@ set(bmalloc_SOURCES
     bmalloc/HeapKind.cpp
     bmalloc/Logging.cpp
     bmalloc/Mutex.cpp
-    bmalloc/PerProcess.cpp
     bmalloc/TZoneHeap.cpp
     bmalloc/TZoneHeapManager.cpp
     bmalloc/bmalloc.cpp
@@ -196,7 +195,6 @@ set(bmalloc_PUBLIC_HEADERS
     bmalloc/Algorithm.h
     bmalloc/AllocationCounts.h
     bmalloc/CompactAllocationMode.h
-    bmalloc/Allocator.h
     bmalloc/AvailableMemory.h
     bmalloc/BAssert.h
     bmalloc/BCompiler.h
@@ -206,55 +204,26 @@ set(bmalloc_PUBLIC_HEADERS
     bmalloc/BPlatform.h
     bmalloc/BSyscall.h
     bmalloc/BVMTags.h
-    bmalloc/Bits.h
-    bmalloc/BulkDecommit.h
-    bmalloc/BumpAllocator.h
-    bmalloc/BumpRange.h
-    bmalloc/Cache.h
-    bmalloc/Chunk.h
     bmalloc/CryptoRandom.h
-    bmalloc/Deallocator.h
     bmalloc/SystemHeap.h
-    bmalloc/DeferredDecommit.h
-    bmalloc/DeferredDecommitInlines.h
-    bmalloc/DeferredTrigger.h
-    bmalloc/DeferredTriggerInlines.h
-    bmalloc/EligibilityResult.h
-    bmalloc/EligibilityResultInlines.h
     bmalloc/Environment.h
     bmalloc/FailureAction.h
-    bmalloc/FixedVector.h
     bmalloc/Gigacage.h
     bmalloc/GigacageConfig.h
     bmalloc/GigacageKind.h
-    bmalloc/Heap.h
     bmalloc/HeapKind.h
-    bmalloc/LargeRange.h
-    bmalloc/LineMetadata.h
-    bmalloc/List.h
     bmalloc/Logging.h
     bmalloc/Map.h
     bmalloc/Mutex.h
-    bmalloc/Object.h
-    bmalloc/Packed.h
-    bmalloc/PerHeapKind.h
-    bmalloc/PerProcess.h
-    bmalloc/PerThread.h
-    bmalloc/PhysicalPageMap.h
     bmalloc/ProcessCheck.h
-    bmalloc/Range.h
     bmalloc/ScopeExit.h
-    bmalloc/SegmentedVector.h
     bmalloc/Sizes.h
-    bmalloc/SmallLine.h
-    bmalloc/SmallPage.h
     bmalloc/StaticPerProcess.h
     bmalloc/TZoneHeap.h
     bmalloc/TZoneHeapInlines.h
     bmalloc/TZoneHeapManager.h
     bmalloc/VMAllocate.h
     bmalloc/Vector.h
-    bmalloc/Zone.h
     bmalloc/bmalloc.h
     bmalloc/valgrind.h
 
@@ -646,7 +615,6 @@ set(bmalloc_PUBLIC_HEADERS
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     list(APPEND bmalloc_SOURCES
         bmalloc/TZoneLog.cpp
-        bmalloc/Zone.cpp
     )
 endif ()
 

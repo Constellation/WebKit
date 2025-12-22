@@ -29,8 +29,6 @@
 #if BPLATFORM(IOS_FAMILY)
 #include "MemoryStatusSPI.h"
 #endif
-#include "PerProcess.h"
-#include "Scavenger.h"
 #include "Sizes.h"
 #include <array>
 #include <mutex>
