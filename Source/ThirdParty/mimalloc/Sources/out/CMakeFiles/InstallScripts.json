@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/yusukesuzuki/dev/mimalloc/out/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

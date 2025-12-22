@@ -35,7 +35,7 @@
 #if CPU(ADDRESS64)
 #include <wtf/NeverDestroyed.h>
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
-#if !USE(SYSTEM_MALLOC)
+#if USE(LIBPAS)
 #include <bmalloc/bmalloc.h>
 #include <bmalloc/bmalloc_heap.h>
 #include <bmalloc/bmalloc_heap_config.h>
@@ -46,6 +46,8 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include <bmalloc/pas_probabilistic_guard_malloc_allocator.h>
 #include <bmalloc/pas_scavenger.h>
 #include <bmalloc/pas_thread_local_cache.h>
+#elif USE(MIMALLOC)
+#include <bmalloc/mimalloc.h>
 #endif
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 #endif
@@ -84,10 +86,15 @@ void* StructureAlignedMemoryAllocator::tryReallocateMemory(void*, size_t)
 }
 
 #if CPU(ADDRESS64)
-#if !USE(SYSTEM_MALLOC)
+#if USE(LIBPAS)
 
 static const bmalloc_type structureHeapType { BMALLOC_TYPE_INITIALIZER(MarkedBlock::blockSize, MarkedBlock::blockSize, "Structure Heap") };
 static pas_primitive_heap_ref structureHeap { BMALLOC_AUXILIARY_HEAP_REF_INITIALIZER(&structureHeapType, pas_bmalloc_heap_ref_kind_compact) };
+
+#else
+
+static mi_arena_id_t structureArena { };
+thread_local mi_heap_t* structureHeap { };
 
 #endif
 
@@ -119,7 +126,7 @@ public:
         g_jscConfig.structureIDBase = g_jscConfig.startOfStructureHeap & ~StructureID::structureIDMask;
 
         // Don't use the first page because zero is used as the empty StructureID and the first allocation will conflict.
-#if !USE(SYSTEM_MALLOC)
+#if USE(LIBPAS)
         m_useSystemHeap = !bmalloc::api::isEnabled();
         if (!m_useSystemHeap) [[likely]] {
 #if OS(WINDOWS) || PLATFORM(PLAYSTATION)
@@ -130,13 +137,17 @@ public:
             bmalloc_force_auxiliary_heap_into_reserved_memory(&structureHeap, reinterpret_cast<uintptr_t>(g_jscConfig.startOfStructureHeap) + MarkedBlock::blockSize, reinterpret_cast<uintptr_t>(g_jscConfig.startOfStructureHeap) + g_jscConfig.sizeOfStructureHeap);
             return;
         }
-#endif
         m_usedBlocks.set(0);
+#else
+        void* memory = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(g_jscConfig.startOfStructureHeap) + MarkedBlock::blockSize);
+        size_t size = g_jscConfig.sizeOfStructureHeap - MarkedBlock::blockSize;
+        RELEASE_ASSERT(mi_manage_os_memory_ex(memory, size, false, false, false, -1, true, &structureArena));
+#endif
     }
 
     void* tryMallocStructureBlock()
     {
-#if !USE(SYSTEM_MALLOC)
+#if USE(LIBPAS)
 #if OS(WINDOWS) || PLATFORM(PLAYSTATION)
         if (!m_useSystemHeap) [[likely]] {
             void* result = bmalloc_try_allocate_auxiliary_with_alignment_inline(&structureHeap, MarkedBlock::blockSize, MarkedBlock::blockSize, pas_maybe_compact_allocation_mode);
@@ -150,8 +161,6 @@ public:
         if (!m_useSystemHeap) [[likely]]
             return bmalloc_try_allocate_auxiliary_with_alignment_inline(&structureHeap, MarkedBlock::blockSize, MarkedBlock::blockSize, pas_always_compact_allocation_mode);
 #endif
-#endif
-
         size_t freeIndex;
         {
             Locker locker(m_lock);
@@ -169,16 +178,21 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
         commitBlock(block);
         return block;
+#else
+        if (!structureHeap) [[unlikely]]
+            structureHeap = mi_heap_new_ex(40, false, structureArena);
+
+        return mi_heap_malloc_aligned(structureHeap, MarkedBlock::blockSize, MarkedBlock::blockSize);
+#endif
     }
 
     void freeStructureBlock(void* blockPtr)
     {
-#if !USE(SYSTEM_MALLOC)
+#if USE(LIBPAS)
         if (!m_useSystemHeap) [[likely]] {
             bmalloc_deallocate_inline(blockPtr);
             return;
         }
-#endif
 
         decommitBlock(blockPtr);
         uintptr_t block = reinterpret_cast<uintptr_t>(blockPtr);
@@ -187,6 +201,9 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
         Locker locker(m_lock);
         m_usedBlocks.quickClear((block - g_jscConfig.startOfStructureHeap) / MarkedBlock::blockSize);
+#else
+        mi_free(blockPtr);
+#endif
     }
 
     static void commitBlock(void* block)
@@ -214,11 +231,11 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
     }
 
 private:
+#if USE(LIBPAS)
     Lock m_lock;
-#if !USE(SYSTEM_MALLOC)
     bool m_useSystemHeap { true };
-#endif
     BitVector m_usedBlocks;
+#endif
 };
 
 static LazyNeverDestroyed<StructureMemoryManager> s_structureMemoryManager;

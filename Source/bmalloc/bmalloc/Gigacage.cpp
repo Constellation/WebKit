@@ -145,6 +145,10 @@ void ensureGigacage()
             vmDeallocatePhysicalPages(base, totalSize);
 
             size_t nextCage = 0;
+            size_t sliceSize = vmPageSize();
+#if BUSE(MIMALLOC)
+            sliceSize = std::max(mi_arena_min_alignment(), sliceSize);
+#endif
             for (Kind kind : shuffledKinds) {
                 nextCage = alignTo(kind, nextCage);
                 void* gigacageBasePtr = reinterpret_cast<char*>(base) + nextCage;
@@ -154,10 +158,10 @@ void ensureGigacage()
                 uint64_t random[2];
                 cryptoRandom(reinterpret_cast<unsigned char*>(random), sizeof(random));
                 size_t gigacageSize = maxSize(kind);
-                size_t sizeWithSentinel = roundDownToMultipleOf(vmPageSize(), gigacageSize - (random[0] % maximumCageSizeReductionForSlide));
-                size_t size = sizeWithSentinel - vmPageSize();
+                size_t sizeWithSentinel = roundDownToMultipleOf(sliceSize, gigacageSize - (random[0] % maximumCageSizeReductionForSlide));
+                size_t size = sizeWithSentinel - sliceSize;
                 g_gigacageConfig.setAllocSize(kind, size);
-                ptrdiff_t offset = roundDownToMultipleOf(vmPageSize(), random[1] % (gigacageSize - sizeWithSentinel));
+                ptrdiff_t offset = roundDownToMultipleOf(sliceSize, random[1] % (gigacageSize - sizeWithSentinel));
                 void* thisBase = reinterpret_cast<unsigned char*>(gigacageBasePtr) + offset;
                 g_gigacageConfig.setAllocBasePtr(kind, thisBase);
 
@@ -166,6 +170,8 @@ void ensureGigacage()
                     &api::heapForKind(kind),
                     reinterpret_cast<uintptr_t>(thisBase),
                     reinterpret_cast<uintptr_t>(thisBase) + size);
+#elif BUSE(MIMALLOC)
+                RELEASE_BASSERT(mi_manage_os_memory_ex(thisBase, size, false, false, false, -1, true, &api::gigacageArena[static_cast<size_t>(kind)]));
 #endif
 
                 // Make OOB accesses into the last pages crash.

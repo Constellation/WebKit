@@ -11,6 +11,10 @@ if (USE_CAPSTONE)
     add_subdirectory(ThirdParty/capstone)
 endif ()
 
+if (USE_MIMALLOC)
+    add_subdirectory(ThirdParty/mimalloc)
+endif ()
+
 if (USE_SYSTEM_UNIFDEF)
   find_package(Unifdef REQUIRED)
 else ()

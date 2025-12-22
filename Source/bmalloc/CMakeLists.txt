@@ -4,6 +4,7 @@ set(bmalloc_PRIVATE_INCLUDE_DIRECTORIES
     "${BMALLOC_DIR}"
     "${BMALLOC_DIR}/bmalloc"
     "${BMALLOC_DIR}/libpas/src/libpas"
+    "${THIRDPARTY_DIR}/mimalloc/Sources/include"
 )
 
 set(bmalloc_SOURCES
@@ -698,6 +699,8 @@ set(bmalloc_PUBLIC_HEADERS
     libpas/src/libpas/thingy_heap_config.h
     libpas/src/libpas/thingy_heap.h
     libpas/src/libpas/thingy_heap_prefix.h
+
+    "${THIRDPARTY_DIR}/mimalloc/Sources/include/mimalloc.h"
 )
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -720,6 +723,8 @@ if (ATOMICS_REQUIRE_LIBATOMIC)
     list(APPEND bmalloc_LIBRARIES atomic)
 endif ()
 
+list(APPEND bmalloc_LIBRARIES $<TARGET_OBJECTS:mimalloc-obj>)
+
 set(bmalloc_COMPILE_OPTIONS
     -Wno-cast-align
     -Wno-missing-field-initializers
@@ -731,6 +736,10 @@ set(bmalloc_INTERFACE_DEPENDENCIES bmalloc_CopyHeaders)
 
 add_definitions(-D_GNU_SOURCE)
 add_definitions(-DPAS_BMALLOC=1)
+
+if (USE_MIMALLOC)
+    add_definitions(-DUSE_MIMALLOC=1)
+endif ()
 
 if (MSVC)
     add_compile_options(/wd4206)

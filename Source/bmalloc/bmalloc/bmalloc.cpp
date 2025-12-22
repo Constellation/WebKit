@@ -59,6 +59,24 @@ pas_primitive_heap_ref gigacageHeaps[static_cast<size_t>(Gigacage::NumberOfKinds
 };
 #endif
 
+#if BUSE(MIMALLOC)
+#if GIGACAGE_ENABLED
+
+thread_local mi_heap_t* gigacageHeaps[static_cast<size_t>(Gigacage::NumberOfKinds)] { };
+mi_arena_id_t gigacageArena[static_cast<size_t>(Gigacage::NumberOfKinds)] { };
+
+mi_heap_t* initializeHeap(Gigacage::Kind kind)
+{
+    size_t index = static_cast<size_t>(kind);
+    RELEASE_BASSERT(!gigacageHeaps[index]);
+    auto* heap = mi_heap_new_ex(42 + index, /* allow_destroy */ false, gigacageArena[index]);
+    gigacageHeaps[index] = heap;
+    return heap;
+}
+
+#endif
+#endif
+
 void* mallocOutOfLine(size_t size, CompactAllocationMode mode, HeapKind kind)
 {
     return malloc(size, mode, kind);
@@ -83,7 +101,7 @@ void* tryLargeZeroedMemalignVirtual(size_t requiredAlignment, size_t requestedSi
     if (auto* systemHeap = SystemHeap::tryGetIfShouldSupplantBmalloc())
         result = systemHeap->memalignLarge(alignment, size);
     else {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) || BUSE(MIMALLOC)
         result = tryMemalign(alignment, size, mode, kind);
 #else
         BUNUSED(mode);
@@ -110,19 +128,19 @@ void* tryLargeZeroedMemalignVirtual(size_t requiredAlignment, size_t requestedSi
 
 void freeLargeVirtual(void* object, size_t size, HeapKind kind)
 {
+    if (auto* systemHeap = SystemHeap::tryGetIfShouldSupplantBmalloc()) {
+        systemHeap->freeLarge(object);
+        return;
+    }
 #if BUSE(LIBPAS)
     BUNUSED(size);
     BUNUSED(kind);
-    if (auto* systemHeap = SystemHeap::tryGetIfShouldSupplantBmalloc()) {
-        systemHeap->freeLarge(object);
-        return;
-    }
     bmalloc_deallocate_inline(object);
+#elif BUSE(MIMALLOC)
+    BUNUSED(size);
+    BUNUSED(kind);
+    mi_free(object);
 #else
-    if (auto* systemHeap = SystemHeap::tryGetIfShouldSupplantBmalloc()) {
-        systemHeap->freeLarge(object);
-        return;
-    }
     kind = mapToActiveHeapKind(kind);
     Heap& heap = PerProcess<PerHeapKind<Heap>>::get()->at(kind);
     UniqueLockHolder lock(Heap::mutex());
@@ -138,7 +156,9 @@ void scavengeThisThread()
     pas_thread_local_cache_shrink(pas_thread_local_cache_try_get(),
                                   pas_lock_is_not_held);
 #endif
-#if !BUSE(LIBPAS)
+#if BUSE(MIMALLOC)
+    mi_heap_collect(mi_heap_get_default(), true);
+#elif !BUSE(LIBPAS)
     if (!SystemHeap::tryGetIfShouldSupplantBmalloc()) {
         for (unsigned i = numHeaps; i--;)
             Cache::scavenge(static_cast<HeapKind>(i));
@@ -156,7 +176,9 @@ void scavenge()
     if (SystemHeap* systemHeap = SystemHeap::tryGetIfShouldSupplantBmalloc())
         systemHeap->scavenge();
     else {
-#if !BUSE(LIBPAS)
+#if BUSE(MIMALLOC)
+        mi_collect(true);
+#elif !BUSE(LIBPAS)
         Scavenger::get()->scavenge();
 #endif
     }
@@ -173,7 +195,9 @@ void setScavengerThreadQOSClass(qos_class_t overrideClass)
 #if BENABLE(LIBPAS)
     pas_scavenger_set_requested_qos_class(overrideClass);
 #endif
-#if !BUSE(LIBPAS)
+#if BUSE(MIMALLOC)
+    BUNUSED(overrideClass);
+#elif !BUSE(LIBPAS)
     if (!SystemHeap::tryGetIfShouldSupplantBmalloc()) {
         UniqueLockHolder lock(Heap::mutex());
         Scavenger::get()->setScavengerThreadQOSClass(overrideClass);
@@ -186,7 +210,7 @@ void commitAlignedPhysical(void* object, size_t size, HeapKind kind)
 {
     vmValidatePhysical(object, size);
     vmAllocatePhysicalPages(object, size);
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) || BUSE(MIMALLOC)
     BUNUSED(kind);
 #else
     if (!SystemHeap::tryGetIfShouldSupplantBmalloc())
@@ -198,7 +222,7 @@ void decommitAlignedPhysical(void* object, size_t size, HeapKind kind)
 {
     vmValidatePhysical(object, size);
     vmDeallocatePhysicalPages(object, size);
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) || BUSE(MIMALLOC)
     BUNUSED(kind);
 #else
     if (!SystemHeap::tryGetIfShouldSupplantBmalloc())
@@ -243,7 +267,9 @@ void enableMiniMode(bool forceMiniMode)
     PAS_IGNORE_WARNINGS_END;
 #endif // BENABLE(LIBPAS)
 
-#if !BUSE(LIBPAS)
+#if BUSE(MIMALLOC)
+    BUNUSED(forceMiniMode);
+#elif !BUSE(LIBPAS)
     BUNUSED(forceMiniMode);
     if (!SystemHeap::tryGetIfShouldSupplantBmalloc())
         Scavenger::get()->enableMiniMode();
@@ -255,7 +281,8 @@ void disableScavenger()
 #if BENABLE(LIBPAS)
     pas_scavenger_suspend();
 #endif
-#if !BUSE(LIBPAS)
+#if BUSE(MIMALLOC)
+#elif !BUSE(LIBPAS)
     if (!SystemHeap::tryGetIfShouldSupplantBmalloc())
         Scavenger::get()->disable();
 #endif
