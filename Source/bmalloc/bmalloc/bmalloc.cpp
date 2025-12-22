@@ -29,6 +29,7 @@
 #include "PerProcess.h"
 #include "ProcessCheck.h"
 #include "SystemHeap.h"
+#include "VMAllocate.h"
 
 #if BENABLE(LIBPAS)
 #include "bmalloc_heap_config.h"

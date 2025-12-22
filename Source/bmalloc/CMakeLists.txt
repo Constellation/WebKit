@@ -8,35 +8,15 @@ set(bmalloc_PRIVATE_INCLUDE_DIRECTORIES
 )
 
 set(bmalloc_SOURCES
-    bmalloc/AllIsoHeaps.cpp
-    bmalloc/Allocator.cpp
     bmalloc/AvailableMemory.cpp
-    bmalloc/Cache.cpp
     bmalloc/CryptoRandom.cpp
-    bmalloc/Deallocator.cpp
     bmalloc/SystemHeap.cpp
     bmalloc/Environment.cpp
-    bmalloc/FreeList.cpp
     bmalloc/Gigacage.cpp
-    bmalloc/Heap.cpp
-    bmalloc/HeapConstants.cpp
     bmalloc/HeapKind.cpp
-    bmalloc/IsoHeap.cpp
-    bmalloc/IsoHeapImpl.cpp
-    bmalloc/IsoMallocFallback.cpp
-    bmalloc/IsoPage.cpp
-    bmalloc/IsoSharedHeap.cpp
-    bmalloc/IsoSharedPage.cpp
-    bmalloc/IsoTLS.cpp
-    bmalloc/IsoTLSEntry.cpp
-    bmalloc/IsoTLSLayout.cpp
-    bmalloc/LargeMap.cpp
     bmalloc/Logging.cpp
     bmalloc/Mutex.cpp
-    bmalloc/ObjectType.cpp
-    bmalloc/ObjectTypeTable.cpp
     bmalloc/PerProcess.cpp
-    bmalloc/Scavenger.cpp
     bmalloc/TZoneHeap.cpp
     bmalloc/TZoneHeapManager.cpp
     bmalloc/bmalloc.cpp
@@ -214,8 +194,6 @@ set(bmalloc_C_SOURCES
 
 set(bmalloc_PUBLIC_HEADERS
     bmalloc/Algorithm.h
-    bmalloc/AllIsoHeaps.h
-    bmalloc/AllIsoHeapsInlines.h
     bmalloc/AllocationCounts.h
     bmalloc/CompactAllocationMode.h
     bmalloc/Allocator.h
@@ -246,46 +224,11 @@ set(bmalloc_PUBLIC_HEADERS
     bmalloc/Environment.h
     bmalloc/FailureAction.h
     bmalloc/FixedVector.h
-    bmalloc/FreeList.h
-    bmalloc/FreeListInlines.h
     bmalloc/Gigacage.h
     bmalloc/GigacageConfig.h
     bmalloc/GigacageKind.h
     bmalloc/Heap.h
-    bmalloc/HeapConstants.h
     bmalloc/HeapKind.h
-    bmalloc/IsoAllocator.h
-    bmalloc/IsoAllocatorInlines.h
-    bmalloc/IsoConfig.h
-    bmalloc/IsoDeallocator.h
-    bmalloc/IsoDeallocatorInlines.h
-    bmalloc/IsoDirectory.h
-    bmalloc/IsoDirectoryInlines.h
-    bmalloc/IsoDirectoryPage.h
-    bmalloc/IsoDirectoryPageInlines.h
-    bmalloc/IsoHeap.h
-    bmalloc/IsoHeapImpl.h
-    bmalloc/IsoHeapImplInlines.h
-    bmalloc/IsoHeapInlines.h
-    bmalloc/IsoMallocFallback.h
-    bmalloc/IsoPage.h
-    bmalloc/IsoPageInlines.h
-    bmalloc/IsoPageTrigger.h
-    bmalloc/IsoSharedConfig.h
-    bmalloc/IsoSharedHeap.h
-    bmalloc/IsoSharedHeapInlines.h
-    bmalloc/IsoSharedPage.h
-    bmalloc/IsoSharedPageInlines.h
-    bmalloc/IsoTLS.h
-    bmalloc/IsoTLSAllocatorEntry.h
-    bmalloc/IsoTLSAllocatorEntryInlines.h
-    bmalloc/IsoTLSDeallocatorEntry.h
-    bmalloc/IsoTLSDeallocatorEntryInlines.h
-    bmalloc/IsoTLSEntry.h
-    bmalloc/IsoTLSEntryInlines.h
-    bmalloc/IsoTLSInlines.h
-    bmalloc/IsoTLSLayout.h
-    bmalloc/LargeMap.h
     bmalloc/LargeRange.h
     bmalloc/LineMetadata.h
     bmalloc/List.h
@@ -293,8 +236,6 @@ set(bmalloc_PUBLIC_HEADERS
     bmalloc/Map.h
     bmalloc/Mutex.h
     bmalloc/Object.h
-    bmalloc/ObjectType.h
-    bmalloc/ObjectTypeTable.h
     bmalloc/Packed.h
     bmalloc/PerHeapKind.h
     bmalloc/PerProcess.h
@@ -302,7 +243,6 @@ set(bmalloc_PUBLIC_HEADERS
     bmalloc/PhysicalPageMap.h
     bmalloc/ProcessCheck.h
     bmalloc/Range.h
-    bmalloc/Scavenger.h
     bmalloc/ScopeExit.h
     bmalloc/SegmentedVector.h
     bmalloc/Sizes.h

@@ -33,14 +33,10 @@ BALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
 #include "AllocationCounts.h"
 #include "AvailableMemory.h"
-#include "Cache.h"
 #include "CompactAllocationMode.h"
 #include "Gigacage.h"
-#include "Heap.h"
-#include "IsoTLS.h"
 #include "Mutex.h"
 #include "PerHeapKind.h"
-#include "Scavenger.h"
 #include "SystemHeap.h"
 
 #if BUSE(LIBPAS)
