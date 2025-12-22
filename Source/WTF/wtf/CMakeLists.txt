@@ -778,9 +778,7 @@ set(WTF_LIBRARIES
     ICU::uc
 )
 
-if (NOT USE_SYSTEM_MALLOC)
-    set(WTF_FRAMEWORKS bmalloc)
-endif ()
+set(WTF_FRAMEWORKS bmalloc)
 
 if (ATOMICS_REQUIRE_LIBATOMIC)
     list(APPEND WTF_LIBRARIES atomic)

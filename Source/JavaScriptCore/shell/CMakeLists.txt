@@ -3,10 +3,8 @@ set(jsc_LIBRARIES ${CMAKE_DL_LIBS})
 set(jsc_FRAMEWORKS
     JavaScriptCore
     WTF
+    bmalloc
 )
-if (NOT USE_SYSTEM_MALLOC)
-    list(APPEND jsc_FRAMEWORKS bmalloc)
-endif ()
 
 set(jsc_PRIVATE_INCLUDE_DIRECTORIES
     $<TARGET_PROPERTY:JavaScriptCore,INCLUDE_DIRECTORIES>

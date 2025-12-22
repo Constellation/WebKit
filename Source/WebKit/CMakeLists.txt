@@ -751,10 +751,8 @@ set(WebKit_FRAMEWORKS
     PAL
     WTF
     WebCore
+    bmalloc
 )
-if (NOT USE_SYSTEM_MALLOC)
-    list(APPEND WebKit_FRAMEWORKS bmalloc)
-endif ()
 
 set(WebProcess_LIBRARIES WebKit)
 set(NetworkProcess_LIBRARIES WebKit)

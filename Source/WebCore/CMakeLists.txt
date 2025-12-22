@@ -2140,10 +2140,8 @@ set(WebCore_FRAMEWORKS
     JavaScriptCore
     PAL
     WTF
+    bmalloc
 )
-if (NOT USE_SYSTEM_MALLOC)
-    list(APPEND WebCore_FRAMEWORKS bmalloc)
-endif ()
 
 if (ENABLE_XSLT)
     list(APPEND WebCore_LIBRARIES LibXslt::LibXslt)

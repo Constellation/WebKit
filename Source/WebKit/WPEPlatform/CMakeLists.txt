@@ -110,6 +110,7 @@ set(WPEPlatform_LIBRARIES
     GLib::Gio
     WebKit::WTF
     XkbCommon::XkbCommon
+    bmalloc
 )
 
 if (USE_GBM)
@@ -159,10 +160,6 @@ if (USE_MANETTE)
         ${WEBKIT_DIR}/WPEPlatform/wpe/WPEGamepadManagerManette.cpp
         ${WEBKIT_DIR}/WPEPlatform/wpe/WPEGamepadManette.cpp
     )
-endif ()
-
-if (NOT USE_SYSTEM_MALLOC)
-   list(APPEND WPEPlatform_LIBRARIES bmalloc)
 endif ()
 
 if (ENABLE_WPE_PLATFORM_DRM)
