@@ -181,11 +181,8 @@ void Graph::printNodeWhiteSpace(PrintStream& out, Node* node)
     printWhiteSpace(out, amountOfNodeWhiteSpace(node));
 }
 
-void Graph::dump(PrintStream& out, const char* prefixStr, Node* node, DumpContext* context)
+void Graph::dump(PrintStream& out, const char* prefixStr, Node* node, DumpContext* context, bool inIonGraph)
 {
-    Prefix myPrefix(prefixStr);
-    Prefix& prefix = prefixStr ? myPrefix : m_prefix;
-
     NodeType op = node->op();
 
     unsigned refCount = node->refCount();
@@ -193,47 +190,52 @@ void Graph::dump(PrintStream& out, const char* prefixStr, Node* node, DumpContex
     if (mustGenerate)
         --refCount;
 
-    out.print(prefix);
-    printNodeWhiteSpace(out, node);
-
-    // Example/explanation of dataflow dump output
-    //
-    //   D@14:   <!2:7>  GetByVal(@3, @13)
-    //     ^1     ^2 ^3     ^4       ^5
-    //
-    // (1) The nodeIndex of this operation.
-    // (2) The reference count. The number printed is the 'real' count,
-    //     not including the 'mustGenerate' ref. If the node is
-    //     'mustGenerate' then the count it prefixed with '!'.
-    // (3) The virtual register slot assigned to this node.
-    // (4) The name of the operation.
-    // (5) The arguments to the operation. The may be of the form:
-    //         D@#  - a NodeIndex referencing a prior node in the graph.
-    //         arg# - an argument number.
-    //         id#  - the index in the CodeBlock of an identifier { if codeBlock is passed to dump(), the string representation is displayed }.
-    //         var# - the index of a var on the global object, used by GetGlobalVar/GetGlobalLexicalVariable/PutGlobalVariable operations.
-    int nodeIndex = node->index();
-    const char* prefixPadding = nodeIndex < 10 ? "   " : nodeIndex < 100 ? "  " : " ";
-    out.printf("%sD@%d:<%c%u:", prefixPadding, nodeIndex, mustGenerate ? '!' : ' ', refCount);
-    if (node->hasResult() && node->hasVirtualRegister() && node->virtualRegister().isValid())
-        out.print(node->virtualRegister());
-    else
-        out.print("-"_s);
-    out.print(">\t"_s, opName(op), "("_s);
     CommaPrinter comma;
-    if (node->flags() & NodeHasVarArgs) {
-        for (unsigned childIdx = node->firstChild(); childIdx < node->firstChild() + node->numChildren(); childIdx++) {
-            if (!m_varArgChildren[childIdx])
-                continue;
-            out.print(comma, m_varArgChildren[childIdx]);
-        }
+    if (inIonGraph) {
+        out.print(opName(op));
+        comma = CommaPrinter(", "_s, " -> "_s);
+        DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
+            out.print(comma);
+            if (!edge.isProved())
+                out.print("Check:");
+            out.print(edge.useKind(), ":");
+            if (DFG::doesKill(edge.killStatusUnchecked()))
+                out.print("Kill:");
+            out.print(opName(edge->op()), "#"_s, edge->index());
+        });
     } else {
-        if (!!node->child1() || !!node->child2() || !!node->child3())
-            out.print(comma, node->child1());
-        if (!!node->child2() || !!node->child3())
-            out.print(comma, node->child2());
-        if (!!node->child3())
-            out.print(comma, node->child3());
+        Prefix myPrefix(prefixStr);
+        Prefix& prefix = prefixStr ? myPrefix : m_prefix;
+        out.print(prefix);
+        printNodeWhiteSpace(out, node);
+
+        // Example/explanation of dataflow dump output
+        //
+        //   D@14:   <!2:7>  GetByVal(@3, @13)
+        //     ^1     ^2 ^3     ^4       ^5
+        //
+        // (1) The nodeIndex of this operation.
+        // (2) The reference count. The number printed is the 'real' count,
+        //     not including the 'mustGenerate' ref. If the node is
+        //     'mustGenerate' then the count it prefixed with '!'.
+        // (3) The virtual register slot assigned to this node.
+        // (4) The name of the operation.
+        // (5) The arguments to the operation. The may be of the form:
+        //         D@#  - a NodeIndex referencing a prior node in the graph.
+        //         arg# - an argument number.
+        //         id#  - the index in the CodeBlock of an identifier { if codeBlock is passed to dump(), the string representation is displayed }.
+        //         var# - the index of a var on the global object, used by GetGlobalVar/GetGlobalLexicalVariable/PutGlobalVariable operations.
+        int nodeIndex = node->index();
+        const char* prefixPadding = nodeIndex < 10 ? "   " : nodeIndex < 100 ? "  " : " ";
+        out.printf("%sD@%d:<%c%u:", prefixPadding, nodeIndex, mustGenerate ? '!' : ' ', refCount);
+        if (node->hasResult() && node->hasVirtualRegister() && node->virtualRegister().isValid())
+            out.print(node->virtualRegister());
+        else
+            out.print("-"_s);
+        out.print(">\t"_s, opName(op), "("_s);
+        DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
+            out.print(comma, edge);
+        });
     }
 
     if (toCString(NodeFlagsDump(node->flags())) != "<empty>")
@@ -2130,6 +2132,9 @@ void Graph::appendIonGraphPass(const String& passName)
         auto ionBlocks = JSON::Array::create();
         mir->setArray("blocks"_s, ionBlocks);
 
+        DumpContext context;
+        context.graph = this;
+
         for (auto* block : blocksInNaturalOrder()) {
             if (!block)
                 continue;
@@ -2149,36 +2154,21 @@ void Graph::appendIonGraphPass(const String& passName)
                     inputs->pushInteger(edge->index());
                 });
 
-                StringBuilder opcodeBuilder;
-                opcodeBuilder.append(opName(node->op()));
-                {
-                    bool arrow = true;
-                    DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
-                        if (std::exchange(arrow, false))
-                            opcodeBuilder.append(" <- "_s);
-                        else
-                            opcodeBuilder.append(", "_s);
-                        opcodeBuilder.append(opName(edge->op()), "#"_s, edge->index());
-                    });
-                }
-
+                StringPrintStream stream;
+                dump(stream, nullptr, node, &context, /* inIonGraph */ true);
                 if (node->numSuccessors()) {
-                    bool arrow = true;
+                    CommaPrinter comma(", "_s, " -> "_s);
                     for (unsigned i = 0; i < node->numSuccessors(); ++i) {
                         auto* block = node->successor(i);
                         if (!block)
                             continue;
-                        if (std::exchange(arrow, false))
-                            opcodeBuilder.append(" -> "_s);
-                        else
-                            opcodeBuilder.append(", "_s);
-                        opcodeBuilder.append("block#"_s, block->index);
+                        stream.print(comma, "block "_s, block->index);
                     }
                 }
 
                 instruction->setInteger("ptr"_s, node->index() + 1);
                 instruction->setInteger("id"_s, node->index());
-                instruction->setString("opcode"_s, opcodeBuilder.toString());
+                instruction->setString("opcode"_s, stream.toString());
                 instruction->setArray("attributes"_s, JSON::Array::create());
                 instruction->setArray("inputs"_s, WTF::move(inputs));
                 instruction->setArray("uses"_s, JSON::Array::create());
