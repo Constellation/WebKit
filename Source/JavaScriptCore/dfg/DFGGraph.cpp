@@ -58,8 +58,6 @@
 #include "StructureInlines.h"
 #include <wtf/CommaPrinter.h>
 #include <wtf/ListDump.h>
-#include <wtf/text/StringConcatenate.h>
-#include <wtf/text/StringConcatenateNumbers.h>
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 

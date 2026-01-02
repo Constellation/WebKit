@@ -35,6 +35,7 @@
 #include <wtf/ProcessID.h>
 #include <wtf/StringPrintStream.h>
 #include <wtf/TZoneMallocInlines.h>
+#include <wtf/text/MakeString.h>
 
 #if OS(LINUX)
 #include <sys/mman.h>
@@ -192,7 +193,7 @@ void ProfilerSupport::dumpIonFunction(const String& functionName, Ref<JSON::Obje
 {
     if (!Options::dumpIonGraph())
         return;
-    auto handle = FileSystem::createDumpFile(makeString("iongraph-"_s, functionName, "-"_s, WTF::getCurrentProcessID(), "-", generateTimestamp(), ".json"_s), String::fromUTF8(Options::ionGraphDirectory()));
+    auto handle = FileSystem::createDumpFile(makeString("iongraph-"_s, functionName, "-"_s, WTF::getCurrentProcessID(), "-"_s, generateTimestamp(), ".json"_s), String::fromUTF8(Options::ionGraphDirectory()));
     RELEASE_ASSERT(handle);
     auto* file = fdopen(handle->platformHandle(), "wb");
     RELEASE_ASSERT(file);
