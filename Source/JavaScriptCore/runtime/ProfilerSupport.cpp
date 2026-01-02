@@ -196,7 +196,7 @@ void ProfilerSupport::dumpIonFunction(const String& functionName, Ref<JSON::Obje
         return;
     auto handle = FileSystem::createDumpFile(makeString("iongraph-"_s, functionName, "-"_s, WTF::getCurrentProcessID(), "-"_s, generateTimestamp(), ".json"_s), String::fromUTF8(Options::ionGraphDirectory()));
     RELEASE_ASSERT(handle);
-    auto* file = fdopen(handle->platformHandle(), "wb");
+    auto* file = fdopen(handle.platformHandle(), "wb");
     RELEASE_ASSERT(file);
     auto stream = makeUnique<FilePrintStream>(file, FilePrintStream::Adopt);
     RELEASE_ASSERT(stream);
