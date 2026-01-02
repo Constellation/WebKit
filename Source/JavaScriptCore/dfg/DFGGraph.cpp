@@ -2143,9 +2143,6 @@ void Graph::appendIonGraphPass(const String& passName)
             if (!block)
                 continue;
 
-            if (block->predecessors.isEmpty() && !isRoot(block))
-                continue;
-
             auto ionBlock = JSON::Object::create();
             auto attributes = JSON::Array::create();
             auto predecessors = JSON::Array::create();
@@ -2186,18 +2183,17 @@ void Graph::appendIonGraphPass(const String& passName)
             }
 
             unsigned loopDepth = 0;
-            auto computeWithNaturalLoops = [&](auto& naturalLoops) {
-                auto isLoopBackEdge = [&] -> bool {
-                    for (auto* loop = naturalLoops.innerMostLoopOf(block); loop; loop = naturalLoops.innerMostOuterLoop(*loop)) {
-                        for (auto* successor : block->successors())
-                            if (loop->header() == successor)
-                                return true;
+            auto computeWithNaturalLoops = [&](auto& naturalLoops, auto& dominators) {
+                auto isBackEdge = [&](auto* block) -> bool {
+                    for (auto* successor : block->successors()) {
+                        if (dominators.dominates(successor, block))
+                            return true;
                     }
                     return false;
                 };
 
                 loopDepth = naturalLoops.loopDepth(block);
-                if (isLoopBackEdge())
+                if (isBackEdge(block))
                     attributes->pushString("backedge"_s);
                 if (auto* loop = naturalLoops.headerOf(block))
                     attributes->pushString("loopheader"_s);
@@ -2205,10 +2201,10 @@ void Graph::appendIonGraphPass(const String& passName)
 
             switch (m_form) {
             case SSA:
-                computeWithNaturalLoops(ensureSSANaturalLoops());
+                computeWithNaturalLoops(ensureSSANaturalLoops(), ensureSSADominators());
                 break;
             case ThreadedCPS:
-                computeWithNaturalLoops(ensureCPSNaturalLoops());
+                computeWithNaturalLoops(ensureCPSNaturalLoops(), ensureCPSDominators());
                 break;
             case LoadStore:
                 break;
