@@ -2145,7 +2145,7 @@ void Graph::appendIonGraphPass(const String& passName)
                 auto inputs = JSON::Array::create();
                 auto* node = block->at(i);
 
-                doToAllChildren(node, [&](Edge& edge) {
+                DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
                     inputs->pushInteger(edge->index());
                 });
 
@@ -2179,11 +2179,16 @@ void Graph::appendIonGraphPass(const String& passName)
                     attributes->pushString("loopheader"_s);
             };
 
-            if (m_form == SSA)
+            switch (m_form) {
+            case SSA:
                 computeWithNaturalLoops(ensureSSANaturalLoops());
-            else
+                break;
+            case ThreadedCPS:
                 computeWithNaturalLoops(ensureCPSNaturalLoops());
-
+                break;
+            case LoadStore:
+                break;
+            }
             for (auto* predecessor : block->predecessors)
                 predecessors->pushInteger(predecessor->index);
 
