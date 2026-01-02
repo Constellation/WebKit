@@ -2151,14 +2151,30 @@ void Graph::appendIonGraphPass(const String& passName)
 
                 StringBuilder opcodeBuilder;
                 opcodeBuilder.append(opName(node->op()));
-                bool arrow = true;
-                DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
-                    if (std::exchange(arrow, false))
-                        opcodeBuilder.append(" <- "_s);
-                    else
-                        opcodeBuilder.append(", "_s);
-                    opcodeBuilder.append(opName(edge->op()), "#"_s, edge->index());
-                });
+                {
+                    bool arrow = true;
+                    DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
+                        if (std::exchange(arrow, false))
+                            opcodeBuilder.append(" <- "_s);
+                        else
+                            opcodeBuilder.append(", "_s);
+                        opcodeBuilder.append(opName(edge->op()), "#"_s, edge->index());
+                    });
+                }
+
+                if (node->numSuccessors()) {
+                    bool arrow = true;
+                    for (unsigned i = 0; i < node->numSuccessors(); ++i) {
+                        auto* block = node->successor(i);
+                        if (!block)
+                            continue;
+                        if (std::exchange(arrow, false))
+                            opcodeBuilder.append(" -> "_s);
+                        else
+                            opcodeBuilder.append(", "_s);
+                        opcodeBuilder.append("block#"_s, block->index);
+                    }
+                }
 
                 instruction->setInteger("ptr"_s, node->index() + 1);
                 instruction->setInteger("id"_s, node->index());
