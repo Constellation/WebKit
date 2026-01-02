@@ -2108,6 +2108,95 @@ void Prefix::dump(PrintStream& out) const
         out.printf("%s", prefixStr);
 }
 
+Ref<JSON::Value> Graph::toIonGraphPass(const String& passName)
+{
+    auto pass = JSON::Object::create();
+    pass->setString("name"_s, passName);
+    {
+        auto mir = JSON::Object::create();
+        auto ionBlocks = JSON::Array::create();
+        mir->setArray("blocks"_s, ionBlocks);
+
+        for (auto* block : blocksInNaturalOrder()) {
+            if (!block)
+                continue;
+
+            auto ionBlock = JSON::Object::create();
+            auto attributes = JSON::Array::create();
+            auto predecessors = JSON::Array::create();
+            auto successors = JSON::Array::create();
+            auto instructions = JSON::Array::create();
+
+            for (size_t i = 0; i < block->size(); ++i) {
+                auto instruction = JSON::Object::create();
+                auto inputs = JSON::Array::create();
+                auto* node = block->at(i);
+
+                doToAllChildren(node, [&](Edge& edge) {
+                    inputs->pushInteger(edge->index());
+                });
+
+                instruction->setInteger("ptr"_s, node->index() + 1);
+                instruction->setInteger("id"_s, node->index());
+                instruction->setString("opcode"_s, opName(node->op()));
+                instruction->setArray("attributes"_s, JSON::Array::create());
+                instruction->setArray("inputs"_s, WTF::move(inputs));
+                instruction->setArray("uses"_s, JSON::Array::create());
+                instruction->setArray("memInputs"_s, JSON::Array::create());
+                instruction->setString("type"_s, ""_s);
+
+                instructions->pushObject(WTF::move(instruction));
+            }
+
+            unsigned loopDepth = 0;
+            auto computeWithNaturalLoops = [&](auto& naturalLoops) {
+                auto isLoopBackEdge = [&] -> bool {
+                    for (auto* loop = naturalLoops.innerMostLoopOf(block); loop; loop = naturalLoops.innerMostOuterLoop(*loop)) {
+                        for (auto* successor : block->successors())
+                            if (loop->header() == successor)
+                                return true;
+                    }
+                    return false;
+                };
+
+                loopDepth = naturalLoops.loopDepth(block);
+                if (isLoopBackEdge())
+                    attributes->pushString("backedge"_s);
+                if (auto* loop = naturalLoops.headerOf(block))
+                    attributes->pushString("loopheader"_s);
+            };
+
+            if (m_form == SSA)
+                computeWithNaturalLoops(ensureSSANaturalLoops());
+            else
+                computeWithNaturalLoops(ensureCPSNaturalLoops());
+
+            for (auto* predecessor : block->predecessors)
+                predecessors->pushInteger(predecessor->index);
+
+            for (auto* successor : block->successors())
+                successors->pushInteger(successor->index);
+
+            ionBlock->setInteger("ptr"_s, block->index + 1);
+            ionBlock->setInteger("id"_s, block->index);
+            ionBlock->setInteger("loopDepth"_s, loopDepth);
+            ionBlock->setArray("attributes"_s, WTF::move(attributes));
+            ionBlock->setArray("predecessors"_s, WTF::move(predecessors));
+            ionBlock->setArray("successors"_s, WTF::move(successors));
+            ionBlock->setArray("instructions"_s, WTF::move(instructions));
+            ionBlocks->pushObject(ionBlock);
+        }
+
+        pass->setObject("mir"_s, WTF::move(mir));
+    }
+    {
+        auto lir = JSON::Object::create();
+        lir->setArray("blocks"_s, JSON::Array::create());
+        pass->setObject("lir"_s, WTF::move(lir));
+    }
+    return pass;
+}
+
 } } // namespace JSC::DFG
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END

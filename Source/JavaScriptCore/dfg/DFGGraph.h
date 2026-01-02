@@ -46,6 +46,7 @@
 #include <wtf/StackCheck.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/Vector.h>
+#include <wtf/JSONValues.h>
 
 namespace WTF {
 template <typename T> class SingleRootGraph;
@@ -321,6 +322,8 @@ public:
     // Dump the code origin of the given node as a diff from the code origin of the
     // preceding node. Returns true if anything was printed.
     bool dumpCodeOrigin(PrintStream&, const char* prefix, Node*& previousNode, Node* currentNode, DumpContext*);
+
+    Ref<JSON::Value> toIonGraphPass(const String& passName);
 
     AddSpeculationMode addSpeculationMode(Node* add, bool leftShouldSpeculateInt32, bool rightShouldSpeculateInt32, PredictionPass pass)
     {
