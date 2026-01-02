@@ -72,7 +72,7 @@ public:
     explicit operator bool() const { return m_packedBits != invalidOffset && m_packedBits != deletedValue().offset(); }
     friend auto operator<=>(const BytecodeIndex&, const BytecodeIndex&) = default;
 
-    void dump(WTF::PrintStream&) const;
+    void dump(WTF::PrintStream&, bool inIonGraph = false) const;
 
 private:
     static constexpr uint32_t invalidOffset = std::numeric_limits<uint32_t>::max();

@@ -30,11 +30,14 @@
 
 namespace JSC {
 
-void BytecodeIndex::dump(WTF::PrintStream& out) const
+void BytecodeIndex::dump(WTF::PrintStream& out, bool inIonGraph) const
 {
-    out.print("bc#", offset());
+    Latin1Character split = '#';
+    if (inIonGraph)
+        split = ':';
+    out.print("bc", split, offset());
     if (checkpoint())
-        out.print("cp#", checkpoint());
+        out.print("cp", split, checkpoint());
 }
 
 } // namespace JSC

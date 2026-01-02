@@ -443,9 +443,12 @@ void Graph::dump(PrintStream& out, const char* prefixStr, Node* node, DumpContex
     if (clobbersExitState(*this, node))
         out.print(comma, "ClobbersExit"_s);
     if (node->origin.isSet()) {
-        out.print(comma, node->origin.semantic.bytecodeIndex());
-        if (node->origin.semantic != node->origin.forExit && node->origin.forExit.isSet())
-            out.print(comma, "exit: "_s, node->origin.forExit);
+        out.print(comma);
+        node->origin.semantic.bytecodeIndex().dump(out, inIonGraph);
+        if (node->origin.semantic != node->origin.forExit && node->origin.forExit.isSet()) {
+            out.print(comma, "exit: "_s);
+            node->origin.forExit.dump(out, inIonGraph);
+        }
     }
     out.print(comma, node->origin.exitOK ? "ExitValid"_s : "ExitInvalid"_s);
     if (node->origin.wasHoisted)
