@@ -2129,6 +2129,9 @@ void Prefix::dump(PrintStream& out) const
 
 void Graph::appendIonGraphPass(const String& passName)
 {
+    if (m_form == LoadStore) // It is having orphan blocks etc., so we cannot compute dominators.
+        return;
+
     auto pass = JSON::Object::create();
     pass->setString("name"_s, passName);
     {
