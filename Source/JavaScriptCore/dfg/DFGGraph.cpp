@@ -98,7 +98,7 @@ Graph::Graph(VM& vm, Plan& plan)
     if (Options::dumpIonGraph()) {
         m_ionFunction = JSON::Object::create();
         auto passes = JSON::Array::create();
-        m_ionPasses = RefPtr { passes };
+        m_ionPasses = passes.get();
         m_ionFunction->setString("name"_s, m_codeBlock->inferredNameWithHash());
         m_ionFunction->setArray("passes"_s, WTF::move(passes));
     }
