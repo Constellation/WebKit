@@ -108,7 +108,7 @@ Graph::Graph(VM& vm, Plan& plan)
 Graph::~Graph()
 {
     if (Options::dumpIonGraph() && m_ionFunction) [[unlikely]]
-        ProfilerSupport::appendIonFunction(m_codeBlock->inferredNameWithHash(), m_ionFunction.releaseNonNull());
+        ProfilerSupport::dumpIonFunction(m_codeBlock->inferredNameWithHash(), m_ionFunction.releaseNonNull());
 }
 
 ASCIILiteral Graph::opName(NodeType op)
