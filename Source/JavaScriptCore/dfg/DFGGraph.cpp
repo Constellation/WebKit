@@ -459,8 +459,9 @@ void Graph::dump(PrintStream& out, const char* prefixStr, Node* node, DumpContex
         out.print("  predicting "_s, SpeculationDump(node->tryGetVariableAccessData()->prediction()));
     else if (node->hasHeapPrediction())
         out.print("  predicting "_s, SpeculationDump(node->getHeapPrediction()));
-    
-    out.print("\n"_s);
+
+    if (!inIonGraph)
+        out.print("\n"_s);
 }
 
 bool Graph::terminalsAreValid()
@@ -2140,6 +2141,9 @@ void Graph::appendIonGraphPass(const String& passName)
 
         for (auto* block : blocksInNaturalOrder()) {
             if (!block)
+                continue;
+
+            if (block->predecessors.isEmpty() && !isRoot(block))
                 continue;
 
             auto ionBlock = JSON::Object::create();

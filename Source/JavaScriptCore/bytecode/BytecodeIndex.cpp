@@ -32,12 +32,13 @@ namespace JSC {
 
 void BytecodeIndex::dump(WTF::PrintStream& out, bool inIonGraph) const
 {
-    Latin1Character split = '#';
+    ASCIILiteral split = "#"_s;
     if (inIonGraph)
-        split = ':';
-    out.print("bc", split, offset());
+        split = "/"_s;
+
+    out.print("bc"_s, split, offset());
     if (checkpoint())
-        out.print("cp", split, checkpoint());
+        out.print("cp"_s, split, checkpoint());
 }
 
 } // namespace JSC
