@@ -717,7 +717,7 @@ String createTemporaryFile(StringView prefix, StringView suffix)
 FileHandle createDumpFile(StringView filename, StringView path)
 {
     if (path.isEmpty()) {
-        auto [p, handle] = openTemporaryFile(nullString(), filename);
+        auto [p, handle] = openTemporaryFile(filename, nullString());
         return WTF::move(handle);
     }
     return openFile(makeString(path, pathSeparator, filename), FileOpenMode::Truncate);
