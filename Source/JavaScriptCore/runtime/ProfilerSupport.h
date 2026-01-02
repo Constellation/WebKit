@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <wtf/FilePrintStream.h>
 #include <wtf/HashMap.h>
+#include <wtf/JSONValues.h>
 #include <wtf/Lock.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMalloc.h>
@@ -66,6 +67,8 @@ public:
     static uint64_t generateTimestamp();
 
     static ProfilerSupport& singleton();
+
+    static void dumpIonFunction(const String& functionName, Ref<JSON::Object>&&);
 
 private:
     ProfilerSupport();

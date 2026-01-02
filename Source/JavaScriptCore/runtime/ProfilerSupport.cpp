@@ -188,4 +188,18 @@ void ProfilerSupport::markInterval(const void* identifier, Category, MonotonicTi
     });
 }
 
+void ProfilerSupport::dumpIonFunction(const String& functionName, Ref<JSON::Object>&& function)
+{
+    if (!Options::dumpIonGraph())
+        return;
+    auto handle = FileSystem::createDumpFile(makeString("iongraph-"_s, functionName, "-"_s, WTF::getCurrentProcessID(), "-", generateTimestamp(), ".json"_s), String::fromUTF8(Options::ionGraphDirectory()));
+    RELEASE_ASSERT(handle);
+    auto* file = fdopen(handle->platformHandle(), "wb");
+    RELEASE_ASSERT(file);
+    auto stream = makeUnique<FilePrintStream>(file, FilePrintStream::Adopt);
+    RELEASE_ASSERT(stream);
+    stream->print(function);
+    stream->flush();
+}
+
 } // namespace JSC

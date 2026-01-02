@@ -51,6 +51,7 @@
 #include "JSLexicalEnvironment.h"
 #include "MaxFrameExtentForSlowPathCall.h"
 #include "OperandsInlines.h"
+#include "ProfilerSupport.h"
 #include "SlotVisitorInlines.h"
 #include "Snippet.h"
 #include "StackAlignment.h"
@@ -104,7 +105,11 @@ Graph::Graph(VM& vm, Plan& plan)
     }
 }
 
-Graph::~Graph() = default;
+Graph::~Graph()
+{
+    if (Options::dumpIonGraph() && m_ionFunction) [[unlikely]]
+        ProfilerSupport::appendIonFunction(m_codeBlock->inferredNameWithHash(), m_ionFunction.releaseNonNull());
+}
 
 ASCIILiteral Graph::opName(NodeType op)
 {

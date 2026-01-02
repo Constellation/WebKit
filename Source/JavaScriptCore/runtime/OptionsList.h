@@ -640,6 +640,7 @@ bool hasCapacityToUseLargeGigacage();
     v(Bool, dumpFTLCodeSize, false, Normal, nullptr) \
     v(Bool, dumpOptimizationTracing, false, Normal, nullptr) \
     v(Bool, dumpIonGraph, false, Normal, nullptr) \
+    v(OptionString, ionGraphDirectory, nullptr, Normal, "Directory to place IonGraph"_s) \
     v(Unsigned, markedBlockDumpInfoCount, 0, Normal, nullptr) /* FIXME: rdar://139998916 */ \
     \
     /* Feature Flags */\
