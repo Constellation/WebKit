@@ -2149,9 +2149,18 @@ void Graph::appendIonGraphPass(const String& passName)
                     inputs->pushInteger(edge->index());
                 });
 
+                StringBuilder opcodeBuilder;
+                opcodeBuilder.append(opName(node->op()));
+                if (numChildren(node)) {
+                    opcodeBuilder.append(" <- "_s);
+                    DFG_NODE_DO_TO_CHILDREN(*this, node, [&](Node*, Edge edge) {
+                        opcodeBuilder.append(", "_s, opName(edge->op()), "#"_s, edge->index());
+                    });
+                }
+
                 instruction->setInteger("ptr"_s, node->index() + 1);
                 instruction->setInteger("id"_s, node->index());
-                instruction->setString("opcode"_s, opName(node->op()));
+                instruction->setString("opcode"_s, opcodeBuilder.toString());
                 instruction->setArray("attributes"_s, JSON::Array::create());
                 instruction->setArray("inputs"_s, WTF::move(inputs));
                 instruction->setArray("uses"_s, JSON::Array::create());
