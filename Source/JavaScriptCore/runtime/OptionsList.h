@@ -639,6 +639,7 @@ bool hasCapacityToUseLargeGigacage();
     v(Bool, useArrayAllocationSinking, true, Normal, nullptr) \
     v(Bool, dumpFTLCodeSize, false, Normal, nullptr) \
     v(Bool, dumpOptimizationTracing, false, Normal, nullptr) \
+    v(Bool, dumpIonGraph, false, Normal, nullptr) \
     v(Unsigned, markedBlockDumpInfoCount, 0, Normal, nullptr) /* FIXME: rdar://139998916 */ \
     \
     /* Feature Flags */\

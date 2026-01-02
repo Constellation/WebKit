@@ -94,6 +94,14 @@ Graph::Graph(VM& vm, Plan& plan)
     registerStructure(vm.structureStructure.get());
     this->stringStructure = registerStructure(vm.stringStructure.get());
     this->symbolStructure = registerStructure(vm.symbolStructure.get());
+
+    if (Options::dumpIonGraph()) {
+        m_ionFunction = JSON::Object::create();
+        auto passes = JSON::Array::create();
+        m_ionPasses = RefPtr { passes };
+        m_ionFunction->setString("name"_s, m_codeBlock->inferredNameWithHash());
+        m_ionFunction->setArray("passes"_s, WTF::move(passes));
+    }
 }
 
 Graph::~Graph() = default;
@@ -2108,7 +2116,7 @@ void Prefix::dump(PrintStream& out) const
         out.printf("%s", prefixStr);
 }
 
-Ref<JSON::Value> Graph::toIonGraphPass(const String& passName)
+void Graph::appendIonGraphPass(const String& passName)
 {
     auto pass = JSON::Object::create();
     pass->setString("name"_s, passName);
@@ -2194,7 +2202,7 @@ Ref<JSON::Value> Graph::toIonGraphPass(const String& passName)
         lir->setArray("blocks"_s, JSON::Array::create());
         pass->setObject("lir"_s, WTF::move(lir));
     }
-    return pass;
+    m_ionPasses->pushObject(pass);
 }
 
 } } // namespace JSC::DFG

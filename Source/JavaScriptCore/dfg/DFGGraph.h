@@ -323,7 +323,7 @@ public:
     // preceding node. Returns true if anything was printed.
     bool dumpCodeOrigin(PrintStream&, const char* prefix, Node*& previousNode, Node* currentNode, DumpContext*);
 
-    Ref<JSON::Value> toIonGraphPass(const String& passName);
+    void appendIonGraphPass(const String& passName);
 
     AddSpeculationMode addSpeculationMode(Node* add, bool leftShouldSpeculateInt32, bool rightShouldSpeculateInt32, PredictionPass pass)
     {
@@ -1447,6 +1447,8 @@ private:
     B3::SparseCollection<Node> m_nodes;
     SegmentedVector<RegisteredStructureSet, 16> m_structureSets;
     Prefix m_prefix;
+    RefPtr<JSON::Object> m_ionFunction;
+    RefPtr<JSON::Array> m_ionPasses;
 };
 
 } } // namespace JSC::DFG
