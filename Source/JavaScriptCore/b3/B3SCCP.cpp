@@ -220,29 +220,168 @@ private:
     };
 };
 
-// Pair of Value* and its AbstractValue for sparse per-block storage
+} // anonymous namespace
+
+// ValueFlowProjection - encodes Value* and whether it's Shadow (for Phi) or Primary
+// Must be outside anonymous namespace for WTF hash traits
+// (matching DFG's NodeFlowProjection)
+class ValueFlowProjection {
+public:
+    enum Kind {
+        Primary,
+        Shadow
+    };
+
+    ValueFlowProjection() = default;
+
+    ValueFlowProjection(Value* value)
+        : m_word(std::bit_cast<uintptr_t>(value))
+    {
+        ASSERT(kind() == Primary);
+    }
+
+    ValueFlowProjection(Value* value, Kind kind)
+        : m_word(std::bit_cast<uintptr_t>(value) | (kind == Shadow ? shadowBit : 0))
+    {
+        ASSERT(this->kind() == kind);
+    }
+
+    ValueFlowProjection(WTF::HashTableDeletedValueType)
+        : m_word(shadowBit)
+    {
+    }
+
+    explicit operator bool() const { return !!m_word; }
+
+    Kind kind() const { return (m_word & shadowBit) ? Shadow : Primary; }
+
+    Value* value() const { return std::bit_cast<Value*>(m_word & ~shadowBit); }
+
+    Value& operator*() const { return *value(); }
+    Value* operator->() const { return value(); }
+
+    unsigned hash() const
+    {
+        return m_word;
+    }
+
+    friend bool operator==(const ValueFlowProjection&, const ValueFlowProjection&) = default;
+
+    bool operator<(ValueFlowProjection other) const
+    {
+        if (kind() != other.kind())
+            return kind() < other.kind();
+        return value() < other.value();
+    }
+
+    bool operator>(ValueFlowProjection other) const
+    {
+        return other < *this;
+    }
+
+    bool operator<=(ValueFlowProjection other) const
+    {
+        return !(*this > other);
+    }
+
+    bool operator>=(ValueFlowProjection other) const
+    {
+        return !(*this < other);
+    }
+
+    bool isHashTableDeletedValue() const
+    {
+        return *this == ValueFlowProjection(WTF::HashTableDeletedValue);
+    }
+
+    static constexpr bool safeToCompareToHashTableEmptyOrDeletedValue = true;
+
+    // Phi shadow projections can become invalid because the Phi might be folded to something else.
+    bool isStillValid() const
+    {
+        return *this && (kind() == Primary || value()->opcode() == Phi);
+    }
+
+    template<typename Func>
+    static void forEach(Value* value, const Func& func)
+    {
+        func(ValueFlowProjection(value));
+        if (value->opcode() == Phi)
+            func(ValueFlowProjection(value, Shadow));
+    }
+
+private:
+    static constexpr uintptr_t shadowBit = 1;
+    uintptr_t m_word { 0 };
+};
+
+} } // namespace JSC::B3
+
+// WTF hash support for ValueFlowProjection (matching DFG's NodeFlowProjection)
+namespace WTF {
+
+template<typename T> struct HashTraits;
+template<> struct HashTraits<JSC::B3::ValueFlowProjection> : SimpleClassHashTraits<JSC::B3::ValueFlowProjection> { };
+
+} // namespace WTF
+
+namespace JSC { namespace B3 {
+
+namespace {
+
+// Pair of ValueFlowProjection and its AbstractValue (matching DFG's NodeAbstractValuePair)
 struct ValueAbstractValuePair {
-    Value* value { nullptr };
+    ValueFlowProjection value;
     AbstractValue abstractValue;
 
     ValueAbstractValuePair() = default;
-    ValueAbstractValuePair(Value* v, const AbstractValue& av)
+    ValueAbstractValuePair(ValueFlowProjection v, const AbstractValue& av)
         : value(v)
         , abstractValue(av)
     {
     }
 };
 
-// Per-block state for SCCP
+// FlowMap for B3 (matching DFG's FlowMap)
+// Maps Value indices to AbstractValues, with separate storage for Phi shadows
+template<typename T>
+class FlowMap {
+public:
+    FlowMap(Procedure& proc)
+        : m_proc(proc)
+        , m_map(proc.values().size())
+        , m_shadowMap(proc.values().size())
+    {
+    }
+
+    void resize()
+    {
+        m_map.resize(m_proc.values().size());
+        m_shadowMap.resize(m_proc.values().size());
+    }
+
+    // Access using ValueFlowProjection
+    T& at(ValueFlowProjection projection)
+    {
+        if (projection.kind() == ValueFlowProjection::Shadow)
+            return m_shadowMap[projection.value()];
+        return m_map[projection.value()];
+    }
+
+private:
+    Procedure& m_proc;
+    IndexMap<Value*, T> m_map;
+    IndexMap<Value*, T> m_shadowMap;
+};
+
+// Per-block state for SCCP (matching DFG's BasicBlock::SSAData)
 struct BlockState {
-    Vector<ValueAbstractValuePair> valuesAtHead;
-    Vector<ValueAbstractValuePair> valuesAtTail;
+    Vector<ValueFlowProjection> liveAtHead;  // Live projections at block entry
+    Vector<ValueFlowProjection> liveAtTail;  // Live projections at block exit
+    Vector<ValueAbstractValuePair> valuesAtHead;  // Pre-populated from liveAtHead
+    Vector<ValueAbstractValuePair> valuesAtTail;  // Pre-populated from liveAtTail
     bool shouldRevisit { false };
     bool hasVisited { false };
-
-    // Track which edges are executable (for sparse conditional propagation)
-    // If empty, all edges are executable (conservative)
-    HashSet<BasicBlock*> executableSuccessors;
 };
 
 // SCCP pass implementation following DFG's AbstractInterpreter pattern
@@ -250,21 +389,117 @@ class SCCP {
 public:
     SCCP(Procedure& proc)
         : m_proc(proc)
+        , m_abstractValues(proc)
         , m_blockStates(proc.size())
-        , m_abstractValues(proc.values().size())
-        , m_phiShadows(proc.values().size())
         , m_insertionSet(proc)
         , m_phiChildren(proc)
     {
-        // Initialize block states
-        for (BasicBlock* block : proc)
-            m_blockStates[block] = BlockState();
+        // Compute liveness and initialize block states (matching DFG's initialize())
+        computeLiveness();
+
+        // Pre-populate valuesAtHead and valuesAtTail from liveness
+        // (matching DFG's setLiveValues at line 191-192)
+        for (BasicBlock* block : proc) {
+            BlockState& state = m_blockStates[block];
+
+            state.valuesAtHead = state.liveAtHead.map([](ValueFlowProjection projection) {
+                return ValueAbstractValuePair(projection, AbstractValue());
+            });
+
+            state.valuesAtTail = state.liveAtTail.map([](ValueFlowProjection projection) {
+                return ValueAbstractValuePair(projection, AbstractValue());
+            });
+        }
+    }
+
+    void computeLiveness()
+    {
+        // Backward dataflow liveness analysis tracking ValueFlowProjections
+        // (matching DFG's LivenessAnalysisPhase lines 120-145)
+        // Live = projections that are used in this block or live in successors
+
+        // Iterate to fixpoint
+        bool changed = true;
+        while (changed) {
+            changed = false;
+
+            // Process blocks in reverse order (backward analysis)
+            for (unsigned i = m_proc.size(); i--;) {
+                BasicBlock* block = m_proc[i];
+                if (!block)
+                    continue;
+
+                BlockState& state = m_blockStates[block];
+
+                // Start with live-out from successors (liveAtHead of successors)
+                HashSet<ValueFlowProjection> live;
+                for (BasicBlock* successor : block->successorBlocks()) {
+                    BlockState& succState = m_blockStates[successor];
+                    for (ValueFlowProjection projection : succState.liveAtHead)
+                        live.add(projection);
+                }
+
+                // Process values in reverse order
+                for (unsigned j = block->size(); j--;) {
+                    Value* value = block->at(j);
+
+                    // Special handling for Upsilon and Phi (matching DFG lines 127-139)
+                    switch (value->opcode()) {
+                    case Upsilon: {
+                        // Upsilon defines (kills) the Phi's shadow, uses its child
+                        UpsilonValue* upsilon = value->as<UpsilonValue>();
+                        Value* phi = upsilon->phi();
+                        if (phi) {
+                            live.remove(ValueFlowProjection(phi, ValueFlowProjection::Shadow));
+                            live.add(ValueFlowProjection(upsilon->child(0)));
+                        }
+                        break;
+                    }
+
+                    case Phi: {
+                        // Phi defines (kills) its primary, uses (requires live) its shadow
+                        live.remove(ValueFlowProjection(value, ValueFlowProjection::Primary));
+                        live.add(ValueFlowProjection(value, ValueFlowProjection::Shadow));
+                        break;
+                    }
+
+                    default:
+                        // Regular value: kills its primary, uses its children
+                        live.remove(ValueFlowProjection(value, ValueFlowProjection::Primary));
+                        for (Value* child : value->children())
+                            live.add(ValueFlowProjection(child, ValueFlowProjection::Primary));
+                        break;
+                    }
+                }
+
+                // Convert live set to vector for liveAtHead
+                Vector<ValueFlowProjection> newLiveHead;
+                for (ValueFlowProjection projection : live)
+                    newLiveHead.append(projection);
+
+                // liveAtTail is union of successors' liveAtHead
+                Vector<ValueFlowProjection> newLiveTail;
+                for (BasicBlock* successor : block->successorBlocks()) {
+                    BlockState& succState = m_blockStates[successor];
+                    for (ValueFlowProjection projection : succState.liveAtHead)
+                        newLiveTail.append(projection);
+                }
+
+                if (newLiveHead != state.liveAtHead) {
+                    state.liveAtHead = ::WTF::move(newLiveHead);
+                    changed = true;
+                }
+                if (newLiveTail != state.liveAtTail) {
+                    state.liveAtTail = ::WTF::move(newLiveTail);
+                    changed = true;
+                }
+            }
+        }
     }
 
     bool run()
     {
-        if (B3SCCPInternal::verbose)
-            dataLog("B3 SCCP starting\n");
+        dataLogLnIf(B3SCCPInternal::verbose, "B3 SCCP starting");
 
         // Initialize worklist with entry block
         m_worklist.append(m_proc[0]);
@@ -276,8 +511,7 @@ public:
             BlockState& blockState = m_blockStates[block];
             blockState.shouldRevisit = false;
 
-            if (B3SCCPInternal::verbose)
-                dataLog("Processing block ", *block, "\n");
+            dataLogLnIf(B3SCCPInternal::verbose, "Processing block ", *block);
 
             beginBasicBlock(block);
 
@@ -299,98 +533,143 @@ private:
         BlockState& state = m_blockStates[block];
         state.hasVisited = true;
 
-        // Load valuesAtHead into global state
-        for (const ValueAbstractValuePair& pair : state.valuesAtHead) {
-            if (pair.value->opcode() == Phi)
-                m_phiShadows[pair.value] = pair.abstractValue;
-            else
-                m_abstractValues[pair.value] = pair.abstractValue;
+        // Load valuesAtHead into global state (matching DFG lines 78-84)
+        for (ValueAbstractValuePair& entry : state.valuesAtHead) {
+            if (entry.value.isStillValid())
+                m_abstractValues.at(entry.value) = entry.abstractValue;
         }
     }
 
-    bool endBasicBlock(BasicBlock* block)
+    void endBasicBlock(BasicBlock* block)
     {
         BlockState& state = m_blockStates[block];
 
-        // Save current global state to valuesAtTail (sparse - only non-bottom values)
-        Vector<ValueAbstractValuePair> newValuesAtTail;
+        // Save current global state to valuesAtTail (matching DFG lines 307-315)
+        for (ValueAbstractValuePair& entry : state.valuesAtTail)
+            entry.abstractValue = m_abstractValues.at(entry.value);
 
-        for (Value* value : m_proc.values()) {
-            if (!value)
-                continue;
+        // DON'T clear global m_abstractValues!
+        // It persists and will be read by merge()
+        mergeToSuccessors(block);
 
-            AbstractValue absValue;
-            if (value->opcode() == Phi)
-                absValue = m_phiShadows[value];
-            else
-                absValue = m_abstractValues[value];
-
-            if (absValue)  // Only store non-bottom
-                newValuesAtTail.append(ValueAbstractValuePair(value, absValue));
-        }
-
-        state.valuesAtTail = WTF::move(newValuesAtTail);
-
-        // Merge into successors' valuesAtHead (sparse conditional: only executable edges)
-        bool anySuccessorChanged = false;
-
-        // If executableSuccessors is empty, it means we haven't determined edge executability yet
-        // (e.g., block doesn't end with Branch/Switch), so conservatively merge to all
-        if (state.executableSuccessors.isEmpty()) {
-            for (BasicBlock* successor : block->successorBlocks()) {
-                if (mergeIntoSuccessor(block, successor))
-                    anySuccessorChanged = true;
-            }
-        } else {
-            // Only merge to executable successors (sparse conditional!)
-            for (BasicBlock* successor : state.executableSuccessors) {
-                if (mergeIntoSuccessor(block, successor))
-                    anySuccessorChanged = true;
-            }
-        }
-
+        // Reset block-local state only (matching DFG's reset() at line 328-334)
         m_block = nullptr;
-        return anySuccessorChanged;
     }
 
-    bool mergeIntoSuccessor(BasicBlock* from, BasicBlock* to)
+    bool mergeToSuccessors(BasicBlock* block)
     {
-        BlockState& toState = m_blockStates[to];
-        BlockState& fromState = m_blockStates[from];
+        Value* terminal = block->last();
+        if (!terminal)
+            return false;
 
-        // For the first visit to 'to', initialize its valuesAtHead from 'from'
-        if (toState.valuesAtHead.isEmpty() && !toState.hasVisited) {
-            // Copy from's tail to to's head
-            for (const ValueAbstractValuePair& pair : fromState.valuesAtTail) {
-                toState.valuesAtHead.append(pair);
-            }
-            if (!toState.shouldRevisit) {
-                toState.shouldRevisit = true;
-                m_worklist.append(to);
-            }
-            return true; // Changed
-        }
-
-        // Merge: for each value in from's tail, merge into to's head
         bool changed = false;
 
-        // Build a map for quick lookup in toState.valuesAtHead
-        HashMap<Value*, unsigned> toHeadIndex;
-        for (unsigned i = 0; i < toState.valuesAtHead.size(); ++i)
-            toHeadIndex.add(toState.valuesAtHead[i].value, i);
-
-        for (const ValueAbstractValuePair& fromPair : fromState.valuesAtTail) {
-            auto it = toHeadIndex.find(fromPair.value);
-            if (it != toHeadIndex.end()) {
-                // Value exists in to's head, merge
-                AbstractValue& toValue = toState.valuesAtHead[it->value].abstractValue;
-                if (toValue.merge(fromPair.abstractValue))
+        switch (terminal->opcode()) {
+        case Jump:
+        case Oops:
+        case Return:
+            // Unconditional: merge to all successors
+            for (BasicBlock* successor : block->successorBlocks()) {
+                if (mergeIntoSuccessor(block, successor))
                     changed = true;
-            } else {
-                // New value, add it
-                toState.valuesAtHead.append(fromPair);
-                changed = true;
             }
+            break;
+
+        case Branch: {
+            // Sparse conditional: check if we know the branch direction
+            AbstractValue condition = forValue(terminal->child(0));
+
+            if (condition.isConstant()) {
+                // Known branch direction
+                bool takeBranch = false;
+                if (condition.type() == Int32)
+                    takeBranch = condition.int32Value() != 0;
+                else if (condition.type() == Int64)
+                    takeBranch = condition.int64Value() != 0;
+                else
+                    takeBranch = true; // Conservative for other types
+
+                if (takeBranch) {
+                    // Only taken edge is executable
+                    if (mergeIntoSuccessor(block, block->taken().block()))
+                        changed = true;
+                } else {
+                    // Only notTaken edge is executable
+                    if (mergeIntoSuccessor(block, block->notTaken().block()))
+                        changed = true;
+                }
+            } else {
+                // Unknown: both edges executable
+                if (mergeIntoSuccessor(block, block->taken().block()))
+                    changed = true;
+                if (mergeIntoSuccessor(block, block->notTaken().block()))
+                    changed = true;
+            }
+            break;
+        }
+
+        case Switch: {
+            // Check if discriminant is constant
+            SwitchValue* switchValue = terminal->as<SwitchValue>();
+            AbstractValue discriminant = forValue(terminal->child(0));
+
+            if (discriminant.isConstant() && discriminant.type() == Int64) {
+                // Known switch value - find matching case
+                int64_t switchVal = discriminant.int64Value();
+                bool foundCase = false;
+
+                for (SwitchCase switchCase : switchValue->cases(block)) {
+                    if (switchCase.caseValue() == switchVal) {
+                        if (mergeIntoSuccessor(block, switchCase.targetBlock()))
+                            changed = true;
+                        foundCase = true;
+                        break;
+                    }
+                }
+
+                if (!foundCase) {
+                    // Fall through
+                    if (mergeIntoSuccessor(block, switchValue->fallThrough(block)))
+                        changed = true;
+                }
+            } else {
+                // Unknown: all edges executable
+                for (SwitchCase switchCase : switchValue->cases(block)) {
+                    if (mergeIntoSuccessor(block, switchCase.targetBlock()))
+                        changed = true;
+                }
+                if (mergeIntoSuccessor(block, switchValue->fallThrough(block)))
+                    changed = true;
+            }
+            break;
+        }
+
+        default:
+            // Other control flow: conservatively merge to all successors
+            for (BasicBlock* successor : block->successorBlocks()) {
+                if (mergeIntoSuccessor(block, successor))
+                    changed = true;
+            }
+            break;
+        }
+
+        return changed;
+    }
+
+    bool mergeIntoSuccessor(BasicBlock*, BasicBlock* to)
+    {
+        BlockState& toState = m_blockStates[to];
+
+        bool changed = false;
+
+        // Merge from global m_abstractValues into successor's valuesAtHead
+        // (matching DFG lines 370-391)
+        for (ValueAbstractValuePair& entry : toState.valuesAtHead) {
+            // Read from global FlowMap (which has predecessor's values)
+            AbstractValue fromValue = m_abstractValues.at(entry.value);
+            // Merge into successor's valuesAtHead
+            if (entry.abstractValue.merge(fromValue))
+                changed = true;
         }
 
         if (changed && !toState.shouldRevisit) {
@@ -401,127 +680,25 @@ private:
         return changed;
     }
 
-    bool compareConstants(const AbstractValue& a, const AbstractValue& b)
-    {
-        if (a.type() != b.type())
-            return false;
-
-        switch (a.type().kind()) {
-        case Int32:
-            return a.int32Value() == b.int32Value();
-        case Int64:
-            return a.int64Value() == b.int64Value();
-        case Float:
-            return std::bit_cast<uint32_t>(a.floatValue()) == std::bit_cast<uint32_t>(b.floatValue());
-        case Double:
-            return std::bit_cast<uint64_t>(a.doubleValue()) == std::bit_cast<uint64_t>(b.doubleValue());
-        default:
-            return false;
-        }
-    }
-
     void executeValue(Value* value)
     {
-        if (B3SCCPInternal::verbose)
-            dataLog("  Executing ", *value, "\n");
+        dataLogLnIf(B3SCCPInternal::verbose, "  Executing ", *value);
 
         AbstractValue result = computeAbstractValue(value);
 
         if (value->opcode() == Upsilon) {
-            // Special case: Upsilon updates the phi's shadow
+            // Special case: Upsilon updates the phi's shadow projection
             UpsilonValue* upsilon = value->as<UpsilonValue>();
             Value* phi = upsilon->phi();
             if (phi) {
-                AbstractValue phiValue = m_phiShadows[phi];
-                if (phiValue.merge(result)) {
-                    m_phiShadows[phi] = phiValue;
-                }
+                AbstractValue& phiValue = forValue(ValueFlowProjection(phi, ValueFlowProjection::Shadow));
+                phiValue.merge(result);
             }
         } else {
-            m_abstractValues[value] = result;
-
-            // Handle control flow for sparse conditional propagation
-            switch (value->opcode()) {
-            case Branch: {
-                // Branch has: child(0) = condition, successors = [taken, notTaken]
-                AbstractValue condition = getAbstractValue(value->child(0));
-                BlockState& state = m_blockStates[m_block];
-
-                if (condition.isConstant()) {
-                    // Known branch direction
-                    bool takeBranch = false;
-                    if (condition.type() == Int32)
-                        takeBranch = condition.int32Value() != 0;
-                    else if (condition.type() == Int64)
-                        takeBranch = condition.int64Value() != 0;
-                    else
-                        takeBranch = true; // Conservative for other types
-
-                    if (takeBranch) {
-                        // Only taken edge is executable
-                        state.executableSuccessors.clear();
-                        state.executableSuccessors.add(m_block->taken().block());
-                    } else {
-                        // Only notTaken edge is executable
-                        state.executableSuccessors.clear();
-                        state.executableSuccessors.add(m_block->notTaken().block());
-                    }
-                } else {
-                    // Unknown: both edges executable
-                    state.executableSuccessors.clear();
-                    state.executableSuccessors.add(m_block->taken().block());
-                    state.executableSuccessors.add(m_block->notTaken().block());
-                }
-                break;
-            }
-
-            case Switch: {
-                // Switch: check if discriminant is constant
-                SwitchValue* switchValue = value->as<SwitchValue>();
-                AbstractValue discriminant = getAbstractValue(value->child(0));
-                BlockState& state = m_blockStates[m_block];
-                state.executableSuccessors.clear();
-
-                if (discriminant.isConstant() && discriminant.type() == Int64) {
-                    // Known switch value - find matching case
-                    int64_t switchVal = discriminant.int64Value();
-                    bool foundCase = false;
-
-                    for (const SwitchCase& switchCase : switchValue->cases(m_block)) {
-                        if (switchCase.caseValue() == switchVal) {
-                            state.executableSuccessors.add(switchCase.targetBlock());
-                            foundCase = true;
-                            break;
-                        }
-                    }
-
-                    if (!foundCase) {
-                        // Fall through
-                        state.executableSuccessors.add(switchValue->fallThrough(m_block).block());
-                    }
-                } else {
-                    // Unknown: all edges executable
-                    for (const SwitchCase& switchCase : switchValue->cases(m_block))
-                        state.executableSuccessors.add(switchCase.targetBlock());
-                    state.executableSuccessors.add(switchValue->fallThrough(m_block).block());
-                }
-                break;
-            }
-
-            default:
-                // Other control flow: mark all successors as executable
-                if (value->effects().terminal) {
-                    BlockState& state = m_blockStates[m_block];
-                    state.executableSuccessors.clear();
-                    for (BasicBlock* successor : m_block->successorBlocks())
-                        state.executableSuccessors.add(successor);
-                }
-                break;
-            }
+            forValue(value) = result;
         }
 
-        if (B3SCCPInternal::verbose)
-            dataLog("    Result: ", result.isBottom() ? "Bottom" : result.isConstant() ? "Constant" : "Top", "\n");
+        dataLogLnIf(B3SCCPInternal::verbose, "    Result: ", result.isBottom() ? "Bottom" : result.isConstant() ? "Constant" : "Top");
     }
 
     AbstractValue computeAbstractValue(Value* value)
@@ -540,18 +717,18 @@ private:
             return AbstractValue::fromDouble(value->as<ConstDoubleValue>()->value());
 
         case Phi: {
-            // Phi reads from its shadow
-            return m_phiShadows[value];
+            // Phi reads from its shadow projection
+            return forValue(ValueFlowProjection(value, ValueFlowProjection::Shadow));
         }
 
         case Upsilon: {
             // Upsilon: return the child's value
-            return getAbstractValue(value->child(0));
+            return forValue(value->child(0));
         }
 
         case Identity:
         case Opaque:
-            return getAbstractValue(value->child(0));
+            return forValue(value->child(0));
 
         case Add:
         case Sub:
@@ -587,17 +764,21 @@ private:
         }
     }
 
-    AbstractValue getAbstractValue(Value* value)
+    AbstractValue& forValue(ValueFlowProjection projection)
     {
-        if (value->opcode() == Phi)
-            return m_phiShadows[value];
-        return m_abstractValues[value];
+        return m_abstractValues.at(projection);
+    }
+
+    AbstractValue& forValue(Value* value)
+    {
+        // Always constructs Primary projection, matching DFG (see DFGNodeFlowProjection.h line 44-48)
+        return forValue(ValueFlowProjection(value));
     }
 
     AbstractValue computeBinaryArithmetic(Value* value)
     {
-        AbstractValue left = getAbstractValue(value->child(0));
-        AbstractValue right = getAbstractValue(value->child(1));
+        AbstractValue left = forValue(value->child(0));
+        AbstractValue right = forValue(value->child(1));
 
         if (left.isBottom() || right.isBottom())
             return AbstractValue::bottom();
@@ -608,15 +789,68 @@ private:
         // Both are constants
         ASSERT(left.isConstant() && right.isConstant());
 
-        // TODO: Implement constant folding for various operations
-        // For now, be conservative
+        // Type must match for arithmetic
+        if (left.type() != right.type())
+            return AbstractValue::top();
+
+        switch (value->opcode()) {
+        case Add:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() + right.int32Value());
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() + right.int64Value());
+            if (left.type() == Float)
+                return AbstractValue::fromFloat(left.floatValue() + right.floatValue());
+            if (left.type() == Double)
+                return AbstractValue::fromDouble(left.doubleValue() + right.doubleValue());
+            break;
+
+        case Sub:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() - right.int32Value());
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() - right.int64Value());
+            if (left.type() == Float)
+                return AbstractValue::fromFloat(left.floatValue() - right.floatValue());
+            if (left.type() == Double)
+                return AbstractValue::fromDouble(left.doubleValue() - right.doubleValue());
+            break;
+
+        case Mul:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() * right.int32Value());
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() * right.int64Value());
+            if (left.type() == Float)
+                return AbstractValue::fromFloat(left.floatValue() * right.floatValue());
+            if (left.type() == Double)
+                return AbstractValue::fromDouble(left.doubleValue() * right.doubleValue());
+            break;
+
+        case Div:
+            // Avoid division by zero
+            if (left.type() == Int32 && right.int32Value() != 0)
+                return AbstractValue::fromInt32(left.int32Value() / right.int32Value());
+            if (left.type() == Int64 && right.int64Value() != 0)
+                return AbstractValue::fromInt64(left.int64Value() / right.int64Value());
+            if (left.type() == Float)
+                return AbstractValue::fromFloat(left.floatValue() / right.floatValue());
+            if (left.type() == Double)
+                return AbstractValue::fromDouble(left.doubleValue() / right.doubleValue());
+            break;
+
+        default:
+            break;
+        }
+
+        // Conservative fallback
         return AbstractValue::top();
     }
 
     AbstractValue computeBitwise(Value* value)
     {
-        AbstractValue left = getAbstractValue(value->child(0));
-        AbstractValue right = getAbstractValue(value->child(1));
+        AbstractValue left = forValue(value->child(0));
+        AbstractValue right = forValue(value->child(1));
 
         if (left.isBottom() || right.isBottom())
             return AbstractValue::bottom();
@@ -624,14 +858,66 @@ private:
         if (left.isTop() || right.isTop())
             return AbstractValue::top();
 
-        // TODO: Implement bitwise constant folding
+        // Both are constants - only works for integer types
+        ASSERT(left.isConstant() && right.isConstant());
+
+        if (left.type() != right.type())
+            return AbstractValue::top();
+
+        switch (value->opcode()) {
+        case BitAnd:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() & right.int32Value());
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() & right.int64Value());
+            break;
+
+        case BitOr:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() | right.int32Value());
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() | right.int64Value());
+            break;
+
+        case BitXor:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() ^ right.int32Value());
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() ^ right.int64Value());
+            break;
+
+        case Shl:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() << (right.int32Value() & 31));
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() << (right.int64Value() & 63));
+            break;
+
+        case SShr:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(left.int32Value() >> (right.int32Value() & 31));
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(left.int64Value() >> (right.int64Value() & 63));
+            break;
+
+        case ZShr:
+            if (left.type() == Int32)
+                return AbstractValue::fromInt32(static_cast<uint32_t>(left.int32Value()) >> (right.int32Value() & 31));
+            if (left.type() == Int64)
+                return AbstractValue::fromInt64(static_cast<uint64_t>(left.int64Value()) >> (right.int64Value() & 63));
+            break;
+
+        default:
+            break;
+        }
+
         return AbstractValue::top();
     }
 
     AbstractValue computeComparison(Value* value)
     {
-        AbstractValue left = getAbstractValue(value->child(0));
-        AbstractValue right = getAbstractValue(value->child(1));
+        AbstractValue left = forValue(value->child(0));
+        AbstractValue right = forValue(value->child(1));
 
         if (left.isBottom() || right.isBottom())
             return AbstractValue::bottom();
@@ -639,26 +925,232 @@ private:
         if (left.isTop() || right.isTop())
             return AbstractValue::top();
 
-        // TODO: Implement comparison constant folding
-        return AbstractValue::top();
+        // Both are constants
+        ASSERT(left.isConstant() && right.isConstant());
+
+        if (left.type() != right.type())
+            return AbstractValue::top();
+
+        bool result = false;
+        switch (value->opcode()) {
+        case Equal:
+            if (left.type() == Int32)
+                result = left.int32Value() == right.int32Value();
+            else if (left.type() == Int64)
+                result = left.int64Value() == right.int64Value();
+            else if (left.type() == Float)
+                result = left.floatValue() == right.floatValue();
+            else if (left.type() == Double)
+                result = left.doubleValue() == right.doubleValue();
+            else
+                return AbstractValue::top();
+            break;
+
+        case NotEqual:
+            if (left.type() == Int32)
+                result = left.int32Value() != right.int32Value();
+            else if (left.type() == Int64)
+                result = left.int64Value() != right.int64Value();
+            else if (left.type() == Float)
+                result = left.floatValue() != right.floatValue();
+            else if (left.type() == Double)
+                result = left.doubleValue() != right.doubleValue();
+            else
+                return AbstractValue::top();
+            break;
+
+        case LessThan:
+            if (left.type() == Int32)
+                result = left.int32Value() < right.int32Value();
+            else if (left.type() == Int64)
+                result = left.int64Value() < right.int64Value();
+            else if (left.type() == Float)
+                result = left.floatValue() < right.floatValue();
+            else if (left.type() == Double)
+                result = left.doubleValue() < right.doubleValue();
+            else
+                return AbstractValue::top();
+            break;
+
+        case GreaterThan:
+            if (left.type() == Int32)
+                result = left.int32Value() > right.int32Value();
+            else if (left.type() == Int64)
+                result = left.int64Value() > right.int64Value();
+            else if (left.type() == Float)
+                result = left.floatValue() > right.floatValue();
+            else if (left.type() == Double)
+                result = left.doubleValue() > right.doubleValue();
+            else
+                return AbstractValue::top();
+            break;
+
+        case LessEqual:
+            if (left.type() == Int32)
+                result = left.int32Value() <= right.int32Value();
+            else if (left.type() == Int64)
+                result = left.int64Value() <= right.int64Value();
+            else if (left.type() == Float)
+                result = left.floatValue() <= right.floatValue();
+            else if (left.type() == Double)
+                result = left.doubleValue() <= right.doubleValue();
+            else
+                return AbstractValue::top();
+            break;
+
+        case GreaterEqual:
+            if (left.type() == Int32)
+                result = left.int32Value() >= right.int32Value();
+            else if (left.type() == Int64)
+                result = left.int64Value() >= right.int64Value();
+            else if (left.type() == Float)
+                result = left.floatValue() >= right.floatValue();
+            else if (left.type() == Double)
+                result = left.doubleValue() >= right.doubleValue();
+            else
+                return AbstractValue::top();
+            break;
+
+        case Above:
+            if (left.type() == Int32)
+                result = static_cast<uint32_t>(left.int32Value()) > static_cast<uint32_t>(right.int32Value());
+            else if (left.type() == Int64)
+                result = static_cast<uint64_t>(left.int64Value()) > static_cast<uint64_t>(right.int64Value());
+            else
+                return AbstractValue::top();
+            break;
+
+        case Below:
+            if (left.type() == Int32)
+                result = static_cast<uint32_t>(left.int32Value()) < static_cast<uint32_t>(right.int32Value());
+            else if (left.type() == Int64)
+                result = static_cast<uint64_t>(left.int64Value()) < static_cast<uint64_t>(right.int64Value());
+            else
+                return AbstractValue::top();
+            break;
+
+        case AboveEqual:
+            if (left.type() == Int32)
+                result = static_cast<uint32_t>(left.int32Value()) >= static_cast<uint32_t>(right.int32Value());
+            else if (left.type() == Int64)
+                result = static_cast<uint64_t>(left.int64Value()) >= static_cast<uint64_t>(right.int64Value());
+            else
+                return AbstractValue::top();
+            break;
+
+        case BelowEqual:
+            if (left.type() == Int32)
+                result = static_cast<uint32_t>(left.int32Value()) <= static_cast<uint32_t>(right.int32Value());
+            else if (left.type() == Int64)
+                result = static_cast<uint64_t>(left.int64Value()) <= static_cast<uint64_t>(right.int64Value());
+            else
+                return AbstractValue::top();
+            break;
+
+        case EqualOrUnordered:
+            if (left.type() == Float)
+                result = (left.floatValue() == right.floatValue()) || std::isnan(left.floatValue()) || std::isnan(right.floatValue());
+            else if (left.type() == Double)
+                result = (left.doubleValue() == right.doubleValue()) || std::isnan(left.doubleValue()) || std::isnan(right.doubleValue());
+            else
+                return AbstractValue::top();
+            break;
+
+        default:
+            return AbstractValue::top();
+        }
+
+        // Comparisons return Int32 (boolean)
+        return AbstractValue::fromInt32(result ? 1 : 0);
     }
 
     bool applyOptimizations()
     {
-        // TODO: Replace constant values with actual constants
-        // TODO: Remove unreachable blocks
-        return false;
+        bool changed = false;
+
+        // Replace values with constants
+        for (BasicBlock* block : m_proc) {
+            for (unsigned valueIndex = 0; valueIndex < block->size(); ++valueIndex) {
+                Value* value = block->at(valueIndex);
+
+                // Skip terminals and phis (handled separately)
+                if (value->opcode() == Phi || value->opcode() == Upsilon)
+                    continue;
+
+                AbstractValue abstractValue = forValue(value);
+
+                if (!abstractValue.isConstant())
+                    continue;
+
+                dataLogLnIf(B3SCCPInternal::verbose, "Replacing ", *value, " with constant");
+
+                Value* replacement = nullptr;
+                switch (abstractValue.type().kind()) {
+                case Int32:
+                    replacement = m_insertionSet.insertIntConstant(valueIndex, value, abstractValue.int32Value());
+                    break;
+                case Int64:
+                    replacement = m_insertionSet.insertIntConstant(valueIndex, value, abstractValue.int64Value());
+                    break;
+                case Float: {
+                    float floatValue = abstractValue.floatValue();
+                    replacement = m_insertionSet.insertValue(valueIndex,
+                        m_proc.addConstant(value->origin(), Float, std::bit_cast<uint32_t>(floatValue)));
+                    break;
+                }
+                case Double: {
+                    double doubleValue = abstractValue.doubleValue();
+                    replacement = m_insertionSet.insertValue(valueIndex,
+                        m_proc.addConstant(value->origin(), Double, std::bit_cast<uint64_t>(doubleValue)));
+                    break;
+                }
+                default:
+                    continue;
+                }
+
+                if (replacement) {
+                    value->replaceWithIdentity(replacement);
+                    changed = true;
+                }
+            }
+
+            // Simplify branches with constant conditions
+            Value* terminal = block->last();
+            if (terminal && terminal->opcode() == Branch) {
+                AbstractValue condition = forValue(terminal->child(0));
+                if (condition.isConstant()) {
+                    bool takeBranch = false;
+                    if (condition.type() == Int32)
+                        takeBranch = condition.int32Value() != 0;
+                    else if (condition.type() == Int64)
+                        takeBranch = condition.int64Value() != 0;
+
+                    BasicBlock* target = takeBranch ? block->taken().block() : block->notTaken().block();
+                    dataLogLnIf(B3SCCPInternal::verbose, "Replacing branch in ", *block, " with jump to ", *target);
+                    terminal->replaceWithJump(block, target);
+                    changed = true;
+                }
+            }
+
+            m_insertionSet.execute(block);
+        }
+
+        if (changed) {
+            m_proc.resetReachability();
+            m_proc.invalidateCFG();
+        }
+
+        return changed;
     }
 
     Procedure& m_proc;
     BasicBlock* m_block { nullptr };
 
-    // Per-block state (sparse snapshots)
-    IndexMap<BasicBlock*, BlockState> m_blockStates;
+    // Global FlowMap (matching DFG's m_abstractValues)
+    FlowMap<AbstractValue> m_abstractValues;
 
-    // Global state (current values within a block)
-    IndexMap<Value*, AbstractValue> m_abstractValues;
-    IndexMap<Value*, AbstractValue> m_phiShadows;
+    // Per-block state (matching DFG's BasicBlock::SSAData)
+    IndexMap<BasicBlock*, BlockState> m_blockStates;
 
     // Worklist
     Deque<BasicBlock*> m_worklist;
