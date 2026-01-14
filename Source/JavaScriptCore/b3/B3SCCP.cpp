@@ -34,8 +34,6 @@
 #include "B3Const64Value.h"
 #include "B3ConstDoubleValue.h"
 #include "B3ConstFloatValue.h"
-#include "B3Dominators.h"
-#include "B3ExtractValue.h"
 #include "B3InsertionSet.h"
 #include "B3Opcode.h"
 #include "B3PhaseScope.h"
@@ -46,6 +44,7 @@
 #include "B3ValueInlines.h"
 #include <wtf/Deque.h>
 #include <wtf/IndexMap.h>
+#include <bit>
 
 namespace JSC { namespace B3 {
 
@@ -61,8 +60,6 @@ static constexpr bool verbose = false;
 // Bottom: Value has not been computed yet or is unreachable
 // Constant: Value is a known compile-time constant
 // Top: Value can be multiple values at runtime
-//
-// Future extension: Add type-based lattice for WasmGC RTT propagation.
 class AbstractValue {
 public:
     enum class Kind : uint8_t {
@@ -104,6 +101,15 @@ public:
         return result;
     }
 
+    static AbstractValue fromFloat(float value)
+    {
+        AbstractValue result;
+        result.m_kind = Kind::Constant;
+        result.m_type = Float;
+        result.m_double = value;
+        return result;
+    }
+
     static AbstractValue fromDouble(double value)
     {
         AbstractValue result;
@@ -113,89 +119,42 @@ public:
         return result;
     }
 
-    static AbstractValue fromFloat(float value)
-    {
-        AbstractValue result;
-        result.m_kind = Kind::Constant;
-        result.m_type = Float;
-        result.m_float = value;
-        return result;
-    }
-
-    static AbstractValue fromValue(Value* value)
-    {
-        switch (value->opcode()) {
-        case Const32:
-            return fromInt32(value->as<Const32Value>()->value());
-        case Const64:
-            return fromInt64(value->as<Const64Value>()->value());
-        case ConstDouble:
-            return fromDouble(value->as<ConstDoubleValue>()->value());
-        case ConstFloat:
-            return fromFloat(value->as<ConstFloatValue>()->value());
-        default:
-            return top();
-        }
-    }
-
     bool isBottom() const { return m_kind == Kind::Bottom; }
-    bool isTop() const { return m_kind == Kind::Top; }
     bool isConstant() const { return m_kind == Kind::Constant; }
+    bool isTop() const { return m_kind == Kind::Top; }
 
     Type type() const { return m_type; }
 
-    int32_t asInt32() const
+    int32_t int32Value() const
     {
         ASSERT(isConstant() && m_type == Int32);
         return static_cast<int32_t>(m_int64);
     }
 
-    int64_t asInt64() const
+    int64_t int64Value() const
     {
         ASSERT(isConstant() && m_type == Int64);
         return m_int64;
     }
 
-    double asDouble() const
+    float floatValue() const
+    {
+        ASSERT(isConstant() && m_type == Float);
+        return static_cast<float>(m_double);
+    }
+
+    double doubleValue() const
     {
         ASSERT(isConstant() && m_type == Double);
         return m_double;
     }
 
-    float asFloat() const
-    {
-        ASSERT(isConstant() && m_type == Float);
-        return m_float;
-    }
-
-    bool isNonZeroInt() const
-    {
-        if (!isConstant())
-            return false;
-        if (m_type == Int32)
-            return asInt32() != 0;
-        if (m_type == Int64)
-            return asInt64() != 0;
-        return false;
-    }
-
-    bool isZeroInt() const
-    {
-        if (!isConstant())
-            return false;
-        if (m_type == Int32)
-            return asInt32() == 0;
-        if (m_type == Int64)
-            return asInt64() == 0;
-        return false;
-    }
-
-    // Merge another value into this one. Returns true if this value changed.
-    // Lattice: Bottom < Constant < Top
+    // Merge another abstract value into this one (for phi nodes / join points).
+    // Returns true if this value changed.
     bool merge(const AbstractValue& other)
     {
         if (other.isBottom())
-            return false;
+            return false; // Merging with Bottom doesn't change anything
 
         if (isBottom()) {
             *this = other;
@@ -203,7 +162,7 @@ public:
         }
 
         if (isTop())
-            return false;
+            return false; // Already Top, can't change
 
         if (other.isTop()) {
             m_kind = Kind::Top;
@@ -213,187 +172,266 @@ public:
         // Both are constants
         ASSERT(isConstant() && other.isConstant());
 
-        // Check if they're the same constant
+        // If types differ, go to Top
         if (m_type != other.m_type) {
             m_kind = Kind::Top;
             return true;
         }
 
-        bool same = false;
+        // Same type, check if values are equal
+        bool valuesEqual = false;
         switch (m_type.kind()) {
         case Int32:
-            same = asInt32() == other.asInt32();
+            valuesEqual = int32Value() == other.int32Value();
             break;
         case Int64:
-            same = asInt64() == other.asInt64();
+            valuesEqual = int64Value() == other.int64Value();
             break;
         case Float:
-            same = std::bit_cast<uint32_t>(m_float) == std::bit_cast<uint32_t>(other.m_float);
+            valuesEqual = std::bit_cast<uint32_t>(floatValue()) == std::bit_cast<uint32_t>(other.floatValue());
             break;
         case Double:
-            same = std::bit_cast<uint64_t>(m_double) == std::bit_cast<uint64_t>(other.m_double);
+            valuesEqual = std::bit_cast<uint64_t>(doubleValue()) == std::bit_cast<uint64_t>(other.doubleValue());
             break;
         default:
-            same = false;
+            valuesEqual = false;
             break;
         }
 
-        if (!same) {
-            m_kind = Kind::Top;
-            return true;
-        }
+        if (valuesEqual)
+            return false;
 
-        return false;
+        // Different values -> Top
+        m_kind = Kind::Top;
+        return true;
     }
 
-    void dump(PrintStream& out) const
+    explicit operator bool() const
     {
-        switch (m_kind) {
-        case Kind::Bottom:
-            out.print("Bottom"_s);
-            break;
-        case Kind::Top:
-            out.print("Top"_s);
-            break;
-        case Kind::Constant:
-            out.print("Const("_s);
-            switch (m_type.kind()) {
-            case Int32:
-                out.print(asInt32());
-                break;
-            case Int64:
-                out.print(asInt64());
-                break;
-            case Float:
-                out.print(m_float);
-                break;
-            case Double:
-                out.print(m_double);
-                break;
-            default:
-                out.print("?"_s);
-                break;
-            }
-            out.print(")"_s);
-            break;
-        }
+        return !isBottom();
     }
 
 private:
-    Kind m_kind { Kind::Bottom };
-    Type m_type { Void };
+    Kind m_kind;
+    Type m_type;
     union {
-        int64_t m_int64 { 0 };
+        int64_t m_int64;
         double m_double;
-        float m_float;
     };
 };
 
-// Key type for sparse maps. We pack (blockIndex, valueIndex) or (tupleValueIndex, elementIndex)
-// into a single uint64_t to simplify hashing. We use UnsignedWithZeroKeyHashTraits since
-// key 0 is valid (blockIndex=0, valueIndex=0).
-using SparseKey = uint64_t;
+// Pair of Value* and its AbstractValue for sparse per-block storage
+struct ValueAbstractValuePair {
+    Value* value { nullptr };
+    AbstractValue abstractValue;
 
-inline SparseKey makeSparseKey(unsigned high, unsigned low)
-{
-    return (static_cast<uint64_t>(high) << 32) | low;
-}
+    ValueAbstractValuePair() = default;
+    ValueAbstractValuePair(Value* v, const AbstractValue& av)
+        : value(v)
+        , abstractValue(av)
+    {
+    }
+};
 
-inline unsigned sparseKeyHigh(SparseKey key)
-{
-    return static_cast<unsigned>(key >> 32);
-}
+// Per-block state for SCCP
+struct BlockState {
+    Vector<ValueAbstractValuePair> valuesAtHead;
+    Vector<ValueAbstractValuePair> valuesAtTail;
+    bool shouldRevisit { false };
+    bool hasVisited { false };
+};
 
-inline unsigned sparseKeyLow(SparseKey key)
-{
-    return static_cast<unsigned>(key);
-}
-
+// SCCP pass implementation following DFG's AbstractInterpreter pattern
 class SCCP {
 public:
     SCCP(Procedure& proc)
         : m_proc(proc)
-        , m_dominators(proc.dominators())
+        , m_blockStates(proc.size())
         , m_abstractValues(proc.values().size())
+        , m_phiShadows(proc.values().size())
         , m_insertionSet(proc)
         , m_phiChildren(proc)
     {
+        // Initialize block states
+        for (BasicBlock* block : proc)
+            m_blockStates[block] = BlockState();
     }
 
     bool run()
     {
         if (B3SCCPInternal::verbose)
-            dataLog("B3 SCCP starting on:\n"_s, m_proc, "\n"_s);
+            dataLog("B3 SCCP starting\n");
 
-        // Initialize: Add entry block to worklist
-        BasicBlock* entryBlock = m_proc[0];
-        m_blockWorklist.append(entryBlock);
-        m_blocksOnWorklist.set(entryBlock->index());
+        // Initialize worklist with entry block
+        m_worklist.append(m_proc[0]);
+        m_blockStates[m_proc[0]].shouldRevisit = true;
 
         // Fixed-point iteration
-        while (!m_blockWorklist.isEmpty()) {
-            BasicBlock* block = m_blockWorklist.takeFirst();
-            m_blocksOnWorklist.clear(block->index());
+        while (!m_worklist.isEmpty()) {
+            BasicBlock* block = m_worklist.takeFirst();
+            BlockState& blockState = m_blockStates[block];
+            blockState.shouldRevisit = false;
 
-            processBlock(block);
+            if (B3SCCPInternal::verbose)
+                dataLog("Processing block ", *block, "\n");
+
+            beginBasicBlock(block);
+
+            for (Value* value : *block)
+                executeValue(value);
+
+            // endBasicBlock merges into successors and adds them to worklist if they changed
+            endBasicBlock(block);
         }
 
-        // Apply optimizations
+        // Apply constant folding transformations
         return applyOptimizations();
     }
 
 private:
-    void processBlock(BasicBlock* block)
+    void beginBasicBlock(BasicBlock* block)
     {
-        if (B3SCCPInternal::verbose)
-            dataLog("Processing block "_s, *block, "\n"_s);
+        m_block = block;
+        BlockState& state = m_blockStates[block];
+        state.hasVisited = true;
 
-        // Check if any predecessor edge is executable
-        bool hasExecutablePredecessor = false;
-        if (block == m_proc[0]) {
-            // Entry block is always executable
-            hasExecutablePredecessor = true;
-        } else {
-            for (BasicBlock* pred : block->predecessors()) {
-                if (isEdgeExecutable(pred, block)) {
-                    hasExecutablePredecessor = true;
-                    break;
-                }
+        // Load valuesAtHead into global state
+        for (const ValueAbstractValuePair& pair : state.valuesAtHead) {
+            if (pair.value->opcode() == Phi)
+                m_phiShadows[pair.value] = pair.abstractValue;
+            else
+                m_abstractValues[pair.value] = pair.abstractValue;
+        }
+    }
+
+    bool endBasicBlock(BasicBlock* block)
+    {
+        BlockState& state = m_blockStates[block];
+
+        // Save current global state to valuesAtTail (sparse - only non-bottom values)
+        Vector<ValueAbstractValuePair> newValuesAtTail;
+
+        for (Value* value : m_proc.values()) {
+            if (!value)
+                continue;
+
+            AbstractValue absValue;
+            if (value->opcode() == Phi)
+                absValue = m_phiShadows[value];
+            else
+                absValue = m_abstractValues[value];
+
+            if (absValue)  // Only store non-bottom
+                newValuesAtTail.append(ValueAbstractValuePair(value, absValue));
+        }
+
+        state.valuesAtTail = WTF::move(newValuesAtTail);
+
+        // Merge into successors' valuesAtHead (like DFG's mergeToSuccessors)
+        bool anySuccessorChanged = false;
+        for (BasicBlock* successor : block->successorBlocks()) {
+            if (mergeIntoSuccessor(block, successor))
+                anySuccessorChanged = true;
+        }
+
+        m_block = nullptr;
+        return anySuccessorChanged;
+    }
+
+    bool mergeIntoSuccessor(BasicBlock* from, BasicBlock* to)
+    {
+        BlockState& toState = m_blockStates[to];
+        BlockState& fromState = m_blockStates[from];
+
+        // For the first visit to 'to', initialize its valuesAtHead from 'from'
+        if (toState.valuesAtHead.isEmpty() && !toState.hasVisited) {
+            // Copy from's tail to to's head
+            for (const ValueAbstractValuePair& pair : fromState.valuesAtTail) {
+                toState.valuesAtHead.append(pair);
+            }
+            if (!toState.shouldRevisit) {
+                toState.shouldRevisit = true;
+                m_worklist.append(to);
+            }
+            return true; // Changed
+        }
+
+        // Merge: for each value in from's tail, merge into to's head
+        bool changed = false;
+
+        // Build a map for quick lookup in toState.valuesAtHead
+        HashMap<Value*, unsigned> toHeadIndex;
+        for (unsigned i = 0; i < toState.valuesAtHead.size(); ++i)
+            toHeadIndex.add(toState.valuesAtHead[i].value, i);
+
+        for (const ValueAbstractValuePair& fromPair : fromState.valuesAtTail) {
+            auto it = toHeadIndex.find(fromPair.value);
+            if (it != toHeadIndex.end()) {
+                // Value exists in to's head, merge
+                AbstractValue& toValue = toState.valuesAtHead[it->value].abstractValue;
+                if (toValue.merge(fromPair.abstractValue))
+                    changed = true;
+            } else {
+                // New value, add it
+                toState.valuesAtHead.append(fromPair);
+                changed = true;
             }
         }
 
-        if (!hasExecutablePredecessor)
-            return;
+        if (changed && !toState.shouldRevisit) {
+            toState.shouldRevisit = true;
+            m_worklist.append(to);
+        }
 
-        // Process each value in the block
-        for (Value* value : *block)
-            processValue(block, value);
-
-        // Process terminal and mark successor edges
-        processTerminal(block);
+        return changed;
     }
 
-    void processValue(BasicBlock* block, Value* value)
+    bool compareConstants(const AbstractValue& a, const AbstractValue& b)
     {
-        AbstractValue newValue = computeAbstractValue(block, value);
+        if (a.type() != b.type())
+            return false;
+
+        switch (a.type().kind()) {
+        case Int32:
+            return a.int32Value() == b.int32Value();
+        case Int64:
+            return a.int64Value() == b.int64Value();
+        case Float:
+            return std::bit_cast<uint32_t>(a.floatValue()) == std::bit_cast<uint32_t>(b.floatValue());
+        case Double:
+            return std::bit_cast<uint64_t>(a.doubleValue()) == std::bit_cast<uint64_t>(b.doubleValue());
+        default:
+            return false;
+        }
+    }
+
+    void executeValue(Value* value)
+    {
+        if (B3SCCPInternal::verbose)
+            dataLog("  Executing ", *value, "\n");
+
+        AbstractValue result = computeAbstractValue(value);
+
+        if (value->opcode() == Upsilon) {
+            // Special case: Upsilon updates the phi's shadow
+            UpsilonValue* upsilon = value->as<UpsilonValue>();
+            Value* phi = upsilon->phi();
+            if (phi) {
+                AbstractValue phiValue = m_phiShadows[phi];
+                if (phiValue.merge(result)) {
+                    m_phiShadows[phi] = phiValue;
+                }
+            }
+        } else {
+            m_abstractValues[value] = result;
+        }
 
         if (B3SCCPInternal::verbose)
-            dataLog("  "_s, *value, " -> "_s, newValue, "\n"_s);
-
-        // Update the abstract value
-        // Note: The worklist ensures we revisit blocks when edges become executable.
-        // For phi values, PhiChildren handles the upsilon->phi relationship.
-        m_abstractValues[value].merge(newValue);
+            dataLog("    Result: ", result.isBottom() ? "Bottom" : result.isConstant() ? "Constant" : "Top", "\n");
     }
 
-    AbstractValue computeAbstractValue(BasicBlock* block, Value* value)
+    AbstractValue computeAbstractValue(Value* value)
     {
-        // Check for block-specific narrowed value first
-        SparseKey narrowKey = makeSparseKey(block->index(), value->index());
-        auto it = m_narrowedValues.find(narrowKey);
-        if (it != m_narrowedValues.end())
-            return it->value;
-
         switch (value->opcode()) {
         case Const32:
             return AbstractValue::fromInt32(value->as<Const32Value>()->value());
@@ -401,14 +439,21 @@ private:
         case Const64:
             return AbstractValue::fromInt64(value->as<Const64Value>()->value());
 
-        case ConstDouble:
-            return AbstractValue::fromDouble(value->as<ConstDoubleValue>()->value());
-
         case ConstFloat:
             return AbstractValue::fromFloat(value->as<ConstFloatValue>()->value());
 
-        case Phi:
-            return computePhiValue(block, value);
+        case ConstDouble:
+            return AbstractValue::fromDouble(value->as<ConstDoubleValue>()->value());
+
+        case Phi: {
+            // Phi reads from its shadow
+            return m_phiShadows[value];
+        }
+
+        case Upsilon: {
+            // Upsilon: return the child's value
+            return getAbstractValue(value->child(0));
+        }
 
         case Identity:
         case Opaque:
@@ -418,20 +463,16 @@ private:
         case Sub:
         case Mul:
         case Div:
-        case UDiv:
         case Mod:
-        case UMod:
+            return computeBinaryArithmetic(value);
+
         case BitAnd:
         case BitOr:
         case BitXor:
         case Shl:
         case SShr:
         case ZShr:
-            return computeBinaryArithmetic(value);
-
-        case Neg:
-        case BitwiseCast:
-            return computeUnaryArithmetic(value);
+            return computeBitwise(value);
 
         case Equal:
         case NotEqual:
@@ -443,63 +484,20 @@ private:
         case Below:
         case AboveEqual:
         case BelowEqual:
+        case EqualOrUnordered:
             return computeComparison(value);
 
-        case Select:
-            return computeSelect(value);
-
-        case Extract:
-            return computeExtract(value);
-
         default:
-            // For unknown opcodes, return Top (unknown)
+            // Conservative: unknown operations produce Top
             return AbstractValue::top();
         }
     }
 
-    AbstractValue computePhiValue(BasicBlock* block, Value* phi)
+    AbstractValue getAbstractValue(Value* value)
     {
-        AbstractValue result = AbstractValue::bottom();
-
-        for (UpsilonValue* upsilon : m_phiChildren[phi]) {
-            BasicBlock* upsilonBlock = upsilon->owner;
-            if (!upsilonBlock)
-                continue;
-
-            // An upsilon contributes to a phi if there's an executable path from the upsilon
-            // to the phi. We check this by seeing if:
-            // 1. The upsilon's block dominates a predecessor of the phi's block, AND
-            // 2. That predecessor→phi edge is executable
-            // OR
-            // 3. The upsilon's block IS a predecessor and that edge is executable (for simple cases)
-            bool upsilonCanReachPhi = false;
-
-            for (BasicBlock* pred : block->predecessors()) {
-                // Case 1: Direct predecessor
-                if (pred == upsilonBlock && isEdgeExecutable(pred, block)) {
-                    upsilonCanReachPhi = true;
-                    break;
-                }
-
-                // Case 2: Upsilon block dominates the predecessor
-                if (m_dominators.dominates(upsilonBlock, pred) && isEdgeExecutable(pred, block)) {
-                    upsilonCanReachPhi = true;
-                    break;
-                }
-            }
-
-            if (!upsilonCanReachPhi)
-                continue;
-
-            AbstractValue childValue = getAbstractValue(upsilon->child(0));
-            result.merge(childValue);
-
-            // Early exit if we hit Top
-            if (result.isTop())
-                break;
-        }
-
-        return result;
+        if (value->opcode() == Phi)
+            return m_phiShadows[value];
+        return m_abstractValues[value];
     }
 
     AbstractValue computeBinaryArithmetic(Value* value)
@@ -513,177 +511,26 @@ private:
         if (left.isTop() || right.isTop())
             return AbstractValue::top();
 
-        // Both are constants - try to fold
+        // Both are constants
         ASSERT(left.isConstant() && right.isConstant());
 
-        // Only fold integer arithmetic for now
-        if (left.type() != right.type())
-            return AbstractValue::top();
-
-        Type type = left.type();
-
-        if (type == Int32) {
-            int32_t l = left.asInt32();
-            int32_t r = right.asInt32();
-            int32_t result;
-
-            switch (value->opcode()) {
-            case Add:
-                result = l + r;
-                break;
-            case Sub:
-                result = l - r;
-                break;
-            case Mul:
-                result = l * r;
-                break;
-            case Div:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = l / r;
-                break;
-            case UDiv:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = static_cast<int32_t>(static_cast<uint32_t>(l) / static_cast<uint32_t>(r));
-                break;
-            case Mod:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = l % r;
-                break;
-            case UMod:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = static_cast<int32_t>(static_cast<uint32_t>(l) % static_cast<uint32_t>(r));
-                break;
-            case BitAnd:
-                result = l & r;
-                break;
-            case BitOr:
-                result = l | r;
-                break;
-            case BitXor:
-                result = l ^ r;
-                break;
-            case Shl:
-                result = l << (r & 31);
-                break;
-            case SShr:
-                result = l >> (r & 31);
-                break;
-            case ZShr:
-                result = static_cast<int32_t>(static_cast<uint32_t>(l) >> (r & 31));
-                break;
-            default:
-                return AbstractValue::top();
-            }
-
-            return AbstractValue::fromInt32(result);
-        }
-
-        if (type == Int64) {
-            int64_t l = left.asInt64();
-            int64_t r = right.asInt64();
-            int64_t result;
-
-            switch (value->opcode()) {
-            case Add:
-                result = l + r;
-                break;
-            case Sub:
-                result = l - r;
-                break;
-            case Mul:
-                result = l * r;
-                break;
-            case Div:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = l / r;
-                break;
-            case UDiv:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = static_cast<int64_t>(static_cast<uint64_t>(l) / static_cast<uint64_t>(r));
-                break;
-            case Mod:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = l % r;
-                break;
-            case UMod:
-                if (r == 0)
-                    return AbstractValue::top();
-                result = static_cast<int64_t>(static_cast<uint64_t>(l) % static_cast<uint64_t>(r));
-                break;
-            case BitAnd:
-                result = l & r;
-                break;
-            case BitOr:
-                result = l | r;
-                break;
-            case BitXor:
-                result = l ^ r;
-                break;
-            case Shl:
-                result = l << (r & 63);
-                break;
-            case SShr:
-                result = l >> (r & 63);
-                break;
-            case ZShr:
-                result = static_cast<int64_t>(static_cast<uint64_t>(l) >> (r & 63));
-                break;
-            default:
-                return AbstractValue::top();
-            }
-
-            return AbstractValue::fromInt64(result);
-        }
-
+        // TODO: Implement constant folding for various operations
+        // For now, be conservative
         return AbstractValue::top();
     }
 
-    AbstractValue computeUnaryArithmetic(Value* value)
+    AbstractValue computeBitwise(Value* value)
     {
-        AbstractValue child = getAbstractValue(value->child(0));
+        AbstractValue left = getAbstractValue(value->child(0));
+        AbstractValue right = getAbstractValue(value->child(1));
 
-        if (child.isBottom())
+        if (left.isBottom() || right.isBottom())
             return AbstractValue::bottom();
 
-        if (child.isTop())
+        if (left.isTop() || right.isTop())
             return AbstractValue::top();
 
-        ASSERT(child.isConstant());
-
-        switch (value->opcode()) {
-        case Neg:
-            if (child.type() == Int32)
-                return AbstractValue::fromInt32(-child.asInt32());
-            if (child.type() == Int64)
-                return AbstractValue::fromInt64(-child.asInt64());
-            if (child.type() == Float)
-                return AbstractValue::fromFloat(-child.asFloat());
-            if (child.type() == Double)
-                return AbstractValue::fromDouble(-child.asDouble());
-            break;
-
-        case BitwiseCast:
-            if (child.type() == Int32 && value->type() == Float)
-                return AbstractValue::fromFloat(std::bit_cast<float>(child.asInt32()));
-            if (child.type() == Float && value->type() == Int32)
-                return AbstractValue::fromInt32(std::bit_cast<int32_t>(child.asFloat()));
-            if (child.type() == Int64 && value->type() == Double)
-                return AbstractValue::fromDouble(std::bit_cast<double>(child.asInt64()));
-            if (child.type() == Double && value->type() == Int64)
-                return AbstractValue::fromInt64(std::bit_cast<int64_t>(child.asDouble()));
-            break;
-
-        default:
-            break;
-        }
-
+        // TODO: Implement bitwise constant folding
         return AbstractValue::top();
     }
 
@@ -698,463 +545,29 @@ private:
         if (left.isTop() || right.isTop())
             return AbstractValue::top();
 
-        ASSERT(left.isConstant() && right.isConstant());
-
-        if (left.type() != right.type())
-            return AbstractValue::top();
-
-        Type type = left.type();
-
-        if (type == Int32) {
-            int32_t l = left.asInt32();
-            int32_t r = right.asInt32();
-            int32_t result;
-
-            switch (value->opcode()) {
-            case Equal:
-                result = l == r ? 1 : 0;
-                break;
-            case NotEqual:
-                result = l != r ? 1 : 0;
-                break;
-            case LessThan:
-                result = l < r ? 1 : 0;
-                break;
-            case GreaterThan:
-                result = l > r ? 1 : 0;
-                break;
-            case LessEqual:
-                result = l <= r ? 1 : 0;
-                break;
-            case GreaterEqual:
-                result = l >= r ? 1 : 0;
-                break;
-            case Above:
-                result = static_cast<uint32_t>(l) > static_cast<uint32_t>(r) ? 1 : 0;
-                break;
-            case Below:
-                result = static_cast<uint32_t>(l) < static_cast<uint32_t>(r) ? 1 : 0;
-                break;
-            case AboveEqual:
-                result = static_cast<uint32_t>(l) >= static_cast<uint32_t>(r) ? 1 : 0;
-                break;
-            case BelowEqual:
-                result = static_cast<uint32_t>(l) <= static_cast<uint32_t>(r) ? 1 : 0;
-                break;
-            default:
-                return AbstractValue::top();
-            }
-
-            return AbstractValue::fromInt32(result);
-        }
-
-        if (type == Int64) {
-            int64_t l = left.asInt64();
-            int64_t r = right.asInt64();
-            int32_t result;
-
-            switch (value->opcode()) {
-            case Equal:
-                result = l == r ? 1 : 0;
-                break;
-            case NotEqual:
-                result = l != r ? 1 : 0;
-                break;
-            case LessThan:
-                result = l < r ? 1 : 0;
-                break;
-            case GreaterThan:
-                result = l > r ? 1 : 0;
-                break;
-            case LessEqual:
-                result = l <= r ? 1 : 0;
-                break;
-            case GreaterEqual:
-                result = l >= r ? 1 : 0;
-                break;
-            case Above:
-                result = static_cast<uint64_t>(l) > static_cast<uint64_t>(r) ? 1 : 0;
-                break;
-            case Below:
-                result = static_cast<uint64_t>(l) < static_cast<uint64_t>(r) ? 1 : 0;
-                break;
-            case AboveEqual:
-                result = static_cast<uint64_t>(l) >= static_cast<uint64_t>(r) ? 1 : 0;
-                break;
-            case BelowEqual:
-                result = static_cast<uint64_t>(l) <= static_cast<uint64_t>(r) ? 1 : 0;
-                break;
-            default:
-                return AbstractValue::top();
-            }
-
-            return AbstractValue::fromInt32(result);
-        }
-
+        // TODO: Implement comparison constant folding
         return AbstractValue::top();
-    }
-
-    AbstractValue computeSelect(Value* value)
-    {
-        AbstractValue condition = getAbstractValue(value->child(0));
-
-        if (condition.isBottom())
-            return AbstractValue::bottom();
-
-        if (condition.isConstant()) {
-            bool cond = false;
-            if (condition.type() == Int32)
-                cond = condition.asInt32() != 0;
-            else if (condition.type() == Int64)
-                cond = condition.asInt64() != 0;
-            else
-                return AbstractValue::top();
-
-            return getAbstractValue(cond ? value->child(1) : value->child(2));
-        }
-
-        // Condition is Top - merge both branches
-        AbstractValue thenValue = getAbstractValue(value->child(1));
-        AbstractValue elseValue = getAbstractValue(value->child(2));
-        thenValue.merge(elseValue);
-        return thenValue;
-    }
-
-    AbstractValue computeExtract(Value* value)
-    {
-        Value* tuple = value->child(0);
-        int32_t index = value->as<ExtractValue>()->index();
-
-        SparseKey key = makeSparseKey(tuple->index(), index);
-        auto it = m_tupleElements.find(key);
-        if (it != m_tupleElements.end())
-            return it->value;
-
-        return AbstractValue::top();
-    }
-
-    void processTerminal(BasicBlock* block)
-    {
-        Value* terminal = block->last();
-
-        switch (terminal->opcode()) {
-        case Branch: {
-            AbstractValue condition = getAbstractValue(terminal->child(0));
-            BasicBlock* taken = block->successorBlock(0);
-            BasicBlock* notTaken = block->successorBlock(1);
-
-            // Path-sensitive: record that the condition is non-zero on taken path
-            // and zero on not-taken path (like foldPathConstants)
-            if (taken != notTaken) {
-                if (taken->numPredecessors() == 1) {
-                    SparseKey takenKey = makeSparseKey(taken->index(), terminal->child(0)->index());
-                    // Mark as non-zero (we use Top with isNonZero info in narrowedValues)
-                    m_isNonZeroOnPath.add(takenKey);
-                }
-                if (notTaken->numPredecessors() == 1 && !condition.isConstant()) {
-                    // On not-taken path, condition is known to be zero
-                    SparseKey notTakenKey = makeSparseKey(notTaken->index(), terminal->child(0)->index());
-                    if (terminal->child(0)->type() == Int32)
-                        m_narrowedValues.set(notTakenKey, AbstractValue::fromInt32(0));
-                    else if (terminal->child(0)->type() == Int64)
-                        m_narrowedValues.set(notTakenKey, AbstractValue::fromInt64(0));
-                }
-            }
-
-            if (condition.isBottom()) {
-                // Not yet computable
-                return;
-            }
-
-            if (condition.isConstant()) {
-                bool cond = false;
-                if (condition.type() == Int32)
-                    cond = condition.asInt32() != 0;
-                else if (condition.type() == Int64)
-                    cond = condition.asInt64() != 0;
-
-                // Only one successor is executable
-                BasicBlock* successor = cond ? taken : notTaken;
-                markEdgeExecutable(block, successor);
-            } else {
-                // Both successors are executable
-                markEdgeExecutable(block, taken);
-                markEdgeExecutable(block, notTaken);
-            }
-            break;
-        }
-
-        case Switch: {
-            SwitchValue* switchValue = terminal->as<SwitchValue>();
-            AbstractValue condition = getAbstractValue(terminal->child(0));
-
-            // Path-sensitive: record exact values for switch cases (like foldPathConstants)
-            UncheckedKeyHashMap<BasicBlock*, unsigned> targetUses;
-            for (SwitchCase switchCase : switchValue->cases(block))
-                targetUses.add(switchCase.targetBlock(), 0).iterator->value++;
-            targetUses.add(switchValue->fallThrough(block), 0).iterator->value++;
-
-            for (SwitchCase switchCase : switchValue->cases(block)) {
-                if (targetUses.find(switchCase.targetBlock())->value != 1)
-                    continue;
-
-                BasicBlock* caseBlock = switchCase.targetBlock();
-                if (caseBlock->numPredecessors() == 1) {
-                    SparseKey key = makeSparseKey(caseBlock->index(), terminal->child(0)->index());
-                    if (terminal->child(0)->type() == Int32)
-                        m_narrowedValues.set(key, AbstractValue::fromInt32(static_cast<int32_t>(switchCase.caseValue())));
-                    else if (terminal->child(0)->type() == Int64)
-                        m_narrowedValues.set(key, AbstractValue::fromInt64(switchCase.caseValue()));
-                }
-            }
-
-            if (condition.isBottom())
-                return;
-
-            if (condition.isConstant()) {
-                int64_t caseValue = 0;
-                if (condition.type() == Int32)
-                    caseValue = condition.asInt32();
-                else if (condition.type() == Int64)
-                    caseValue = condition.asInt64();
-                else {
-                    // Unknown constant type - mark all edges executable
-                    for (BasicBlock* successor : block->successorBlocks())
-                        markEdgeExecutable(block, successor);
-                    return;
-                }
-
-                // Find the matching case
-                bool found = false;
-                for (SwitchCase switchCase : switchValue->cases(block)) {
-                    if (switchCase.caseValue() == caseValue) {
-                        markEdgeExecutable(block, switchCase.targetBlock());
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                    markEdgeExecutable(block, switchValue->fallThrough(block));
-            } else {
-                // All successors are executable
-                for (BasicBlock* successor : block->successorBlocks())
-                    markEdgeExecutable(block, successor);
-            }
-            break;
-        }
-
-        case Jump:
-            markEdgeExecutable(block, block->successorBlock(0));
-            break;
-
-        case Return:
-        case Oops:
-            // No successors
-            break;
-
-        default:
-            // For unknown terminals, mark all successors executable
-            for (BasicBlock* successor : block->successorBlocks())
-                markEdgeExecutable(block, successor);
-            break;
-        }
-    }
-
-    AbstractValue getAbstractValue(Value* value)
-    {
-        return m_abstractValues[value];
-    }
-
-    bool isEdgeExecutable(BasicBlock* from, BasicBlock* to)
-    {
-        SparseKey key = makeSparseKey(from->index(), to->index());
-        return m_executableEdges.contains(key);
-    }
-
-    void markEdgeExecutable(BasicBlock* from, BasicBlock* to)
-    {
-        SparseKey key = makeSparseKey(from->index(), to->index());
-        if (m_executableEdges.add(key).isNewEntry) {
-            // Edge became executable - add target to worklist
-            if (!m_blocksOnWorklist.get(to->index())) {
-                m_blockWorklist.append(to);
-                m_blocksOnWorklist.set(to->index());
-            }
-        }
     }
 
     bool applyOptimizations()
     {
-        bool changed = false;
-
-        for (BasicBlock* block : m_proc) {
-            // Skip blocks that are unreachable
-            if (block != m_proc[0]) {
-                bool anyExecutablePred = false;
-                for (BasicBlock* pred : block->predecessors()) {
-                    if (isEdgeExecutable(pred, block)) {
-                        anyExecutablePred = true;
-                        break;
-                    }
-                }
-                if (!anyExecutablePred)
-                    continue;
-            }
-
-            for (unsigned valueIndex = 0; valueIndex < block->size(); ++valueIndex) {
-                Value* value = block->at(valueIndex);
-
-                // Handle path-sensitive optimizations (like foldPathConstants)
-                switch (value->opcode()) {
-                case Branch: {
-                    SparseKey key = makeSparseKey(block->index(), value->child(0)->index());
-                    if (m_isNonZeroOnPath.contains(key)) {
-                        // We know condition is non-zero at this point
-                        // This is for when we're in a block dominated by a taken branch
-                    }
-
-                    // Check if condition is a constant
-                    AbstractValue cond = getAbstractValue(value->child(0));
-                    if (cond.isNonZeroInt()) {
-                        value->replaceWithJump(block, block->taken());
-                        changed = true;
-                    } else if (cond.isZeroInt()) {
-                        value->replaceWithJump(block, block->notTaken());
-                        changed = true;
-                    }
-                    break;
-                }
-
-                case Equal: {
-                    if (value->child(1)->isInt(0)) {
-                        SparseKey key = makeSparseKey(block->index(), value->child(0)->index());
-                        if (m_isNonZeroOnPath.contains(key)) {
-                            // x == 0 when we know x is non-zero -> false
-                            value->replaceWithIdentity(
-                                m_insertionSet.insertIntConstant(valueIndex, value, 0));
-                            changed = true;
-                            continue;
-                        }
-                    }
-                    break;
-                }
-
-                case NotEqual: {
-                    if (value->child(1)->isInt(0)) {
-                        SparseKey key = makeSparseKey(block->index(), value->child(0)->index());
-                        if (m_isNonZeroOnPath.contains(key)) {
-                            // x != 0 when we know x is non-zero -> true
-                            value->replaceWithIdentity(
-                                m_insertionSet.insertIntConstant(valueIndex, value, 1));
-                            changed = true;
-                            continue;
-                        }
-                    }
-                    break;
-                }
-
-                default:
-                    break;
-                }
-
-                // Replace with constant if we know the value
-                AbstractValue abstractValue = getAbstractValue(value);
-
-                if (abstractValue.isConstant() && !value->isConstant()) {
-                    Value* constValue = nullptr;
-
-                    switch (abstractValue.type().kind()) {
-                    case Int32:
-                        constValue = m_insertionSet.insert<Const32Value>(
-                            valueIndex, value->origin(), abstractValue.asInt32());
-                        break;
-                    case Int64:
-                        constValue = m_insertionSet.insert<Const64Value>(
-                            valueIndex, value->origin(), abstractValue.asInt64());
-                        break;
-                    case Float:
-                        constValue = m_insertionSet.insert<ConstFloatValue>(
-                            valueIndex, value->origin(), abstractValue.asFloat());
-                        break;
-                    case Double:
-                        constValue = m_insertionSet.insert<ConstDoubleValue>(
-                            valueIndex, value->origin(), abstractValue.asDouble());
-                        break;
-                    default:
-                        break;
-                    }
-
-                    if (constValue) {
-                        value->replaceWithIdentity(constValue);
-                        changed = true;
-                    }
-                }
-
-                // Replace uses with path-narrowed constants
-                for (Value*& child : value->children()) {
-                    SparseKey key = makeSparseKey(block->index(), child->index());
-                    auto it = m_narrowedValues.find(key);
-                    if (it != m_narrowedValues.end() && it->value.isConstant()) {
-                        Value* constValue = nullptr;
-                        AbstractValue narrowed = it->value;
-
-                        switch (narrowed.type().kind()) {
-                        case Int32:
-                            constValue = m_insertionSet.insert<Const32Value>(
-                                valueIndex, child->origin(), narrowed.asInt32());
-                            break;
-                        case Int64:
-                            constValue = m_insertionSet.insert<Const64Value>(
-                                valueIndex, child->origin(), narrowed.asInt64());
-                            break;
-                        default:
-                            break;
-                        }
-
-                        if (constValue) {
-                            child = constValue;
-                            changed = true;
-                        }
-                    }
-                }
-            }
-
-            m_insertionSet.execute(block);
-        }
-
-        if (changed) {
-            m_proc.resetReachability();
-            m_proc.invalidateCFG();
-        }
-
-        return changed;
+        // TODO: Replace constant values with actual constants
+        // TODO: Remove unreachable blocks
+        return false;
     }
 
     Procedure& m_proc;
-    Dominators& m_dominators;
+    BasicBlock* m_block { nullptr };
 
-    // Global abstract values for each Value*
+    // Per-block state (sparse snapshots)
+    IndexMap<BasicBlock*, BlockState> m_blockStates;
+
+    // Global state (current values within a block)
     IndexMap<Value*, AbstractValue> m_abstractValues;
+    IndexMap<Value*, AbstractValue> m_phiShadows;
 
-    // Sparse per-block narrowed values (for path-sensitive type refinement)
-    // Key: makeSparseKey(blockIndex, valueIndex)
-    HashMap<SparseKey, AbstractValue, IntHash<SparseKey>, WTF::UnsignedWithZeroKeyHashTraits<SparseKey>> m_narrowedValues;
-
-    // Track which values are known non-zero on certain paths
-    HashSet<SparseKey, IntHash<SparseKey>, WTF::UnsignedWithZeroKeyHashTraits<SparseKey>> m_isNonZeroOnPath;
-
-    // Tuple element abstract values
-    // Key: makeSparseKey(tupleValueIndex, elementIndex)
-    HashMap<SparseKey, AbstractValue, IntHash<SparseKey>, WTF::UnsignedWithZeroKeyHashTraits<SparseKey>> m_tupleElements;
-
-    // Executable edges
-    // Key: makeSparseKey(fromBlockIndex, toBlockIndex)
-    HashSet<SparseKey, IntHash<SparseKey>, WTF::UnsignedWithZeroKeyHashTraits<SparseKey>> m_executableEdges;
-
-    // Block worklist for fixed-point iteration
-    Deque<BasicBlock*> m_blockWorklist;
-    BitVector m_blocksOnWorklist;
+    // Worklist
+    Deque<BasicBlock*> m_worklist;
 
     InsertionSet m_insertionSet;
     PhiChildren m_phiChildren;
@@ -1164,7 +577,8 @@ private:
 
 bool runSCCP(Procedure& proc)
 {
-    PhaseScope phaseScope(proc, "runSCCP"_s);
+    PhaseScope phaseScope(proc, "B3::runSCCP");
+
     SCCP sccp(proc);
     return sccp.run();
 }
