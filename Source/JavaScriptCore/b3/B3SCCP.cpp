@@ -88,7 +88,7 @@ public:
         AbstractValue result;
         result.m_kind = Kind::Constant;
         result.m_type = Int32;
-        result.m_int64 = value;
+        result.m_int32 = value;
         return result;
     }
 
@@ -106,7 +106,7 @@ public:
         AbstractValue result;
         result.m_kind = Kind::Constant;
         result.m_type = Float;
-        result.m_double = value;
+        result.m_float = value;
         return result;
     }
 
@@ -128,7 +128,7 @@ public:
     int32_t int32Value() const
     {
         ASSERT(isConstant() && m_type == Int32);
-        return static_cast<int32_t>(m_int64);
+        return m_int32;
     }
 
     int64_t int64Value() const
@@ -140,7 +140,7 @@ public:
     float floatValue() const
     {
         ASSERT(isConstant() && m_type == Float);
-        return static_cast<float>(m_double);
+        return m_float;
     }
 
     double doubleValue() const
@@ -215,7 +215,9 @@ private:
     Kind m_kind;
     Type m_type;
     union {
+        int32_t m_int32;
         int64_t m_int64;
+        float m_float;
         double m_double;
     };
 };
@@ -858,7 +860,7 @@ private:
         if (left.isTop() || right.isTop())
             return AbstractValue::top();
 
-        // Both are constants - only works for integer types
+        // Both are constants
         ASSERT(left.isConstant() && right.isConstant());
 
         if (left.type() != right.type())
@@ -870,6 +872,16 @@ private:
                 return AbstractValue::fromInt32(left.int32Value() & right.int32Value());
             if (left.type() == Int64)
                 return AbstractValue::fromInt64(left.int64Value() & right.int64Value());
+            if (left.type() == Float) {
+                uint32_t leftBits = std::bit_cast<uint32_t>(left.floatValue());
+                uint32_t rightBits = std::bit_cast<uint32_t>(right.floatValue());
+                return AbstractValue::fromFloat(std::bit_cast<float>(leftBits & rightBits));
+            }
+            if (left.type() == Double) {
+                uint64_t leftBits = std::bit_cast<uint64_t>(left.doubleValue());
+                uint64_t rightBits = std::bit_cast<uint64_t>(right.doubleValue());
+                return AbstractValue::fromDouble(std::bit_cast<double>(leftBits & rightBits));
+            }
             break;
 
         case BitOr:
@@ -877,6 +889,16 @@ private:
                 return AbstractValue::fromInt32(left.int32Value() | right.int32Value());
             if (left.type() == Int64)
                 return AbstractValue::fromInt64(left.int64Value() | right.int64Value());
+            if (left.type() == Float) {
+                uint32_t leftBits = std::bit_cast<uint32_t>(left.floatValue());
+                uint32_t rightBits = std::bit_cast<uint32_t>(right.floatValue());
+                return AbstractValue::fromFloat(std::bit_cast<float>(leftBits | rightBits));
+            }
+            if (left.type() == Double) {
+                uint64_t leftBits = std::bit_cast<uint64_t>(left.doubleValue());
+                uint64_t rightBits = std::bit_cast<uint64_t>(right.doubleValue());
+                return AbstractValue::fromDouble(std::bit_cast<double>(leftBits | rightBits));
+            }
             break;
 
         case BitXor:
@@ -884,6 +906,16 @@ private:
                 return AbstractValue::fromInt32(left.int32Value() ^ right.int32Value());
             if (left.type() == Int64)
                 return AbstractValue::fromInt64(left.int64Value() ^ right.int64Value());
+            if (left.type() == Float) {
+                uint32_t leftBits = std::bit_cast<uint32_t>(left.floatValue());
+                uint32_t rightBits = std::bit_cast<uint32_t>(right.floatValue());
+                return AbstractValue::fromFloat(std::bit_cast<float>(leftBits ^ rightBits));
+            }
+            if (left.type() == Double) {
+                uint64_t leftBits = std::bit_cast<uint64_t>(left.doubleValue());
+                uint64_t rightBits = std::bit_cast<uint64_t>(right.doubleValue());
+                return AbstractValue::fromDouble(std::bit_cast<double>(leftBits ^ rightBits));
+            }
             break;
 
         case Shl:
@@ -1068,8 +1100,16 @@ private:
     {
         bool changed = false;
 
-        // Replace values with constants
+        // Replace values with constants (following DFG's ConstantFoldingPhase pattern)
         for (BasicBlock* block : m_proc) {
+            // Skip unreachable blocks
+            BlockState& blockState = m_blockStates[block];
+            if (!blockState.hasVisited)
+                continue;
+
+            // Load block's valuesAtHead into global m_abstractValues (matching DFG line 122)
+            beginBasicBlock(block);
+
             for (unsigned valueIndex = 0; valueIndex < block->size(); ++valueIndex) {
                 Value* value = block->at(valueIndex);
 
@@ -1132,6 +1172,10 @@ private:
                 }
             }
 
+            // Reset block-local state (matching DFG line 1841)
+            m_block = nullptr;
+
+            // Execute insertions (matching DFG line 1842)
             m_insertionSet.execute(block);
         }
 
