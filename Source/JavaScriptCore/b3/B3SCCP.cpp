@@ -239,6 +239,10 @@ struct BlockState {
     Vector<ValueAbstractValuePair> valuesAtTail;
     bool shouldRevisit { false };
     bool hasVisited { false };
+
+    // Track which edges are executable (for sparse conditional propagation)
+    // If empty, all edges are executable (conservative)
+    HashSet<BasicBlock*> executableSuccessors;
 };
 
 // SCCP pass implementation following DFG's AbstractInterpreter pattern
@@ -327,11 +331,22 @@ private:
 
         state.valuesAtTail = WTF::move(newValuesAtTail);
 
-        // Merge into successors' valuesAtHead (like DFG's mergeToSuccessors)
+        // Merge into successors' valuesAtHead (sparse conditional: only executable edges)
         bool anySuccessorChanged = false;
-        for (BasicBlock* successor : block->successorBlocks()) {
-            if (mergeIntoSuccessor(block, successor))
-                anySuccessorChanged = true;
+
+        // If executableSuccessors is empty, it means we haven't determined edge executability yet
+        // (e.g., block doesn't end with Branch/Switch), so conservatively merge to all
+        if (state.executableSuccessors.isEmpty()) {
+            for (BasicBlock* successor : block->successorBlocks()) {
+                if (mergeIntoSuccessor(block, successor))
+                    anySuccessorChanged = true;
+            }
+        } else {
+            // Only merge to executable successors (sparse conditional!)
+            for (BasicBlock* successor : state.executableSuccessors) {
+                if (mergeIntoSuccessor(block, successor))
+                    anySuccessorChanged = true;
+            }
         }
 
         m_block = nullptr;
@@ -424,6 +439,85 @@ private:
             }
         } else {
             m_abstractValues[value] = result;
+
+            // Handle control flow for sparse conditional propagation
+            switch (value->opcode()) {
+            case Branch: {
+                // Branch has: child(0) = condition, successors = [taken, notTaken]
+                AbstractValue condition = getAbstractValue(value->child(0));
+                BlockState& state = m_blockStates[m_block];
+
+                if (condition.isConstant()) {
+                    // Known branch direction
+                    bool takeBranch = false;
+                    if (condition.type() == Int32)
+                        takeBranch = condition.int32Value() != 0;
+                    else if (condition.type() == Int64)
+                        takeBranch = condition.int64Value() != 0;
+                    else
+                        takeBranch = true; // Conservative for other types
+
+                    if (takeBranch) {
+                        // Only taken edge is executable
+                        state.executableSuccessors.clear();
+                        state.executableSuccessors.add(m_block->taken().block());
+                    } else {
+                        // Only notTaken edge is executable
+                        state.executableSuccessors.clear();
+                        state.executableSuccessors.add(m_block->notTaken().block());
+                    }
+                } else {
+                    // Unknown: both edges executable
+                    state.executableSuccessors.clear();
+                    state.executableSuccessors.add(m_block->taken().block());
+                    state.executableSuccessors.add(m_block->notTaken().block());
+                }
+                break;
+            }
+
+            case Switch: {
+                // Switch: check if discriminant is constant
+                SwitchValue* switchValue = value->as<SwitchValue>();
+                AbstractValue discriminant = getAbstractValue(value->child(0));
+                BlockState& state = m_blockStates[m_block];
+                state.executableSuccessors.clear();
+
+                if (discriminant.isConstant() && discriminant.type() == Int64) {
+                    // Known switch value - find matching case
+                    int64_t switchVal = discriminant.int64Value();
+                    bool foundCase = false;
+
+                    for (const SwitchCase& switchCase : switchValue->cases(m_block)) {
+                        if (switchCase.caseValue() == switchVal) {
+                            state.executableSuccessors.add(switchCase.targetBlock());
+                            foundCase = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundCase) {
+                        // Fall through
+                        state.executableSuccessors.add(switchValue->fallThrough(m_block).block());
+                    }
+                } else {
+                    // Unknown: all edges executable
+                    for (const SwitchCase& switchCase : switchValue->cases(m_block))
+                        state.executableSuccessors.add(switchCase.targetBlock());
+                    state.executableSuccessors.add(switchValue->fallThrough(m_block).block());
+                }
+                break;
+            }
+
+            default:
+                // Other control flow: mark all successors as executable
+                if (value->effects().terminal) {
+                    BlockState& state = m_blockStates[m_block];
+                    state.executableSuccessors.clear();
+                    for (BasicBlock* successor : m_block->successorBlocks())
+                        state.executableSuccessors.add(successor);
+                }
+                break;
+            }
         }
 
         if (B3SCCPInternal::verbose)
