@@ -36,6 +36,7 @@
 #include "B3EliminateDeadCode.h"
 #include "B3FixSSA.h"
 #include "B3FoldPathConstants.h"
+#include "B3SCCP.h"
 #include "B3HoistLoopInvariantValues.h"
 #include "B3InferSwitches.h"
 #include "B3LegalizeMemoryOffsets.h"
@@ -96,6 +97,8 @@ void generateToAir(Procedure& procedure)
             duplicateTails(procedure);
         fixSSA(procedure);
         foldPathConstants(procedure);
+        if (Options::useB3SCCP())
+            runSCCP(procedure);
         // FIXME: Add more optimizations here.
         // https://bugs.webkit.org/show_bug.cgi?id=150507
     } else if (procedure.optLevel() >= 1) {

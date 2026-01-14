@@ -383,6 +383,7 @@
 		0F725CA81C503DED00AD943A /* B3EliminateCommonSubexpressions.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F725CA41C503DED00AD943A /* B3EliminateCommonSubexpressions.h */; };
 		0F725CAA1C503DED00AD943A /* B3PureCSE.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F725CA61C503DED00AD943A /* B3PureCSE.h */; };
 		0F725CB01C506D3B00AD943A /* B3FoldPathConstants.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F725CAE1C506D3B00AD943A /* B3FoldPathConstants.h */; };
+		5BFCCF5C2D8A5C2800112233 /* B3SCCP.h in Headers */ = {isa = PBXBuildFile; fileRef = 5BFCCF5A2D8A5C2800112233 /* B3SCCP.h */; };
 		0F74B93B1F89614800B935D3 /* PrototypeKey.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F74B93A1F89614500B935D3 /* PrototypeKey.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F75A060200D260B0038E2CF /* LocalAllocatorInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F75A05A200D25F00038E2CF /* LocalAllocatorInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F75A061200D26180038E2CF /* LocalAllocator.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F75A057200D25F00038E2CF /* LocalAllocator.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3202,6 +3203,8 @@
 		0F725CA61C503DED00AD943A /* B3PureCSE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3PureCSE.h; path = b3/B3PureCSE.h; sourceTree = "<group>"; };
 		0F725CAD1C506D3B00AD943A /* B3FoldPathConstants.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3FoldPathConstants.cpp; path = b3/B3FoldPathConstants.cpp; sourceTree = "<group>"; };
 		0F725CAE1C506D3B00AD943A /* B3FoldPathConstants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3FoldPathConstants.h; path = b3/B3FoldPathConstants.h; sourceTree = "<group>"; };
+		5BFCCF592D8A5C2800112233 /* B3SCCP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3SCCP.cpp; path = b3/B3SCCP.cpp; sourceTree = "<group>"; };
+		5BFCCF5A2D8A5C2800112233 /* B3SCCP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3SCCP.h; path = b3/B3SCCP.h; sourceTree = "<group>"; };
 		0F74B93A1F89614500B935D3 /* PrototypeKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PrototypeKey.h; sourceTree = "<group>"; };
 		0F75A054200D25EF0038E2CF /* Allocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Allocator.h; sourceTree = "<group>"; };
 		0F75A057200D25F00038E2CF /* LocalAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LocalAllocator.h; sourceTree = "<group>"; };
@@ -6866,6 +6869,8 @@
 				43422A651C16221E00E2EB98 /* B3ReduceDoubleToFloat.h */,
 				0FEC85B71BE1462F0080FF74 /* B3ReduceStrength.cpp */,
 				0FEC85B81BE1462F0080FF74 /* B3ReduceStrength.h */,
+				5BFCCF592D8A5C2800112233 /* B3SCCP.cpp */,
+				5BFCCF5A2D8A5C2800112233 /* B3SCCP.h */,
 				4B78E098294427D2003C6682 /* B3SIMDValue.cpp */,
 				4B78E09A294427D2003C6682 /* B3SIMDValue.h */,
 				0FEC84EA1BDACDAC0080FF74 /* B3SlotBaseValue.cpp */,
@@ -10853,6 +10858,7 @@
 				0F725CAA1C503DED00AD943A /* B3PureCSE.h in Headers */,
 				43422A671C16267800E2EB98 /* B3ReduceDoubleToFloat.h in Headers */,
 				0FEC85BD1BE1462F0080FF74 /* B3ReduceStrength.h in Headers */,
+				5BFCCF5C2D8A5C2800112233 /* B3SCCP.h in Headers */,
 				4B78E09F29442801003C6682 /* B3SIMDValue.h in Headers */,
 				0FEC85351BDACDAC0080FF74 /* B3SlotBaseValue.h in Headers */,
 				0F2BBD961C5FF3F50023EF23 /* B3SparseCollection.h in Headers */,
