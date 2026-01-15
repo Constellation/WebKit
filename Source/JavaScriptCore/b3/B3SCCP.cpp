@@ -488,11 +488,11 @@ public:
                 }
 
                 if (newLiveHead != state.liveAtHead) {
-                    state.liveAtHead = ::WTF::move(newLiveHead);
+                    state.liveAtHead = WTF::move(newLiveHead);
                     changed = true;
                 }
                 if (newLiveTail != state.liveAtTail) {
-                    state.liveAtTail = ::WTF::move(newLiveTail);
+                    state.liveAtTail = WTF::move(newLiveTail);
                     changed = true;
                 }
             }
@@ -693,8 +693,9 @@ private:
             UpsilonValue* upsilon = value->as<UpsilonValue>();
             Value* phi = upsilon->phi();
             if (phi) {
-                AbstractValue& phiValue = forValue(ValueFlowProjection(phi, ValueFlowProjection::Shadow));
-                phiValue.merge(result);
+                ValueFlowProjection shadow(phi, ValueFlowProjection::Shadow);
+                if (shadow.isStillValid())
+                    forValue(shadow) = result;
             }
         } else {
             forValue(value) = result;
