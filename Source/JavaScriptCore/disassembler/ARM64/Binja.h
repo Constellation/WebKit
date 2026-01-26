@@ -29,6 +29,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if ENABLE(ARM64_DISASSEMBLER)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -68,3 +70,5 @@ bool arm64GetInstructionInfo(uint32_t instruction, uint64_t pc, ARM64Instruction
 #ifdef __cplusplus
 }
 #endif
+
+#endif // ENABLE(ARM64_DISASSEMBLER)
