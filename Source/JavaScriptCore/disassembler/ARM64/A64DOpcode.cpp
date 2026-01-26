@@ -116,8 +116,9 @@ void A64DOpcode::appendPCRelativeOffset(uint32_t* pc, int32_t immediate)
     const char* targetInfo = buffer;
 
     if (!m_startPC)
-        targetInfo = "";
-    else if (targetPC >= m_startPC && targetPC < m_endPC)
+        return;
+
+    if (targetPC >= m_startPC && targetPC < m_endPC)
         snprintf(buffer, localBufferSize - 1, " -> <%u>", static_cast<unsigned>((targetPC - m_startPC) * sizeof(uint32_t)));
     else if (const char* label = labelFor(targetPC))
         snprintf(buffer, localBufferSize - 1, " -> %s", label);
@@ -128,7 +129,7 @@ void A64DOpcode::appendPCRelativeOffset(uint32_t* pc, int32_t immediate)
     else
         targetInfo = " -> <unknown>";
 
-    bufferPrintf(" 0x%" PRIxPTR "%s", std::bit_cast<uintptr_t>(targetPC), targetInfo);
+    bufferPrintf("%s", targetInfo);
 }
 
 void A64DOpcode::trackMoveWideConstant(int category, int64_t immediate, uint8_t shiftAmount, uint8_t destRegister, uint8_t is64Bit)
