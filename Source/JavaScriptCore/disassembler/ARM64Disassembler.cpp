@@ -43,6 +43,7 @@ bool tryToDisassemble(const CodePtr<DisassemblyPtrTag>& codePtr, size_t size, vo
 
     uint32_t* armCodeStart = std::bit_cast<uint32_t*>(codeStart);
     uint32_t* armCodeEnd = std::bit_cast<uint32_t*>(codeEnd);
+    UNUSED_VARIABLE(armCodeEnd);
 
     unsigned pcOffset = (currentPC - armCodeStart) * sizeof(uint32_t);
     char pcInfo[25];
