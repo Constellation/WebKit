@@ -2003,6 +2003,9 @@
 		E33637A61B63220200EE0840 /* ReflectObject.h in Headers */ = {isa = PBXBuildFile; fileRef = E33637A41B63220200EE0840 /* ReflectObject.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E3369129296EEBFE00324FD7 /* WasmOperationsInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E3369128296EEBFE00324FD7 /* WasmOperationsInlines.h */; };
 		E337B967224324EA0093A820 /* WasmCapabilities.h in Headers */ = {isa = PBXBuildFile; fileRef = E337B966224324E50093A820 /* WasmCapabilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E3380F592F271A400097D76C /* binja_impl.c.h in Headers */ = {isa = PBXBuildFile; fileRef = E3380F582F271A400097D76C /* binja_impl.c.h */; };
+		E3380F5A2F271A400097D76C /* Binja.h in Headers */ = {isa = PBXBuildFile; fileRef = E3380F562F271A400097D76C /* Binja.h */; };
+		E3380F5B2F271A400097D76C /* Binja.c in Sources */ = {isa = PBXBuildFile; fileRef = E3380F572F271A400097D76C /* Binja.c */; };
 		E338C4A92E7B23D500C039A5 /* WasmInstanceAnchor.h in Headers */ = {isa = PBXBuildFile; fileRef = E338C4A62E7B23D500C039A5 /* WasmInstanceAnchor.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E339700523210E0B00B0AE21 /* JSInternalFieldObjectImplInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E339700423210E0A00B0AE21 /* JSInternalFieldObjectImplInlines.h */; };
 		E33A94962255323000D42B06 /* RandomizingFuzzerAgent.h in Headers */ = {isa = PBXBuildFile; fileRef = E33A94942255322900D42B06 /* RandomizingFuzzerAgent.h */; };
@@ -5823,6 +5826,9 @@
 		E33637A41B63220200EE0840 /* ReflectObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReflectObject.h; sourceTree = "<group>"; };
 		E3369128296EEBFE00324FD7 /* WasmOperationsInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WasmOperationsInlines.h; sourceTree = "<group>"; };
 		E337B966224324E50093A820 /* WasmCapabilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmCapabilities.h; sourceTree = "<group>"; };
+		E3380F562F271A400097D76C /* Binja.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Binja.h; path = disassembler/ARM64/Binja.h; sourceTree = "<group>"; };
+		E3380F572F271A400097D76C /* Binja.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = Binja.c; path = disassembler/ARM64/Binja.c; sourceTree = "<group>"; };
+		E3380F582F271A400097D76C /* binja_impl.c.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = binja_impl.c.h; path = disassembler/ARM64/binja_impl.c.h; sourceTree = "<group>"; };
 		E338C4A62E7B23D500C039A5 /* WasmInstanceAnchor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmInstanceAnchor.h; sourceTree = "<group>"; };
 		E338C4A72E7B23D500C039A5 /* WasmInstanceAnchor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WasmInstanceAnchor.cpp; sourceTree = "<group>"; };
 		E339700423210E0A00B0AE21 /* JSInternalFieldObjectImplInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSInternalFieldObjectImplInlines.h; sourceTree = "<group>"; };
@@ -8078,6 +8084,9 @@
 			children = (
 				652A3A221651C69700A80AFE /* A64DOpcode.cpp */,
 				652A3A231651C69700A80AFE /* A64DOpcode.h */,
+				E3380F572F271A400097D76C /* Binja.c */,
+				E3380F562F271A400097D76C /* Binja.h */,
+				E3380F582F271A400097D76C /* binja_impl.c.h */,
 			);
 			name = ARM64;
 			sourceTree = "<group>";
@@ -10672,7 +10681,6 @@
 				918E15C12447B22700447A56 /* AggregateErrorPrototype.h in Headers */,
 				276B38412A71D07800252F4E /* AggregateErrorPrototypeInlines.h in Headers */,
 				524E9D7322092B5200A6BEEE /* AirAllocateRegistersAndStackAndGenerateCode.h in Headers */,
-				0F2AC56B1E8A0BD50001EE3F /* AirAllocateRegistersAndStackByLinearScan.h in Headers */,
 				7965C2171E5D799600B7591D /* AirAllocateRegistersByGraphColoring.h in Headers */,
 				A40755D92D10CAE000DC55FF /* AirAllocateRegistersByGreedy.h in Headers */,
 				0FEC856E1BDACDC70080FF74 /* AirAllocateStackByGraphColoring.h in Headers */,
@@ -10930,6 +10938,8 @@
 				276B38442A71D07800252F4E /* BigIntPrototypeInlines.h in Headers */,
 				E35E89FE25C50F870071EE1E /* BigUint64Array.h in Headers */,
 				0F64B2721A784BAF006E4E66 /* BinarySwitch.h in Headers */,
+				E3380F5A2F271A400097D76C /* Binja.h in Headers */,
+				E3380F592F271A400097D76C /* binja_impl.c.h in Headers */,
 				C2B916C214DA014E00CBAC86 /* BlockDirectory.h in Headers */,
 				E38652E3237CA0C900E1D5EE /* BlockDirectoryBits.h in Headers */,
 				0F7DF1461E2BEF6A0095951B /* BlockDirectoryInlines.h in Headers */,
@@ -13832,6 +13842,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E3380F5B2F271A400097D76C /* Binja.c in Sources */,
 				44F93E0E2AE71FBD00FFA37C /* JavaScriptCoreFramework.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
