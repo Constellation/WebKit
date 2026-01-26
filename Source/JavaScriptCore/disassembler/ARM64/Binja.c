@@ -53,4 +53,15 @@ IGNORE_WARNINGS_END
 IGNORE_WARNINGS_END
 IGNORE_WARNINGS_END
 
+const char* arm64Disassemble(uint32_t* pc, char* buffer, size_t size)
+{
+    Instruction instr;
+    int status = aarch64_decompose(*pc, &instr, (uint64_t)pc);
+    if (status == DECODE_STATUS_OK)
+        aarch64_disassemble(&instr, buffer, size);
+    else
+        buffer[0] = '\0';
+    return buffer;
+}
+
 #endif // ENABLE(ARM64_DISASSEMBLER)

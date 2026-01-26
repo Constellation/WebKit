@@ -29,7 +29,6 @@
 
 #if ENABLE(ARM64_DISASSEMBLER)
 
-#include "A64DOpcode.h"
 #include "Binja.h"
 #include "MacroAssemblerCodeRef.h"
 
@@ -44,16 +43,16 @@ bool tryToDisassemble(const CodePtr<DisassemblyPtrTag>& codePtr, size_t size, vo
 
     uint32_t* armCodeStart = std::bit_cast<uint32_t*>(codeStart);
     uint32_t* armCodeEnd = std::bit_cast<uint32_t*>(codeEnd);
-    A64DOpcode arm64Opcode(armCodeStart, armCodeEnd);
 
     unsigned pcOffset = (currentPC - armCodeStart) * sizeof(uint32_t);
     char pcInfo[25];
+    std::array<char, 512> buffer;
     while (byteCount) {
         if (codeStart)
             snprintf(pcInfo, sizeof(pcInfo) - 1, "<%u> %#llx", pcOffset, static_cast<unsigned long long>(std::bit_cast<uintptr_t>(currentPC)));
         else
             snprintf(pcInfo, sizeof(pcInfo) - 1, "%#llx", static_cast<unsigned long long>(std::bit_cast<uintptr_t>(currentPC)));
-        out.printf("%s%24s: %s", prefix, pcInfo, arm64Opcode.disassemble(currentPC));
+        out.printf("%s%24s: %s", prefix, pcInfo, arm64Disassemble(currentPC, buffer.data(), buffer.size()));
         if (auto str = AssemblyCommentRegistry::singleton().comment(currentPC))
             out.printf("; %s\n", str->ascii().data());
         else
