@@ -146,7 +146,7 @@ int ADDHN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = 0x40;
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_ADDHN_ASIMDDIFF_N);
 	}
 	return rc;
@@ -747,7 +747,7 @@ int AUTDA(context *ctx, Instruction *instr)
 		if(ctx->Z==1 && ctx->Rn!=0x1f) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->source_is_sp = ctx->Z==0 && ctx->n==0x1f;
@@ -771,7 +771,7 @@ int AUTDB(context *ctx, Instruction *instr)
 		if(ctx->Z==1 && ctx->Rn!=0x1f) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->source_is_sp = ctx->Z==0 && ctx->n==0x1f;
@@ -795,10 +795,10 @@ int AUTIA(context *ctx, Instruction *instr)
 		if(ctx->Z==1 && ctx->Rn!=0x1f) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->autia1716 = FALSE;
+		ctx->autia1716 = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		ctx->source_is_sp = ctx->Z==0 && ctx->n==0x1f;
 		if(ctx->Z==0) OK(ENC_AUTIA_64P_DP_1SRC);
 		if(ctx->Z==1 && ctx->Rn==0x1f) OK(ENC_AUTIZA_64Z_DP_1SRC);
@@ -810,21 +810,21 @@ int AUTIA(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_NOP);
 		}
-		ctx->source_is_sp = FALSE;
-		ctx->autia1716 = FALSE;
-		ctx->auth_combined = FALSE;
+		ctx->source_is_sp = false;
+		ctx->autia1716 = false;
+		ctx->auth_combined = false;
 		if(((ctx->CRm<<3)|ctx->op2)==0x1c) {
 			ctx->d = 0x1e;
 			ctx->n = 0x1f;
 		}
 		else if(((ctx->CRm<<3)|ctx->op2)==0x1d) {
 			ctx->d = 0x1e;
-			ctx->source_is_sp = TRUE;
+			ctx->source_is_sp = true;
 		}
 		else if(((ctx->CRm<<3)|ctx->op2)==12) {
 			ctx->d = 0x11;
 			ctx->n = 0x10;
-			ctx->autia1716 = TRUE;
+			ctx->autia1716 = true;
 		}
 		if(ctx->CRm==1 && ctx->op2==4) OK(ENC_AUTIA1716_HI_HINTS);
 		if(ctx->CRm==3 && ctx->op2==5) OK(ENC_AUTIASP_HI_HINTS);
@@ -862,7 +862,7 @@ int AUTIASPPCR(context *ctx, Instruction *instr)
 		}
 		ctx->d = 0x1e;
 		ctx->n = UINT(ctx->Rn);
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		OK(ENC_AUTIASPPCR_64LRR_DP_1SRC);
 	}
 	return rc;
@@ -881,7 +881,7 @@ int AUTIASPPC_imm(context *ctx, Instruction *instr)
 		}
 		ctx->d = 0x1e;
 		ctx->offset = ZeroExtend((ctx->imm16<<2),0x40);
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		OK(ENC_AUTIASPPC_ONLY_DP_1SRC_IMM);
 	}
 	return rc;
@@ -901,10 +901,10 @@ int AUTIB(context *ctx, Instruction *instr)
 		if(ctx->Z==1 && ctx->Rn!=0x1f) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->autib1716 = FALSE;
+		ctx->autib1716 = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		ctx->source_is_sp = ctx->Z==0 && ctx->n==0x1f;
 		if(ctx->Z==0) OK(ENC_AUTIB_64P_DP_1SRC);
 		if(ctx->Z==1 && ctx->Rn==0x1f) OK(ENC_AUTIZB_64Z_DP_1SRC);
@@ -916,21 +916,21 @@ int AUTIB(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_NOP);
 		}
-		ctx->source_is_sp = FALSE;
-		ctx->autib1716 = FALSE;
-		ctx->auth_combined = FALSE;
+		ctx->source_is_sp = false;
+		ctx->autib1716 = false;
+		ctx->auth_combined = false;
 		if(((ctx->CRm<<3)|ctx->op2)==0x1e) {
 			ctx->d = 0x1e;
 			ctx->n = 0x1f;
 		}
 		else if(((ctx->CRm<<3)|ctx->op2)==0x1f) {
 			ctx->d = 0x1e;
-			ctx->source_is_sp = TRUE;
+			ctx->source_is_sp = true;
 		}
 		else if(((ctx->CRm<<3)|ctx->op2)==14) {
 			ctx->d = 0x11;
 			ctx->n = 0x10;
-			ctx->autib1716 = TRUE;
+			ctx->autib1716 = true;
 		}
 		if(ctx->CRm==1 && ctx->op2==6) OK(ENC_AUTIB1716_HI_HINTS);
 		if(ctx->CRm==3 && ctx->op2==7) OK(ENC_AUTIBSP_HI_HINTS);
@@ -968,7 +968,7 @@ int AUTIBSPPCR(context *ctx, Instruction *instr)
 		}
 		ctx->d = 0x1e;
 		ctx->n = UINT(ctx->Rn);
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		OK(ENC_AUTIBSPPCR_64LRR_DP_1SRC);
 	}
 	return rc;
@@ -987,7 +987,7 @@ int AUTIBSPPC_imm(context *ctx, Instruction *instr)
 		}
 		ctx->d = 0x1e;
 		ctx->offset = ZeroExtend((ctx->imm16<<2),0x40);
-		ctx->auth_combined = FALSE;
+		ctx->auth_combined = false;
 		OK(ENC_AUTIBSPPC_ONLY_DP_1SRC_IMM);
 	}
 	return rc;
@@ -1463,7 +1463,7 @@ int BLRA(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->use_key_a = (ctx->M==0);
 		ctx->source_is_sp = ((ctx->Z==1) && (ctx->m==0x1f));
-		ctx->auth_then_branch = TRUE;
+		ctx->auth_then_branch = true;
 		if(ctx->Z==1 && ctx->M==0) OK(ENC_BLRAA_64P_BRANCH_REG);
 		if(ctx->Z==0 && ctx->M==0 && ctx->Rm==0x1f) OK(ENC_BLRAAZ_64_BRANCH_REG);
 		if(ctx->Z==1 && ctx->M==1) OK(ENC_BLRAB_64P_BRANCH_REG);
@@ -1504,7 +1504,7 @@ int BRA(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->use_key_a = (ctx->M==0);
 		ctx->source_is_sp = ((ctx->Z==1) && (ctx->m==0x1f));
-		ctx->auth_then_branch = TRUE;
+		ctx->auth_then_branch = true;
 		if(ctx->Z==1 && ctx->M==0) OK(ENC_BRAA_64P_BRANCH_REG);
 		if(ctx->Z==0 && ctx->M==0 && ctx->Rm==0x1f) OK(ENC_BRAAZ_64_BRANCH_REG);
 		if(ctx->Z==1 && ctx->M==1) OK(ENC_BRAB_64P_BRANCH_REG);
@@ -1536,7 +1536,7 @@ int BRK(context *ctx, Instruction *instr)
 		decode_fields32(ENC_BRK_EX_EXCEPTION, ctx, instr);
 		ctx->comment = ctx->imm16;
 		if(HaveBTI()) {
-			SetBTypeCompatible(TRUE);
+			SetBTypeCompatible(true);
 		}
 		OK(ENC_BRK_EX_EXCEPTION);
 	}
@@ -1846,27 +1846,27 @@ int CBBcc_regs(context *ctx, Instruction *instr)
 		ctx->offset = SignExtend((ctx->imm9<<2),11);
 		if(!ctx->cc) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==1) {
 			ctx->op = Cmp_GE;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==2) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==3) {
 			ctx->op = Cmp_GE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==6) {
 			ctx->op = Cmp_EQ;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==7) {
 			ctx->op = Cmp_NE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else {
 			EndOfDecode(Decode_UNDEF);
@@ -1978,27 +1978,27 @@ int CBHcc_regs(context *ctx, Instruction *instr)
 		ctx->offset = SignExtend((ctx->imm9<<2),11);
 		if(!ctx->cc) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==1) {
 			ctx->op = Cmp_GE;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==2) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==3) {
 			ctx->op = Cmp_GE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==6) {
 			ctx->op = Cmp_EQ;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==7) {
 			ctx->op = Cmp_NE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else {
 			EndOfDecode(Decode_UNDEF);
@@ -2147,27 +2147,27 @@ int CBcc_imm(context *ctx, Instruction *instr)
 		ctx->offset = SignExtend((ctx->imm9<<2),11);
 		if(!ctx->cc) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==1) {
 			ctx->op = Cmp_LT;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==2) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==3) {
 			ctx->op = Cmp_LT;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==6) {
 			ctx->op = Cmp_EQ;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==7) {
 			ctx->op = Cmp_NE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else {
 			EndOfDecode(Decode_UNDEF);
@@ -2206,27 +2206,27 @@ int CBcc_regs(context *ctx, Instruction *instr)
 		ctx->offset = SignExtend((ctx->imm9<<2),11);
 		if(!ctx->cc) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==1) {
 			ctx->op = Cmp_GE;
-			ctx->unsigned_ = FALSE;
+			ctx->unsigned_ = false;
 		}
 		else if(ctx->cc==2) {
 			ctx->op = Cmp_GT;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==3) {
 			ctx->op = Cmp_GE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==6) {
 			ctx->op = Cmp_EQ;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else if(ctx->cc==7) {
 			ctx->op = Cmp_NE;
-			ctx->unsigned_ = TRUE;
+			ctx->unsigned_ = true;
 		}
 		else {
 			EndOfDecode(Decode_UNDEF);
@@ -4561,7 +4561,7 @@ int DSB(context *ctx, Instruction *instr)
 	/* 110|101|01000000110011|CRm=xxxx|1|opc=00|Rt=11111 */
 	if((INSWORD & 0xFFFFF0FF)==0xD503309F) {
 		decode_fields32(ENC_DSB_BO_BARRIERS, ctx, instr);
-		ctx->nXS = FALSE;
+		ctx->nXS = false;
 		if(!ctx->CRm) {
 			ctx->alias = DSBAlias_SSBB;
 		}
@@ -4609,7 +4609,7 @@ int DSB(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->types = MBReqTypes_All;
-		ctx->nXS = TRUE;
+		ctx->nXS = true;
 		ctx->alias = DSBAlias_DSB;
 		if(!ctx->imm2) {
 			ctx->domain = MBReqDomain_OuterShareable;
@@ -4858,9 +4858,9 @@ int ERETA(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->pac = TRUE;
+		ctx->pac = true;
 		ctx->use_key_a = (ctx->M==0);
-		ctx->auth_then_branch = TRUE;
+		ctx->auth_then_branch = true;
 		if(ctx->M==0) OK(ENC_ERETAA_64E_BRANCH_REG);
 		if(ctx->M==1) OK(ENC_ERETAB_64E_BRANCH_REG);
 	}
@@ -6184,7 +6184,7 @@ int FCMPE_float(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->datasize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->signal_all_nans = TRUE;
+		ctx->signal_all_nans = true;
 		ctx->cmp_with_zero = (SLICE(ctx->opc,0,0)==1);
 		if(ctx->ftype==3 && ctx->opc==2) OK(ENC_FCMPE_H_FLOATCMP);
 		if(ctx->ftype==3 && /* PreferBitsEqual(['ctx->Rm'],'00000') */ true && ctx->opc==3) OK(ENC_FCMPE_HZ_FLOATCMP);
@@ -6219,7 +6219,7 @@ int FCMP_float(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->datasize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->signal_all_nans = FALSE;
+		ctx->signal_all_nans = false;
 		ctx->cmp_with_zero = (SLICE(ctx->opc,0,0)==1);
 		if(ctx->ftype==3 && ctx->opc==0) OK(ENC_FCMP_H_FLOATCMP);
 		if(ctx->ftype==3 && /* PreferBitsEqual(['ctx->Rm'],'00000') */ true && ctx->opc==1) OK(ENC_FCMP_HZ_FLOATCMP);
@@ -6277,7 +6277,7 @@ int FCVTAS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTAS_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -6293,7 +6293,7 @@ int FCVTAS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTAS_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -6309,7 +6309,7 @@ int FCVTAS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTAS_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -6328,7 +6328,7 @@ int FCVTAS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTAS_ASIMDMISC_R);
 	}
 	return rc;
@@ -6356,7 +6356,7 @@ int FCVTAS_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTAS_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTAS_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTAS_32S_FLOAT2INT);
@@ -6407,7 +6407,7 @@ int FCVTAU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTAU_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -6423,7 +6423,7 @@ int FCVTAU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTAU_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -6439,7 +6439,7 @@ int FCVTAU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTAU_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -6458,7 +6458,7 @@ int FCVTAU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTAU_ASIMDMISC_R);
 	}
 	return rc;
@@ -6486,7 +6486,7 @@ int FCVTAU_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTAU_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTAU_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTAU_32S_FLOAT2INT);
@@ -6559,7 +6559,7 @@ int FCVTMS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTMS_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -6575,7 +6575,7 @@ int FCVTMS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTMS_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -6591,7 +6591,7 @@ int FCVTMS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTMS_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -6610,7 +6610,7 @@ int FCVTMS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTMS_ASIMDMISC_R);
 	}
 	return rc;
@@ -6638,7 +6638,7 @@ int FCVTMS_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_NEGINF;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTMS_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTMS_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTMS_32S_FLOAT2INT);
@@ -6689,7 +6689,7 @@ int FCVTMU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTMU_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -6705,7 +6705,7 @@ int FCVTMU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTMU_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -6721,7 +6721,7 @@ int FCVTMU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTMU_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -6740,7 +6740,7 @@ int FCVTMU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTMU_ASIMDMISC_R);
 	}
 	return rc;
@@ -6768,7 +6768,7 @@ int FCVTMU_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_NEGINF;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTMU_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTMU_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTMU_32S_FLOAT2INT);
@@ -6819,7 +6819,7 @@ int FCVTNS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTNS_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -6835,7 +6835,7 @@ int FCVTNS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTNS_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -6851,7 +6851,7 @@ int FCVTNS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTNS_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -6870,7 +6870,7 @@ int FCVTNS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTNS_ASIMDMISC_R);
 	}
 	return rc;
@@ -6898,7 +6898,7 @@ int FCVTNS_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_TIEEVEN;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTNS_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTNS_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTNS_32S_FLOAT2INT);
@@ -6949,7 +6949,7 @@ int FCVTNU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTNU_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -6965,7 +6965,7 @@ int FCVTNU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTNU_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -6981,7 +6981,7 @@ int FCVTNU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTNU_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -7000,7 +7000,7 @@ int FCVTNU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTNU_ASIMDMISC_R);
 	}
 	return rc;
@@ -7028,7 +7028,7 @@ int FCVTNU_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_TIEEVEN;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTNU_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTNU_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTNU_32S_FLOAT2INT);
@@ -7143,7 +7143,7 @@ int FCVTPS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTPS_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -7159,7 +7159,7 @@ int FCVTPS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTPS_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -7175,7 +7175,7 @@ int FCVTPS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTPS_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -7194,7 +7194,7 @@ int FCVTPS_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTPS_ASIMDMISC_R);
 	}
 	return rc;
@@ -7222,7 +7222,7 @@ int FCVTPS_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_POSINF;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTPS_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTPS_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTPS_32S_FLOAT2INT);
@@ -7273,7 +7273,7 @@ int FCVTPU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTPU_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -7289,7 +7289,7 @@ int FCVTPU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTPU_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -7305,7 +7305,7 @@ int FCVTPU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTPU_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -7324,7 +7324,7 @@ int FCVTPU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTPU_ASIMDMISC_R);
 	}
 	return rc;
@@ -7352,7 +7352,7 @@ int FCVTPU_float(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_POSINF;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTPU_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTPU_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTPU_32S_FLOAT2INT);
@@ -7443,7 +7443,7 @@ int FCVTZS_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZS_ASISDSHF_C);
 	}
@@ -7466,7 +7466,7 @@ int FCVTZS_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZS_ASIMDSHF_C);
 	}
@@ -7490,7 +7490,7 @@ int FCVTZS_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTZS_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -7506,7 +7506,7 @@ int FCVTZS_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTZS_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -7522,7 +7522,7 @@ int FCVTZS_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTZS_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -7541,7 +7541,7 @@ int FCVTZS_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_FCVTZS_ASIMDMISC_R);
 	}
 	return rc;
@@ -7573,7 +7573,7 @@ int FCVTZS_float_fix(context *ctx, Instruction *instr)
 		ctx->decode_fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->fracbits = 0x40-UINT(ctx->scale);
 		ctx->rounding = FPRounding_ZERO;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTZS_32H_FLOAT2FIX);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTZS_64H_FLOAT2FIX);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTZS_32S_FLOAT2FIX);
@@ -7606,7 +7606,7 @@ int FCVTZS_float_int(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_ZERO;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTZS_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTZS_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTZS_32S_FLOAT2INT);
@@ -7660,7 +7660,7 @@ int FCVTZU_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZU_ASISDSHF_C);
 	}
@@ -7683,7 +7683,7 @@ int FCVTZU_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZU_ASIMDSHF_C);
 	}
@@ -7707,7 +7707,7 @@ int FCVTZU_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTZU_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -7723,7 +7723,7 @@ int FCVTZU_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTZU_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -7739,7 +7739,7 @@ int FCVTZU_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTZU_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -7758,7 +7758,7 @@ int FCVTZU_advsimd_int(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->rounding = FPDecodeRounding(((ctx->o1<<1)|ctx->o2));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_FCVTZU_ASIMDMISC_R);
 	}
 	return rc;
@@ -7790,7 +7790,7 @@ int FCVTZU_float_fix(context *ctx, Instruction *instr)
 		ctx->decode_fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->fracbits = 0x40-UINT(ctx->scale);
 		ctx->rounding = FPRounding_ZERO;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTZU_32H_FLOAT2FIX);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTZU_64H_FLOAT2FIX);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTZU_32S_FLOAT2FIX);
@@ -7823,7 +7823,7 @@ int FCVTZU_float_int(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->rounding = FPRounding_ZERO;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_FCVTZU_32H_FLOAT2INT);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_FCVTZU_64H_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_FCVTZU_32S_FLOAT2INT);
@@ -10524,7 +10524,7 @@ int FRINTA_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
 		OK(ENC_FRINTA_ASIMDMISCFP16_R);
 	}
@@ -10543,7 +10543,7 @@ int FRINTA_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
 		OK(ENC_FRINTA_ASIMDMISC_R);
 	}
@@ -10570,7 +10570,7 @@ int FRINTA_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
 		if(ctx->ftype==3) OK(ENC_FRINTA_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTA_S_FLOATDP1);
@@ -10598,7 +10598,7 @@ int FRINTI_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		OK(ENC_FRINTI_ASIMDMISCFP16_R);
 	}
 	/* class iclass_single_precision_and_double_precision */
@@ -10616,7 +10616,7 @@ int FRINTI_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		OK(ENC_FRINTI_ASIMDMISC_R);
 	}
 	return rc;
@@ -10642,7 +10642,7 @@ int FRINTI_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		if(ctx->ftype==3) OK(ENC_FRINTI_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTI_S_FLOATDP1);
 		if(ctx->ftype==1) OK(ENC_FRINTI_D_FLOATDP1);
@@ -10669,7 +10669,7 @@ int FRINTM_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
 		OK(ENC_FRINTM_ASIMDMISCFP16_R);
 	}
@@ -10688,7 +10688,7 @@ int FRINTM_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
 		OK(ENC_FRINTM_ASIMDMISC_R);
 	}
@@ -10715,7 +10715,7 @@ int FRINTM_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
 		if(ctx->ftype==3) OK(ENC_FRINTM_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTM_S_FLOATDP1);
@@ -10743,7 +10743,7 @@ int FRINTN_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
 		OK(ENC_FRINTN_ASIMDMISCFP16_R);
 	}
@@ -10762,7 +10762,7 @@ int FRINTN_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
 		OK(ENC_FRINTN_ASIMDMISC_R);
 	}
@@ -10789,7 +10789,7 @@ int FRINTN_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
 		if(ctx->ftype==3) OK(ENC_FRINTN_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTN_S_FLOATDP1);
@@ -10817,7 +10817,7 @@ int FRINTP_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
 		OK(ENC_FRINTP_ASIMDMISCFP16_R);
 	}
@@ -10836,7 +10836,7 @@ int FRINTP_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
 		OK(ENC_FRINTP_ASIMDMISC_R);
 	}
@@ -10863,7 +10863,7 @@ int FRINTP_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
 		if(ctx->ftype==3) OK(ENC_FRINTP_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTP_S_FLOATDP1);
@@ -10891,7 +10891,7 @@ int FRINTX_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = TRUE;
+		ctx->exact = true;
 		OK(ENC_FRINTX_ASIMDMISCFP16_R);
 	}
 	/* class iclass_single_precision_and_double_precision */
@@ -10909,7 +10909,7 @@ int FRINTX_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = TRUE;
+		ctx->exact = true;
 		OK(ENC_FRINTX_ASIMDMISC_R);
 	}
 	return rc;
@@ -10935,7 +10935,7 @@ int FRINTX_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = TRUE;
+		ctx->exact = true;
 		if(ctx->ftype==3) OK(ENC_FRINTX_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTX_S_FLOATDP1);
 		if(ctx->ftype==1) OK(ENC_FRINTX_D_FLOATDP1);
@@ -10962,7 +10962,7 @@ int FRINTZ_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FRINTZ_ASIMDMISCFP16_R);
 	}
@@ -10981,7 +10981,7 @@ int FRINTZ_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FRINTZ_ASIMDMISC_R);
 	}
@@ -11008,7 +11008,7 @@ int FRINTZ_float(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->esize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_ZERO;
 		if(ctx->ftype==3) OK(ENC_FRINTZ_H_FLOATDP1);
 		if(ctx->ftype==0) OK(ENC_FRINTZ_S_FLOATDP1);
@@ -11695,7 +11695,7 @@ int HLT(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		else if(HaveBTI()) {
-			SetBTypeCompatible(TRUE);
+			SetBTypeCompatible(true);
 		}
 		OK(ENC_HLT_EX_EXCEPTION);
 	}
@@ -11832,8 +11832,8 @@ int LD1R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD1R_ASISDLSO_R1);
 	}
@@ -11847,8 +11847,8 @@ int LD1R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD1R_ASISDLSOP_R1_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD1R_ASISDLSOP_RX1_R);
@@ -11856,13 +11856,13 @@ int LD1R_advsimd(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -11907,8 +11907,8 @@ int LD1_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==7) OK(ENC_LD1_ASISDLSE_R1_1V);
 		if(ctx->opcode==10) OK(ENC_LD1_ASISDLSE_R2_2V);
@@ -11925,8 +11925,8 @@ int LD1_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==7) OK(ENC_LD1_ASISDLSEP_I1_I1);
 		if(ctx->Rm!=0x1f && ctx->opcode==7) OK(ENC_LD1_ASISDLSEP_R1_R1);
@@ -11974,8 +11974,8 @@ int LD1_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==0) OK(ENC_LD1_ASISDLSO_B1_1B);
 		if(ctx->opcode==2 && !(ctx->size&1)) OK(ENC_LD1_ASISDLSO_H1_1H);
@@ -11992,8 +11992,8 @@ int LD1_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==0) OK(ENC_LD1_ASISDLSOP_B1_I1B);
 		if(ctx->Rm!=0x1f && ctx->opcode==0) OK(ENC_LD1_ASISDLSOP_BX1_R1B);
@@ -12007,13 +12007,13 @@ int LD1_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12058,8 +12058,8 @@ int LD2R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD2R_ASISDLSO_R2);
 	}
@@ -12073,8 +12073,8 @@ int LD2R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD2R_ASISDLSOP_R2_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD2R_ASISDLSOP_RX2_R);
@@ -12082,13 +12082,13 @@ int LD2R_advsimd(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12133,8 +12133,8 @@ int LD2_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD2_ASISDLSE_R2);
 	}
@@ -12148,8 +12148,8 @@ int LD2_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD2_ASISDLSEP_I2_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD2_ASISDLSEP_R2_R);
@@ -12180,8 +12180,8 @@ int LD2_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==0) OK(ENC_LD2_ASISDLSO_B2_2B);
 		if(ctx->opcode==2 && !(ctx->size&1)) OK(ENC_LD2_ASISDLSO_H2_2H);
@@ -12198,8 +12198,8 @@ int LD2_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==0) OK(ENC_LD2_ASISDLSOP_B2_I2B);
 		if(ctx->Rm!=0x1f && ctx->opcode==0) OK(ENC_LD2_ASISDLSOP_BX2_R2B);
@@ -12213,13 +12213,13 @@ int LD2_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12264,8 +12264,8 @@ int LD3R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD3R_ASISDLSO_R3);
 	}
@@ -12279,8 +12279,8 @@ int LD3R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD3R_ASISDLSOP_R3_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD3R_ASISDLSOP_RX3_R);
@@ -12288,13 +12288,13 @@ int LD3R_advsimd(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12339,8 +12339,8 @@ int LD3_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD3_ASISDLSE_R3);
 	}
@@ -12354,8 +12354,8 @@ int LD3_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD3_ASISDLSEP_I3_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD3_ASISDLSEP_R3_R);
@@ -12386,8 +12386,8 @@ int LD3_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==1) OK(ENC_LD3_ASISDLSO_B3_3B);
 		if(ctx->opcode==3 && !(ctx->size&1)) OK(ENC_LD3_ASISDLSO_H3_3H);
@@ -12404,8 +12404,8 @@ int LD3_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==1) OK(ENC_LD3_ASISDLSOP_B3_I3B);
 		if(ctx->Rm!=0x1f && ctx->opcode==1) OK(ENC_LD3_ASISDLSOP_BX3_R3B);
@@ -12419,13 +12419,13 @@ int LD3_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12470,8 +12470,8 @@ int LD4R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD4R_ASISDLSO_R4);
 	}
@@ -12485,8 +12485,8 @@ int LD4R_advsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD4R_ASISDLSOP_R4_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD4R_ASISDLSOP_RX4_R);
@@ -12494,13 +12494,13 @@ int LD4R_advsimd(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12545,8 +12545,8 @@ int LD4_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LD4_ASISDLSE_R4);
 	}
@@ -12560,8 +12560,8 @@ int LD4_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_LD4_ASISDLSEP_I4_I);
 		if(ctx->Rm!=0x1f) OK(ENC_LD4_ASISDLSEP_R4_R);
@@ -12592,8 +12592,8 @@ int LD4_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==1) OK(ENC_LD4_ASISDLSO_B4_4B);
 		if(ctx->opcode==3 && !(ctx->size&1)) OK(ENC_LD4_ASISDLSO_H4_4H);
@@ -12610,8 +12610,8 @@ int LD4_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==1) OK(ENC_LD4_ASISDLSOP_B4_I4B);
 		if(ctx->Rm!=0x1f && ctx->opcode==1) OK(ENC_LD4_ASISDLSOP_BX4_R4B);
@@ -12625,13 +12625,13 @@ int LD4_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12676,7 +12676,7 @@ int LD64B(context *ctx, Instruction *instr)
 		if(SLICE(ctx->Rt,4,3)==3 || SLICE(ctx->Rt,0,0)==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->withstatus = FALSE;
+		ctx->withstatus = false;
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -12786,21 +12786,21 @@ int LDAP1_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_LDAP1_ASISDLSO_D1);
 	}
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -12847,8 +12847,8 @@ int LDAPP_gen(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->acquire = ctx->t!=0x1f && ctx->t2!=0x1f;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->ispair = TRUE;
-		ctx->rt_unknown = FALSE;
+		ctx->ispair = true;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -12872,13 +12872,13 @@ int LDAPR(context *ctx, Instruction *instr)
 		}
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->wback = TRUE;
+		ctx->wback = true;
 		ctx->acquirepc = ctx->t!=0x1f;
 		ctx->regsize = (ctx->size==3)!=0 ? 0x40 : 0x20;
 		ctx->datasize = (8) << (UINT(ctx->size));
 		ctx->offset = (1) << (UINT(ctx->size));
-		ctx->tagchecked = TRUE;
-		ctx->wb_unknown = FALSE;
+		ctx->tagchecked = true;
+		ctx->wb_unknown = false;
 		if(ctx->n==ctx->t && ctx->n!=0x1f) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
 			// assert
@@ -12896,9 +12896,9 @@ int LDAPR(context *ctx, Instruction *instr)
 		}
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->wback = FALSE;
+		ctx->wback = false;
 		ctx->offset = 0;
-		ctx->wb_unknown = FALSE;
+		ctx->wb_unknown = false;
 		ctx->elsize = (8) << (UINT(ctx->size));
 		ctx->regsize = (ctx->elsize==0x40)!=0 ? 0x40 : 0x20;
 		ctx->datasize = ctx->elsize;
@@ -13095,7 +13095,7 @@ int LDAPUR_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -13142,8 +13142,8 @@ int LDAP_gen(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->acquire = ctx->t!=0x1f && ctx->t2!=0x1f;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->ispair = TRUE;
-		ctx->rt_unknown = FALSE;
+		ctx->ispair = true;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -13246,7 +13246,7 @@ int LDAXP(context *ctx, Instruction *instr)
 		ctx->datasize = (ctx->elsize) * (2);
 		ctx->acqrel = ctx->t!=0x1f && ctx->t2!=0x1f;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -13552,7 +13552,7 @@ int LDCLRP(context *ctx, Instruction *instr)
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -13871,7 +13871,7 @@ int LDIAPP(context *ctx, Instruction *instr)
 		if(!HaveLRCPC3()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->ispair = TRUE;
+		ctx->ispair = true;
 		ctx->postindex = SLICE(ctx->opc2,0,0)==0;
 		ctx->wback = SLICE(ctx->opc2,0,0)==0;
 		if(ctx->size==2 && ctx->opc2==0) OK(ENC_LDIAPP_32LE_LDIAPPSTILP);
@@ -13888,8 +13888,8 @@ int LDIAPP(context *ctx, Instruction *instr)
 	ctx->offset = (SLICE(ctx->opc2,0,0)==0)!=0 ? ((2) << (ctx->scale)) : 0;
 	ctx->acqrel = ctx->t!=0x1f && ctx->t2!=0x1f;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
-	ctx->wb_unknown = FALSE;
+	ctx->rt_unknown = false;
+	ctx->wb_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
 		// assert
@@ -13985,12 +13985,12 @@ int LDNP_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = TRUE;
+	ctx->nontemporal = true;
 	ctx->scale = 2+(UINT(ctx->opc));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->t==ctx->t2) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 		// assert
@@ -14010,12 +14010,12 @@ int LDNP_gen(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->nontemporal = TRUE;
+		ctx->nontemporal = true;
 		ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 		ctx->datasize = (8) << (ctx->scale);
 		ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -14053,13 +14053,13 @@ int LDPSW(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 	ctx->datasize = 0x20;
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
-	ctx->wb_unknown = FALSE;
+	ctx->rt_unknown = false;
+	ctx->wb_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
 		// assert
@@ -14084,8 +14084,8 @@ int LDP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		if(ctx->opc==0) OK(ENC_LDP_S_LDSTPAIR_POST);
 		if(ctx->opc==1) OK(ENC_LDP_D_LDSTPAIR_POST);
 		if(ctx->opc==2) OK(ENC_LDP_Q_LDSTPAIR_POST);
@@ -14097,8 +14097,8 @@ int LDP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		if(ctx->opc==0) OK(ENC_LDP_S_LDSTPAIR_PRE);
 		if(ctx->opc==1) OK(ENC_LDP_D_LDSTPAIR_PRE);
 		if(ctx->opc==2) OK(ENC_LDP_Q_LDSTPAIR_PRE);
@@ -14110,8 +14110,8 @@ int LDP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		if(ctx->opc==0) OK(ENC_LDP_S_LDSTPAIR_OFF);
 		if(ctx->opc==1) OK(ENC_LDP_D_LDSTPAIR_OFF);
 		if(ctx->opc==2) OK(ENC_LDP_Q_LDSTPAIR_OFF);
@@ -14120,12 +14120,12 @@ int LDP_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+(UINT(ctx->opc));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->t==ctx->t2) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 		// assert
@@ -14163,13 +14163,13 @@ int LDP_gen(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
-	ctx->wb_unknown = FALSE;
+	ctx->rt_unknown = false;
+	ctx->wb_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
 		// assert
@@ -14200,9 +14200,9 @@ int LDRA(context *ctx, Instruction *instr)
 		ctx->use_key_a = ctx->M==0;
 		ctx->S10 = ((ctx->S<<9)|ctx->imm9);
 		ctx->offset = LSL(SignExtend(ctx->S10,10),3);
-		ctx->nontemporal = FALSE;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-		ctx->wb_unknown = FALSE;
+		ctx->wb_unknown = false;
 		if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
 			// assert
@@ -14224,8 +14224,8 @@ int LDRB_imm(context *ctx, Instruction *instr)
 	/* size=00|11|1|VR=0|0|0|opc=01|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x38400400) {
 		decode_fields32(ENC_LDRB_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_LDRB_32_LDST_IMMPOST);
 	}
@@ -14233,8 +14233,8 @@ int LDRB_imm(context *ctx, Instruction *instr)
 	/* size=00|11|1|VR=0|0|0|opc=01|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x38400C00) {
 		decode_fields32(ENC_LDRB_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_LDRB_32_LDST_IMMPRE);
 	}
@@ -14242,17 +14242,17 @@ int LDRB_imm(context *ctx, Instruction *instr)
 	/* size=00|11|1|VR=0|0|1|opc=01|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFC00000)==0x39400000) {
 		decode_fields32(ENC_LDRB_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),0);
 		OK(ENC_LDRB_32_LDST_POS);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->wb_unknown = FALSE;
+	ctx->wb_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -14281,8 +14281,8 @@ int LDRB_reg(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14294,8 +14294,8 @@ int LDRH_imm(context *ctx, Instruction *instr)
 	/* size=01|11|1|VR=0|0|0|opc=01|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x78400400) {
 		decode_fields32(ENC_LDRH_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_LDRH_32_LDST_IMMPOST);
 	}
@@ -14303,8 +14303,8 @@ int LDRH_imm(context *ctx, Instruction *instr)
 	/* size=01|11|1|VR=0|0|0|opc=01|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x78400C00) {
 		decode_fields32(ENC_LDRH_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_LDRH_32_LDST_IMMPRE);
 	}
@@ -14312,17 +14312,17 @@ int LDRH_imm(context *ctx, Instruction *instr)
 	/* size=01|11|1|VR=0|0|1|opc=01|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFC00000)==0x79400000) {
 		decode_fields32(ENC_LDRH_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),1);
 		OK(ENC_LDRH_32_LDST_POS);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->wb_unknown = FALSE;
+	ctx->wb_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -14350,8 +14350,8 @@ int LDRH_reg(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14363,8 +14363,8 @@ int LDRSB_imm(context *ctx, Instruction *instr)
 	/* size=00|111|VR=0|00|opc=1x|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFA00C00)==0x38800400) {
 		decode_fields32(ENC_LDRSB_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->opc==3) OK(ENC_LDRSB_32_LDST_IMMPOST);
 		if(ctx->opc==2) OK(ENC_LDRSB_64_LDST_IMMPOST);
@@ -14373,8 +14373,8 @@ int LDRSB_imm(context *ctx, Instruction *instr)
 	/* size=00|111|VR=0|00|opc=1x|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFA00C00)==0x38800C00) {
 		decode_fields32(ENC_LDRSB_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->opc==3) OK(ENC_LDRSB_32_LDST_IMMPRE);
 		if(ctx->opc==2) OK(ENC_LDRSB_64_LDST_IMMPRE);
@@ -14383,8 +14383,8 @@ int LDRSB_imm(context *ctx, Instruction *instr)
 	/* size=00|111|VR=0|01|opc=1x|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFF800000)==0x39800000) {
 		decode_fields32(ENC_LDRSB_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),0);
 		if(ctx->opc==3) OK(ENC_LDRSB_32_LDST_POS);
 		if(ctx->opc==2) OK(ENC_LDRSB_64_LDST_POS);
@@ -14393,9 +14393,9 @@ int LDRSB_imm(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->wb_unknown = FALSE;
+	ctx->wb_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -14427,8 +14427,8 @@ int LDRSB_reg(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14440,8 +14440,8 @@ int LDRSH_imm(context *ctx, Instruction *instr)
 	/* size=01|111|VR=0|00|opc=1x|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFA00C00)==0x78800400) {
 		decode_fields32(ENC_LDRSH_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->opc==3) OK(ENC_LDRSH_32_LDST_IMMPOST);
 		if(ctx->opc==2) OK(ENC_LDRSH_64_LDST_IMMPOST);
@@ -14450,8 +14450,8 @@ int LDRSH_imm(context *ctx, Instruction *instr)
 	/* size=01|111|VR=0|00|opc=1x|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFA00C00)==0x78800C00) {
 		decode_fields32(ENC_LDRSH_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->opc==3) OK(ENC_LDRSH_32_LDST_IMMPRE);
 		if(ctx->opc==2) OK(ENC_LDRSH_64_LDST_IMMPRE);
@@ -14460,8 +14460,8 @@ int LDRSH_imm(context *ctx, Instruction *instr)
 	/* size=01|111|VR=0|01|opc=1x|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFF800000)==0x79800000) {
 		decode_fields32(ENC_LDRSH_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),1);
 		if(ctx->opc==3) OK(ENC_LDRSH_32_LDST_POS);
 		if(ctx->opc==2) OK(ENC_LDRSH_64_LDST_POS);
@@ -14470,9 +14470,9 @@ int LDRSH_imm(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->wb_unknown = FALSE;
+	ctx->wb_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -14502,8 +14502,8 @@ int LDRSH_reg(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14515,8 +14515,8 @@ int LDRSW_imm(context *ctx, Instruction *instr)
 	/* size=10|11|1|VR=0|0|0|opc=10|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0xB8800400) {
 		decode_fields32(ENC_LDRSW_64_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_LDRSW_64_LDST_IMMPOST);
 	}
@@ -14524,8 +14524,8 @@ int LDRSW_imm(context *ctx, Instruction *instr)
 	/* size=10|11|1|VR=0|0|0|opc=10|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0xB8800C00) {
 		decode_fields32(ENC_LDRSW_64_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_LDRSW_64_LDST_IMMPRE);
 	}
@@ -14533,17 +14533,17 @@ int LDRSW_imm(context *ctx, Instruction *instr)
 	/* size=10|11|1|VR=0|0|1|opc=10|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFC00000)==0xB9800000) {
 		decode_fields32(ENC_LDRSW_64_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),2);
 		OK(ENC_LDRSW_64_LDST_POS);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->wb_unknown = FALSE;
+	ctx->wb_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -14561,8 +14561,8 @@ int LDRSW_lit(context *ctx, Instruction *instr)
 	if((INSWORD & 0xFF000000)==0x98000000) {
 		decode_fields32(ENC_LDRSW_64_LOADLIT, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
-		ctx->nontemporal = FALSE;
-		ctx->tagchecked = FALSE;
+		ctx->nontemporal = false;
+		ctx->tagchecked = false;
 		ctx->offset = SignExtend((ctx->imm19<<2),21);
 		OK(ENC_LDRSW_64_LOADLIT);
 	}
@@ -14588,8 +14588,8 @@ int LDRSW_reg(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14608,8 +14608,8 @@ int LDR_imm_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = (SLICE(ctx->opc,1,1)==1)!=0 ? 4 : UINT(ctx->size);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==0 && ctx->opc==1) OK(ENC_LDR_B_LDST_IMMPOST);
 		if(ctx->size==1 && ctx->opc==1) OK(ENC_LDR_H_LDST_IMMPOST);
@@ -14628,8 +14628,8 @@ int LDR_imm_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = (SLICE(ctx->opc,1,1)==1)!=0 ? 4 : UINT(ctx->size);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==0 && ctx->opc==1) OK(ENC_LDR_B_LDST_IMMPRE);
 		if(ctx->size==1 && ctx->opc==1) OK(ENC_LDR_H_LDST_IMMPRE);
@@ -14648,8 +14648,8 @@ int LDR_imm_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = (SLICE(ctx->opc,1,1)==1)!=0 ? 4 : UINT(ctx->size);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),ctx->scale);
 		if(ctx->size==0 && ctx->opc==1) OK(ENC_LDR_B_LDST_POS);
 		if(ctx->size==1 && ctx->opc==1) OK(ENC_LDR_H_LDST_POS);
@@ -14661,7 +14661,7 @@ int LDR_imm_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 	return rc;
 }
@@ -14674,8 +14674,8 @@ int LDR_imm_gen(context *ctx, Instruction *instr)
 	/* size=1x|111|VR=0|00|opc=01|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xBFE00C00)==0xB8400400) {
 		decode_fields32(ENC_LDR_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->scale = UINT(ctx->size);
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==2) OK(ENC_LDR_32_LDST_IMMPOST);
@@ -14685,8 +14685,8 @@ int LDR_imm_gen(context *ctx, Instruction *instr)
 	/* size=1x|111|VR=0|00|opc=01|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xBFE00C00)==0xB8400C00) {
 		decode_fields32(ENC_LDR_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->scale = UINT(ctx->size);
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==2) OK(ENC_LDR_32_LDST_IMMPRE);
@@ -14696,8 +14696,8 @@ int LDR_imm_gen(context *ctx, Instruction *instr)
 	/* size=1x|111|VR=0|01|opc=01|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xBFC00000)==0xB9400000) {
 		decode_fields32(ENC_LDR_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->scale = UINT(ctx->size);
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),ctx->scale);
 		if(ctx->size==2) OK(ENC_LDR_32_LDST_POS);
@@ -14708,9 +14708,9 @@ int LDR_imm_gen(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->regsize = (ctx->datasize==0x40)!=0 ? 0x40 : 0x20;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->wb_unknown = FALSE;
+	ctx->wb_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -14735,8 +14735,8 @@ int LDR_lit_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->size = (4) << ((UINT(ctx->opc)));
-		ctx->nontemporal = FALSE;
-		ctx->tagchecked = FALSE;
+		ctx->nontemporal = false;
+		ctx->tagchecked = false;
 		ctx->offset = SignExtend((ctx->imm19<<2),21);
 		if(ctx->opc==0) OK(ENC_LDR_S_LOADLIT);
 		if(ctx->opc==1) OK(ENC_LDR_D_LOADLIT);
@@ -14755,8 +14755,8 @@ int LDR_lit_gen(context *ctx, Instruction *instr)
 		decode_fields32(ENC_LDR_32_LOADLIT, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
 		ctx->size = (4) << (UINT(SLICE(ctx->opc,0,0)));
-		ctx->nontemporal = FALSE;
-		ctx->tagchecked = FALSE;
+		ctx->nontemporal = false;
+		ctx->tagchecked = false;
 		ctx->offset = SignExtend((ctx->imm19<<2),21);
 		if(ctx->opc==0) OK(ENC_LDR_32_LOADLIT);
 		if(ctx->opc==1) OK(ENC_LDR_64_LOADLIT);
@@ -14796,8 +14796,8 @@ int LDR_reg_fpsimd(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14824,8 +14824,8 @@ int LDR_reg_gen(context *ctx, Instruction *instr)
 	ctx->m = UINT(ctx->Rm);
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->regsize = (ctx->datasize==0x40)!=0 ? 0x40 : 0x20;
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -14939,7 +14939,7 @@ int LDSETP(context *ctx, Instruction *instr)
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -15207,11 +15207,11 @@ int LDTNP_fpsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->nontemporal = TRUE;
+		ctx->nontemporal = true;
 		ctx->datasize = 0x80;
 		ctx->offset = LSL(SignExtend(ctx->imm7,7),4);
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -15236,11 +15236,11 @@ int LDTNP_gen(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->nontemporal = TRUE;
+		ctx->nontemporal = true;
 		ctx->datasize = 0x40;
 		ctx->offset = LSL(SignExtend(ctx->imm7,7),3);
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -15262,8 +15262,8 @@ int LDTP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP() || !HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		OK(ENC_LDTP_Q_LDSTPAIR_POST);
 	}
 	/* class iclass_pre_index */
@@ -15273,8 +15273,8 @@ int LDTP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP() || !HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		OK(ENC_LDTP_Q_LDSTPAIR_PRE);
 	}
 	/* class iclass_signed_offset */
@@ -15284,19 +15284,19 @@ int LDTP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP() || !HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		OK(ENC_LDTP_Q_LDSTPAIR_OFF);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->datasize = 0x80;
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),4);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->t==ctx->t2) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 		// assert
@@ -15316,8 +15316,8 @@ int LDTP_gen(context *ctx, Instruction *instr)
 		if(!HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		OK(ENC_LDTP_64_LDSTPAIR_POST);
 	}
 	/* class iclass_pre_index */
@@ -15327,8 +15327,8 @@ int LDTP_gen(context *ctx, Instruction *instr)
 		if(!HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		OK(ENC_LDTP_64_LDSTPAIR_PRE);
 	}
 	/* class iclass_signed_offset */
@@ -15338,21 +15338,21 @@ int LDTP_gen(context *ctx, Instruction *instr)
 		if(!HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		OK(ENC_LDTP_64_LDSTPAIR_OFF);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 	ctx->datasize = 0x40;
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
-	ctx->wb_unknown = FALSE;
+	ctx->rt_unknown = false;
+	ctx->wb_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
 		// assert
@@ -15384,7 +15384,7 @@ int LDTR(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->regsize = (ctx->datasize==0x40)!=0 ? 0x40 : 0x20;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15404,7 +15404,7 @@ int LDTRB(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 8;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15424,7 +15424,7 @@ int LDTRH(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 0x10;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15446,7 +15446,7 @@ int LDTRSB(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 8;
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15468,7 +15468,7 @@ int LDTRSH(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 0x10;
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15488,7 +15488,7 @@ int LDTRSW(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 0x20;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15541,7 +15541,7 @@ int LDTXR(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (0x20) << (UINT(ctx->sz));
 		ctx->regsize = (ctx->elsize==0x40)!=0 ? 0x40 : 0x20;
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->sz==0) OK(ENC_LDTXR_LR32_LDSTEXCLR_UNPRIV);
 		if(ctx->sz==1) OK(ENC_LDTXR_LR64_LDSTEXCLR_UNPRIV);
@@ -15738,7 +15738,7 @@ int LDURB(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 8;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15758,7 +15758,7 @@ int LDURH(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 0x10;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15780,7 +15780,7 @@ int LDURSB(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 8;
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15802,7 +15802,7 @@ int LDURSH(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 0x10;
 	ctx->regsize = (0x40) >> (UINT(SLICE(ctx->opc,0,0)));
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15822,7 +15822,7 @@ int LDURSW(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 0x20;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15853,7 +15853,7 @@ int LDUR_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15876,7 +15876,7 @@ int LDUR_gen(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->regsize = (ctx->datasize==0x40)!=0 ? 0x40 : 0x20;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -15894,9 +15894,9 @@ int LDXP(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (ctx->elsize) * (2);
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LDPOVERLAP);
 			// assert
@@ -15920,7 +15920,7 @@ int LDXR(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (8) << (UINT(ctx->size));
 		ctx->regsize = (ctx->elsize==0x40)!=0 ? 0x40 : 0x20;
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==2) OK(ENC_LDXR_LR32_LDSTEXCLR);
 		if(ctx->size==3) OK(ENC_LDXR_LR64_LDSTEXCLR);
@@ -15938,7 +15938,7 @@ int LDXRB(context *ctx, Instruction *instr)
 		decode_fields32(ENC_LDXRB_LR32_LDSTEXCLR, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_LDXRB_LR32_LDSTEXCLR);
 	}
@@ -15955,7 +15955,7 @@ int LDXRH(context *ctx, Instruction *instr)
 		decode_fields32(ENC_LDXRH_LR32_LDSTEXCLR, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_LDXRH_LR32_LDSTEXCLR);
 	}
@@ -16620,7 +16620,7 @@ int MSR_imm(context *ctx, Instruction *instr)
 		if(ctx->op1==0 && ctx->op2==2) {
 			SEE /* AXFLAG */;
 		}
-		ctx->need_secure = FALSE;
+		ctx->need_secure = false;
 		if(!(ctx->op1&6)) {
 			ctx->min_EL = EL1;
 		}
@@ -16644,7 +16644,7 @@ int MSR_imm(context *ctx, Instruction *instr)
 		}
 		else if(ctx->op1==7) {
 			ctx->min_EL = EL1;
-			ctx->need_secure = TRUE;
+			ctx->need_secure = true;
 		}
 		ctx->operand = ctx->CRm;
 		if(((ctx->op1<<3)|ctx->op2)==3) {
@@ -17211,12 +17211,12 @@ int PACDA(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->source_is_sp = FALSE;
+		ctx->source_is_sp = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		if(ctx->Z==0) {
 			if(ctx->n==0x1f) {
-				ctx->source_is_sp = TRUE;
+				ctx->source_is_sp = true;
 			}
 		}
 		else {
@@ -17241,12 +17241,12 @@ int PACDB(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->source_is_sp = FALSE;
+		ctx->source_is_sp = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		if(ctx->Z==0) {
 			if(ctx->n==0x1f) {
-				ctx->source_is_sp = TRUE;
+				ctx->source_is_sp = true;
 			}
 		}
 		else {
@@ -17271,12 +17271,12 @@ int PACGA(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->source_is_sp = FALSE;
+		ctx->source_is_sp = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		if(ctx->m==0x1f) {
-			ctx->source_is_sp = TRUE;
+			ctx->source_is_sp = true;
 		}
 		OK(ENC_PACGA_64P_DP_2SRC);
 	}
@@ -17294,13 +17294,13 @@ int PACIA(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->source_is_sp = FALSE;
-		ctx->pacia1716 = FALSE;
+		ctx->source_is_sp = false;
+		ctx->pacia1716 = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		if(ctx->Z==0) {
 			if(ctx->n==0x1f) {
-				ctx->source_is_sp = TRUE;
+				ctx->source_is_sp = true;
 			}
 		}
 		else {
@@ -17318,15 +17318,15 @@ int PACIA(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_NOP);
 		}
-		ctx->source_is_sp = FALSE;
-		ctx->pacia1716 = FALSE;
+		ctx->source_is_sp = false;
+		ctx->pacia1716 = false;
 		if(((ctx->CRm<<3)|ctx->op2)==0x18) {
 			ctx->d = 0x1e;
 			ctx->n = 0x1f;
 		}
 		else if(((ctx->CRm<<3)|ctx->op2)==0x19) {
 			ctx->d = 0x1e;
-			ctx->source_is_sp = TRUE;
+			ctx->source_is_sp = true;
 			if(HaveBTI()) {
 				ctx->pacinst = PACIxSP;
 				SetBTypeCompatible(BTypeCompatible_PAC(ctx->pacinst));
@@ -17335,7 +17335,7 @@ int PACIA(context *ctx, Instruction *instr)
 		else if(((ctx->CRm<<3)|ctx->op2)==8) {
 			ctx->d = 0x11;
 			ctx->n = 0x10;
-			ctx->pacia1716 = TRUE;
+			ctx->pacia1716 = true;
 		}
 		if(ctx->CRm==1 && ctx->op2==0) OK(ENC_PACIA1716_HI_HINTS);
 		if(ctx->CRm==3 && ctx->op2==1) OK(ENC_PACIASP_HI_HINTS);
@@ -17392,13 +17392,13 @@ int PACIB(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->source_is_sp = FALSE;
-		ctx->pacib1716 = FALSE;
+		ctx->source_is_sp = false;
+		ctx->pacib1716 = false;
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		if(ctx->Z==0) {
 			if(ctx->n==0x1f) {
-				ctx->source_is_sp = TRUE;
+				ctx->source_is_sp = true;
 			}
 		}
 		else {
@@ -17416,15 +17416,15 @@ int PACIB(context *ctx, Instruction *instr)
 		if(!HavePAuth()) {
 			EndOfDecode(Decode_NOP);
 		}
-		ctx->source_is_sp = FALSE;
-		ctx->pacib1716 = FALSE;
+		ctx->source_is_sp = false;
+		ctx->pacib1716 = false;
 		if(((ctx->CRm<<3)|ctx->op2)==0x1a) {
 			ctx->d = 0x1e;
 			ctx->n = 0x1f;
 		}
 		else if(((ctx->CRm<<3)|ctx->op2)==0x1b) {
 			ctx->d = 0x1e;
-			ctx->source_is_sp = TRUE;
+			ctx->source_is_sp = true;
 			if(HaveBTI()) {
 				ctx->pacinst = PACIxSP;
 				SetBTypeCompatible(BTypeCompatible_PAC(ctx->pacinst));
@@ -17433,7 +17433,7 @@ int PACIB(context *ctx, Instruction *instr)
 		else if(((ctx->CRm<<3)|ctx->op2)==10) {
 			ctx->d = 0x11;
 			ctx->n = 0x10;
-			ctx->pacib1716 = TRUE;
+			ctx->pacib1716 = true;
 		}
 		if(ctx->CRm==1 && ctx->op2==2) OK(ENC_PACIB1716_HI_HINTS);
 		if(ctx->CRm==3 && ctx->op2==3) OK(ENC_PACIBSP_HI_HINTS);
@@ -17597,8 +17597,8 @@ int PRFM_imm(context *ctx, Instruction *instr)
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),3);
 		ctx->n = UINT(ctx->Rn);
 		ctx->t = UINT(ctx->Rt);
-		ctx->nontemporal = FALSE;
-		ctx->tagchecked = FALSE;
+		ctx->nontemporal = false;
+		ctx->tagchecked = false;
 		OK(ENC_PRFM_P_LDST_POS);
 	}
 	return rc;
@@ -17635,8 +17635,8 @@ int PRFM_reg(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->t = UINT(ctx->Rt);
 		ctx->m = UINT(ctx->Rm);
-		ctx->nontemporal = FALSE;
-		ctx->tagchecked = FALSE;
+		ctx->nontemporal = false;
+		ctx->tagchecked = false;
 		OK(ENC_PRFM_P_LDST_REGOFF);
 	}
 	return rc;
@@ -17653,8 +17653,8 @@ int PRFUM(context *ctx, Instruction *instr)
 		ctx->offset = SignExtend(ctx->imm9,9);
 		ctx->n = UINT(ctx->Rn);
 		ctx->t = UINT(ctx->Rt);
-		ctx->nontemporal = FALSE;
-		ctx->tagchecked = FALSE;
+		ctx->nontemporal = false;
+		ctx->tagchecked = false;
 		OK(ENC_PRFUM_P_LDST_UNSCALED);
 	}
 	return rc;
@@ -17710,7 +17710,7 @@ int RADDHN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = 0x40;
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_RADDHN_ASIMDDIFF_N);
 	}
 	return rc;
@@ -17787,7 +17787,7 @@ int RCWCAS(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -17821,7 +17821,7 @@ int RCWCASP(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->A==0 && ctx->R==0) OK(ENC_RCWCASP_C64_RCWCOMSWAPPR);
 		if(ctx->A==1 && ctx->R==0) OK(ENC_RCWCASPA_C64_RCWCOMSWAPPR);
@@ -17845,7 +17845,7 @@ int RCWCLR(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -17877,11 +17877,11 @@ int RCWCLRP(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -17909,7 +17909,7 @@ int RCWSCAS(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -17943,7 +17943,7 @@ int RCWSCASP(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->A==0 && ctx->R==0) OK(ENC_RCWSCASP_C64_RCWCOMSWAPPR);
 		if(ctx->A==1 && ctx->R==0) OK(ENC_RCWSCASPA_C64_RCWCOMSWAPPR);
@@ -17967,7 +17967,7 @@ int RCWSCLR(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -17999,11 +17999,11 @@ int RCWSCLRP(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -18031,7 +18031,7 @@ int RCWSET(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -18063,11 +18063,11 @@ int RCWSETP(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -18095,7 +18095,7 @@ int RCWSSET(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -18127,11 +18127,11 @@ int RCWSSETP(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -18159,7 +18159,7 @@ int RCWSSWP(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -18191,11 +18191,11 @@ int RCWSSWPP(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = TRUE;
+		ctx->soft = true;
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -18223,7 +18223,7 @@ int RCWSWP(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1 && ctx->t!=0x1f;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -18255,11 +18255,11 @@ int RCWSWPP(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->soft = FALSE;
+		ctx->soft = false;
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -18299,7 +18299,7 @@ int RETA(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->use_key_a = (ctx->M==0);
-		ctx->auth_then_branch = TRUE;
+		ctx->auth_then_branch = true;
 		if(ctx->M==0) OK(ENC_RETAA_64E_BRANCH_REG);
 		if(ctx->M==1) OK(ENC_RETAB_64E_BRANCH_REG);
 	}
@@ -18319,7 +18319,7 @@ int RETASPPCR_reg(context *ctx, Instruction *instr)
 		}
 		ctx->m = UINT(ctx->Rm);
 		ctx->use_key_a = ctx->M==0;
-		ctx->auth_then_branch = TRUE;
+		ctx->auth_then_branch = true;
 		if(ctx->M==0) OK(ENC_RETAASPPCR_64M_BRANCH_REG);
 		if(ctx->M==1) OK(ENC_RETABSPPCR_64M_BRANCH_REG);
 	}
@@ -18339,7 +18339,7 @@ int RETASPPC_imm(context *ctx, Instruction *instr)
 		}
 		ctx->use_key_a = SLICE(ctx->opc,0,0)==0;
 		ctx->offset = ZeroExtend((ctx->imm16<<2),0x40);
-		ctx->auth_then_branch = TRUE;
+		ctx->auth_then_branch = true;
 		if(ctx->opc==0) OK(ENC_RETAASPPC_ONLY_MISCBRANCH);
 		if(ctx->opc==1) OK(ENC_RETABSPPC_ONLY_MISCBRANCH);
 	}
@@ -18607,7 +18607,7 @@ int RSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_RSHRN_ASIMDSHF_N);
 	}
 	return rc;
@@ -18634,7 +18634,7 @@ int RSUBHN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = 0x40;
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_RSUBHN_ASIMDDIFF_N);
 	}
 	return rc;
@@ -18812,7 +18812,7 @@ int SADDLV_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SADDLV_ASIMDALL_ONLY);
 	}
 	return rc;
@@ -19014,7 +19014,7 @@ int SCVTF_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SCVTF_ASISDSHF_C);
 	}
 	/* class iclass_vector */
@@ -19036,7 +19036,7 @@ int SCVTF_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SCVTF_ASIMDSHF_C);
 	}
 	return rc;
@@ -19058,7 +19058,7 @@ int SCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SCVTF_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -19073,7 +19073,7 @@ int SCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SCVTF_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -19088,7 +19088,7 @@ int SCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SCVTF_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -19106,7 +19106,7 @@ int SCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SCVTF_ASIMDMISC_R);
 	}
 	return rc;
@@ -19137,7 +19137,7 @@ int SCVTF_float_fix(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->decode_fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->fracbits = 0x40-UINT(ctx->scale);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_SCVTF_H32_FLOAT2FIX);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_SCVTF_H64_FLOAT2FIX);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_SCVTF_S32_FLOAT2FIX);
@@ -19169,7 +19169,7 @@ int SCVTF_float_int(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->decode_fltsize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_SCVTF_H32_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_SCVTF_S32_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==1) OK(ENC_SCVTF_D32_FLOAT2INT);
@@ -19975,7 +19975,7 @@ int SHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_SHRN_ASIMDSHF_N);
 	}
 	return rc;
@@ -20307,7 +20307,7 @@ int SMAXV_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAXV_ASIMDALL_ONLY);
 	}
 	return rc;
@@ -20440,7 +20440,7 @@ int SMINV_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMINV_ASIMDALL_ONLY);
 	}
 	return rc;
@@ -20649,8 +20649,8 @@ int SMMLA_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMMLA_ASIMDSAME2_G);
 	}
 	return rc;
@@ -20889,7 +20889,7 @@ int SQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQADD_ASISDSAME_ONLY);
 	}
 	/* class iclass_vector */
@@ -20908,7 +20908,7 @@ int SQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQADD_ASIMDSAME_ONLY);
 	}
 	return rc;
@@ -21159,7 +21159,7 @@ int SQDMULH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_SQDMULH_ASISDELEM_R);
 	}
 	/* class iclass_vector */
@@ -21187,7 +21187,7 @@ int SQDMULH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_SQDMULH_ASIMDELEM_R);
 	}
 	return rc;
@@ -21213,7 +21213,7 @@ int SQDMULH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->rounding = FALSE;
+		ctx->rounding = false;
 		OK(ENC_SQDMULH_ASISDSAME_ONLY);
 	}
 	/* class iclass_vector */
@@ -21232,7 +21232,7 @@ int SQDMULH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->rounding = FALSE;
+		ctx->rounding = false;
 		OK(ENC_SQDMULH_ASIMDSAME_ONLY);
 	}
 	return rc;
@@ -21413,7 +21413,7 @@ int SQRDMLAH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLAH_ASISDELEM_R);
 	}
 	/* class iclass_vector */
@@ -21441,7 +21441,7 @@ int SQRDMLAH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLAH_ASIMDELEM_R);
 	}
 	return rc;
@@ -21467,7 +21467,7 @@ int SQRDMLAH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLAH_ASISDSAME2_ONLY);
 	}
 	/* class iclass_vector */
@@ -21486,7 +21486,7 @@ int SQRDMLAH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLAH_ASIMDSAME2_ONLY);
 	}
 	return rc;
@@ -21521,7 +21521,7 @@ int SQRDMLSH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLSH_ASISDELEM_R);
 	}
 	/* class iclass_vector */
@@ -21549,7 +21549,7 @@ int SQRDMLSH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLSH_ASIMDELEM_R);
 	}
 	return rc;
@@ -21575,7 +21575,7 @@ int SQRDMLSH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLSH_ASISDSAME2_ONLY);
 	}
 	/* class iclass_vector */
@@ -21594,7 +21594,7 @@ int SQRDMLSH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMLSH_ASIMDSAME2_ONLY);
 	}
 	return rc;
@@ -21629,7 +21629,7 @@ int SQRDMULH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_SQRDMULH_ASISDELEM_R);
 	}
 	/* class iclass_vector */
@@ -21657,7 +21657,7 @@ int SQRDMULH_advsimd_elt(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_SQRDMULH_ASIMDELEM_R);
 	}
 	return rc;
@@ -21683,7 +21683,7 @@ int SQRDMULH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMULH_ASISDSAME_ONLY);
 	}
 	/* class iclass_vector */
@@ -21702,7 +21702,7 @@ int SQRDMULH_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		OK(ENC_SQRDMULH_ASIMDSAME_ONLY);
 	}
 	return rc;
@@ -21725,8 +21725,8 @@ int SQRSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = FALSE;
-		ctx->rounding = TRUE;
+		ctx->unsigned_ = false;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -21745,8 +21745,8 @@ int SQRSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = FALSE;
-		ctx->rounding = TRUE;
+		ctx->unsigned_ = false;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -21779,8 +21779,8 @@ int SQRSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->elements = 1;
 		ctx->part = 0;
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
-		ctx->unsigned_ = FALSE;
+		ctx->round = true;
+		ctx->unsigned_ = false;
 		OK(ENC_SQRSHRN_ASISDSHF_N);
 	}
 	/* class iclass_vector */
@@ -21800,8 +21800,8 @@ int SQRSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
-		ctx->unsigned_ = FALSE;
+		ctx->round = true;
+		ctx->unsigned_ = false;
 		OK(ENC_SQRSHRN_ASIMDSHF_N);
 	}
 	return rc;
@@ -21831,7 +21831,7 @@ int SQRSHRUN_advsimd(context *ctx, Instruction *instr)
 		ctx->elements = 1;
 		ctx->part = 0;
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_SQRSHRUN_ASISDSHF_N);
 	}
 	/* class iclass_vector */
@@ -21851,7 +21851,7 @@ int SQRSHRUN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
+		ctx->round = true;
 		OK(ENC_SQRSHRUN_ASIMDSHF_N);
 	}
 	return rc;
@@ -21877,8 +21877,8 @@ int SQSHLU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->src_unsigned = FALSE;
-		ctx->dst_unsigned = TRUE;
+		ctx->src_unsigned = false;
+		ctx->dst_unsigned = true;
 		OK(ENC_SQSHLU_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -21897,8 +21897,8 @@ int SQSHLU_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->src_unsigned = FALSE;
-		ctx->dst_unsigned = TRUE;
+		ctx->src_unsigned = false;
+		ctx->dst_unsigned = true;
 		OK(ENC_SQSHLU_ASIMDSHF_R);
 	}
 	return rc;
@@ -21924,8 +21924,8 @@ int SQSHL_advsimd_imm(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->src_unsigned = FALSE;
-		ctx->dst_unsigned = FALSE;
+		ctx->src_unsigned = false;
+		ctx->dst_unsigned = false;
 		OK(ENC_SQSHL_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -21944,8 +21944,8 @@ int SQSHL_advsimd_imm(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->src_unsigned = FALSE;
-		ctx->dst_unsigned = FALSE;
+		ctx->src_unsigned = false;
+		ctx->dst_unsigned = false;
 		OK(ENC_SQSHL_ASIMDSHF_R);
 	}
 	return rc;
@@ -21968,8 +21968,8 @@ int SQSHL_advsimd_reg(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = FALSE;
-		ctx->rounding = FALSE;
+		ctx->unsigned_ = false;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -21988,8 +21988,8 @@ int SQSHL_advsimd_reg(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = FALSE;
-		ctx->rounding = FALSE;
+		ctx->unsigned_ = false;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -22022,8 +22022,8 @@ int SQSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->elements = 1;
 		ctx->part = 0;
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
-		ctx->unsigned_ = FALSE;
+		ctx->round = false;
+		ctx->unsigned_ = false;
 		OK(ENC_SQSHRN_ASISDSHF_N);
 	}
 	/* class iclass_vector */
@@ -22043,8 +22043,8 @@ int SQSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
-		ctx->unsigned_ = FALSE;
+		ctx->round = false;
+		ctx->unsigned_ = false;
 		OK(ENC_SQSHRN_ASIMDSHF_N);
 	}
 	return rc;
@@ -22074,7 +22074,7 @@ int SQSHRUN_advsimd(context *ctx, Instruction *instr)
 		ctx->elements = 1;
 		ctx->part = 0;
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_SQSHRUN_ASISDSHF_N);
 	}
 	/* class iclass_vector */
@@ -22094,7 +22094,7 @@ int SQSHRUN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_SQSHRUN_ASIMDSHF_N);
 	}
 	return rc;
@@ -22117,7 +22117,7 @@ int SQSUB_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQSUB_ASISDSAME_ONLY);
 	}
 	/* class iclass_vector */
@@ -22136,7 +22136,7 @@ int SQSUB_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQSUB_ASIMDSAME_ONLY);
 	}
 	return rc;
@@ -22162,7 +22162,7 @@ int SQXTN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->part = 0;
 		ctx->elements = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQXTN_ASISDMISC_N);
 	}
 	/* class iclass_vector */
@@ -22181,7 +22181,7 @@ int SQXTN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = 0x40;
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQXTN_ASIMDMISC_N);
 	}
 	return rc;
@@ -22315,7 +22315,7 @@ int SRSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -22334,7 +22334,7 @@ int SRSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -22363,8 +22363,8 @@ int SRSHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = false;
+		ctx->round = true;
 		OK(ENC_SRSHR_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -22383,8 +22383,8 @@ int SRSHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = false;
+		ctx->round = true;
 		OK(ENC_SRSHR_ASIMDSHF_R);
 	}
 	return rc;
@@ -22410,8 +22410,8 @@ int SRSRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = false;
+		ctx->round = true;
 		OK(ENC_SRSRA_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -22430,8 +22430,8 @@ int SRSRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = false;
+		ctx->round = true;
 		OK(ENC_SRSRA_ASIMDSHF_R);
 	}
 	return rc;
@@ -22471,7 +22471,7 @@ int SSHLL_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		/* regular aliases */
 		if(ctx->immb==0 && BitCount(ctx->immh)==1) return SXTL_SSHLL_advsimd(ctx, instr);
 		OK(ENC_SSHLL_ASIMDSHF_L);
@@ -22496,7 +22496,7 @@ int SSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = FALSE;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -22515,7 +22515,7 @@ int SSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = FALSE;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -22544,8 +22544,8 @@ int SSHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = false;
+		ctx->round = false;
 		OK(ENC_SSHR_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -22564,8 +22564,8 @@ int SSHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = false;
+		ctx->round = false;
 		OK(ENC_SSHR_ASIMDSHF_R);
 	}
 	return rc;
@@ -22591,8 +22591,8 @@ int SSRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = false;
+		ctx->round = false;
 		OK(ENC_SSRA_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -22611,8 +22611,8 @@ int SSRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = FALSE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = false;
+		ctx->round = false;
 		OK(ENC_SSRA_ASIMDSHF_R);
 	}
 	return rc;
@@ -22684,8 +22684,8 @@ int ST1_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==7) OK(ENC_ST1_ASISDLSE_R1_1V);
 		if(ctx->opcode==10) OK(ENC_ST1_ASISDLSE_R2_2V);
@@ -22702,8 +22702,8 @@ int ST1_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==7) OK(ENC_ST1_ASISDLSEP_I1_I1);
 		if(ctx->Rm!=0x1f && ctx->opcode==7) OK(ENC_ST1_ASISDLSEP_R1_R1);
@@ -22751,8 +22751,8 @@ int ST1_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==0) OK(ENC_ST1_ASISDLSO_B1_1B);
 		if(ctx->opcode==2 && !(ctx->size&1)) OK(ENC_ST1_ASISDLSO_H1_1H);
@@ -22769,8 +22769,8 @@ int ST1_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==0) OK(ENC_ST1_ASISDLSOP_B1_I1B);
 		if(ctx->Rm!=0x1f && ctx->opcode==0) OK(ENC_ST1_ASISDLSOP_BX1_R1B);
@@ -22784,13 +22784,13 @@ int ST1_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -22835,8 +22835,8 @@ int ST2G(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->writeback = true;
+		ctx->postindex = true;
 		OK(ENC_ST2G_64SPOST_LDSTTAGS);
 	}
 	/* class iclass_pre_index */
@@ -22849,8 +22849,8 @@ int ST2G(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->writeback = true;
+		ctx->postindex = false;
 		OK(ENC_ST2G_64SPRE_LDSTTAGS);
 	}
 	/* class iclass_signed_offset */
@@ -22863,8 +22863,8 @@ int ST2G(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->writeback = false;
+		ctx->postindex = false;
 		OK(ENC_ST2G_64SOFFSET_LDSTTAGS);
 	}
 	return rc;
@@ -22884,8 +22884,8 @@ int ST2_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_ST2_ASISDLSE_R2);
 	}
@@ -22899,8 +22899,8 @@ int ST2_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_ST2_ASISDLSEP_I2_I);
 		if(ctx->Rm!=0x1f) OK(ENC_ST2_ASISDLSEP_R2_R);
@@ -22931,8 +22931,8 @@ int ST2_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==0) OK(ENC_ST2_ASISDLSO_B2_2B);
 		if(ctx->opcode==2 && !(ctx->size&1)) OK(ENC_ST2_ASISDLSO_H2_2H);
@@ -22949,8 +22949,8 @@ int ST2_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==0) OK(ENC_ST2_ASISDLSOP_B2_I2B);
 		if(ctx->Rm!=0x1f && ctx->opcode==0) OK(ENC_ST2_ASISDLSOP_BX2_R2B);
@@ -22964,13 +22964,13 @@ int ST2_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -23015,8 +23015,8 @@ int ST3_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_ST3_ASISDLSE_R3);
 	}
@@ -23030,8 +23030,8 @@ int ST3_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_ST3_ASISDLSEP_I3_I);
 		if(ctx->Rm!=0x1f) OK(ENC_ST3_ASISDLSEP_R3_R);
@@ -23062,8 +23062,8 @@ int ST3_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==1) OK(ENC_ST3_ASISDLSO_B3_3B);
 		if(ctx->opcode==3 && !(ctx->size&1)) OK(ENC_ST3_ASISDLSO_H3_3H);
@@ -23080,8 +23080,8 @@ int ST3_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==1) OK(ENC_ST3_ASISDLSOP_B3_I3B);
 		if(ctx->Rm!=0x1f && ctx->opcode==1) OK(ENC_ST3_ASISDLSOP_BX3_R3B);
@@ -23095,13 +23095,13 @@ int ST3_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -23146,8 +23146,8 @@ int ST4_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_ST4_ASISDLSE_R4);
 	}
@@ -23161,8 +23161,8 @@ int ST4_advsimd_mult(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f) OK(ENC_ST4_ASISDLSEP_I4_I);
 		if(ctx->Rm!=0x1f) OK(ENC_ST4_ASISDLSEP_R4_R);
@@ -23193,8 +23193,8 @@ int ST4_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->opcode==1) OK(ENC_ST4_ASISDLSO_B4_4B);
 		if(ctx->opcode==3 && !(ctx->size&1)) OK(ENC_ST4_ASISDLSO_H4_4H);
@@ -23211,8 +23211,8 @@ int ST4_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->wback = TRUE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = true;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		if(ctx->Rm==0x1f && ctx->opcode==1) OK(ENC_ST4_ASISDLSOP_B4_I4B);
 		if(ctx->Rm!=0x1f && ctx->opcode==1) OK(ENC_ST4_ASISDLSOP_BX4_R4B);
@@ -23226,13 +23226,13 @@ int ST4_advsimd_sngl(context *ctx, Instruction *instr)
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -23277,7 +23277,7 @@ int ST64B(context *ctx, Instruction *instr)
 		if(SLICE(ctx->Rt,4,3)==3 || SLICE(ctx->Rt,0,0)==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->withstatus = FALSE;
+		ctx->withstatus = false;
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
@@ -23301,7 +23301,7 @@ int ST64BV(context *ctx, Instruction *instr)
 		if(SLICE(ctx->Rt,4,3)==3 || SLICE(ctx->Rt,0,0)==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->withstatus = TRUE;
+		ctx->withstatus = true;
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
@@ -23325,7 +23325,7 @@ int ST64BV0(context *ctx, Instruction *instr)
 		if(SLICE(ctx->Rt,4,3)==3 || SLICE(ctx->Rt,0,0)==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->withstatus = TRUE;
+		ctx->withstatus = true;
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
@@ -23393,7 +23393,7 @@ int STBFADD(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = 0x10;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->R==0) OK(ENC_STBFADD_16);
@@ -23416,7 +23416,7 @@ int STBFMAX(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = 0x10;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->R==0) OK(ENC_STBFMAX_16);
@@ -23439,7 +23439,7 @@ int STBFMAXNM(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = 0x10;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->R==0) OK(ENC_STBFMAXNM_16);
@@ -23462,7 +23462,7 @@ int STBFMIN(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = 0x10;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->R==0) OK(ENC_STBFMIN_16);
@@ -23485,7 +23485,7 @@ int STBFMINNM(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = 0x10;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->R==0) OK(ENC_STBFMINNM_16);
@@ -23612,7 +23612,7 @@ int STFADD(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = (8) << (UINT(ctx->size));
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==1 && ctx->R==0) OK(ENC_STFADD_16);
@@ -23639,7 +23639,7 @@ int STFMAX(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = (8) << (UINT(ctx->size));
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==1 && ctx->R==0) OK(ENC_STFMAX_16);
@@ -23666,7 +23666,7 @@ int STFMAXNM(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = (8) << (UINT(ctx->size));
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==1 && ctx->R==0) OK(ENC_STFMAXNM_16);
@@ -23693,7 +23693,7 @@ int STFMIN(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = (8) << (UINT(ctx->size));
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==1 && ctx->R==0) OK(ENC_STFMIN_16);
@@ -23720,7 +23720,7 @@ int STFMINNM(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = (8) << (UINT(ctx->size));
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==1 && ctx->R==0) OK(ENC_STFMINNM_16);
@@ -23747,8 +23747,8 @@ int STG(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->writeback = true;
+		ctx->postindex = true;
 		OK(ENC_STG_64SPOST_LDSTTAGS);
 	}
 	/* class iclass_pre_index */
@@ -23761,8 +23761,8 @@ int STG(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->writeback = true;
+		ctx->postindex = false;
 		OK(ENC_STG_64SPRE_LDSTTAGS);
 	}
 	/* class iclass_signed_offset */
@@ -23775,8 +23775,8 @@ int STG(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->writeback = false;
+		ctx->postindex = false;
 		OK(ENC_STG_64SOFFSET_LDSTTAGS);
 	}
 	return rc;
@@ -23815,8 +23815,8 @@ int STGP(context *ctx, Instruction *instr)
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->simm7,7),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->writeback = true;
+		ctx->postindex = true;
 		OK(ENC_STGP_64_LDSTPAIR_POST);
 	}
 	/* class iclass_pre_index */
@@ -23830,8 +23830,8 @@ int STGP(context *ctx, Instruction *instr)
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->simm7,7),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->writeback = true;
+		ctx->postindex = false;
 		OK(ENC_STGP_64_LDSTPAIR_PRE);
 	}
 	/* class iclass_signed_offset */
@@ -23845,8 +23845,8 @@ int STGP(context *ctx, Instruction *instr)
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->simm7,7),LOG2_TAG_GRANULE);
-		ctx->writeback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->writeback = false;
+		ctx->postindex = false;
 		OK(ENC_STGP_64_LDSTPAIR_OFF);
 	}
 	return rc;
@@ -23863,7 +23863,7 @@ int STILP(context *ctx, Instruction *instr)
 		if(!HaveLRCPC3()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->ispair = TRUE;
+		ctx->ispair = true;
 		ctx->wback = SLICE(ctx->opc2,0,0)==0;
 		if(ctx->size==2 && ctx->opc2==0) OK(ENC_STILP_32SE_LDIAPPSTILP);
 		if(ctx->size==2 && ctx->opc2==1) OK(ENC_STILP_32S_LDIAPPSTILP);
@@ -23877,9 +23877,9 @@ int STILP(context *ctx, Instruction *instr)
 	ctx->scale = 2+UINT(SLICE(ctx->size,0,0));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = (SLICE(ctx->opc2,0,0)==0)!=0 ? -(1) * (((2) << (ctx->scale))) : 0;
-	ctx->acqrel = FALSE;
+	ctx->acqrel = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPST);
 		// assert
@@ -23902,21 +23902,21 @@ int STL1_advsimd_sngl(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = 0;
-		ctx->wback = FALSE;
-		ctx->nontemporal = FALSE;
+		ctx->wback = false;
+		ctx->nontemporal = false;
 		ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 		OK(ENC_STL1_ASISDLSO_D1);
 	}
 	/* post-decode pcode */
 	ctx->scale = SLICE(ctx->opcode,2,1);
 	ctx->selem = UINT(((SLICE(ctx->opcode,0,0)<<1)|ctx->R))+1;
-	ctx->replicate = FALSE;
+	ctx->replicate = false;
 	if(ctx->scale==3) {
 		if(ctx->L==0 || ctx->S==1) {
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = ctx->size;
-		ctx->replicate = TRUE;
+		ctx->replicate = true;
 	}
 	else if(!ctx->scale) {
 		ctx->index = UINT(((ctx->Q<<3)|(ctx->S<<2)|ctx->size));
@@ -23961,7 +23961,7 @@ int STLLR(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (8) << (UINT(ctx->size));
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==2) OK(ENC_STLLR_SL32_LDSTORD);
 		if(ctx->size==3) OK(ENC_STLLR_SL64_LDSTORD);
@@ -23982,7 +23982,7 @@ int STLLRB(context *ctx, Instruction *instr)
 		}
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_STLLRB_SL32_LDSTORD);
 	}
@@ -24002,7 +24002,7 @@ int STLLRH(context *ctx, Instruction *instr)
 		}
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_STLLRH_SL32_LDSTORD);
 	}
@@ -24023,9 +24023,9 @@ int STLP_gen(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->ispair = TRUE;
+		ctx->ispair = true;
 		OK(ENC_STLP_64_LDIAPPSTILP);
 	}
 	return rc;
@@ -24041,12 +24041,12 @@ int STLR(context *ctx, Instruction *instr)
 		decode_fields32(ENC_STLR_SL32_LDSTORD, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->wback = FALSE;
+		ctx->wback = false;
 		ctx->offset = 0;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		ctx->elsize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->elsize;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==2) OK(ENC_STLR_SL32_LDSTORD);
 		if(ctx->size==3) OK(ENC_STLR_SL64_LDSTORD);
@@ -24058,14 +24058,14 @@ int STLR(context *ctx, Instruction *instr)
 		if(!HaveLRCPC3()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
+		ctx->wback = true;
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->datasize = (8) << (UINT(ctx->size));
 		ctx->offset = -(1) * (((1) << (UINT(ctx->size))));
-		ctx->acquire = FALSE;
-		ctx->tagchecked = TRUE;
-		ctx->rt_unknown = FALSE;
+		ctx->acquire = false;
+		ctx->tagchecked = true;
+		ctx->rt_unknown = false;
 		if(ctx->n==ctx->t && ctx->n!=0x1f) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPST);
 			// assert
@@ -24087,7 +24087,7 @@ int STLRB(context *ctx, Instruction *instr)
 		decode_fields32(ENC_STLRB_SL32_LDSTORD, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_STLRB_SL32_LDSTORD);
 	}
@@ -24104,7 +24104,7 @@ int STLRH(context *ctx, Instruction *instr)
 		decode_fields32(ENC_STLRH_SL32_LDSTORD, ctx, instr);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_STLRH_SL32_LDSTORD);
 	}
@@ -24126,10 +24126,10 @@ int STLTXR(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (0x20) << (UINT(ctx->sz));
-		ctx->acqrel = TRUE;
+		ctx->acqrel = true;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -24161,7 +24161,7 @@ int STLURB(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->t = UINT(ctx->Rt);
 		ctx->datasize = 8;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_STLURB_32_LDAPSTL_UNSCALED);
 	}
@@ -24183,7 +24183,7 @@ int STLURH(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->t = UINT(ctx->Rt);
 		ctx->datasize = 0x10;
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		OK(ENC_STLURH_32_LDAPSTL_UNSCALED);
 	}
@@ -24216,7 +24216,7 @@ int STLUR_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -24237,7 +24237,7 @@ int STLUR_gen(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->t = UINT(ctx->Rt);
 		ctx->datasize = (8) << (ctx->scale);
-		ctx->acquire = FALSE;
+		ctx->acquire = false;
 		ctx->tagchecked = ctx->n!=0x1f;
 		if(ctx->size==2) OK(ENC_STLUR_32_LDAPSTL_UNSCALED);
 		if(ctx->size==3) OK(ENC_STLUR_64_LDAPSTL_UNSCALED);
@@ -24259,10 +24259,10 @@ int STLXP(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (ctx->elsize) * (2);
-		ctx->acqrel = TRUE;
+		ctx->acqrel = true;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t || (ctx->s==ctx->t2)) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -24291,10 +24291,10 @@ int STLXR(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (8) << (UINT(ctx->size));
-		ctx->acqrel = TRUE;
+		ctx->acqrel = true;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -24322,10 +24322,10 @@ int STLXRB(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acqrel = TRUE;
+		ctx->acqrel = true;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -24352,10 +24352,10 @@ int STLXRH(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acqrel = TRUE;
+		ctx->acqrel = true;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -24390,7 +24390,7 @@ int STNP_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = TRUE;
+	ctx->nontemporal = true;
 	ctx->scale = 2+(UINT(ctx->opc));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
@@ -24409,7 +24409,7 @@ int STNP_gen(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->nontemporal = TRUE;
+		ctx->nontemporal = true;
 		ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 		ctx->datasize = (8) << (ctx->scale);
 		ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
@@ -24431,8 +24431,8 @@ int STP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		if(ctx->opc==0) OK(ENC_STP_S_LDSTPAIR_POST);
 		if(ctx->opc==1) OK(ENC_STP_D_LDSTPAIR_POST);
 		if(ctx->opc==2) OK(ENC_STP_Q_LDSTPAIR_POST);
@@ -24444,8 +24444,8 @@ int STP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		if(ctx->opc==0) OK(ENC_STP_S_LDSTPAIR_PRE);
 		if(ctx->opc==1) OK(ENC_STP_D_LDSTPAIR_PRE);
 		if(ctx->opc==2) OK(ENC_STP_Q_LDSTPAIR_PRE);
@@ -24457,8 +24457,8 @@ int STP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		if(ctx->opc==0) OK(ENC_STP_S_LDSTPAIR_OFF);
 		if(ctx->opc==1) OK(ENC_STP_D_LDSTPAIR_OFF);
 		if(ctx->opc==2) OK(ENC_STP_Q_LDSTPAIR_OFF);
@@ -24467,7 +24467,7 @@ int STP_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+(UINT(ctx->opc));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
@@ -24504,12 +24504,12 @@ int STP_gen(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 	ctx->datasize = (8) << (ctx->scale);
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPST);
 		// assert
@@ -24526,8 +24526,8 @@ int STRB_imm(context *ctx, Instruction *instr)
 	/* size=00|11|1|VR=0|0|0|opc=00|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x38000400) {
 		decode_fields32(ENC_STRB_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_STRB_32_LDST_IMMPOST);
 	}
@@ -24535,8 +24535,8 @@ int STRB_imm(context *ctx, Instruction *instr)
 	/* size=00|11|1|VR=0|0|0|opc=00|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x38000C00) {
 		decode_fields32(ENC_STRB_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_STRB_32_LDST_IMMPRE);
 	}
@@ -24544,17 +24544,17 @@ int STRB_imm(context *ctx, Instruction *instr)
 	/* size=00|11|1|VR=0|0|1|opc=00|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFC00000)==0x39000000) {
 		decode_fields32(ENC_STRB_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),0);
 		OK(ENC_STRB_32_LDST_POS);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -24583,8 +24583,8 @@ int STRB_reg(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -24596,8 +24596,8 @@ int STRH_imm(context *ctx, Instruction *instr)
 	/* size=01|11|1|VR=0|0|0|opc=00|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x78000400) {
 		decode_fields32(ENC_STRH_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_STRH_32_LDST_IMMPOST);
 	}
@@ -24605,8 +24605,8 @@ int STRH_imm(context *ctx, Instruction *instr)
 	/* size=01|11|1|VR=0|0|0|opc=00|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFE00C00)==0x78000C00) {
 		decode_fields32(ENC_STRH_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		OK(ENC_STRH_32_LDST_IMMPRE);
 	}
@@ -24614,17 +24614,17 @@ int STRH_imm(context *ctx, Instruction *instr)
 	/* size=01|11|1|VR=0|0|1|opc=00|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xFFC00000)==0x79000000) {
 		decode_fields32(ENC_STRH_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),1);
 		OK(ENC_STRH_32_LDST_POS);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -24652,8 +24652,8 @@ int STRH_reg(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -24672,8 +24672,8 @@ int STR_imm_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = (SLICE(ctx->opc,1,1)==1)!=0 ? 4 : UINT(ctx->size);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==0 && ctx->opc==0) OK(ENC_STR_B_LDST_IMMPOST);
 		if(ctx->size==1 && ctx->opc==0) OK(ENC_STR_H_LDST_IMMPOST);
@@ -24692,8 +24692,8 @@ int STR_imm_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = (SLICE(ctx->opc,1,1)==1)!=0 ? 4 : UINT(ctx->size);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==0 && ctx->opc==0) OK(ENC_STR_B_LDST_IMMPRE);
 		if(ctx->size==1 && ctx->opc==0) OK(ENC_STR_H_LDST_IMMPRE);
@@ -24712,8 +24712,8 @@ int STR_imm_fpsimd(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_UNDEF);
 		}
 		ctx->scale = (SLICE(ctx->opc,1,1)==1)!=0 ? 4 : UINT(ctx->size);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),ctx->scale);
 		if(ctx->size==0 && ctx->opc==0) OK(ENC_STR_B_LDST_POS);
 		if(ctx->size==1 && ctx->opc==0) OK(ENC_STR_H_LDST_POS);
@@ -24725,7 +24725,7 @@ int STR_imm_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
 	return rc;
 }
@@ -24738,8 +24738,8 @@ int STR_imm_gen(context *ctx, Instruction *instr)
 	/* size=1x|111|VR=0|00|opc=00|0|imm9=xxxxxxxxx|01|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xBFE00C00)==0xB8000400) {
 		decode_fields32(ENC_STR_32_LDST_IMMPOST, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		ctx->scale = UINT(ctx->size);
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==2) OK(ENC_STR_32_LDST_IMMPOST);
@@ -24749,8 +24749,8 @@ int STR_imm_gen(context *ctx, Instruction *instr)
 	/* size=1x|111|VR=0|00|opc=00|0|imm9=xxxxxxxxx|11|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xBFE00C00)==0xB8000C00) {
 		decode_fields32(ENC_STR_32_LDST_IMMPRE, ctx, instr);
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		ctx->scale = UINT(ctx->size);
 		ctx->offset = SignExtend(ctx->imm9,9);
 		if(ctx->size==2) OK(ENC_STR_32_LDST_IMMPRE);
@@ -24760,8 +24760,8 @@ int STR_imm_gen(context *ctx, Instruction *instr)
 	/* size=1x|111|VR=0|01|opc=00|imm12=xxxxxxxxxxxx|Rn=xxxxx|Rt=xxxxx */
 	if((INSWORD & 0xBFC00000)==0xB9000000) {
 		decode_fields32(ENC_STR_32_LDST_POS, ctx, instr);
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		ctx->scale = UINT(ctx->size);
 		ctx->offset = LSL(ZeroExtend(ctx->imm12,0x40),ctx->scale);
 		if(ctx->size==2) OK(ENC_STR_32_LDST_POS);
@@ -24771,9 +24771,9 @@ int STR_imm_gen(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->wback && ctx->n==ctx->t && ctx->n!=0x1f) {
 		// assignment from ConstrainUnpredictable()
 		// assert
@@ -24814,8 +24814,8 @@ int STR_reg_fpsimd(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -24841,8 +24841,8 @@ int STR_reg_gen(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->m = UINT(ctx->Rm);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
-	ctx->tagchecked = TRUE;
+	ctx->nontemporal = false;
+	ctx->tagchecked = true;
 	return rc;
 }
 
@@ -25041,7 +25041,7 @@ int STTNP_fpsimd(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->nontemporal = TRUE;
+		ctx->nontemporal = true;
 		ctx->datasize = 0x80;
 		ctx->offset = LSL(SignExtend(ctx->imm7,7),4);
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -25064,7 +25064,7 @@ int STTNP_gen(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->t2 = UINT(ctx->Rt2);
 		ctx->n = UINT(ctx->Rn);
-		ctx->nontemporal = TRUE;
+		ctx->nontemporal = true;
 		ctx->datasize = 0x40;
 		ctx->offset = LSL(SignExtend(ctx->imm7,7),3);
 		ctx->tagchecked = ctx->n!=0x1f;
@@ -25084,8 +25084,8 @@ int STTP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP() || !HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		OK(ENC_STTP_Q_LDSTPAIR_POST);
 	}
 	/* class iclass_pre_index */
@@ -25095,8 +25095,8 @@ int STTP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP() || !HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		OK(ENC_STTP_Q_LDSTPAIR_PRE);
 	}
 	/* class iclass_signed_offset */
@@ -25106,15 +25106,15 @@ int STTP_fpsimd(context *ctx, Instruction *instr)
 		if(!HaveFP() || !HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		OK(ENC_STTP_Q_LDSTPAIR_OFF);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->datasize = 0x80;
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),4);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
@@ -25132,8 +25132,8 @@ int STTP_gen(context *ctx, Instruction *instr)
 		if(!HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->wback = true;
+		ctx->postindex = true;
 		OK(ENC_STTP_64_LDSTPAIR_POST);
 	}
 	/* class iclass_pre_index */
@@ -25143,8 +25143,8 @@ int STTP_gen(context *ctx, Instruction *instr)
 		if(!HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->wback = true;
+		ctx->postindex = false;
 		OK(ENC_STTP_64_LDSTPAIR_PRE);
 	}
 	/* class iclass_signed_offset */
@@ -25154,20 +25154,20 @@ int STTP_gen(context *ctx, Instruction *instr)
 		if(!HaveLSUI()) {
 			EndOfDecode(Decode_UNDEF);
 		}
-		ctx->wback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->wback = false;
+		ctx->postindex = false;
 		OK(ENC_STTP_64_LDSTPAIR_OFF);
 	}
 	/* post-decode pcode */
 	ctx->t = UINT(ctx->Rt);
 	ctx->t2 = UINT(ctx->Rt2);
 	ctx->n = UINT(ctx->Rn);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->scale = 2+UINT(SLICE(ctx->opc,1,1));
 	ctx->datasize = 0x40;
 	ctx->offset = LSL(SignExtend(ctx->imm7,7),ctx->scale);
 	ctx->tagchecked = ctx->wback || ctx->n!=0x1f;
-	ctx->rt_unknown = FALSE;
+	ctx->rt_unknown = false;
 	if(ctx->wback && (ctx->t==ctx->n || ctx->t2==ctx->n) && ctx->n!=0x1f) {
 		ctx->c = ConstrainUnpredictable(Unpredictable_WBOVERLAPST);
 		// assert
@@ -25193,7 +25193,7 @@ int STTR(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25213,7 +25213,7 @@ int STTRB(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 8;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25233,7 +25233,7 @@ int STTRH(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = 0x10;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25269,10 +25269,10 @@ int STTXR(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (0x20) << (UINT(ctx->sz));
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -25392,7 +25392,7 @@ int STURB(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 8;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25412,7 +25412,7 @@ int STURH(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = 0x10;
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25443,7 +25443,7 @@ int STUR_fpsimd(context *ctx, Instruction *instr)
 	ctx->t = UINT(ctx->Rt);
 	ctx->n = UINT(ctx->Rn);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25465,7 +25465,7 @@ int STUR_gen(context *ctx, Instruction *instr)
 	ctx->n = UINT(ctx->Rn);
 	ctx->t = UINT(ctx->Rt);
 	ctx->datasize = (8) << (ctx->scale);
-	ctx->nontemporal = FALSE;
+	ctx->nontemporal = false;
 	ctx->tagchecked = ctx->n!=0x1f;
 	return rc;
 }
@@ -25484,10 +25484,10 @@ int STXP(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (ctx->elsize) * (2);
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t || (ctx->s==ctx->t2)) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -25516,10 +25516,10 @@ int STXR(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->elsize = (8) << (UINT(ctx->size));
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -25547,10 +25547,10 @@ int STXRB(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -25577,10 +25577,10 @@ int STXRH(context *ctx, Instruction *instr)
 		ctx->s = UINT(ctx->Rs);
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
-		ctx->acqrel = FALSE;
+		ctx->acqrel = false;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
-		ctx->rn_unknown = FALSE;
+		ctx->rt_unknown = false;
+		ctx->rn_unknown = false;
 		if(ctx->s==ctx->t) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_DATAOVERLAP);
 			// assert
@@ -25610,8 +25610,8 @@ int STZ2G(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->writeback = true;
+		ctx->postindex = true;
 		OK(ENC_STZ2G_64SPOST_LDSTTAGS);
 	}
 	/* class iclass_pre_index */
@@ -25624,8 +25624,8 @@ int STZ2G(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->writeback = true;
+		ctx->postindex = false;
 		OK(ENC_STZ2G_64SPRE_LDSTTAGS);
 	}
 	/* class iclass_signed_offset */
@@ -25638,8 +25638,8 @@ int STZ2G(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->writeback = false;
+		ctx->postindex = false;
 		OK(ENC_STZ2G_64SOFFSET_LDSTTAGS);
 	}
 	return rc;
@@ -25659,8 +25659,8 @@ int STZG(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = TRUE;
+		ctx->writeback = true;
+		ctx->postindex = true;
 		OK(ENC_STZG_64SPOST_LDSTTAGS);
 	}
 	/* class iclass_pre_index */
@@ -25673,8 +25673,8 @@ int STZG(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = TRUE;
-		ctx->postindex = FALSE;
+		ctx->writeback = true;
+		ctx->postindex = false;
 		OK(ENC_STZG_64SPRE_LDSTTAGS);
 	}
 	/* class iclass_signed_offset */
@@ -25687,8 +25687,8 @@ int STZG(context *ctx, Instruction *instr)
 		ctx->t = UINT(ctx->Rt);
 		ctx->n = UINT(ctx->Rn);
 		ctx->offset = LSL(SignExtend(ctx->imm9,9),LOG2_TAG_GRANULE);
-		ctx->writeback = FALSE;
-		ctx->postindex = FALSE;
+		ctx->writeback = false;
+		ctx->postindex = false;
 		OK(ENC_STZG_64SOFFSET_LDSTTAGS);
 	}
 	return rc;
@@ -25753,7 +25753,7 @@ int SUBHN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = 0x40;
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->round = FALSE;
+		ctx->round = false;
 		OK(ENC_SUBHN_ASIMDDIFF_N);
 	}
 	return rc;
@@ -26052,7 +26052,7 @@ int SUQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SUQADD_ASISDMISC_R);
 	}
 	/* class iclass_vector */
@@ -26070,7 +26070,7 @@ int SUQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SUQADD_ASIMDMISC_R);
 	}
 	return rc;
@@ -26193,7 +26193,7 @@ int SWPP(context *ctx, Instruction *instr)
 		ctx->acquire = ctx->A==1;
 		ctx->release = ctx->R==1;
 		ctx->tagchecked = ctx->n!=0x1f;
-		ctx->rt_unknown = FALSE;
+		ctx->rt_unknown = false;
 		if(ctx->t==ctx->t2) {
 			ctx->c = ConstrainUnpredictable(Unpredictable_LSE128OVERLAP);
 			// assert
@@ -26786,7 +26786,7 @@ int UADDLV_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UADDLV_ASIMDALL_ONLY);
 	}
 	return rc;
@@ -26929,7 +26929,7 @@ int UCVTF_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UCVTF_ASISDSHF_C);
 	}
 	/* class iclass_vector */
@@ -26951,7 +26951,7 @@ int UCVTF_advsimd_fix(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->fracbits = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UCVTF_ASIMDSHF_C);
 	}
 	return rc;
@@ -26973,7 +26973,7 @@ int UCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UCVTF_ASISDMISCFP16_R);
 	}
 	/* class iclass_scalar_single_precision_and_double_precision */
@@ -26988,7 +26988,7 @@ int UCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UCVTF_ASISDMISC_R);
 	}
 	/* class iclass_vector_half_precision */
@@ -27003,7 +27003,7 @@ int UCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UCVTF_ASIMDMISCFP16_R);
 	}
 	/* class iclass_vector_single_precision_and_double_precision */
@@ -27021,7 +27021,7 @@ int UCVTF_advsimd_int(context *ctx, Instruction *instr)
 		ctx->esize = (0x20) << (UINT(ctx->sz));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UCVTF_ASIMDMISC_R);
 	}
 	return rc;
@@ -27052,7 +27052,7 @@ int UCVTF_float_fix(context *ctx, Instruction *instr)
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->decode_fltsize = (8) << (UINT((ctx->ftype)^(2)));
 		ctx->fracbits = 0x40-UINT(ctx->scale);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_UCVTF_H32_FLOAT2FIX);
 		if(ctx->sf==1 && ctx->ftype==3) OK(ENC_UCVTF_H64_FLOAT2FIX);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_UCVTF_S32_FLOAT2FIX);
@@ -27084,7 +27084,7 @@ int UCVTF_float_int(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->intsize = (0x20) << (UINT(ctx->sf));
 		ctx->decode_fltsize = (8) << (UINT((ctx->ftype)^(2)));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		if(ctx->sf==0 && ctx->ftype==3) OK(ENC_UCVTF_H32_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==0) OK(ENC_UCVTF_S32_FLOAT2INT);
 		if(ctx->sf==0 && ctx->ftype==1) OK(ENC_UCVTF_D32_FLOAT2INT);
@@ -27317,7 +27317,7 @@ int UMAXV_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAXV_ASIMDALL_ONLY);
 	}
 	return rc;
@@ -27437,7 +27437,7 @@ int UMINV_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMINV_ASIMDALL_ONLY);
 	}
 	return rc;
@@ -27646,8 +27646,8 @@ int UMMLA_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMMLA_ASIMDSAME2_G);
 	}
 	return rc;
@@ -27829,7 +27829,7 @@ int UQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQADD_ASISDSAME_ONLY);
 	}
 	/* class iclass_vector */
@@ -27848,7 +27848,7 @@ int UQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQADD_ASIMDSAME_ONLY);
 	}
 	return rc;
@@ -27871,8 +27871,8 @@ int UQRSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = TRUE;
-		ctx->rounding = TRUE;
+		ctx->unsigned_ = true;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -27891,8 +27891,8 @@ int UQRSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = TRUE;
-		ctx->rounding = TRUE;
+		ctx->unsigned_ = true;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -27925,8 +27925,8 @@ int UQRSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->elements = 1;
 		ctx->part = 0;
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
-		ctx->unsigned_ = TRUE;
+		ctx->round = true;
+		ctx->unsigned_ = true;
 		OK(ENC_UQRSHRN_ASISDSHF_N);
 	}
 	/* class iclass_vector */
@@ -27946,8 +27946,8 @@ int UQRSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = TRUE;
-		ctx->unsigned_ = TRUE;
+		ctx->round = true;
+		ctx->unsigned_ = true;
 		OK(ENC_UQRSHRN_ASIMDSHF_N);
 	}
 	return rc;
@@ -27973,8 +27973,8 @@ int UQSHL_advsimd_imm(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->src_unsigned = TRUE;
-		ctx->dst_unsigned = TRUE;
+		ctx->src_unsigned = true;
+		ctx->dst_unsigned = true;
 		OK(ENC_UQSHL_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -27993,8 +27993,8 @@ int UQSHL_advsimd_imm(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->src_unsigned = TRUE;
-		ctx->dst_unsigned = TRUE;
+		ctx->src_unsigned = true;
+		ctx->dst_unsigned = true;
 		OK(ENC_UQSHL_ASIMDSHF_R);
 	}
 	return rc;
@@ -28017,8 +28017,8 @@ int UQSHL_advsimd_reg(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = TRUE;
-		ctx->rounding = FALSE;
+		ctx->unsigned_ = true;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -28037,8 +28037,8 @@ int UQSHL_advsimd_reg(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->unsigned_ = TRUE;
-		ctx->rounding = FALSE;
+		ctx->unsigned_ = true;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -28071,8 +28071,8 @@ int UQSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->elements = 1;
 		ctx->part = 0;
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
-		ctx->unsigned_ = TRUE;
+		ctx->round = false;
+		ctx->unsigned_ = true;
 		OK(ENC_UQSHRN_ASISDSHF_N);
 	}
 	/* class iclass_vector */
@@ -28092,8 +28092,8 @@ int UQSHRN_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((2) * (ctx->esize))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->round = FALSE;
-		ctx->unsigned_ = TRUE;
+		ctx->round = false;
+		ctx->unsigned_ = true;
 		OK(ENC_UQSHRN_ASIMDSHF_N);
 	}
 	return rc;
@@ -28116,7 +28116,7 @@ int UQSUB_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQSUB_ASISDSAME_ONLY);
 	}
 	/* class iclass_vector */
@@ -28135,7 +28135,7 @@ int UQSUB_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQSUB_ASIMDSAME_ONLY);
 	}
 	return rc;
@@ -28161,7 +28161,7 @@ int UQXTN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->part = 0;
 		ctx->elements = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQXTN_ASISDMISC_N);
 	}
 	/* class iclass_vector */
@@ -28180,7 +28180,7 @@ int UQXTN_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = 0x40;
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQXTN_ASIMDMISC_N);
 	}
 	return rc;
@@ -28252,7 +28252,7 @@ int URSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -28271,7 +28271,7 @@ int URSHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = TRUE;
+		ctx->rounding = true;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -28300,8 +28300,8 @@ int URSHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = true;
+		ctx->round = true;
 		OK(ENC_URSHR_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -28320,8 +28320,8 @@ int URSHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = true;
+		ctx->round = true;
 		OK(ENC_URSHR_ASIMDSHF_R);
 	}
 	return rc;
@@ -28371,8 +28371,8 @@ int URSRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = true;
+		ctx->round = true;
 		OK(ENC_URSRA_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -28391,8 +28391,8 @@ int URSRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = TRUE;
+		ctx->unsigned_ = true;
+		ctx->round = true;
 		OK(ENC_URSRA_ASIMDSHF_R);
 	}
 	return rc;
@@ -28462,7 +28462,7 @@ int USHLL_advsimd(context *ctx, Instruction *instr)
 		ctx->part = UINT(ctx->Q);
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = UINT(((ctx->immh<<3)|ctx->immb))-ctx->esize;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		/* regular aliases */
 		if(ctx->immb==0 && BitCount(ctx->immh)==1) return UXTL_USHLL_advsimd(ctx, instr);
 		OK(ENC_USHLL_ASIMDSHF_L);
@@ -28487,7 +28487,7 @@ int USHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = FALSE;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
@@ -28506,7 +28506,7 @@ int USHL_advsimd(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->rounding = FALSE;
+		ctx->rounding = false;
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
@@ -28535,8 +28535,8 @@ int USHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = true;
+		ctx->round = false;
 		OK(ENC_USHR_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -28555,8 +28555,8 @@ int USHR_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = true;
+		ctx->round = false;
 		OK(ENC_USHR_ASIMDSHF_R);
 	}
 	return rc;
@@ -28576,8 +28576,8 @@ int USMMLA_advsimd_vec(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Rd);
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMMLA_ASIMDSAME2_G);
 	}
 	return rc;
@@ -28599,7 +28599,7 @@ int USQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_USQADD_ASISDMISC_R);
 	}
 	/* class iclass_vector */
@@ -28617,7 +28617,7 @@ int USQADD_advsimd(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_USQADD_ASIMDMISC_R);
 	}
 	return rc;
@@ -28643,8 +28643,8 @@ int USRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = ctx->esize;
 		ctx->elements = 1;
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = true;
+		ctx->round = false;
 		OK(ENC_USRA_ASISDSHF_R);
 	}
 	/* class iclass_vector */
@@ -28663,8 +28663,8 @@ int USRA_advsimd(context *ctx, Instruction *instr)
 		ctx->datasize = (0x40) << (UINT(ctx->Q));
 		ctx->elements = ((ctx->esize)!=0 ? ((ctx->datasize) / (ctx->esize)) : 0);
 		ctx->shift = ((ctx->esize) * (2))-UINT(((ctx->immh<<3)|ctx->immb));
-		ctx->unsigned_ = TRUE;
-		ctx->round = FALSE;
+		ctx->unsigned_ = true;
+		ctx->round = false;
 		OK(ENC_USRA_ASIMDSHF_R);
 	}
 	return rc;
@@ -28932,7 +28932,7 @@ int XPAC(context *ctx, Instruction *instr)
 			EndOfDecode(Decode_NOP);
 		}
 		ctx->d = 0x1e;
-		ctx->data = FALSE;
+		ctx->data = false;
 		OK(ENC_XPACLRI_HI_HINTS);
 	}
 	return rc;
@@ -29045,7 +29045,7 @@ int abs_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_ABS_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -29059,7 +29059,7 @@ int abs_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_ABS_Z_P_Z_Z);
 	}
 	return rc;
@@ -29523,7 +29523,7 @@ int addqv_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_ADDQV_Z_P_Z_);
 	}
 	return rc;
@@ -29657,7 +29657,7 @@ int adr_z_az(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
 		ctx->osize = ctx->esize;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->mbytes = (1) << (UINT(ctx->msz));
 		OK(ENC_ADR_Z_AZ_SD_SAME_SCALED);
 	}
@@ -29673,7 +29673,7 @@ int adr_z_az(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
 		ctx->osize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->mbytes = (1) << (UINT(ctx->msz));
 		OK(ENC_ADR_Z_AZ_D_S32_SCALED);
 	}
@@ -29689,7 +29689,7 @@ int adr_z_az(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
 		ctx->osize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->mbytes = (1) << (UINT(ctx->msz));
 		OK(ENC_ADR_Z_AZ_D_U32_SCALED);
 	}
@@ -29914,7 +29914,7 @@ int and_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		/* regular aliases */
 		if(ctx->S==0 && ctx->Pn==ctx->Pm) return mov_and_p_p_pp(ctx, instr);
@@ -30021,7 +30021,7 @@ int ands_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		/* regular aliases */
 		if(ctx->S==1 && ctx->Pn==ctx->Pm) return movs_ands_p_p_pp(ctx, instr);
@@ -30280,7 +30280,7 @@ int bf1cvt_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_BF1CVT_MZ2_Z8_);
 	}
 	/* class iclass_bf2cvt */
@@ -30292,7 +30292,7 @@ int bf1cvt_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_BF2CVT_MZ2_Z8_);
 	}
 	return rc;
@@ -30311,7 +30311,7 @@ int bf1cvt_z_z8(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 8;
 		ctx->d_esize = 0x10;
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_BF1CVT_Z_Z8_B2BF);
 	}
 	/* class iclass_bf2cvt */
@@ -30323,7 +30323,7 @@ int bf1cvt_z_z8(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 8;
 		ctx->d_esize = 0x10;
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_BF2CVT_Z_Z8_B2BF);
 	}
 	return rc;
@@ -30342,7 +30342,7 @@ int bf1cvtl_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_BF1CVTL_MZ2_Z8_);
 	}
 	/* class iclass_bf2cvtl */
@@ -30354,7 +30354,7 @@ int bf1cvtl_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_BF2CVTL_MZ2_Z8_);
 	}
 	return rc;
@@ -30371,7 +30371,7 @@ int bf1cvtlt_z_z8(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_BF1CVTLT_Z_Z8_B2BF);
 	}
 	/* class iclass_bf2cvtlt */
@@ -30381,7 +30381,7 @@ int bf1cvtlt_z_z8(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_BF2CVTLT_Z_Z8_B2BF);
 	}
 	return rc;
@@ -30557,7 +30557,7 @@ int bfcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_BFCVT_Z_P_Z_S2BF);
 	}
 	/* class iclass_zeroing */
@@ -30570,7 +30570,7 @@ int bfcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_BFCVT_Z_P_Z_S2BFZ);
 	}
 	return rc;
@@ -30620,7 +30620,7 @@ int bfcvtnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_BFCVTNT_Z_P_Z_S2BF);
 	}
 	/* class iclass_zeroing */
@@ -30633,7 +30633,7 @@ int bfcvtnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_BFCVTNT_Z_P_Z_S2BFZ);
 	}
 	return rc;
@@ -31118,8 +31118,8 @@ int bfmla_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_BFMLA_Z_P_ZZZ_);
 	}
 	return rc;
@@ -31140,8 +31140,8 @@ int bfmla_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_BFMLA_Z_ZZZI_H);
 	}
 	return rc;
@@ -31403,7 +31403,7 @@ int bfmlalb_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_BFMLALB_Z_ZZZ_);
 	}
 	return rc;
@@ -31421,7 +31421,7 @@ int bfmlalb_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_BFMLALB_Z_ZZZI_);
 	}
 	return rc;
@@ -31438,7 +31438,7 @@ int bfmlalt_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_BFMLALT_Z_ZZZ_);
 	}
 	return rc;
@@ -31456,7 +31456,7 @@ int bfmlalt_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_BFMLALT_Z_ZZZI_);
 	}
 	return rc;
@@ -31477,8 +31477,8 @@ int bfmls_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_BFMLS_Z_P_ZZZ_);
 	}
 	return rc;
@@ -31499,8 +31499,8 @@ int bfmls_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_BFMLS_Z_ZZZI_H);
 	}
 	return rc;
@@ -31765,7 +31765,7 @@ int bfmlslb_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_BFMLSLB_Z_ZZZ_);
 	}
 	return rc;
@@ -31786,7 +31786,7 @@ int bfmlslb_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_BFMLSLB_Z_ZZZI_);
 	}
 	return rc;
@@ -31806,7 +31806,7 @@ int bfmlslt_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_BFMLSLT_Z_ZZZ_);
 	}
 	return rc;
@@ -31827,7 +31827,7 @@ int bfmlslt_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_BFMLSLT_Z_ZZZI_);
 	}
 	return rc;
@@ -31887,7 +31887,7 @@ int bfmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -31902,7 +31902,7 @@ int bfmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -31917,7 +31917,7 @@ int bfmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -31932,7 +31932,7 @@ int bfmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -31954,7 +31954,7 @@ int bfmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -31969,7 +31969,7 @@ int bfmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -31984,7 +31984,7 @@ int bfmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -31999,7 +31999,7 @@ int bfmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_BFMOP4A_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -32021,7 +32021,7 @@ int bfmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -32036,7 +32036,7 @@ int bfmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -32051,7 +32051,7 @@ int bfmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -32066,7 +32066,7 @@ int bfmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -32088,7 +32088,7 @@ int bfmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -32103,7 +32103,7 @@ int bfmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -32118,7 +32118,7 @@ int bfmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -32133,7 +32133,7 @@ int bfmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_BFMOP4S_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -32611,7 +32611,7 @@ int bic_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_BIC_P_P_PP_Z);
 	}
@@ -32676,7 +32676,7 @@ int bics_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_BICS_P_P_PP_Z);
 	}
@@ -32743,7 +32743,7 @@ int brka_p_p_p(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->d = UINT(ctx->Pd);
 		ctx->merging = (ctx->M==1);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_BRKA_P_P_P_);
 	}
@@ -32768,8 +32768,8 @@ int brkas_p_p_p(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Pn);
 		ctx->d = UINT(ctx->Pd);
-		ctx->merging = FALSE;
-		ctx->setflags = TRUE;
+		ctx->merging = false;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_BRKAS_P_P_P_Z);
 	}
@@ -32792,7 +32792,7 @@ int brkb_p_p_p(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->d = UINT(ctx->Pd);
 		ctx->merging = (ctx->M==1);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_BRKB_P_P_P_);
 	}
@@ -32817,8 +32817,8 @@ int brkbs_p_p_p(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Pn);
 		ctx->d = UINT(ctx->Pd);
-		ctx->merging = FALSE;
-		ctx->setflags = TRUE;
+		ctx->merging = false;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_BRKBS_P_P_P_Z);
 	}
@@ -32839,7 +32839,7 @@ int brkn_p_p_pp(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Pn);
 		ctx->dm = UINT(ctx->Pdm);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_BRKN_P_P_PP_);
 	}
@@ -32863,7 +32863,7 @@ int brkns_p_p_pp(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Pn);
 		ctx->dm = UINT(ctx->Pdm);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_BRKNS_P_P_PP_);
 	}
@@ -32886,7 +32886,7 @@ int brkpa_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_BRKPA_P_P_PP_);
 	}
@@ -32912,7 +32912,7 @@ int brkpas_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_BRKPAS_P_P_PP_);
 	}
@@ -32935,7 +32935,7 @@ int brkpb_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_BRKPB_P_P_PP_);
 	}
@@ -32961,7 +32961,7 @@ int brkpbs_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_BRKPBS_P_P_PP_);
 	}
@@ -33129,7 +33129,7 @@ int clasta_r_p_z(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->csize = (ctx->esize<0x40)!=0 ? 0x20 : 0x40;
-		ctx->isBefore = FALSE;
+		ctx->isBefore = false;
 		OK(ENC_CLASTA_R_P_Z_);
 	}
 	return rc;
@@ -33150,7 +33150,7 @@ int clasta_v_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->dn = UINT(ctx->Vdn);
 		ctx->m = UINT(ctx->Zm);
-		ctx->isBefore = FALSE;
+		ctx->isBefore = false;
 		OK(ENC_CLASTA_V_P_Z_);
 	}
 	return rc;
@@ -33171,7 +33171,7 @@ int clasta_z_p_zz(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
-		ctx->isBefore = FALSE;
+		ctx->isBefore = false;
 		OK(ENC_CLASTA_Z_P_ZZ_);
 	}
 	return rc;
@@ -33193,7 +33193,7 @@ int clastb_r_p_z(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->csize = (ctx->esize<0x40)!=0 ? 0x20 : 0x40;
-		ctx->isBefore = TRUE;
+		ctx->isBefore = true;
 		OK(ENC_CLASTB_R_P_Z_);
 	}
 	return rc;
@@ -33214,7 +33214,7 @@ int clastb_v_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->dn = UINT(ctx->Vdn);
 		ctx->m = UINT(ctx->Zm);
-		ctx->isBefore = TRUE;
+		ctx->isBefore = true;
 		OK(ENC_CLASTB_V_P_Z_);
 	}
 	return rc;
@@ -33235,7 +33235,7 @@ int clastb_z_p_zz(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
-		ctx->isBefore = TRUE;
+		ctx->isBefore = true;
 		OK(ENC_CLASTB_Z_P_ZZ_);
 	}
 	return rc;
@@ -33256,7 +33256,7 @@ int cls_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_CLS_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -33270,7 +33270,7 @@ int cls_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_CLS_Z_P_Z_Z);
 	}
 	return rc;
@@ -33291,7 +33291,7 @@ int clz_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_CLZ_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -33305,7 +33305,7 @@ int clz_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_CLZ_Z_P_Z_Z);
 	}
 	return rc;
@@ -33395,7 +33395,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_EQ;
 		ctx->imm = SInt(ctx->imm5,5);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPEQ_P_P_ZI_);
 	}
 	/* class iclass_greater_than */
@@ -33411,7 +33411,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GT;
 		ctx->imm = SInt(ctx->imm5,5);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPGT_P_P_ZI_);
 	}
 	/* class iclass_greater_than_or_equal */
@@ -33427,7 +33427,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GE;
 		ctx->imm = SInt(ctx->imm5,5);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPGE_P_P_ZI_);
 	}
 	/* class iclass_higher */
@@ -33443,7 +33443,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GT;
 		ctx->imm = UINT(ctx->imm7);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPHI_P_P_ZI_);
 	}
 	/* class iclass_higher_or_same */
@@ -33459,7 +33459,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GE;
 		ctx->imm = UINT(ctx->imm7);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPHS_P_P_ZI_);
 	}
 	/* class iclass_less_than */
@@ -33475,7 +33475,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LT;
 		ctx->imm = SInt(ctx->imm5,5);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPLT_P_P_ZI_);
 	}
 	/* class iclass_less_than_or_equal */
@@ -33491,7 +33491,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LE;
 		ctx->imm = SInt(ctx->imm5,5);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPLE_P_P_ZI_);
 	}
 	/* class iclass_lower */
@@ -33507,7 +33507,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LT;
 		ctx->imm = UINT(ctx->imm7);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPLO_P_P_ZI_);
 	}
 	/* class iclass_lower_or_same */
@@ -33523,7 +33523,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LE;
 		ctx->imm = UINT(ctx->imm7);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPLS_P_P_ZI_);
 	}
 	/* class iclass_not_equal */
@@ -33539,7 +33539,7 @@ int cmpeq_p_p_zi(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_NE;
 		ctx->imm = SInt(ctx->imm5,5);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPNE_P_P_ZI_);
 	}
 	return rc;
@@ -33565,7 +33565,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_EQ;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPEQ_P_P_ZW_);
 	}
 	/* class iclass_greater_than */
@@ -33584,7 +33584,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GT;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPGT_P_P_ZW_);
 	}
 	/* class iclass_greater_than_or_equal */
@@ -33603,7 +33603,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GE;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPGE_P_P_ZW_);
 	}
 	/* class iclass_higher */
@@ -33622,7 +33622,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GT;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPHI_P_P_ZW_);
 	}
 	/* class iclass_higher_or_same */
@@ -33641,7 +33641,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GE;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPHS_P_P_ZW_);
 	}
 	/* class iclass_less_than */
@@ -33660,7 +33660,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LT;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPLT_P_P_ZW_);
 	}
 	/* class iclass_less_than_or_equal */
@@ -33679,7 +33679,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LE;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPLE_P_P_ZW_);
 	}
 	/* class iclass_lower */
@@ -33698,7 +33698,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LT;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPLO_P_P_ZW_);
 	}
 	/* class iclass_lower_or_same */
@@ -33717,7 +33717,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_LE;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPLS_P_P_ZW_);
 	}
 	/* class iclass_not_equal */
@@ -33736,7 +33736,7 @@ int cmpeq_p_p_zw(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_NE;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPNE_P_P_ZW_);
 	}
 	return rc;
@@ -33759,7 +33759,7 @@ int cmpeq_p_p_zz(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_EQ;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPEQ_P_P_ZZ_);
 	}
 	/* class iclass_greater_than */
@@ -33775,7 +33775,7 @@ int cmpeq_p_p_zz(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GT;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPGT_P_P_ZZ_);
 	}
 	/* class iclass_greater_than_or_equal */
@@ -33791,7 +33791,7 @@ int cmpeq_p_p_zz(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GE;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPGE_P_P_ZZ_);
 	}
 	/* class iclass_higher */
@@ -33807,7 +33807,7 @@ int cmpeq_p_p_zz(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GT;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPHI_P_P_ZZ_);
 	}
 	/* class iclass_higher_or_same */
@@ -33823,7 +33823,7 @@ int cmpeq_p_p_zz(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_GE;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_CMPHS_P_P_ZZ_);
 	}
 	/* class iclass_not_equal */
@@ -33839,7 +33839,7 @@ int cmpeq_p_p_zz(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Pd);
 		ctx->cmp_op = Cmp_NE;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_CMPNE_P_P_ZZ_);
 	}
 	return rc;
@@ -33912,7 +33912,7 @@ int cnot_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_CNOT_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -33926,7 +33926,7 @@ int cnot_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_CNOT_Z_P_Z_Z);
 	}
 	return rc;
@@ -33947,7 +33947,7 @@ int cnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_CNT_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -33961,7 +33961,7 @@ int cnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_CNT_Z_P_Z_Z);
 	}
 	return rc;
@@ -34116,7 +34116,7 @@ int cpy_z_o_i(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->g = UINT(ctx->Pg);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		ctx->imm = SInt(ctx->imm8,8);
 		if(ctx->sh==1) {
 			ctx->imm = (ctx->imm) << (8);
@@ -34145,7 +34145,7 @@ int cpy_z_p_i(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->g = UINT(ctx->Pg);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		ctx->imm = SInt(ctx->imm8,8);
 		if(ctx->sh==1) {
 			ctx->imm = (ctx->imm) << (8);
@@ -34551,7 +34551,7 @@ int eor_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		/* regular aliases */
 		if(ctx->Pm==ctx->Pg) return not_eor_p_p_pp(ctx, instr);
@@ -34680,7 +34680,7 @@ int eors_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		/* regular aliases */
 		if(ctx->Pm==ctx->Pg) return nots_eors_p_p_pp(ctx, instr);
@@ -34818,7 +34818,7 @@ int f1cvt_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_F1CVT_MZ2_Z8_);
 	}
 	/* class iclass_f2cvt */
@@ -34830,7 +34830,7 @@ int f1cvt_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_F2CVT_MZ2_Z8_);
 	}
 	return rc;
@@ -34849,7 +34849,7 @@ int f1cvt_z_z8(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 8;
 		ctx->d_esize = 0x10;
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_F1CVT_Z_Z8_B2H);
 	}
 	/* class iclass_f2cvt */
@@ -34861,7 +34861,7 @@ int f1cvt_z_z8(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 8;
 		ctx->d_esize = 0x10;
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_F2CVT_Z_Z8_B2H);
 	}
 	return rc;
@@ -34880,7 +34880,7 @@ int f1cvtl_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_F1CVTL_MZ2_Z8_);
 	}
 	/* class iclass_f2cvtl */
@@ -34892,7 +34892,7 @@ int f1cvtl_mz2_z8(context *ctx, Instruction *instr)
 		}
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_F2CVTL_MZ2_Z8_);
 	}
 	return rc;
@@ -34909,7 +34909,7 @@ int f1cvtlt_z_z8(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->issrc2 = FALSE;
+		ctx->issrc2 = false;
 		OK(ENC_F1CVTLT_Z_Z8_B2H);
 	}
 	/* class iclass_f2cvtlt */
@@ -34919,7 +34919,7 @@ int f1cvtlt_z_z8(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->issrc2 = TRUE;
+		ctx->issrc2 = true;
 		OK(ENC_F2CVTLT_Z_Z8_B2H);
 	}
 	return rc;
@@ -34966,7 +34966,7 @@ int fabs_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FABS_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -34983,7 +34983,7 @@ int fabs_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FABS_Z_P_Z_Z);
 	}
 	return rc;
@@ -35897,7 +35897,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x20;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVT_Z_P_Z_H2S);
 	}
 	/* class iclass_half_precision_to_single_precision_zeroing */
@@ -35913,7 +35913,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x20;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVT_Z_P_Z_H2SZ);
 	}
 	/* class iclass_half_precision_to_double_precision_merging */
@@ -35929,7 +35929,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x40;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVT_Z_P_Z_H2D);
 	}
 	/* class iclass_half_precision_to_double_precision_zeroing */
@@ -35945,7 +35945,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x40;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVT_Z_P_Z_H2DZ);
 	}
 	/* class iclass_single_precision_to_half_precision_merging */
@@ -35961,7 +35961,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x10;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVT_Z_P_Z_S2H);
 	}
 	/* class iclass_single_precision_to_half_precision_zeroing */
@@ -35977,7 +35977,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x10;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVT_Z_P_Z_S2HZ);
 	}
 	/* class iclass_single_precision_to_double_precision_merging */
@@ -35993,7 +35993,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVT_Z_P_Z_S2D);
 	}
 	/* class iclass_single_precision_to_double_precision_zeroing */
@@ -36009,7 +36009,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVT_Z_P_Z_S2DZ);
 	}
 	/* class iclass_double_precision_to_half_precision_merging */
@@ -36025,7 +36025,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x10;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVT_Z_P_Z_D2H);
 	}
 	/* class iclass_double_precision_to_half_precision_zeroing */
@@ -36041,7 +36041,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x10;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVT_Z_P_Z_D2HZ);
 	}
 	/* class iclass_double_precision_to_single_precision_merging */
@@ -36057,7 +36057,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVT_Z_P_Z_D2S);
 	}
 	/* class iclass_double_precision_to_single_precision_zeroing */
@@ -36073,7 +36073,7 @@ int fcvt_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVT_Z_P_Z_D2SZ);
 	}
 	return rc;
@@ -36112,7 +36112,7 @@ int fcvtlt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTLT_Z_P_Z_H2S);
 	}
 	/* class iclass_half_precision_to_single_precision_zeroing */
@@ -36126,7 +36126,7 @@ int fcvtlt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTLT_Z_P_Z_H2SZ);
 	}
 	/* class iclass_single_precision_to_double_precision_merging */
@@ -36140,7 +36140,7 @@ int fcvtlt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTLT_Z_P_Z_S2D);
 	}
 	/* class iclass_single_precision_to_double_precision_zeroing */
@@ -36154,7 +36154,7 @@ int fcvtlt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTLT_Z_P_Z_S2DZ);
 	}
 	return rc;
@@ -36256,7 +36256,7 @@ int fcvtnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTNT_Z_P_Z_S2H);
 	}
 	/* class iclass_single_precision_to_half_precision_zeroing */
@@ -36270,7 +36270,7 @@ int fcvtnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTNT_Z_P_Z_S2HZ);
 	}
 	/* class iclass_double_precision_to_single_precision_merging */
@@ -36284,7 +36284,7 @@ int fcvtnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTNT_Z_P_Z_D2S);
 	}
 	/* class iclass_double_precision_to_single_precision_zeroing */
@@ -36298,7 +36298,7 @@ int fcvtnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTNT_Z_P_Z_D2SZ);
 	}
 	return rc;
@@ -36321,7 +36321,7 @@ int fcvtx_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTX_Z_P_Z_D2S);
 	}
 	/* class iclass_double_precision_to_single_precision_zeroing */
@@ -36337,7 +36337,7 @@ int fcvtx_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTX_Z_P_Z_D2SZ);
 	}
 	return rc;
@@ -36358,7 +36358,7 @@ int fcvtxnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTXNT_Z_P_Z_D2S);
 	}
 	/* class iclass_double_precision_to_single_precision_zeroing */
@@ -36372,7 +36372,7 @@ int fcvtxnt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTXNT_Z_P_Z_D2SZ);
 	}
 	return rc;
@@ -36392,7 +36392,7 @@ int fcvtzs_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZS_MZ_Z_2);
 	}
@@ -36406,7 +36406,7 @@ int fcvtzs_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZS_MZ_Z_4);
 	}
@@ -36430,9 +36430,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_FP162H);
 	}
 	/* class iclass_half_precision_to_16_bit_zeroing */
@@ -36448,9 +36448,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_FP162HZ);
 	}
 	/* class iclass_half_precision_to_32_bit_merging */
@@ -36466,9 +36466,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_FP162W);
 	}
 	/* class iclass_half_precision_to_32_bit_zeroing */
@@ -36484,9 +36484,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_FP162WZ);
 	}
 	/* class iclass_half_precision_to_64_bit_merging */
@@ -36502,9 +36502,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_FP162X);
 	}
 	/* class iclass_half_precision_to_64_bit_zeroing */
@@ -36520,9 +36520,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_FP162XZ);
 	}
 	/* class iclass_single_precision_to_32_bit_merging */
@@ -36538,9 +36538,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_S2W);
 	}
 	/* class iclass_single_precision_to_32_bit_zeroing */
@@ -36556,9 +36556,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_S2WZ);
 	}
 	/* class iclass_single_precision_to_64_bit_merging */
@@ -36574,9 +36574,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_S2X);
 	}
 	/* class iclass_single_precision_to_64_bit_zeroing */
@@ -36592,9 +36592,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_S2XZ);
 	}
 	/* class iclass_double_precision_to_32_bit_merging */
@@ -36610,9 +36610,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_D2W);
 	}
 	/* class iclass_double_precision_to_32_bit_zeroing */
@@ -36628,9 +36628,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_D2WZ);
 	}
 	/* class iclass_double_precision_to_64_bit_merging */
@@ -36646,9 +36646,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZS_Z_P_Z_D2X);
 	}
 	/* class iclass_double_precision_to_64_bit_zeroing */
@@ -36664,9 +36664,9 @@ int fcvtzs_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZS_Z_P_Z_D2XZ);
 	}
 	return rc;
@@ -36689,7 +36689,7 @@ int fcvtzsn_z_mz2(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZSN_Z_MZ2_);
 	}
@@ -36710,7 +36710,7 @@ int fcvtzu_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZU_MZ_Z_2);
 	}
@@ -36724,7 +36724,7 @@ int fcvtzu_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZU_MZ_Z_4);
 	}
@@ -36748,9 +36748,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_FP162H);
 	}
 	/* class iclass_half_precision_to_16_bit_zeroing */
@@ -36766,9 +36766,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_FP162HZ);
 	}
 	/* class iclass_half_precision_to_32_bit_merging */
@@ -36784,9 +36784,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_FP162W);
 	}
 	/* class iclass_half_precision_to_32_bit_zeroing */
@@ -36802,9 +36802,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_FP162WZ);
 	}
 	/* class iclass_half_precision_to_64_bit_merging */
@@ -36820,9 +36820,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_FP162X);
 	}
 	/* class iclass_half_precision_to_64_bit_zeroing */
@@ -36838,9 +36838,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_FP162XZ);
 	}
 	/* class iclass_single_precision_to_32_bit_merging */
@@ -36856,9 +36856,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_S2W);
 	}
 	/* class iclass_single_precision_to_32_bit_zeroing */
@@ -36874,9 +36874,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_S2WZ);
 	}
 	/* class iclass_single_precision_to_64_bit_merging */
@@ -36892,9 +36892,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_S2X);
 	}
 	/* class iclass_single_precision_to_64_bit_zeroing */
@@ -36910,9 +36910,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_S2XZ);
 	}
 	/* class iclass_double_precision_to_32_bit_merging */
@@ -36928,9 +36928,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_D2W);
 	}
 	/* class iclass_double_precision_to_32_bit_zeroing */
@@ -36946,9 +36946,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_D2WZ);
 	}
 	/* class iclass_double_precision_to_64_bit_merging */
@@ -36964,9 +36964,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FCVTZU_Z_P_Z_D2X);
 	}
 	/* class iclass_double_precision_to_64_bit_zeroing */
@@ -36982,9 +36982,9 @@ int fcvtzu_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FCVTZU_Z_P_Z_D2XZ);
 	}
 	return rc;
@@ -37007,7 +37007,7 @@ int fcvtzun_z_mz2(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRounding_ZERO;
 		OK(ENC_FCVTZUN_Z_MZ2_);
 	}
@@ -37582,7 +37582,7 @@ int flogb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FLOGB_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -37599,7 +37599,7 @@ int flogb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FLOGB_Z_P_Z_Z);
 	}
 	return rc;
@@ -37624,8 +37624,8 @@ int fmad_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->a = UINT(ctx->Za);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_FMAD_Z_P_ZZZ_);
 	}
 	return rc;
@@ -38359,8 +38359,8 @@ int fmla_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_FMLA_Z_P_ZZZ_);
 	}
 	return rc;
@@ -38382,8 +38382,8 @@ int fmla_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_FMLA_Z_ZZZI_H);
 	}
 	/* class iclass_single_precision */
@@ -38398,8 +38398,8 @@ int fmla_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_FMLA_Z_ZZZI_S);
 	}
 	/* class iclass_double_precision */
@@ -38414,8 +38414,8 @@ int fmla_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = false;
 		OK(ENC_FMLA_Z_ZZZI_D);
 	}
 	return rc;
@@ -38996,7 +38996,7 @@ int fmlalb_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_FMLALB_Z_ZZZ_);
 	}
 	return rc;
@@ -39018,7 +39018,7 @@ int fmlalb_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_FMLALB_Z_ZZZI_S);
 	}
 	return rc;
@@ -39370,7 +39370,7 @@ int fmlalt_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_FMLALT_Z_ZZZ_);
 	}
 	return rc;
@@ -39392,7 +39392,7 @@ int fmlalt_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = FALSE;
+		ctx->op1_neg = false;
 		OK(ENC_FMLALT_Z_ZZZI_S);
 	}
 	return rc;
@@ -39414,8 +39414,8 @@ int fmls_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_FMLS_Z_P_ZZZ_);
 	}
 	return rc;
@@ -39437,8 +39437,8 @@ int fmls_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_FMLS_Z_ZZZI_H);
 	}
 	/* class iclass_single_precision */
@@ -39453,8 +39453,8 @@ int fmls_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_FMLS_Z_ZZZI_S);
 	}
 	/* class iclass_double_precision */
@@ -39469,8 +39469,8 @@ int fmls_z_zzzi(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_FMLS_Z_ZZZI_D);
 	}
 	return rc;
@@ -39876,7 +39876,7 @@ int fmlslb_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_FMLSLB_Z_ZZZ_);
 	}
 	return rc;
@@ -39898,7 +39898,7 @@ int fmlslb_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_FMLSLB_Z_ZZZI_S);
 	}
 	return rc;
@@ -39919,7 +39919,7 @@ int fmlslt_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_FMLSLT_Z_ZZZ_);
 	}
 	return rc;
@@ -39941,7 +39941,7 @@ int fmlslt_z_zzzi(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
 		ctx->index = UINT(((ctx->i3h<<1)|ctx->i3l));
-		ctx->op1_neg = TRUE;
+		ctx->op1_neg = true;
 		OK(ENC_FMLSLT_Z_ZZZI_S);
 	}
 	return rc;
@@ -40192,7 +40192,7 @@ int fmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -40207,7 +40207,7 @@ int fmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -40222,7 +40222,7 @@ int fmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -40237,7 +40237,7 @@ int fmop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -40260,7 +40260,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_H1X2);
 	}
 	/* class iclass_half_precision_single_vectors */
@@ -40276,7 +40276,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_H1X1);
 	}
 	/* class iclass_half_precision_multiple_and_single_vectors */
@@ -40292,7 +40292,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_H2X1);
 	}
 	/* class iclass_half_precision_multiple_vectors */
@@ -40308,7 +40308,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_H2X2);
 	}
 	/* class iclass_single_precision_single_and_multiple_vectors */
@@ -40324,7 +40324,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_S1X2);
 	}
 	/* class iclass_single_precision_single_vectors */
@@ -40340,7 +40340,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_S1X1);
 	}
 	/* class iclass_single_precision_multiple_and_single_vectors */
@@ -40356,7 +40356,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_S2X1);
 	}
 	/* class iclass_single_precision_multiple_vectors */
@@ -40372,7 +40372,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_S2X2);
 	}
 	/* class iclass_double_precision_single_and_multiple_vectors */
@@ -40388,7 +40388,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_D1X2);
 	}
 	/* class iclass_double_precision_single_vectors */
@@ -40404,7 +40404,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_D1X1);
 	}
 	/* class iclass_double_precision_multiple_and_single_vectors */
@@ -40420,7 +40420,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_D2X1);
 	}
 	/* class iclass_double_precision_multiple_vectors */
@@ -40436,7 +40436,7 @@ int fmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_FMOP4A_ZA_ZZ_D2X2);
 	}
 	return rc;
@@ -40458,7 +40458,7 @@ int fmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -40473,7 +40473,7 @@ int fmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -40488,7 +40488,7 @@ int fmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -40503,7 +40503,7 @@ int fmop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -40526,7 +40526,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_H1X2);
 	}
 	/* class iclass_half_precision_single_vectors */
@@ -40542,7 +40542,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_H1X1);
 	}
 	/* class iclass_half_precision_multiple_and_single_vectors */
@@ -40558,7 +40558,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_H2X1);
 	}
 	/* class iclass_half_precision_multiple_vectors */
@@ -40574,7 +40574,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_H2X2);
 	}
 	/* class iclass_single_precision_single_and_multiple_vectors */
@@ -40590,7 +40590,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_S1X2);
 	}
 	/* class iclass_single_precision_single_vectors */
@@ -40606,7 +40606,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_S1X1);
 	}
 	/* class iclass_single_precision_multiple_and_single_vectors */
@@ -40622,7 +40622,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_S2X1);
 	}
 	/* class iclass_single_precision_multiple_vectors */
@@ -40638,7 +40638,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_S2X2);
 	}
 	/* class iclass_double_precision_single_and_multiple_vectors */
@@ -40654,7 +40654,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_D1X2);
 	}
 	/* class iclass_double_precision_single_vectors */
@@ -40670,7 +40670,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_D1X1);
 	}
 	/* class iclass_double_precision_multiple_and_single_vectors */
@@ -40686,7 +40686,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_D2X1);
 	}
 	/* class iclass_double_precision_multiple_vectors */
@@ -40702,7 +40702,7 @@ int fmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_FMOP4S_ZA_ZZ_D2X2);
 	}
 	return rc;
@@ -40967,8 +40967,8 @@ int fmsb_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->a = UINT(ctx->Za);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = FALSE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = false;
 		OK(ENC_FMSB_Z_P_ZZZ_);
 	}
 	return rc;
@@ -41197,7 +41197,7 @@ int fneg_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FNEG_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -41214,7 +41214,7 @@ int fneg_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FNEG_Z_P_Z_Z);
 	}
 	return rc;
@@ -41239,8 +41239,8 @@ int fnmad_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->a = UINT(ctx->Za);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = TRUE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = true;
 		OK(ENC_FNMAD_Z_P_ZZZ_);
 	}
 	return rc;
@@ -41265,8 +41265,8 @@ int fnmla_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = TRUE;
-		ctx->op3_neg = TRUE;
+		ctx->op1_neg = true;
+		ctx->op3_neg = true;
 		OK(ENC_FNMLA_Z_P_ZZZ_);
 	}
 	return rc;
@@ -41291,8 +41291,8 @@ int fnmls_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = TRUE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = true;
 		OK(ENC_FNMLS_Z_P_ZZZ_);
 	}
 	return rc;
@@ -41317,8 +41317,8 @@ int fnmsb_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->a = UINT(ctx->Za);
-		ctx->op1_neg = FALSE;
-		ctx->op3_neg = TRUE;
+		ctx->op1_neg = false;
+		ctx->op3_neg = true;
 		OK(ENC_FNMSB_Z_P_ZZZ_);
 	}
 	return rc;
@@ -41387,7 +41387,7 @@ int frecpx_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRECPX_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -41404,7 +41404,7 @@ int frecpx_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRECPX_Z_P_Z_Z);
 	}
 	return rc;
@@ -41427,7 +41427,7 @@ int frint32x_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x20;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINT32X_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -41443,7 +41443,7 @@ int frint32x_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x20;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINT32X_Z_P_Z_Z);
 	}
 	return rc;
@@ -41466,7 +41466,7 @@ int frint32z_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x20;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINT32Z_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -41482,7 +41482,7 @@ int frint32z_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x20;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINT32Z_Z_P_Z_Z);
 	}
 	return rc;
@@ -41505,7 +41505,7 @@ int frint64x_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x40;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINT64X_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -41521,7 +41521,7 @@ int frint64x_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x40;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINT64X_Z_P_Z_Z);
 	}
 	return rc;
@@ -41544,7 +41544,7 @@ int frint64z_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x40;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINT64Z_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -41560,7 +41560,7 @@ int frint64z_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->intsize = 0x40;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINT64Z_Z_P_Z_Z);
 	}
 	return rc;
@@ -41580,7 +41580,7 @@ int frinta_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
 		OK(ENC_FRINTA_MZ_Z_2);
 	}
@@ -41594,7 +41594,7 @@ int frinta_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
 		OK(ENC_FRINTA_MZ_Z_4);
 	}
@@ -41619,9 +41619,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = TRUE;
+		ctx->exact = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTX_Z_P_Z_M);
 	}
 	/* class iclass_current_mode_signalling_inexact_zeroing */
@@ -41638,9 +41638,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = TRUE;
+		ctx->exact = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTX_Z_P_Z_Z);
 	}
 	/* class iclass_current_mode_merging */
@@ -41657,9 +41657,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTI_Z_P_Z_M);
 	}
 	/* class iclass_current_mode_zeroing */
@@ -41676,9 +41676,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTI_Z_P_Z_Z);
 	}
 	/* class iclass_nearest_with_ties_to_away_merging */
@@ -41695,9 +41695,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTA_Z_P_Z_M);
 	}
 	/* class iclass_nearest_with_ties_to_away_zeroing */
@@ -41714,9 +41714,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEAWAY;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTA_Z_P_Z_Z);
 	}
 	/* class iclass_nearest_with_ties_to_even_merging */
@@ -41733,9 +41733,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTN_Z_P_Z_M);
 	}
 	/* class iclass_nearest_with_ties_to_even_zeroing */
@@ -41752,9 +41752,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTN_Z_P_Z_Z);
 	}
 	/* class iclass_toward_zero_merging */
@@ -41771,9 +41771,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTZ_Z_P_Z_M);
 	}
 	/* class iclass_toward_zero_zeroing */
@@ -41790,9 +41790,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_ZERO;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTZ_Z_P_Z_Z);
 	}
 	/* class iclass_toward_minus_infinity_merging */
@@ -41809,9 +41809,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTM_Z_P_Z_M);
 	}
 	/* class iclass_toward_minus_infinity_zeroing */
@@ -41828,9 +41828,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTM_Z_P_Z_Z);
 	}
 	/* class iclass_toward_plus_infinity_merging */
@@ -41847,9 +41847,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FRINTP_Z_P_Z_M);
 	}
 	/* class iclass_toward_plus_infinity_zeroing */
@@ -41866,9 +41866,9 @@ int frinta_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FRINTP_Z_P_Z_Z);
 	}
 	return rc;
@@ -41888,7 +41888,7 @@ int frintm_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
 		OK(ENC_FRINTM_MZ_Z_2);
 	}
@@ -41902,7 +41902,7 @@ int frintm_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_NEGINF;
 		OK(ENC_FRINTM_MZ_Z_4);
 	}
@@ -41923,7 +41923,7 @@ int frintn_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
 		OK(ENC_FRINTN_MZ_Z_2);
 	}
@@ -41937,7 +41937,7 @@ int frintn_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_TIEEVEN;
 		OK(ENC_FRINTN_MZ_Z_4);
 	}
@@ -41958,7 +41958,7 @@ int frintp_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
 		OK(ENC_FRINTP_MZ_Z_2);
 	}
@@ -41972,7 +41972,7 @@ int frintp_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->exact = FALSE;
+		ctx->exact = false;
 		ctx->rounding = FPRounding_POSINF;
 		OK(ENC_FRINTP_MZ_Z_4);
 	}
@@ -42128,7 +42128,7 @@ int fsqrt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_FSQRT_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -42145,7 +42145,7 @@ int fsqrt_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_FSQRT_Z_P_Z_Z);
 	}
 	return rc;
@@ -42909,7 +42909,7 @@ int lasta_r_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Rd);
-		ctx->isBefore = FALSE;
+		ctx->isBefore = false;
 		OK(ENC_LASTA_R_P_Z_);
 	}
 	return rc;
@@ -42930,7 +42930,7 @@ int lasta_v_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->isBefore = FALSE;
+		ctx->isBefore = false;
 		OK(ENC_LASTA_V_P_Z_);
 	}
 	return rc;
@@ -42952,7 +42952,7 @@ int lastb_r_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Rd);
-		ctx->isBefore = TRUE;
+		ctx->isBefore = true;
 		OK(ENC_LASTB_R_P_Z_);
 	}
 	return rc;
@@ -42973,7 +42973,7 @@ int lastb_v_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->isBefore = TRUE;
+		ctx->isBefore = true;
 		OK(ENC_LASTB_V_P_Z_);
 	}
 	return rc;
@@ -43167,7 +43167,7 @@ int ld1b_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1B_Z_P_AI_S);
 	}
@@ -43183,7 +43183,7 @@ int ld1b_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1B_Z_P_AI_D);
 	}
@@ -43206,7 +43206,7 @@ int ld1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 8;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1B_Z_P_BI_U8);
 	}
@@ -43222,7 +43222,7 @@ int ld1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1B_Z_P_BI_U16);
 	}
@@ -43238,7 +43238,7 @@ int ld1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1B_Z_P_BI_U32);
 	}
@@ -43254,7 +43254,7 @@ int ld1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1B_Z_P_BI_U64);
 	}
@@ -43281,7 +43281,7 @@ int ld1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 8;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1B_Z_P_BR_U8);
 	}
 	/* class iclass_16_bit_element */
@@ -43300,7 +43300,7 @@ int ld1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1B_Z_P_BR_U16);
 	}
 	/* class iclass_32_bit_element */
@@ -43319,7 +43319,7 @@ int ld1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1B_Z_P_BR_U32);
 	}
 	/* class iclass_64_bit_element */
@@ -43338,7 +43338,7 @@ int ld1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1B_Z_P_BR_U64);
 	}
 	return rc;
@@ -43362,7 +43362,7 @@ int ld1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1B_Z_P_BZ_D_X32_UNSCALED);
@@ -43381,7 +43381,7 @@ int ld1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1B_Z_P_BZ_S_X32_UNSCALED);
@@ -43400,8 +43400,8 @@ int ld1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1B_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -43600,7 +43600,7 @@ int ld1d_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1D_Z_P_AI_D);
 	}
@@ -43623,7 +43623,7 @@ int ld1d_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1D_Z_P_BI_U64);
 	}
@@ -43639,7 +43639,7 @@ int ld1d_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x80;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1D_Z_P_BI_U128);
 	}
@@ -43666,7 +43666,7 @@ int ld1d_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1D_Z_P_BR_U64);
 	}
 	/* class iclass_128_bit_element */
@@ -43685,7 +43685,7 @@ int ld1d_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x80;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1D_Z_P_BR_U128);
 	}
 	return rc;
@@ -43709,7 +43709,7 @@ int ld1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 3;
 		OK(ENC_LD1D_Z_P_BZ_D_X32_SCALED);
@@ -43728,7 +43728,7 @@ int ld1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1D_Z_P_BZ_D_X32_UNSCALED);
@@ -43747,8 +43747,8 @@ int ld1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 3;
 		OK(ENC_LD1D_Z_P_BZ_D_64_SCALED);
 	}
@@ -43766,8 +43766,8 @@ int ld1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1D_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -43966,7 +43966,7 @@ int ld1h_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1H_Z_P_AI_S);
 	}
@@ -43982,7 +43982,7 @@ int ld1h_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1H_Z_P_AI_D);
 	}
@@ -44005,7 +44005,7 @@ int ld1h_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1H_Z_P_BI_U16);
 	}
@@ -44021,7 +44021,7 @@ int ld1h_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1H_Z_P_BI_U32);
 	}
@@ -44037,7 +44037,7 @@ int ld1h_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1H_Z_P_BI_U64);
 	}
@@ -44064,7 +44064,7 @@ int ld1h_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1H_Z_P_BR_U16);
 	}
 	/* class iclass_32_bit_element */
@@ -44083,7 +44083,7 @@ int ld1h_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1H_Z_P_BR_U32);
 	}
 	/* class iclass_64_bit_element */
@@ -44102,7 +44102,7 @@ int ld1h_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1H_Z_P_BR_U64);
 	}
 	return rc;
@@ -44126,7 +44126,7 @@ int ld1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LD1H_Z_P_BZ_S_X32_SCALED);
@@ -44145,7 +44145,7 @@ int ld1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LD1H_Z_P_BZ_D_X32_SCALED);
@@ -44164,7 +44164,7 @@ int ld1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1H_Z_P_BZ_D_X32_UNSCALED);
@@ -44183,7 +44183,7 @@ int ld1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1H_Z_P_BZ_S_X32_UNSCALED);
@@ -44202,8 +44202,8 @@ int ld1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 1;
 		OK(ENC_LD1H_Z_P_BZ_D_64_SCALED);
 	}
@@ -44221,8 +44221,8 @@ int ld1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1H_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -44313,7 +44313,7 @@ int ld1rb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 8;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RB_Z_P_BI_U8);
 	}
@@ -44329,7 +44329,7 @@ int ld1rb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RB_Z_P_BI_U16);
 	}
@@ -44345,7 +44345,7 @@ int ld1rb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RB_Z_P_BI_U32);
 	}
@@ -44361,7 +44361,7 @@ int ld1rb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RB_Z_P_BI_U64);
 	}
@@ -44384,7 +44384,7 @@ int ld1rd_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RD_Z_P_BI_U64);
 	}
@@ -44407,7 +44407,7 @@ int ld1rh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RH_Z_P_BI_U16);
 	}
@@ -44423,7 +44423,7 @@ int ld1rh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RH_Z_P_BI_U32);
 	}
@@ -44439,7 +44439,7 @@ int ld1rh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RH_Z_P_BI_U64);
 	}
@@ -44822,7 +44822,7 @@ int ld1rsb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RSB_Z_P_BI_S16);
 	}
@@ -44838,7 +44838,7 @@ int ld1rsb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RSB_Z_P_BI_S32);
 	}
@@ -44854,7 +44854,7 @@ int ld1rsb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RSB_Z_P_BI_S64);
 	}
@@ -44877,7 +44877,7 @@ int ld1rsh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RSH_Z_P_BI_S32);
 	}
@@ -44893,7 +44893,7 @@ int ld1rsh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RSH_Z_P_BI_S64);
 	}
@@ -44916,7 +44916,7 @@ int ld1rsw_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RSW_Z_P_BI_S64);
 	}
@@ -44939,7 +44939,7 @@ int ld1rw_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RW_Z_P_BI_U32);
 	}
@@ -44955,7 +44955,7 @@ int ld1rw_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm6);
 		OK(ENC_LD1RW_Z_P_BI_U64);
 	}
@@ -44978,7 +44978,7 @@ int ld1sb_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1SB_Z_P_AI_S);
 	}
@@ -44994,7 +44994,7 @@ int ld1sb_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1SB_Z_P_AI_D);
 	}
@@ -45017,7 +45017,7 @@ int ld1sb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1SB_Z_P_BI_S16);
 	}
@@ -45033,7 +45033,7 @@ int ld1sb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1SB_Z_P_BI_S32);
 	}
@@ -45049,7 +45049,7 @@ int ld1sb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1SB_Z_P_BI_S64);
 	}
@@ -45076,7 +45076,7 @@ int ld1sb_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LD1SB_Z_P_BR_S16);
 	}
 	/* class iclass_32_bit_element */
@@ -45095,7 +45095,7 @@ int ld1sb_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LD1SB_Z_P_BR_S32);
 	}
 	/* class iclass_64_bit_element */
@@ -45114,7 +45114,7 @@ int ld1sb_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LD1SB_Z_P_BR_S64);
 	}
 	return rc;
@@ -45138,7 +45138,7 @@ int ld1sb_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1SB_Z_P_BZ_D_X32_UNSCALED);
@@ -45157,7 +45157,7 @@ int ld1sb_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1SB_Z_P_BZ_S_X32_UNSCALED);
@@ -45176,8 +45176,8 @@ int ld1sb_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1SB_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -45200,7 +45200,7 @@ int ld1sh_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1SH_Z_P_AI_S);
 	}
@@ -45216,7 +45216,7 @@ int ld1sh_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1SH_Z_P_AI_D);
 	}
@@ -45239,7 +45239,7 @@ int ld1sh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1SH_Z_P_BI_S32);
 	}
@@ -45255,7 +45255,7 @@ int ld1sh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1SH_Z_P_BI_S64);
 	}
@@ -45282,7 +45282,7 @@ int ld1sh_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LD1SH_Z_P_BR_S32);
 	}
 	/* class iclass_64_bit_element */
@@ -45301,7 +45301,7 @@ int ld1sh_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LD1SH_Z_P_BR_S64);
 	}
 	return rc;
@@ -45325,7 +45325,7 @@ int ld1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LD1SH_Z_P_BZ_S_X32_SCALED);
@@ -45344,7 +45344,7 @@ int ld1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LD1SH_Z_P_BZ_D_X32_SCALED);
@@ -45363,7 +45363,7 @@ int ld1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1SH_Z_P_BZ_D_X32_UNSCALED);
@@ -45382,7 +45382,7 @@ int ld1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1SH_Z_P_BZ_S_X32_UNSCALED);
@@ -45401,8 +45401,8 @@ int ld1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 1;
 		OK(ENC_LD1SH_Z_P_BZ_D_64_SCALED);
 	}
@@ -45420,8 +45420,8 @@ int ld1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1SH_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -45444,7 +45444,7 @@ int ld1sw_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1SW_Z_P_AI_D);
 	}
@@ -45467,7 +45467,7 @@ int ld1sw_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1SW_Z_P_BI_S64);
 	}
@@ -45494,7 +45494,7 @@ int ld1sw_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LD1SW_Z_P_BR_S64);
 	}
 	return rc;
@@ -45518,7 +45518,7 @@ int ld1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 2;
 		OK(ENC_LD1SW_Z_P_BZ_D_X32_SCALED);
@@ -45537,7 +45537,7 @@ int ld1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1SW_Z_P_BZ_D_X32_UNSCALED);
@@ -45556,8 +45556,8 @@ int ld1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 2;
 		OK(ENC_LD1SW_Z_P_BZ_D_64_SCALED);
 	}
@@ -45575,8 +45575,8 @@ int ld1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1SW_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -45751,7 +45751,7 @@ int ld1w_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1W_Z_P_AI_S);
 	}
@@ -45767,7 +45767,7 @@ int ld1w_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LD1W_Z_P_AI_D);
 	}
@@ -45790,7 +45790,7 @@ int ld1w_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1W_Z_P_BI_U32);
 	}
@@ -45806,7 +45806,7 @@ int ld1w_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1W_Z_P_BI_U64);
 	}
@@ -45822,7 +45822,7 @@ int ld1w_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x80;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LD1W_Z_P_BI_U128);
 	}
@@ -45849,7 +45849,7 @@ int ld1w_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1W_Z_P_BR_U32);
 	}
 	/* class iclass_64_bit_element */
@@ -45868,7 +45868,7 @@ int ld1w_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1W_Z_P_BR_U64);
 	}
 	/* class iclass_128_bit_element */
@@ -45887,7 +45887,7 @@ int ld1w_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x80;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LD1W_Z_P_BR_U128);
 	}
 	return rc;
@@ -45911,7 +45911,7 @@ int ld1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 2;
 		OK(ENC_LD1W_Z_P_BZ_S_X32_SCALED);
@@ -45930,7 +45930,7 @@ int ld1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 2;
 		OK(ENC_LD1W_Z_P_BZ_D_X32_SCALED);
@@ -45949,7 +45949,7 @@ int ld1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1W_Z_P_BZ_D_X32_UNSCALED);
@@ -45968,7 +45968,7 @@ int ld1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LD1W_Z_P_BZ_S_X32_UNSCALED);
@@ -45987,8 +45987,8 @@ int ld1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 2;
 		OK(ENC_LD1W_Z_P_BZ_D_64_SCALED);
 	}
@@ -46006,8 +46006,8 @@ int ld1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LD1W_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -46759,7 +46759,7 @@ int ldff1b_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1B_Z_P_AI_S);
 	}
@@ -46775,7 +46775,7 @@ int ldff1b_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1B_Z_P_AI_D);
 	}
@@ -46799,7 +46799,7 @@ int ldff1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 8;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1B_Z_P_BR_U8);
 	}
 	/* class iclass_16_bit_element */
@@ -46815,7 +46815,7 @@ int ldff1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1B_Z_P_BR_U16);
 	}
 	/* class iclass_32_bit_element */
@@ -46831,7 +46831,7 @@ int ldff1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1B_Z_P_BR_U32);
 	}
 	/* class iclass_64_bit_element */
@@ -46847,7 +46847,7 @@ int ldff1b_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1B_Z_P_BR_U64);
 	}
 	return rc;
@@ -46871,7 +46871,7 @@ int ldff1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1B_Z_P_BZ_D_X32_UNSCALED);
@@ -46890,7 +46890,7 @@ int ldff1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1B_Z_P_BZ_S_X32_UNSCALED);
@@ -46909,8 +46909,8 @@ int ldff1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1B_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -46933,7 +46933,7 @@ int ldff1d_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1D_Z_P_AI_D);
 	}
@@ -46957,7 +46957,7 @@ int ldff1d_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1D_Z_P_BR_U64);
 	}
 	return rc;
@@ -46981,7 +46981,7 @@ int ldff1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 3;
 		OK(ENC_LDFF1D_Z_P_BZ_D_X32_SCALED);
@@ -47000,7 +47000,7 @@ int ldff1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1D_Z_P_BZ_D_X32_UNSCALED);
@@ -47019,8 +47019,8 @@ int ldff1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 3;
 		OK(ENC_LDFF1D_Z_P_BZ_D_64_SCALED);
 	}
@@ -47038,8 +47038,8 @@ int ldff1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1D_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -47062,7 +47062,7 @@ int ldff1h_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1H_Z_P_AI_S);
 	}
@@ -47078,7 +47078,7 @@ int ldff1h_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1H_Z_P_AI_D);
 	}
@@ -47102,7 +47102,7 @@ int ldff1h_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1H_Z_P_BR_U16);
 	}
 	/* class iclass_32_bit_element */
@@ -47118,7 +47118,7 @@ int ldff1h_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1H_Z_P_BR_U32);
 	}
 	/* class iclass_64_bit_element */
@@ -47134,7 +47134,7 @@ int ldff1h_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1H_Z_P_BR_U64);
 	}
 	return rc;
@@ -47158,7 +47158,7 @@ int ldff1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LDFF1H_Z_P_BZ_S_X32_SCALED);
@@ -47177,7 +47177,7 @@ int ldff1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LDFF1H_Z_P_BZ_D_X32_SCALED);
@@ -47196,7 +47196,7 @@ int ldff1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1H_Z_P_BZ_D_X32_UNSCALED);
@@ -47215,7 +47215,7 @@ int ldff1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1H_Z_P_BZ_S_X32_UNSCALED);
@@ -47234,8 +47234,8 @@ int ldff1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 1;
 		OK(ENC_LDFF1H_Z_P_BZ_D_64_SCALED);
 	}
@@ -47253,8 +47253,8 @@ int ldff1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1H_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -47277,7 +47277,7 @@ int ldff1sb_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1SB_Z_P_AI_S);
 	}
@@ -47293,7 +47293,7 @@ int ldff1sb_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1SB_Z_P_AI_D);
 	}
@@ -47317,7 +47317,7 @@ int ldff1sb_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDFF1SB_Z_P_BR_S16);
 	}
 	/* class iclass_32_bit_element */
@@ -47333,7 +47333,7 @@ int ldff1sb_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDFF1SB_Z_P_BR_S32);
 	}
 	/* class iclass_64_bit_element */
@@ -47349,7 +47349,7 @@ int ldff1sb_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDFF1SB_Z_P_BR_S64);
 	}
 	return rc;
@@ -47373,7 +47373,7 @@ int ldff1sb_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SB_Z_P_BZ_D_X32_UNSCALED);
@@ -47392,7 +47392,7 @@ int ldff1sb_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 8;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SB_Z_P_BZ_S_X32_UNSCALED);
@@ -47411,8 +47411,8 @@ int ldff1sb_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SB_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -47435,7 +47435,7 @@ int ldff1sh_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1SH_Z_P_AI_S);
 	}
@@ -47451,7 +47451,7 @@ int ldff1sh_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1SH_Z_P_AI_D);
 	}
@@ -47475,7 +47475,7 @@ int ldff1sh_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDFF1SH_Z_P_BR_S32);
 	}
 	/* class iclass_64_bit_element */
@@ -47491,7 +47491,7 @@ int ldff1sh_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDFF1SH_Z_P_BR_S64);
 	}
 	return rc;
@@ -47515,7 +47515,7 @@ int ldff1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LDFF1SH_Z_P_BZ_S_X32_SCALED);
@@ -47534,7 +47534,7 @@ int ldff1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 1;
 		OK(ENC_LDFF1SH_Z_P_BZ_D_X32_SCALED);
@@ -47553,7 +47553,7 @@ int ldff1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SH_Z_P_BZ_D_X32_UNSCALED);
@@ -47572,7 +47572,7 @@ int ldff1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SH_Z_P_BZ_S_X32_UNSCALED);
@@ -47591,8 +47591,8 @@ int ldff1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 1;
 		OK(ENC_LDFF1SH_Z_P_BZ_D_64_SCALED);
 	}
@@ -47610,8 +47610,8 @@ int ldff1sh_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SH_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -47634,7 +47634,7 @@ int ldff1sw_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1SW_Z_P_AI_D);
 	}
@@ -47658,7 +47658,7 @@ int ldff1sw_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDFF1SW_Z_P_BR_S64);
 	}
 	return rc;
@@ -47682,7 +47682,7 @@ int ldff1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 2;
 		OK(ENC_LDFF1SW_Z_P_BZ_D_X32_SCALED);
@@ -47701,7 +47701,7 @@ int ldff1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SW_Z_P_BZ_D_X32_UNSCALED);
@@ -47720,8 +47720,8 @@ int ldff1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 2;
 		OK(ENC_LDFF1SW_Z_P_BZ_D_64_SCALED);
 	}
@@ -47739,8 +47739,8 @@ int ldff1sw_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = FALSE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = false;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1SW_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -47763,7 +47763,7 @@ int ldff1w_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1W_Z_P_AI_S);
 	}
@@ -47779,7 +47779,7 @@ int ldff1w_z_p_ai(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = UINT(ctx->imm5);
 		OK(ENC_LDFF1W_Z_P_AI_D);
 	}
@@ -47803,7 +47803,7 @@ int ldff1w_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1W_Z_P_BR_U32);
 	}
 	/* class iclass_64_bit_element */
@@ -47819,7 +47819,7 @@ int ldff1w_z_p_br(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDFF1W_Z_P_BR_U64);
 	}
 	return rc;
@@ -47843,7 +47843,7 @@ int ldff1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 2;
 		OK(ENC_LDFF1W_Z_P_BZ_S_X32_SCALED);
@@ -47862,7 +47862,7 @@ int ldff1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 2;
 		OK(ENC_LDFF1W_Z_P_BZ_D_X32_SCALED);
@@ -47881,7 +47881,7 @@ int ldff1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1W_Z_P_BZ_D_X32_UNSCALED);
@@ -47900,7 +47900,7 @@ int ldff1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offs_unsigned = ctx->xs==0;
 		ctx->scale = 0;
 		OK(ENC_LDFF1W_Z_P_BZ_S_X32_UNSCALED);
@@ -47919,8 +47919,8 @@ int ldff1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 2;
 		OK(ENC_LDFF1W_Z_P_BZ_D_64_SCALED);
 	}
@@ -47938,8 +47938,8 @@ int ldff1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->unsigned_ = TRUE;
-		ctx->offs_unsigned = TRUE;
+		ctx->unsigned_ = true;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_LDFF1W_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -47962,7 +47962,7 @@ int ldnf1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 8;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1B_Z_P_BI_U8);
 	}
@@ -47978,7 +47978,7 @@ int ldnf1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1B_Z_P_BI_U16);
 	}
@@ -47994,7 +47994,7 @@ int ldnf1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1B_Z_P_BI_U32);
 	}
@@ -48010,7 +48010,7 @@ int ldnf1b_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1B_Z_P_BI_U64);
 	}
@@ -48033,7 +48033,7 @@ int ldnf1d_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1D_Z_P_BI_U64);
 	}
@@ -48056,7 +48056,7 @@ int ldnf1h_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1H_Z_P_BI_U16);
 	}
@@ -48072,7 +48072,7 @@ int ldnf1h_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1H_Z_P_BI_U32);
 	}
@@ -48088,7 +48088,7 @@ int ldnf1h_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1H_Z_P_BI_U64);
 	}
@@ -48111,7 +48111,7 @@ int ldnf1sb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x10;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1SB_Z_P_BI_S16);
 	}
@@ -48127,7 +48127,7 @@ int ldnf1sb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1SB_Z_P_BI_S32);
 	}
@@ -48143,7 +48143,7 @@ int ldnf1sb_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1SB_Z_P_BI_S64);
 	}
@@ -48166,7 +48166,7 @@ int ldnf1sh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1SH_Z_P_BI_S32);
 	}
@@ -48182,7 +48182,7 @@ int ldnf1sh_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1SH_Z_P_BI_S64);
 	}
@@ -48205,7 +48205,7 @@ int ldnf1sw_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1SW_Z_P_BI_S64);
 	}
@@ -48228,7 +48228,7 @@ int ldnf1w_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1W_Z_P_BI_U32);
 	}
@@ -48244,7 +48244,7 @@ int ldnf1w_z_p_bi(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->offset = SInt(ctx->imm4,4);
 		OK(ENC_LDNF1W_Z_P_BI_U64);
 	}
@@ -48420,7 +48420,7 @@ int ldnt1b_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1B_Z_P_AR_S_X32_UNSCALED);
 	}
 	/* class iclass_64_bit_unscaled_offset */
@@ -48436,7 +48436,7 @@ int ldnt1b_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1B_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -48656,7 +48656,7 @@ int ldnt1d_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1D_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -48876,7 +48876,7 @@ int ldnt1h_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1H_Z_P_AR_S_X32_UNSCALED);
 	}
 	/* class iclass_64_bit_unscaled_offset */
@@ -48892,7 +48892,7 @@ int ldnt1h_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1H_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -48960,7 +48960,7 @@ int ldnt1sb_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDNT1SB_Z_P_AR_S_X32_UNSCALED);
 	}
 	/* class iclass_64_bit_unscaled_offset */
@@ -48976,7 +48976,7 @@ int ldnt1sb_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 8;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDNT1SB_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -48999,7 +48999,7 @@ int ldnt1sh_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDNT1SH_Z_P_AR_S_X32_UNSCALED);
 	}
 	/* class iclass_64_bit_unscaled_offset */
@@ -49015,7 +49015,7 @@ int ldnt1sh_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDNT1SH_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -49038,7 +49038,7 @@ int ldnt1sw_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_LDNT1SW_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -49213,7 +49213,7 @@ int ldnt1w_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x20;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1W_Z_P_AR_S_X32_UNSCALED);
 	}
 	/* class iclass_64_bit_unscaled_offset */
@@ -49229,7 +49229,7 @@ int ldnt1w_z_p_ar(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_LDNT1W_Z_P_AR_D_64_UNSCALED);
 	}
 	return rc;
@@ -50140,7 +50140,7 @@ int mad_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->a = UINT(ctx->Za);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_MAD_Z_P_ZZZ_);
 	}
 	return rc;
@@ -50205,7 +50205,7 @@ int mla_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->sub_op = FALSE;
+		ctx->sub_op = false;
 		OK(ENC_MLA_Z_P_ZZZ_);
 	}
 	return rc;
@@ -50295,7 +50295,7 @@ int mls_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_MLS_Z_P_ZZZ_);
 	}
 	return rc;
@@ -51778,7 +51778,7 @@ int msb_z_p_zzz(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->a = UINT(ctx->Za);
-		ctx->sub_op = TRUE;
+		ctx->sub_op = true;
 		OK(ENC_MSB_Z_P_ZZZ_);
 	}
 	return rc;
@@ -51908,7 +51908,7 @@ int nand_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_NAND_P_P_PP_Z);
 	}
@@ -51934,7 +51934,7 @@ int nands_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_NANDS_P_P_PP_Z);
 	}
@@ -51975,7 +51975,7 @@ int neg_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_NEG_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -51989,7 +51989,7 @@ int neg_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_NEG_Z_P_Z_Z);
 	}
 	return rc;
@@ -52035,7 +52035,7 @@ int nor_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_NOR_P_P_PP_Z);
 	}
@@ -52061,7 +52061,7 @@ int nors_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_NORS_P_P_PP_Z);
 	}
@@ -52096,7 +52096,7 @@ int not_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_NOT_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -52110,7 +52110,7 @@ int not_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_NOT_Z_P_Z_Z);
 	}
 	return rc;
@@ -52161,7 +52161,7 @@ int orn_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_ORN_P_P_PP_Z);
 	}
@@ -52187,7 +52187,7 @@ int orns_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_ORNS_P_P_PP_Z);
 	}
@@ -52230,7 +52230,7 @@ int orr_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		/* regular aliases */
 		if(ctx->S==0 && ctx->Pn==ctx->Pm && ctx->Pm==ctx->Pg) return mov_orr_p_p_pp(ctx, instr);
@@ -52319,7 +52319,7 @@ int orrs_p_p_pp(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Pn);
 		ctx->m = UINT(ctx->Pm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		/* regular aliases */
 		if(ctx->S==1 && ctx->Pn==ctx->Pm && ctx->Pm==ctx->Pg) return movs_orrs_p_p_pp(ctx, instr);
@@ -52843,7 +52843,7 @@ int prfb_i_p_bz(context *ctx, Instruction *instr)
 		ctx->stream = (SLICE(ctx->prfop,0,0)==1);
 		ctx->pref_hint = (SLICE(ctx->prfop,3,3)==0)!=0 ? Prefetch_READ : Prefetch_WRITE;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_PRFB_I_P_BZ_D_64_SCALED);
 	}
@@ -52999,7 +52999,7 @@ int prfd_i_p_bz(context *ctx, Instruction *instr)
 		ctx->stream = (SLICE(ctx->prfop,0,0)==1);
 		ctx->pref_hint = (SLICE(ctx->prfop,3,3)==0)!=0 ? Prefetch_READ : Prefetch_WRITE;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 3;
 		OK(ENC_PRFD_I_P_BZ_D_64_SCALED);
 	}
@@ -53155,7 +53155,7 @@ int prfh_i_p_bz(context *ctx, Instruction *instr)
 		ctx->stream = (SLICE(ctx->prfop,0,0)==1);
 		ctx->pref_hint = (SLICE(ctx->prfop,3,3)==0)!=0 ? Prefetch_READ : Prefetch_WRITE;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 1;
 		OK(ENC_PRFH_I_P_BZ_D_64_SCALED);
 	}
@@ -53311,7 +53311,7 @@ int prfw_i_p_bz(context *ctx, Instruction *instr)
 		ctx->stream = (SLICE(ctx->prfop,0,0)==1);
 		ctx->pref_hint = (SLICE(ctx->prfop,3,3)==0)!=0 ? Prefetch_READ : Prefetch_WRITE;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 2;
 		OK(ENC_PRFW_I_P_BZ_D_64_SCALED);
 	}
@@ -53390,7 +53390,7 @@ int ptrue_p_s(context *ctx, Instruction *instr)
 		}
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		ctx->pat = ctx->pattern;
 		OK(ENC_PTRUE_P_S_);
@@ -53432,7 +53432,7 @@ int ptrues_p_s(context *ctx, Instruction *instr)
 		}
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		ctx->pat = ctx->pattern;
 		OK(ENC_PTRUES_P_S_);
@@ -53454,7 +53454,7 @@ int punpkhi_p_p(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->n = UINT(ctx->Pn);
 		ctx->d = UINT(ctx->Pd);
-		ctx->hi = TRUE;
+		ctx->hi = true;
 		OK(ENC_PUNPKHI_P_P_);
 	}
 	/* class iclass_low_half */
@@ -53467,7 +53467,7 @@ int punpkhi_p_p(context *ctx, Instruction *instr)
 		ctx->esize = 0x10;
 		ctx->n = UINT(ctx->Pn);
 		ctx->d = UINT(ctx->Pd);
-		ctx->hi = FALSE;
+		ctx->hi = false;
 		OK(ENC_PUNPKLO_P_P_);
 	}
 	return rc;
@@ -53553,7 +53553,7 @@ int rbit_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_RBIT_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -53567,7 +53567,7 @@ int rbit_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_RBIT_Z_P_Z_Z);
 	}
 	return rc;
@@ -53603,7 +53603,7 @@ int rdffr_p_p_f(context *ctx, Instruction *instr)
 		}
 		ctx->g = UINT(ctx->Pg);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = FALSE;
+		ctx->setflags = false;
 		instr->setflags = FLAGEFFECT_NONE;
 		OK(ENC_RDFFR_P_P_F_);
 	}
@@ -53626,7 +53626,7 @@ int rdffrs_p_p_f(context *ctx, Instruction *instr)
 		}
 		ctx->g = UINT(ctx->Pg);
 		ctx->d = UINT(ctx->Pd);
-		ctx->setflags = TRUE;
+		ctx->setflags = true;
 		instr->setflags = FLAGEFFECT_SETS;
 		OK(ENC_RDFFRS_P_P_F_);
 	}
@@ -53726,7 +53726,7 @@ int revb_z_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 8;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_REVB_Z_Z_M);
 	}
 	/* class iclass_byte_zeroing */
@@ -53744,7 +53744,7 @@ int revb_z_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 8;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_REVB_Z_Z_Z);
 	}
 	/* class iclass_halfword_merging */
@@ -53762,7 +53762,7 @@ int revb_z_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 0x10;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_REVH_Z_Z_M);
 	}
 	/* class iclass_halfword_zeroing */
@@ -53780,7 +53780,7 @@ int revb_z_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 0x10;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_REVH_Z_Z_Z);
 	}
 	/* class iclass_word_merging */
@@ -53798,7 +53798,7 @@ int revb_z_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 0x20;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_REVW_Z_Z_M);
 	}
 	/* class iclass_word_zeroing */
@@ -53816,7 +53816,7 @@ int revb_z_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 0x20;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_REVW_Z_Z_Z);
 	}
 	return rc;
@@ -53838,7 +53838,7 @@ int revd_z_p_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 0x40;
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_REVD_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -53853,7 +53853,7 @@ int revd_z_p_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
 		ctx->swsize = 0x40;
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_REVD_Z_P_Z_Z);
 	}
 	return rc;
@@ -53968,7 +53968,7 @@ int saba_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SABA_Z_ZZZ_);
 	}
 	return rc;
@@ -54152,7 +54152,7 @@ int saddlb_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 0;
 		ctx->sel2 = 0;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SADDLB_Z_ZZ_);
 	}
 	return rc;
@@ -54178,7 +54178,7 @@ int saddlbt_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 0;
 		ctx->sel2 = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SADDLBT_Z_ZZ_);
 	}
 	return rc;
@@ -54204,7 +54204,7 @@ int saddlt_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 1;
 		ctx->sel2 = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SADDLT_Z_ZZ_);
 	}
 	return rc;
@@ -54388,7 +54388,7 @@ int scvtf_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_SCVTF_MZ_Z_2);
 	}
@@ -54402,7 +54402,7 @@ int scvtf_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_SCVTF_MZ_Z_4);
 	}
@@ -54426,9 +54426,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_H2FP16);
 	}
 	/* class iclass_16_bit_to_half_precision_zeroing */
@@ -54444,9 +54444,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_H2FP16Z);
 	}
 	/* class iclass_32_bit_to_half_precision_merging */
@@ -54462,9 +54462,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_W2FP16);
 	}
 	/* class iclass_32_bit_to_half_precision_zeroing */
@@ -54480,9 +54480,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_W2FP16Z);
 	}
 	/* class iclass_32_bit_to_single_precision_merging */
@@ -54498,9 +54498,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_W2S);
 	}
 	/* class iclass_32_bit_to_single_precision_zeroing */
@@ -54516,9 +54516,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_W2SZ);
 	}
 	/* class iclass_32_bit_to_double_precision_merging */
@@ -54534,9 +54534,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_W2D);
 	}
 	/* class iclass_32_bit_to_double_precision_zeroing */
@@ -54552,9 +54552,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_W2DZ);
 	}
 	/* class iclass_64_bit_to_half_precision_merging */
@@ -54570,9 +54570,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_X2FP16);
 	}
 	/* class iclass_64_bit_to_half_precision_zeroing */
@@ -54588,9 +54588,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_X2FP16Z);
 	}
 	/* class iclass_64_bit_to_single_precision_merging */
@@ -54606,9 +54606,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_X2S);
 	}
 	/* class iclass_64_bit_to_single_precision_zeroing */
@@ -54624,9 +54624,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_X2SZ);
 	}
 	/* class iclass_64_bit_to_double_precision_merging */
@@ -54642,9 +54642,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SCVTF_Z_P_Z_X2D);
 	}
 	/* class iclass_64_bit_to_double_precision_zeroing */
@@ -54660,9 +54660,9 @@ int scvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SCVTF_Z_P_Z_X2DZ);
 	}
 	return rc;
@@ -54685,7 +54685,7 @@ int scvtf_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_SCVTF_Z_Z_);
 	}
@@ -54709,7 +54709,7 @@ int scvtflt_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_SCVTFLT_Z_Z_);
 	}
@@ -55445,7 +55445,7 @@ int smax_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAX_MZ_ZZV_2X1);
 	}
 	/* class iclass_four_registers */
@@ -55459,7 +55459,7 @@ int smax_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAX_MZ_ZZV_4X1);
 	}
 	return rc;
@@ -55480,7 +55480,7 @@ int smax_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT((ctx->Zm<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAX_MZ_ZZW_2X2);
 	}
 	/* class iclass_four_registers */
@@ -55494,7 +55494,7 @@ int smax_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT((ctx->Zm<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAX_MZ_ZZW_4X4);
 	}
 	return rc;
@@ -55533,7 +55533,7 @@ int smax_z_zi(context *ctx, Instruction *instr)
 		}
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->imm = (ctx->unsigned_)!=0 ? UINT(ctx->imm8) : SInt(ctx->imm8,8);
 		OK(ENC_SMAX_Z_ZI_);
 	}
@@ -55575,7 +55575,7 @@ int smaxqv_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAXQV_Z_P_Z_);
 	}
 	return rc;
@@ -55596,7 +55596,7 @@ int smaxv_r_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMAXV_R_P_Z_);
 	}
 	return rc;
@@ -55617,7 +55617,7 @@ int smin_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMIN_MZ_ZZV_2X1);
 	}
 	/* class iclass_four_registers */
@@ -55631,7 +55631,7 @@ int smin_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMIN_MZ_ZZV_4X1);
 	}
 	return rc;
@@ -55652,7 +55652,7 @@ int smin_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT((ctx->Zm<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMIN_MZ_ZZW_2X2);
 	}
 	/* class iclass_four_registers */
@@ -55666,7 +55666,7 @@ int smin_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT((ctx->Zm<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMIN_MZ_ZZW_4X4);
 	}
 	return rc;
@@ -55705,7 +55705,7 @@ int smin_z_zi(context *ctx, Instruction *instr)
 		}
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->imm = (ctx->unsigned_)!=0 ? UINT(ctx->imm8) : SInt(ctx->imm8,8);
 		OK(ENC_SMIN_Z_ZI_);
 	}
@@ -55747,7 +55747,7 @@ int sminqv_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMINQV_Z_P_Z_);
 	}
 	return rc;
@@ -55768,7 +55768,7 @@ int sminv_r_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMINV_R_P_Z_);
 	}
 	return rc;
@@ -56730,8 +56730,8 @@ int smmla_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMMLA_Z_ZZZ_);
 	}
 	return rc;
@@ -56754,9 +56754,9 @@ int smop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -56772,9 +56772,9 @@ int smop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -56790,9 +56790,9 @@ int smop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -56808,9 +56808,9 @@ int smop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -56833,9 +56833,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -56851,9 +56851,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -56869,9 +56869,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -56887,9 +56887,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -56905,9 +56905,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -56923,9 +56923,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -56941,9 +56941,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -56959,9 +56959,9 @@ int smop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4A_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -56984,9 +56984,9 @@ int smop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -57002,9 +57002,9 @@ int smop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -57020,9 +57020,9 @@ int smop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -57038,9 +57038,9 @@ int smop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -57063,9 +57063,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -57081,9 +57081,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -57099,9 +57099,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -57117,9 +57117,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -57135,9 +57135,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -57153,9 +57153,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -57171,9 +57171,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -57189,9 +57189,9 @@ int smop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOP4S_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -57214,7 +57214,7 @@ int smopa_za32_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMOPA_ZA32_PP_ZZ_16);
 	}
 	return rc;
@@ -57237,8 +57237,8 @@ int smopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOPA_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -57254,8 +57254,8 @@ int smopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOPA_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -57278,7 +57278,7 @@ int smops_za32_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMOPS_ZA32_PP_ZZ_16);
 	}
 	return rc;
@@ -57301,8 +57301,8 @@ int smops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOPS_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -57318,8 +57318,8 @@ int smops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_SMOPS_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -57360,7 +57360,7 @@ int smulh_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SMULH_Z_ZZ_);
 	}
 	return rc;
@@ -57536,7 +57536,7 @@ int sqabs_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SQABS_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -57550,7 +57550,7 @@ int sqabs_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SQABS_Z_P_Z_Z);
 	}
 	return rc;
@@ -57596,7 +57596,7 @@ int sqadd_z_zi(context *ctx, Instruction *instr)
 		if(ctx->sh==1) {
 			ctx->imm = (ctx->imm) << (8);
 		}
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQADD_Z_ZI_);
 	}
 	return rc;
@@ -57617,7 +57617,7 @@ int sqadd_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQADD_Z_ZZ_);
 	}
 	return rc;
@@ -57811,7 +57811,7 @@ int sqdecb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQDECB_R_RS_SX);
 	}
@@ -57826,7 +57826,7 @@ int sqdecb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQDECB_R_RS_X);
 	}
@@ -57848,7 +57848,7 @@ int sqdecd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQDECD_R_RS_SX);
 	}
@@ -57863,7 +57863,7 @@ int sqdecd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQDECD_R_RS_X);
 	}
@@ -57885,7 +57885,7 @@ int sqdecd_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQDECD_Z_ZS_);
 	}
 	return rc;
@@ -57906,7 +57906,7 @@ int sqdech_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQDECH_R_RS_SX);
 	}
@@ -57921,7 +57921,7 @@ int sqdech_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQDECH_R_RS_X);
 	}
@@ -57943,7 +57943,7 @@ int sqdech_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQDECH_Z_ZS_);
 	}
 	return rc;
@@ -57963,7 +57963,7 @@ int sqdecp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQDECP_R_P_R_SX);
 	}
@@ -57977,7 +57977,7 @@ int sqdecp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQDECP_R_P_R_X);
 	}
@@ -58001,7 +58001,7 @@ int sqdecp_z_p_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQDECP_Z_P_Z_);
 	}
 	return rc;
@@ -58022,7 +58022,7 @@ int sqdecw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQDECW_R_RS_SX);
 	}
@@ -58037,7 +58037,7 @@ int sqdecw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQDECW_R_RS_X);
 	}
@@ -58059,7 +58059,7 @@ int sqdecw_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQDECW_Z_ZS_);
 	}
 	return rc;
@@ -58633,7 +58633,7 @@ int sqincb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQINCB_R_RS_SX);
 	}
@@ -58648,7 +58648,7 @@ int sqincb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQINCB_R_RS_X);
 	}
@@ -58670,7 +58670,7 @@ int sqincd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQINCD_R_RS_SX);
 	}
@@ -58685,7 +58685,7 @@ int sqincd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQINCD_R_RS_X);
 	}
@@ -58707,7 +58707,7 @@ int sqincd_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQINCD_Z_ZS_);
 	}
 	return rc;
@@ -58728,7 +58728,7 @@ int sqinch_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQINCH_R_RS_SX);
 	}
@@ -58743,7 +58743,7 @@ int sqinch_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQINCH_R_RS_X);
 	}
@@ -58765,7 +58765,7 @@ int sqinch_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQINCH_Z_ZS_);
 	}
 	return rc;
@@ -58785,7 +58785,7 @@ int sqincp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQINCP_R_P_R_SX);
 	}
@@ -58799,7 +58799,7 @@ int sqincp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQINCP_R_P_R_X);
 	}
@@ -58823,7 +58823,7 @@ int sqincp_z_p_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQINCP_Z_P_Z_);
 	}
 	return rc;
@@ -58844,7 +58844,7 @@ int sqincw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x20;
 		OK(ENC_SQINCW_R_RS_SX);
 	}
@@ -58859,7 +58859,7 @@ int sqincw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->ssize = 0x40;
 		OK(ENC_SQINCW_R_RS_X);
 	}
@@ -58881,7 +58881,7 @@ int sqincw_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQINCW_Z_ZS_);
 	}
 	return rc;
@@ -58902,7 +58902,7 @@ int sqneg_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_SQNEG_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -58916,7 +58916,7 @@ int sqneg_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_SQNEG_Z_P_Z_Z);
 	}
 	return rc;
@@ -59800,7 +59800,7 @@ int sqsub_z_zi(context *ctx, Instruction *instr)
 		if(ctx->sh==1) {
 			ctx->imm = (ctx->imm) << (8);
 		}
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQSUB_Z_ZI_);
 	}
 	return rc;
@@ -59821,7 +59821,7 @@ int sqsub_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SQSUB_Z_ZZ_);
 	}
 	return rc;
@@ -60229,7 +60229,7 @@ int ssublb_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 0;
 		ctx->sel2 = 0;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SSUBLB_Z_ZZ_);
 	}
 	return rc;
@@ -60255,7 +60255,7 @@ int ssublbt_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 0;
 		ctx->sel2 = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SSUBLBT_Z_ZZ_);
 	}
 	return rc;
@@ -60281,7 +60281,7 @@ int ssublt_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 1;
 		ctx->sel2 = 1;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SSUBLT_Z_ZZ_);
 	}
 	return rc;
@@ -60307,7 +60307,7 @@ int ssubltb_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 1;
 		ctx->sel2 = 0;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SSUBLTB_Z_ZZ_);
 	}
 	return rc;
@@ -60649,7 +60649,7 @@ int st1b_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 8;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_ST1B_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -60988,7 +60988,7 @@ int st1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 3;
 		OK(ENC_ST1D_Z_P_BZ_D_64_SCALED);
 	}
@@ -61006,7 +61006,7 @@ int st1d_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x40;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_ST1D_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -61369,7 +61369,7 @@ int st1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 1;
 		OK(ENC_ST1H_Z_P_BZ_D_64_SCALED);
 	}
@@ -61387,7 +61387,7 @@ int st1h_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x10;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_ST1H_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -61821,7 +61821,7 @@ int st1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 2;
 		OK(ENC_ST1W_Z_P_BZ_D_64_SCALED);
 	}
@@ -61839,7 +61839,7 @@ int st1w_z_p_bz(context *ctx, Instruction *instr)
 		ctx->esize = 0x40;
 		ctx->msize = 0x20;
 		ctx->offs_size = 0x40;
-		ctx->offs_unsigned = TRUE;
+		ctx->offs_unsigned = true;
 		ctx->scale = 0;
 		OK(ENC_ST1W_Z_P_BZ_D_64_UNSCALED);
 	}
@@ -62591,7 +62591,7 @@ int stmopa_za32_zzzi(context *ctx, Instruction *instr)
 		ctx->k = UINT(((1<<4)|(ctx->K<<3)|(1<<2)|ctx->Zk));
 		ctx->index = UINT(ctx->i2);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_STMOPA_ZA32_ZZZI_H2X1);
 	}
 	return rc;
@@ -62613,8 +62613,8 @@ int stmopa_za_zzzi(context *ctx, Instruction *instr)
 		ctx->k = UINT(((1<<4)|(ctx->K<<3)|(1<<2)|ctx->Zk));
 		ctx->index = UINT(ctx->i2);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = false;
 		OK(ENC_STMOPA_ZA_ZZZI_B2X1);
 	}
 	return rc;
@@ -64159,9 +64159,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -64177,9 +64177,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -64195,9 +64195,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -64213,9 +64213,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -64231,9 +64231,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -64249,9 +64249,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -64267,9 +64267,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -64285,9 +64285,9 @@ int sumop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4A_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -64310,9 +64310,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -64328,9 +64328,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -64346,9 +64346,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -64364,9 +64364,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -64382,9 +64382,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -64400,9 +64400,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -64418,9 +64418,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -64436,9 +64436,9 @@ int sumop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOP4S_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -64461,8 +64461,8 @@ int sumopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOPA_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -64478,8 +64478,8 @@ int sumopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOPA_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -64502,8 +64502,8 @@ int sumops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOPS_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -64519,8 +64519,8 @@ int sumops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUMOPS_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -64544,7 +64544,7 @@ int sunpk_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SUNPK_MZ_Z_2);
 	}
 	/* class iclass_four_registers */
@@ -64561,7 +64561,7 @@ int sunpk_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		OK(ENC_SUNPK_MZ_Z_4);
 	}
 	return rc;
@@ -64584,8 +64584,8 @@ int sunpkhi_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->hi = TRUE;
+		ctx->unsigned_ = false;
+		ctx->hi = true;
 		OK(ENC_SUNPKHI_Z_Z_);
 	}
 	/* class iclass_low_half */
@@ -64601,8 +64601,8 @@ int sunpkhi_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->hi = FALSE;
+		ctx->unsigned_ = false;
+		ctx->hi = false;
 		OK(ENC_SUNPKLO_Z_Z_);
 	}
 	return rc;
@@ -64644,8 +64644,8 @@ int sutmopa_za_zzzi(context *ctx, Instruction *instr)
 		ctx->k = UINT(((1<<4)|(ctx->K<<3)|(1<<2)|ctx->Zk));
 		ctx->index = UINT(ctx->i2);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = FALSE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = false;
+		ctx->op2_unsigned = true;
 		OK(ENC_SUTMOPA_ZA_ZZZI_B2X1);
 	}
 	return rc;
@@ -64751,8 +64751,8 @@ int sxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->merging = TRUE;
+		ctx->unsigned_ = false;
+		ctx->merging = true;
 		OK(ENC_SXTB_Z_P_Z_M);
 	}
 	/* class iclass_byte_zeroing */
@@ -64770,8 +64770,8 @@ int sxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->merging = FALSE;
+		ctx->unsigned_ = false;
+		ctx->merging = false;
 		OK(ENC_SXTB_Z_P_Z_Z);
 	}
 	/* class iclass_halfword_merging */
@@ -64789,8 +64789,8 @@ int sxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->merging = TRUE;
+		ctx->unsigned_ = false;
+		ctx->merging = true;
 		OK(ENC_SXTH_Z_P_Z_M);
 	}
 	/* class iclass_halfword_zeroing */
@@ -64808,8 +64808,8 @@ int sxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->merging = FALSE;
+		ctx->unsigned_ = false;
+		ctx->merging = false;
 		OK(ENC_SXTH_Z_P_Z_Z);
 	}
 	/* class iclass_word_merging */
@@ -64827,8 +64827,8 @@ int sxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->merging = TRUE;
+		ctx->unsigned_ = false;
+		ctx->merging = true;
 		OK(ENC_SXTW_Z_P_Z_M);
 	}
 	/* class iclass_word_zeroing */
@@ -64846,8 +64846,8 @@ int sxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = FALSE;
-		ctx->merging = FALSE;
+		ctx->unsigned_ = false;
+		ctx->merging = false;
 		OK(ENC_SXTW_Z_P_Z_Z);
 	}
 	return rc;
@@ -64868,7 +64868,7 @@ int tbl_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->double_table = FALSE;
+		ctx->double_table = false;
 		OK(ENC_TBL_Z_ZZ_1);
 	}
 	/* class iclass_two_register_table */
@@ -64882,7 +64882,7 @@ int tbl_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->double_table = TRUE;
+		ctx->double_table = true;
 		OK(ENC_TBL_Z_ZZ_2);
 	}
 	return rc;
@@ -65061,7 +65061,7 @@ int uaba_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UABA_Z_ZZZ_);
 	}
 	return rc;
@@ -65245,7 +65245,7 @@ int uaddlb_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 0;
 		ctx->sel2 = 0;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UADDLB_Z_ZZ_);
 	}
 	return rc;
@@ -65271,7 +65271,7 @@ int uaddlt_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 1;
 		ctx->sel2 = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UADDLT_Z_ZZ_);
 	}
 	return rc;
@@ -65412,7 +65412,7 @@ int ucvtf_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_UCVTF_MZ_Z_2);
 	}
@@ -65426,7 +65426,7 @@ int ucvtf_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<2));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_UCVTF_MZ_Z_4);
 	}
@@ -65450,9 +65450,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_H2FP16);
 	}
 	/* class iclass_16_bit_to_half_precision_zeroing */
@@ -65468,9 +65468,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x10;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_H2FP16Z);
 	}
 	/* class iclass_32_bit_to_half_precision_merging */
@@ -65486,9 +65486,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_W2FP16);
 	}
 	/* class iclass_32_bit_to_half_precision_zeroing */
@@ -65504,9 +65504,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_W2FP16Z);
 	}
 	/* class iclass_32_bit_to_single_precision_merging */
@@ -65522,9 +65522,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_W2S);
 	}
 	/* class iclass_32_bit_to_single_precision_zeroing */
@@ -65540,9 +65540,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_W2SZ);
 	}
 	/* class iclass_32_bit_to_double_precision_merging */
@@ -65558,9 +65558,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_W2D);
 	}
 	/* class iclass_32_bit_to_double_precision_zeroing */
@@ -65576,9 +65576,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x20;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_W2DZ);
 	}
 	/* class iclass_64_bit_to_half_precision_merging */
@@ -65594,9 +65594,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_X2FP16);
 	}
 	/* class iclass_64_bit_to_half_precision_zeroing */
@@ -65612,9 +65612,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x10;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_X2FP16Z);
 	}
 	/* class iclass_64_bit_to_single_precision_merging */
@@ -65630,9 +65630,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_X2S);
 	}
 	/* class iclass_64_bit_to_single_precision_zeroing */
@@ -65648,9 +65648,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x20;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_X2SZ);
 	}
 	/* class iclass_64_bit_to_double_precision_merging */
@@ -65666,9 +65666,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_UCVTF_Z_P_Z_X2D);
 	}
 	/* class iclass_64_bit_to_double_precision_zeroing */
@@ -65684,9 +65684,9 @@ int ucvtf_z_p_z(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->s_esize = 0x40;
 		ctx->d_esize = 0x40;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_UCVTF_Z_P_Z_X2DZ);
 	}
 	return rc;
@@ -65709,7 +65709,7 @@ int ucvtf_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_UCVTF_Z_Z_);
 	}
@@ -65733,7 +65733,7 @@ int ucvtflt_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->rounding = FPRoundingMode(ctx->FPCR);
 		OK(ENC_UCVTFLT_Z_Z_);
 	}
@@ -66254,7 +66254,7 @@ int umax_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAX_MZ_ZZV_2X1);
 	}
 	/* class iclass_four_registers */
@@ -66268,7 +66268,7 @@ int umax_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAX_MZ_ZZV_4X1);
 	}
 	return rc;
@@ -66289,7 +66289,7 @@ int umax_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT((ctx->Zm<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAX_MZ_ZZW_2X2);
 	}
 	/* class iclass_four_registers */
@@ -66303,7 +66303,7 @@ int umax_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT((ctx->Zm<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAX_MZ_ZZW_4X4);
 	}
 	return rc;
@@ -66342,7 +66342,7 @@ int umax_z_zi(context *ctx, Instruction *instr)
 		}
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->imm = (ctx->unsigned_)!=0 ? UINT(ctx->imm8) : SInt(ctx->imm8,8);
 		OK(ENC_UMAX_Z_ZI_);
 	}
@@ -66384,7 +66384,7 @@ int umaxqv_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAXQV_Z_P_Z_);
 	}
 	return rc;
@@ -66405,7 +66405,7 @@ int umaxv_r_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMAXV_R_P_Z_);
 	}
 	return rc;
@@ -66426,7 +66426,7 @@ int umin_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMIN_MZ_ZZV_2X1);
 	}
 	/* class iclass_four_registers */
@@ -66440,7 +66440,7 @@ int umin_mz_zzv(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT(ctx->Zm);
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMIN_MZ_ZZV_4X1);
 	}
 	return rc;
@@ -66461,7 +66461,7 @@ int umin_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<1));
 		ctx->m = UINT((ctx->Zm<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMIN_MZ_ZZW_2X2);
 	}
 	/* class iclass_four_registers */
@@ -66475,7 +66475,7 @@ int umin_mz_zzw(context *ctx, Instruction *instr)
 		ctx->dn = UINT((ctx->Zdn<<2));
 		ctx->m = UINT((ctx->Zm<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMIN_MZ_ZZW_4X4);
 	}
 	return rc;
@@ -66514,7 +66514,7 @@ int umin_z_zi(context *ctx, Instruction *instr)
 		}
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->imm = (ctx->unsigned_)!=0 ? UINT(ctx->imm8) : SInt(ctx->imm8,8);
 		OK(ENC_UMIN_Z_ZI_);
 	}
@@ -66556,7 +66556,7 @@ int uminqv_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMINQV_Z_P_Z_);
 	}
 	return rc;
@@ -66577,7 +66577,7 @@ int uminv_r_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Vd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMINV_R_P_Z_);
 	}
 	return rc;
@@ -67539,8 +67539,8 @@ int ummla_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMMLA_Z_ZZZ_);
 	}
 	return rc;
@@ -67563,9 +67563,9 @@ int umop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -67581,9 +67581,9 @@ int umop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -67599,9 +67599,9 @@ int umop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -67617,9 +67617,9 @@ int umop4a_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -67642,9 +67642,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -67660,9 +67660,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -67678,9 +67678,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -67696,9 +67696,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -67714,9 +67714,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -67732,9 +67732,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -67750,9 +67750,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -67768,9 +67768,9 @@ int umop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4A_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -67793,9 +67793,9 @@ int umop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA32_ZZ_H1X2);
 	}
 	/* class iclass_single_vectors */
@@ -67811,9 +67811,9 @@ int umop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA32_ZZ_H1X1);
 	}
 	/* class iclass_multiple_and_single_vectors */
@@ -67829,9 +67829,9 @@ int umop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA32_ZZ_H2X1);
 	}
 	/* class iclass_multiple_vectors */
@@ -67847,9 +67847,9 @@ int umop4s_za32_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA32_ZZ_H2X2);
 	}
 	return rc;
@@ -67872,9 +67872,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -67890,9 +67890,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -67908,9 +67908,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -67926,9 +67926,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -67944,9 +67944,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -67962,9 +67962,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -67980,9 +67980,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -67998,9 +67998,9 @@ int umop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOP4S_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -68023,7 +68023,7 @@ int umopa_za32_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMOPA_ZA32_PP_ZZ_16);
 	}
 	return rc;
@@ -68046,8 +68046,8 @@ int umopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOPA_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -68063,8 +68063,8 @@ int umopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOPA_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -68087,7 +68087,7 @@ int umops_za32_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMOPS_ZA32_PP_ZZ_16);
 	}
 	return rc;
@@ -68110,8 +68110,8 @@ int umops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOPS_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -68127,8 +68127,8 @@ int umops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UMOPS_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -68169,7 +68169,7 @@ int umulh_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UMULH_Z_ZZ_);
 	}
 	return rc;
@@ -68335,7 +68335,7 @@ int uqadd_z_zi(context *ctx, Instruction *instr)
 		if(ctx->sh==1) {
 			ctx->imm = (ctx->imm) << (8);
 		}
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQADD_Z_ZI_);
 	}
 	return rc;
@@ -68356,7 +68356,7 @@ int uqadd_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQADD_Z_ZZ_);
 	}
 	return rc;
@@ -68453,7 +68453,7 @@ int uqdecb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQDECB_R_RS_UW);
 	}
@@ -68468,7 +68468,7 @@ int uqdecb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQDECB_R_RS_X);
 	}
@@ -68490,7 +68490,7 @@ int uqdecd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQDECD_R_RS_UW);
 	}
@@ -68505,7 +68505,7 @@ int uqdecd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQDECD_R_RS_X);
 	}
@@ -68527,7 +68527,7 @@ int uqdecd_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQDECD_Z_ZS_);
 	}
 	return rc;
@@ -68548,7 +68548,7 @@ int uqdech_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQDECH_R_RS_UW);
 	}
@@ -68563,7 +68563,7 @@ int uqdech_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQDECH_R_RS_X);
 	}
@@ -68585,7 +68585,7 @@ int uqdech_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQDECH_Z_ZS_);
 	}
 	return rc;
@@ -68605,7 +68605,7 @@ int uqdecp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQDECP_R_P_R_UW);
 	}
@@ -68619,7 +68619,7 @@ int uqdecp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQDECP_R_P_R_X);
 	}
@@ -68643,7 +68643,7 @@ int uqdecp_z_p_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQDECP_Z_P_Z_);
 	}
 	return rc;
@@ -68664,7 +68664,7 @@ int uqdecw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQDECW_R_RS_UW);
 	}
@@ -68679,7 +68679,7 @@ int uqdecw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQDECW_R_RS_X);
 	}
@@ -68701,7 +68701,7 @@ int uqdecw_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQDECW_Z_ZS_);
 	}
 	return rc;
@@ -68722,7 +68722,7 @@ int uqincb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQINCB_R_RS_UW);
 	}
@@ -68737,7 +68737,7 @@ int uqincb_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQINCB_R_RS_X);
 	}
@@ -68759,7 +68759,7 @@ int uqincd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQINCD_R_RS_UW);
 	}
@@ -68774,7 +68774,7 @@ int uqincd_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQINCD_R_RS_X);
 	}
@@ -68796,7 +68796,7 @@ int uqincd_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQINCD_Z_ZS_);
 	}
 	return rc;
@@ -68817,7 +68817,7 @@ int uqinch_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQINCH_R_RS_UW);
 	}
@@ -68832,7 +68832,7 @@ int uqinch_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQINCH_R_RS_X);
 	}
@@ -68854,7 +68854,7 @@ int uqinch_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQINCH_Z_ZS_);
 	}
 	return rc;
@@ -68874,7 +68874,7 @@ int uqincp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQINCP_R_P_R_UW);
 	}
@@ -68888,7 +68888,7 @@ int uqincp_r_p_r(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Rdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQINCP_R_P_R_X);
 	}
@@ -68912,7 +68912,7 @@ int uqincp_z_p_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->m = UINT(ctx->Pm);
 		ctx->dn = UINT(ctx->Zdn);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQINCP_Z_P_Z_);
 	}
 	return rc;
@@ -68933,7 +68933,7 @@ int uqincw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x20;
 		OK(ENC_UQINCW_R_RS_UW);
 	}
@@ -68948,7 +68948,7 @@ int uqincw_r_rs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Rdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->ssize = 0x40;
 		OK(ENC_UQINCW_R_RS_X);
 	}
@@ -68970,7 +68970,7 @@ int uqincw_z_zs(context *ctx, Instruction *instr)
 		ctx->dn = UINT(ctx->Zdn);
 		ctx->pat = ctx->pattern;
 		ctx->imm = UINT(ctx->imm4)+1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQINCW_Z_ZS_);
 	}
 	return rc;
@@ -69338,7 +69338,7 @@ int uqsub_z_zi(context *ctx, Instruction *instr)
 		if(ctx->sh==1) {
 			ctx->imm = (ctx->imm) << (8);
 		}
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQSUB_Z_ZI_);
 	}
 	return rc;
@@ -69359,7 +69359,7 @@ int uqsub_z_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UQSUB_Z_ZZ_);
 	}
 	return rc;
@@ -69449,7 +69449,7 @@ int urecpe_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_URECPE_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -69466,7 +69466,7 @@ int urecpe_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_URECPE_Z_P_Z_Z);
 	}
 	return rc;
@@ -69640,7 +69640,7 @@ int ursqrte_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = TRUE;
+		ctx->merging = true;
 		OK(ENC_URSQRTE_Z_P_Z_M);
 	}
 	/* class iclass_zeroing */
@@ -69657,7 +69657,7 @@ int ursqrte_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->merging = FALSE;
+		ctx->merging = false;
 		OK(ENC_URSQRTE_Z_P_Z_Z);
 	}
 	return rc;
@@ -70041,8 +70041,8 @@ int usmmla_z_zzz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->Zda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMMLA_Z_ZZZ_);
 	}
 	return rc;
@@ -70065,9 +70065,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -70083,9 +70083,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -70101,9 +70101,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -70119,9 +70119,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -70137,9 +70137,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -70155,9 +70155,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -70173,9 +70173,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -70191,9 +70191,9 @@ int usmop4a_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = FALSE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = false;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4A_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -70216,9 +70216,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_B1X2);
 	}
 	/* class iclass_32_bit_single_vectors */
@@ -70234,9 +70234,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_B1X1);
 	}
 	/* class iclass_32_bit_multiple_and_single_vectors */
@@ -70252,9 +70252,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_B2X1);
 	}
 	/* class iclass_32_bit_multiple_vectors */
@@ -70270,9 +70270,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_B2X2);
 	}
 	/* class iclass_64_bit_single_and_multiple_vectors */
@@ -70288,9 +70288,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_H1X2);
 	}
 	/* class iclass_64_bit_single_vectors */
@@ -70306,9 +70306,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 1;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_H1X1);
 	}
 	/* class iclass_64_bit_multiple_and_single_vectors */
@@ -70324,9 +70324,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 1;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_H2X1);
 	}
 	/* class iclass_64_bit_multiple_vectors */
@@ -70342,9 +70342,9 @@ int usmop4s_za_zz(context *ctx, Instruction *instr)
 		ctx->nreg = 2;
 		ctx->mreg = 2;
 		ctx->da = UINT(ctx->ZAda);
-		ctx->sub_op = TRUE;
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->sub_op = true;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOP4S_ZA_ZZ_H2X2);
 	}
 	return rc;
@@ -70367,8 +70367,8 @@ int usmopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOPA_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -70384,8 +70384,8 @@ int usmopa_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOPA_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -70408,8 +70408,8 @@ int usmops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOPS_ZA_PP_ZZ_32);
 	}
 	/* class iclass_64_bit */
@@ -70425,8 +70425,8 @@ int usmops_za_pp_zz(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->m = UINT(ctx->Zm);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USMOPS_ZA_PP_ZZ_64);
 	}
 	return rc;
@@ -70492,8 +70492,8 @@ int ustmopa_za_zzzi(context *ctx, Instruction *instr)
 		ctx->k = UINT(((1<<4)|(ctx->K<<3)|(1<<2)|ctx->Zk));
 		ctx->index = UINT(ctx->i2);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = FALSE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = false;
 		OK(ENC_USTMOPA_ZA_ZZZI_B2X1);
 	}
 	return rc;
@@ -70519,7 +70519,7 @@ int usublb_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 0;
 		ctx->sel2 = 0;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_USUBLB_Z_ZZ_);
 	}
 	return rc;
@@ -70545,7 +70545,7 @@ int usublt_z_zz(context *ctx, Instruction *instr)
 		ctx->d = UINT(ctx->Zd);
 		ctx->sel1 = 1;
 		ctx->sel2 = 1;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_USUBLT_Z_ZZ_);
 	}
 	return rc;
@@ -70635,7 +70635,7 @@ int utmopa_za32_zzzi(context *ctx, Instruction *instr)
 		ctx->k = UINT(((1<<4)|(ctx->K<<3)|(1<<2)|ctx->Zk));
 		ctx->index = UINT(ctx->i2);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UTMOPA_ZA32_ZZZI_H2X1);
 	}
 	return rc;
@@ -70657,8 +70657,8 @@ int utmopa_za_zzzi(context *ctx, Instruction *instr)
 		ctx->k = UINT(((1<<4)|(ctx->K<<3)|(1<<2)|ctx->Zk));
 		ctx->index = UINT(ctx->i2);
 		ctx->da = UINT(ctx->ZAda);
-		ctx->op1_unsigned = TRUE;
-		ctx->op2_unsigned = TRUE;
+		ctx->op1_unsigned = true;
+		ctx->op2_unsigned = true;
 		OK(ENC_UTMOPA_ZA_ZZZI_B2X1);
 	}
 	return rc;
@@ -70682,7 +70682,7 @@ int uunpk_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT((ctx->Zd<<1));
 		ctx->nreg = 2;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UUNPK_MZ_Z_2);
 	}
 	/* class iclass_four_registers */
@@ -70699,7 +70699,7 @@ int uunpk_mz_z(context *ctx, Instruction *instr)
 		ctx->n = UINT((ctx->Zn<<1));
 		ctx->d = UINT((ctx->Zd<<2));
 		ctx->nreg = 4;
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		OK(ENC_UUNPK_MZ_Z_4);
 	}
 	return rc;
@@ -70722,8 +70722,8 @@ int uunpkhi_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->hi = TRUE;
+		ctx->unsigned_ = true;
+		ctx->hi = true;
 		OK(ENC_UUNPKHI_Z_Z_);
 	}
 	/* class iclass_low_half */
@@ -70739,8 +70739,8 @@ int uunpkhi_z_z(context *ctx, Instruction *instr)
 		ctx->esize = (8) << (UINT(ctx->size));
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->hi = FALSE;
+		ctx->unsigned_ = true;
+		ctx->hi = false;
 		OK(ENC_UUNPKLO_Z_Z_);
 	}
 	return rc;
@@ -70824,8 +70824,8 @@ int uxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->merging = TRUE;
+		ctx->unsigned_ = true;
+		ctx->merging = true;
 		OK(ENC_UXTB_Z_P_Z_M);
 	}
 	/* class iclass_byte_zeroing */
@@ -70843,8 +70843,8 @@ int uxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->merging = FALSE;
+		ctx->unsigned_ = true;
+		ctx->merging = false;
 		OK(ENC_UXTB_Z_P_Z_Z);
 	}
 	/* class iclass_halfword_merging */
@@ -70862,8 +70862,8 @@ int uxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->merging = TRUE;
+		ctx->unsigned_ = true;
+		ctx->merging = true;
 		OK(ENC_UXTH_Z_P_Z_M);
 	}
 	/* class iclass_halfword_zeroing */
@@ -70881,8 +70881,8 @@ int uxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->merging = FALSE;
+		ctx->unsigned_ = true;
+		ctx->merging = false;
 		OK(ENC_UXTH_Z_P_Z_Z);
 	}
 	/* class iclass_word_merging */
@@ -70900,8 +70900,8 @@ int uxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->merging = TRUE;
+		ctx->unsigned_ = true;
+		ctx->merging = true;
 		OK(ENC_UXTW_Z_P_Z_M);
 	}
 	/* class iclass_word_zeroing */
@@ -70919,8 +70919,8 @@ int uxtb_z_p_z(context *ctx, Instruction *instr)
 		ctx->g = UINT(ctx->Pg);
 		ctx->n = UINT(ctx->Zn);
 		ctx->d = UINT(ctx->Zd);
-		ctx->unsigned_ = TRUE;
-		ctx->merging = FALSE;
+		ctx->unsigned_ = true;
+		ctx->merging = false;
 		OK(ENC_UXTW_Z_P_Z_Z);
 	}
 	return rc;
@@ -71155,7 +71155,7 @@ int whilege_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_GE;
 		OK(ENC_WHILEGE_P_P_RR_);
 	}
@@ -71178,8 +71178,8 @@ int whilege_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = FALSE;
-		ctx->invert = TRUE;
+		ctx->unsigned_ = false;
+		ctx->invert = true;
 		ctx->op = Cmp_GE;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILEGE_PN_RR_);
@@ -71204,7 +71204,7 @@ int whilege_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_GE;
 		OK(ENC_WHILEGE_PP_RR_);
 	}
@@ -71227,7 +71227,7 @@ int whilegt_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_GT;
 		OK(ENC_WHILEGT_P_P_RR_);
 	}
@@ -71250,8 +71250,8 @@ int whilegt_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = FALSE;
-		ctx->invert = TRUE;
+		ctx->unsigned_ = false;
+		ctx->invert = true;
 		ctx->op = Cmp_GT;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILEGT_PN_RR_);
@@ -71276,7 +71276,7 @@ int whilegt_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_GT;
 		OK(ENC_WHILEGT_PP_RR_);
 	}
@@ -71299,7 +71299,7 @@ int whilehi_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_GT;
 		OK(ENC_WHILEHI_P_P_RR_);
 	}
@@ -71322,8 +71322,8 @@ int whilehi_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = TRUE;
-		ctx->invert = TRUE;
+		ctx->unsigned_ = true;
+		ctx->invert = true;
 		ctx->op = Cmp_GT;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILEHI_PN_RR_);
@@ -71348,7 +71348,7 @@ int whilehi_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_GT;
 		OK(ENC_WHILEHI_PP_RR_);
 	}
@@ -71371,7 +71371,7 @@ int whilehs_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_GE;
 		OK(ENC_WHILEHS_P_P_RR_);
 	}
@@ -71394,8 +71394,8 @@ int whilehs_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = TRUE;
-		ctx->invert = TRUE;
+		ctx->unsigned_ = true;
+		ctx->invert = true;
 		ctx->op = Cmp_GE;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILEHS_PN_RR_);
@@ -71420,7 +71420,7 @@ int whilehs_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_GE;
 		OK(ENC_WHILEHS_PP_RR_);
 	}
@@ -71443,7 +71443,7 @@ int whilele_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_LE;
 		OK(ENC_WHILELE_P_P_RR_);
 	}
@@ -71466,8 +71466,8 @@ int whilele_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = FALSE;
-		ctx->invert = FALSE;
+		ctx->unsigned_ = false;
+		ctx->invert = false;
 		ctx->op = Cmp_LE;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILELE_PN_RR_);
@@ -71492,7 +71492,7 @@ int whilele_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_LE;
 		OK(ENC_WHILELE_PP_RR_);
 	}
@@ -71515,7 +71515,7 @@ int whilelo_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_LT;
 		OK(ENC_WHILELO_P_P_RR_);
 	}
@@ -71538,8 +71538,8 @@ int whilelo_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = TRUE;
-		ctx->invert = FALSE;
+		ctx->unsigned_ = true;
+		ctx->invert = false;
 		ctx->op = Cmp_LT;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILELO_PN_RR_);
@@ -71564,7 +71564,7 @@ int whilelo_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_LT;
 		OK(ENC_WHILELO_PP_RR_);
 	}
@@ -71587,7 +71587,7 @@ int whilels_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_LE;
 		OK(ENC_WHILELS_P_P_RR_);
 	}
@@ -71610,8 +71610,8 @@ int whilels_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = TRUE;
-		ctx->invert = FALSE;
+		ctx->unsigned_ = true;
+		ctx->invert = false;
 		ctx->op = Cmp_LE;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILELS_PN_RR_);
@@ -71636,7 +71636,7 @@ int whilels_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = TRUE;
+		ctx->unsigned_ = true;
 		ctx->op = Cmp_LE;
 		OK(ENC_WHILELS_PP_RR_);
 	}
@@ -71659,7 +71659,7 @@ int whilelt_p_p_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(ctx->Pd);
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_LT;
 		OK(ENC_WHILELT_P_P_RR_);
 	}
@@ -71682,8 +71682,8 @@ int whilelt_pn_rr(context *ctx, Instruction *instr)
 		ctx->n = UINT(ctx->Rn);
 		ctx->m = UINT(ctx->Rm);
 		ctx->d = UINT(((1<<3)|ctx->PNd));
-		ctx->unsigned_ = FALSE;
-		ctx->invert = FALSE;
+		ctx->unsigned_ = false;
+		ctx->invert = false;
 		ctx->op = Cmp_LT;
 		ctx->width = (2) << (UINT(ctx->vl));
 		OK(ENC_WHILELT_PN_RR_);
@@ -71708,7 +71708,7 @@ int whilelt_pp_rr(context *ctx, Instruction *instr)
 		ctx->m = UINT(ctx->Rm);
 		ctx->d0 = UINT((ctx->Pd<<1));
 		ctx->d1 = UINT(((ctx->Pd<<1)|(1<<0)));
-		ctx->unsigned_ = FALSE;
+		ctx->unsigned_ = false;
 		ctx->op = Cmp_LT;
 		OK(ENC_WHILELT_PP_RR_);
 	}

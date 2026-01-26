@@ -1,3 +1,4 @@
+#pragma once
 #include "feature_flags.h"
 
 #include <stdint.h>
@@ -74,10 +75,6 @@
 
 #define LOG2_TAG_GRANULE 4
 #define TAG_GRANULE      (1 << LOG2_TAG_GRANULE)
-
-/* pcode -> cpp booleans */
-#define TRUE  true
-#define FALSE false
 
 /* these calls just check generated per-iform boolean variables */
 #define EncodingLabeled32Bit() (encoding32)

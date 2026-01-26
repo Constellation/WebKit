@@ -472,6 +472,7 @@ disassembler/RISCV64Disassembler.cpp
 disassembler/X86Disassembler.cpp
 
 disassembler/ARM64/A64DOpcode.cpp
+disassembler/ARM64/Binja.c @no-unify
 
 disassembler/zydis/Zydis.c
 

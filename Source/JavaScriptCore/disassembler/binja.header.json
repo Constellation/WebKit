@@ -1,0 +1,10 @@
+{
+    "project": "binja.h",
+    "target": "binja_impl.h",
+    "sources": [
+        "binja/arm64dis.h"
+    ],
+    "include_paths": [
+        "binja"
+    ]
+}
