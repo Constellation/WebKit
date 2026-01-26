@@ -30,6 +30,7 @@
 #if ENABLE(ARM64_DISASSEMBLER)
 
 #include "A64DOpcode.h"
+#include "Binja.h"
 #include "MacroAssemblerCodeRef.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
