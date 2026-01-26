@@ -80,6 +80,7 @@ const char* A64DOpcode::disassemble(uint32_t* currentPC)
     case ARM64_CATEGORY_MOVZ:
     case ARM64_CATEGORY_MOVN:
     case ARM64_CATEGORY_MOVK:
+    case ARM64_CATEGORY_MOV:
         trackMoveWideConstant(info.category, info.immediate, info.shiftAmount, info.destRegister, info.is64Bit);
         maybeAnnotateBuiltConstant();
         break;
@@ -136,7 +137,7 @@ void A64DOpcode::trackMoveWideConstant(int category, int64_t immediate, uint8_t 
 {
     UNUSED_PARAM(is64Bit);
 
-    if (category == ARM64_CATEGORY_MOVZ) {
+    if (category == ARM64_CATEGORY_MOVZ || category == ARM64_CATEGORY_MOV) {
         m_builtConstant = static_cast<uint64_t>(immediate) << shiftAmount;
         m_moveWideDestReg = destRegister;
     } else if (category == ARM64_CATEGORY_MOVN) {

@@ -46,6 +46,7 @@ typedef enum {
     ARM64_CATEGORY_MOVZ,
     ARM64_CATEGORY_MOVN,
     ARM64_CATEGORY_MOVK,
+    ARM64_CATEGORY_MOV,                   // MOV alias (immediate)
     ARM64_CATEGORY_ADR,
     ARM64_CATEGORY_ADRP,
 } ARM64InstructionCategory;

@@ -233,6 +233,21 @@ bool arm64GetInstructionInfo(uint32_t instruction, uint64_t pc, ARM64Instruction
         }
         break;
 
+    // MOV alias (when assembler uses MOV instead of MOVZ/MOVN)
+    case ARM64_MOV:
+        // Check if this is a MOV with immediate (alias for MOVZ/MOVN)
+        if (instr.operands[1].operandClass == IMM32 || instr.operands[1].operandClass == IMM64) {
+            outInfo->category = ARM64_CATEGORY_MOV;
+            if (instr.operands[0].operandClass == REG) {
+                outInfo->destRegister = extractRegNumber(instr.operands[0].reg[0]);
+                outInfo->is64Bit = isReg64Bit(instr.operands[0].reg[0]);
+            }
+            outInfo->immediate = (int64_t)instr.operands[1].immediate;
+            outInfo->shiftAmount = 0;
+        }
+        // If MOV with register operand, leave as OTHER category
+        break;
+
     // ADR/ADRP
     case ARM64_ADR:
         outInfo->category = ARM64_CATEGORY_ADR;
