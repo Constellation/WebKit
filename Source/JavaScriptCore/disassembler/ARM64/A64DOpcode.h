@@ -63,7 +63,7 @@ private:
     bool handlePotentialPtrTag(uintptr_t value);
 #endif
 
-    static constexpr int bufferSize = 256;
+    static constexpr int bufferSize = 512;
 
     char m_formatBuffer[bufferSize];
     uint32_t* m_startPC;
