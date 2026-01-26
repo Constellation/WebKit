@@ -25,8 +25,45 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 const char* arm64Disassemble(uint32_t*, char*, size_t);
 
+// Instruction category for JSC metadata analysis
+typedef enum {
+    ARM64_CATEGORY_OTHER = 0,
+    ARM64_CATEGORY_BRANCH_UNCONDITIONAL,  // B, BL
+    ARM64_CATEGORY_BRANCH_CONDITIONAL,    // B.cond
+    ARM64_CATEGORY_BRANCH_COMPARE,        // CBZ, CBNZ
+    ARM64_CATEGORY_BRANCH_TEST,           // TBZ, TBNZ
+    ARM64_CATEGORY_BRANCH_REGISTER,       // BR, BLR, RET, etc.
+    ARM64_CATEGORY_MOVZ,
+    ARM64_CATEGORY_MOVN,
+    ARM64_CATEGORY_MOVK,
+    ARM64_CATEGORY_ADR,
+    ARM64_CATEGORY_ADRP,
+} ARM64InstructionCategory;
+
+typedef struct {
+    ARM64InstructionCategory category;
+    int64_t immediate;      // PC-relative offset or immediate value
+    uint8_t destRegister;   // Destination register (0-30, 31=SP, 32+=invalid)
+    uint8_t srcRegister;    // Source register for CBZ/CBNZ/BR
+    uint8_t shiftAmount;    // For MOVZ/MOVN/MOVK shift (0,16,32,48)
+    uint8_t is64Bit;        // Uses 64-bit registers
+    uint8_t isLink;         // BL, BLR variants
+} ARM64InstructionInfo;
+
+// Decode instruction and extract info needed for JSC metadata analysis
+// Returns true on success, false on decode failure
+bool arm64GetInstructionInfo(uint32_t instruction, uint64_t pc, ARM64InstructionInfo* outInfo);
+
+#ifdef __cplusplus
 }
+#endif
