@@ -71,6 +71,8 @@ public:
     FunctionSpaceIndex index() const { return m_index; }
     CompilationMode compilationMode() const { return m_compilationMode; }
 
+    static constexpr ptrdiff_t offsetOfCompilationMode() { return OBJECT_OFFSETOF(Callee, m_compilationMode); }
+
     CodePtr<WasmEntryPtrTag> entrypoint() const;
     const RegisterAtOffsetList* calleeSaveRegisters();
     // Used by Wasm's fault signal handler to determine if the fault came from Wasm.
@@ -199,6 +201,73 @@ public:
 
 private:
     WasmToJSCallee();
+    std::tuple<void*, void*> rangeImpl() const { return { nullptr, nullptr }; }
+    CodePtr<WasmEntryPtrTag> entrypointImpl() const { return { }; }
+    const RegisterAtOffsetList* calleeSaveRegistersImpl() { return nullptr; }
+};
+
+// TailCallThunkCallee is a singleton callee used to identify tail call thunk frames.
+// When a tail call chain is initiated, a thunk frame is inserted between the caller
+// and the tail-called function. This thunk frame contains this callee in the callee
+// slot to identify it as a thunk frame. When the tail call chain returns, the thunk
+// code restores the original instance and returns to the original caller.
+class TailCallThunkCallee final : public Callee {
+    WTF_MAKE_COMPACT_TZONE_ALLOCATED(TailCallThunkCallee);
+public:
+    friend class Callee;
+    friend class JSC::LLIntOffsetsExtractor;
+
+    static TailCallThunkCallee& singleton();
+
+    // Thunk frame layout offsets (from frame pointer)
+    // The thunk frame stores information needed to restore state after a tail call chain.
+    //
+    // Frame layout (64-bit, stack grows down):
+    // +----------------------------------+ Higher addresses
+    // |  PAC Context (ARM64E only)       |  +64 (signing context for lr in subsequent tail calls)
+    // +----------------------------------+
+    // |  Saved Instance Pointer          |  +56 (wasmContextInstancePointer)
+    // +----------------------------------+
+    // |  Saved Memory Base               |  +48 (wasmBaseMemoryPointer)
+    // +----------------------------------+
+    // |  Saved Bounds Size               |  +40 (wasmBoundsCheckingSizeRegister)
+    // +----------------------------------+
+    // |  Original Return PC (untagged)   |  +32 (for restoration thunk to use)
+    // +----------------------------------+
+    // |  TailCallThunkCallee* (boxed)    |  +24 (CallFrameSlot::callee)
+    // +----------------------------------+
+    // |  Original Instance (codeBlock)   |  +16 (CallFrameSlot::codeBlock)
+    // +----------------------------------+
+    // |  Restoration Thunk Address       |  +8  (CallFrameSlot::returnPC - loaded into lr on return)
+    // +----------------------------------+
+    // |  Original Caller Frame Pointer   |  +0  <- FP when in thunk
+    // +----------------------------------+ Lower addresses
+    //
+    // When tail-called function returns to this frame:
+    // - The normal return mechanism pops lr from +8 (getting restoration thunk address)
+    // - Control transfers to restoration thunk
+    // - Restoration thunk loads original return PC from +32, restores state, and returns
+    //
+    // On ARM64E, we also need to store the PAC context at +64 for subsequent tail calls.
+    // When the restoration thunk address is signed during the first tail call, we use sc2
+    // as the signing context. For subsequent tail calls, we need to know this context
+    // to authenticate lr, so we store it in the thunk frame.
+    //
+    // On ARM64E, we need to store two PAC contexts:
+    // 1. offsetOfPACContext: The sc2 value used for signing lr in the tail call gate
+    // 2. offsetOfOriginalReturnSPContext: The sp context for the original return PC
+    //    (used by the restoration thunk to re-sign when returning to the original caller)
+    //
+    static constexpr size_t thunkFrameSizeInBytes = 96;  // 80 + 16 for original return sp context, must be 16-byte aligned
+    static constexpr ptrdiff_t offsetOfOriginalReturnPC = 32;
+    static constexpr ptrdiff_t offsetOfSavedBoundsSize = 40;
+    static constexpr ptrdiff_t offsetOfSavedMemoryBase = 48;
+    static constexpr ptrdiff_t offsetOfSavedInstance = 56;
+    static constexpr ptrdiff_t offsetOfPACContext = 64;  // ARM64E only: signing context for tail call lr
+    static constexpr ptrdiff_t offsetOfOriginalReturnSPContext = 72;  // ARM64E only: sp context for original return PC
+
+private:
+    TailCallThunkCallee();
     std::tuple<void*, void*> rangeImpl() const { return { nullptr, nullptr }; }
     CodePtr<WasmEntryPtrTag> entrypointImpl() const { return { }; }
     const RegisterAtOffsetList* calleeSaveRegistersImpl() { return nullptr; }
@@ -596,6 +665,13 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(JSC::Wasm::WasmToJSCallee)
     static bool isType(const JSC::Wasm::Callee& callee)
     {
         return callee.compilationMode() == JSC::Wasm::CompilationMode::WasmToJSMode;
+    }
+SPECIALIZE_TYPE_TRAITS_END()
+
+SPECIALIZE_TYPE_TRAITS_BEGIN(JSC::Wasm::TailCallThunkCallee)
+    static bool isType(const JSC::Wasm::Callee& callee)
+    {
+        return callee.compilationMode() == JSC::Wasm::CompilationMode::TailCallThunkMode;
     }
 SPECIALIZE_TYPE_TRAITS_END()
 

@@ -10237,6 +10237,48 @@ end
     jmp .ipint_mint_arg_dispatch
 
 .ipint_tail_call_common:
+    # ===== Tail Call Thunk Detection =====
+    # Check if the caller already has a tail call thunk frame.
+    # If the caller's callee is the TailCallThunkCallee singleton, we're in a tail call chain
+    # and can reuse the existing thunk. Otherwise, we need to insert a new thunk frame.
+    # Store the thunk adjustment (0 or 64) in t2, which survives the entire tail call sequence.
+    #
+    # On ARM64E:
+    # 1. The original return address is untagged and stored for later restoration
+    # 2. The restoration thunk address is signed with (cfr + CallerFrameAndPCSize) context
+    # 3. The gate authenticates with t11 (wasmScratchGPR2 = x11) which equals (cfr + CallerFrameAndPCSize)
+    # 4. The restoration thunk signs the return address with sp before returning
+    #
+    # Detection is enabled on all platforms, but thunk insertion is ARM64E-aware
+    #
+    # Check if the CALLER (the frame at [cfr]) is a thunk.
+    # - [cfr] = caller's FP
+    # - Callee[[cfr]] = caller's callee
+    # If the caller is the thunk, Callee[[cfr]] = TailCallThunkCallee singleton.
+    #
+    # For the first tail call: [cfr] = original caller → not a thunk
+    # After thunk insertion, new function's [frame] = thunk frame
+    # For subsequent tail calls: [cfr] = thunk frame → Callee[[cfr]] = TailCallThunkCallee
+    loadp [cfr], t2                       # t2 = caller's FP
+    loadp Callee[t2], t2                  # t2 = caller's callee (boxed)
+    # Use sc2 as temporary since:
+    # - sc0 = IPIntCallFunctionSlot (MUST NOT clobber)
+    # - t0 = x0 = r0 = entrypoint (MUST NOT clobber)
+    # - sc2 is only used later at line 10316
+    leap _g_config, sc2
+    loadp JSCConfigOffset + constexpr JSC::offsetOfJSCConfigWasmTailCallThunkCallee[sc2], sc2
+    # sc2 = boxed TailCallThunkCallee singleton
+    # Check if caller's callee matches the TailCallThunkCallee singleton
+    bpeq t2, sc2, .ipint_tail_call_has_thunk
+    # No thunk exists - we need to insert one
+    move (constexpr Wasm::TailCallThunkCallee::thunkFrameSizeInBytes), t2
+    jmp .ipint_tail_call_continue
+.ipint_tail_call_has_thunk:
+    # Thunk already exists - skip insertion
+    move 0, t2
+.ipint_tail_call_continue:
+    # t2 now contains the thunk adjustment (0 if thunk exists, 64 if we need to insert one)
+
     # Free up r0 to be used as argument register
 
     #  <caller frame>
@@ -10289,8 +10331,10 @@ end
     move cfr, sc2
     addp FirstArgumentOffset, sc2
     addp t3, sc2 # t3 = callerStackArgSize from the metadata
+    # NOTE: Do NOT adjust sc2 by t2 (thunk size) here. We need sc2 to point to the correct
+    # location for the stores at lines 10905-10906. The thunk adjustment will be applied later.
 
-    #  <caller frame>              <- sc2
+    #  <caller frame>              <- sc2 + thunkSize (if inserting thunk)
     #  return val
     #  return val
     #  argument
@@ -10320,7 +10364,30 @@ end
     push t0, t1
 
     # store the return address and CFR on the stack so we don't lose it
+    #
+    # IMPORTANT for ARM64E: When thunk already exists (t2 == 0), cfr = thunk frame.
+    # The thunk frame's ReturnPC is signed with (thunk+16) context, but we need
+    # the restoration thunk signed with sc2 context for the gate authentication.
+    #
+    # For subsequent tail calls, lr still contains the restoration thunk signed with
+    # the correct sc2 context (from the first tail call). We haven't modified lr yet
+    # in the tail call flow. So we should use lr, not ReturnPC[cfr].
+    #
+    # For the first tail call (t2 != 0), use ReturnPC[cfr] as usual.
+if ARM64E
+    btpz t2, .ipint_tail_call_use_lr_directly
     loadp ReturnPC[cfr], t0
+    jmp .ipint_tail_call_got_return_addr
+.ipint_tail_call_use_lr_directly:
+    move lr, t0
+.ipint_tail_call_got_return_addr:
+elsif ARM64 or RISCV64
+    # On non-ARM64E ARM, we use lr as the return address
+    move lr, t0
+else
+    # On X86_64, load from stack
+    loadp ReturnPC[cfr], t0
+end
     loadp [cfr], t1
 
     push t0, t1
@@ -10344,6 +10411,10 @@ end
     #  callee, function info
     #  saved MC/PC
     #  return address, saved CFR   <- sp
+
+    # Save sp before mINT so we can compute stack arg size later for tail calls
+    # t3 is free here (was used at line 10324, no longer needed)
+    move sp, t3
 
 .ipint_mint_arg_dispatch:
     # on x86, we'll use PC for our PC base
@@ -10808,12 +10879,21 @@ end
     #  stack arguments
     #  stack arguments             <- sp
 
-    # load the size of the arguments and results space, and subtract that from sc2
-    loadi [MC], sc3
-    negq sc3
+    # Compute the size of stack arguments pushed during mINT
+    # t3 was saved before mINT (sp before mINT), sp is now sp after mINT
+    # sc3 = sp - t3 (negative if there are stack args to copy)
+    # For no stack args: sp == t3, sc3 = 0, loop doesn't run
+    # For N bytes of args: sp = t3 - N, sc3 = -N, loop runs N/16 times
+    move sp, sc3
+    subp t3, sc3
+    # Save the negative stack arg size in t0 for later use after the loop
+    # (sc3 will be 0 after the loop completes)
+    move sc3, t0
 
     # copy args to sc2 region
     validateOpcodeConfig(sc0)
+    # DEBUG: breakpoint before copy loop to see sp and sc3
+    # break
 .ipint_tail_call_copy_stackargs_loop:
     bqgteq sc3, 0, .ipint_tail_call_copy_stackargs_loop_end
 if ARM64 or ARM64E
@@ -10832,9 +10912,9 @@ end
 
 .ipint_tail_call_copy_stackargs_loop_end:
 
-    # reload it here, which isn't optimal, but we don't really have registers
-    loadi [MC], sc3
-    subp sc3, sc2
+    # Use the saved stack arg size from t0 (which is negative or zero)
+    # to adjust sc2 downward to account for where stack args were placed
+    addp t0, sc2
 
     # re-setup the call frame, and load our return address in
     subp FirstArgumentOffset, sc2
@@ -10850,12 +10930,227 @@ end
     # function info, callee
     pop sc3, sc0
 
+    # NOW apply the thunk adjustment to sc2. This leaves room for the thunk frame above the new frame.
+    # If t2 = 0 (thunk already exists), sc2 is unchanged.
+    # If t2 = 64 (need to insert thunk), sc2 is moved down to make room for thunk frame above it.
+    subp t2, sc2
+
+    # CRITICAL: Load entrypoint and targetInstance from the stack BEFORE storing to the new frame!
+    # The stores to Callee[sc2] and CodeBlock[sc2] may overlap with [sp] and [sp+8] where our
+    # pushed entrypoint and targetInstance values are stored.
+    # After the adjustment above: [sc2 + 16] = [sp] and [sc2 + 24] = [sp + 8]
+    # So the stores would overwrite the entrypoint and targetInstance before we pop them!
+    #
+    # Load entrypoint/targetInstance into t1 and t3 now, before the stores.
+    # push r0, r1 at line 10295 stored: [sp]=r0 (entrypoint), [sp+8]=r1 (targetInstance)
+if ARM64 or ARM64E
+    loadpairq [sp], t1, t3  # t1 = entrypoint, t3 = targetInstance
+else
+    loadq [sp], t1          # t1 = entrypoint
+    loadq 8[sp], t3         # t3 = targetInstance
+end
+
+    # NOW we can safely store to the new frame - it may overwrite [sp] and [sp+8] but we've saved the values
     # save new Callee
     storeq sc0, Callee[sc2]
     storep sc3, CodeBlock[sc2]
 
-    # take off the last two values we stored, and move SP down to make it look like a fresh frame
-    pop targetInstance, ws0
+    # Advance sp past the entrypoint/targetInstance values (they're now in t1 and t3)
+    addp 16, sp
+
+    # ===== Tail Call Thunk Frame Setup =====
+    # At this point:
+    # - t1 = entrypoint (loaded from stack before it was overwritten)
+    # - t3 = targetInstance (loaded from stack before it was overwritten)
+    # - t2 = thunk adjustment (0 if thunk already exists, 64 if we need to insert one)
+    # - sc1 = caller FP (from pop sc1, lr)
+    # - sc2 = new frame pointer location (adjusted down by t2 if inserting thunk)
+    # - On X86_64: ReturnPC[sc2] contains the original return address
+    # - On ARM64/ARM64E: lr contains the original return address (signed with caller context on ARM64E)
+
+    # Move entrypoint and targetInstance to the registers the rest of the code expects:
+    # - ws0 (x9) = entrypoint (for the tail call gate which uses wasmScratchGPR0 = x9)
+    # - sc3 (x12) = targetInstance (aliased as `targetInstance` macro)
+    # This must happen BEFORE:
+    #   1. The branch to .ipint_tail_call_no_thunk_insert (which expects sc3 = targetInstance)
+    #   2. Line 10951 which clobbers t3 for use as thunk frame pointer
+    move t1, ws0   # ws0 = entrypoint
+    move t3, sc3   # sc3 = targetInstance
+
+if ARM64E
+    # ===== ARM64E: Use direct ipint_entry for IPInt callees =====
+    # On ARM64E, the entry thunk (inPlaceInterpreterEntryThunk) does tagReturnAddress() (pacibsp),
+    # but lr is already signed by the tail call gate. Using the entry thunk would corrupt lr.
+    # For IPInt callees, we bypass the entry thunk by jumping directly to ipint_entry.
+    #
+    # Check if the callee is an IPInt callee by checking its compilation mode.
+    # The boxed callee was stored to Callee[sc2] at line 10955.
+    # t1 is free (it was moved to ws0 above), use t0 as scratch.
+    loadq Callee[sc2], t1                       # t1 = boxed callee
+    btpz t1, .ipint_tail_call_skip_ipint_check  # Null check (shouldn't happen, but be safe)
+    # Unbox the callee to get the real pointer using the unboxWasmCallee macro
+    unboxWasmCallee(t1, t0)
+    # Now t1 is the unboxed pointer to the Callee object
+    # Load compilation mode from the callee
+    loadb Wasm::Callee::m_compilationMode[t1], t1
+    # Check if compilation mode == IPIntMode (value from CompilationMode enum)
+    bineq t1, constexpr Wasm::CompilationMode::IPIntMode, .ipint_tail_call_skip_ipint_check
+    # It's an IPInt callee - use the direct ipint_entry address
+    leap _g_config, t1
+    loadp JSCConfigOffset + constexpr JSC::offsetOfJSCConfigWasmIPIntDirectEntrypoint[t1], ws0
+.ipint_tail_call_skip_ipint_check:
+end
+
+    # If thunk adjustment is 0, we already have a thunk in the caller chain - skip insertion
+    btpz t2, .ipint_tail_call_no_thunk_insert
+
+    # DEBUG: Show sc1 value before continuing
+    # Expected: sc1 should be caller's frame pointer (plain stack address like 0x16....)
+    # If sc1 has PAC bits (0x91... or similar), stack pop read wrong location
+    # break
+
+    # ===== Insert thunk frame =====
+    # The thunk frame goes at sc2 + thunkFrameSize (i.e., the space we left by adjusting sc2)
+    # IMPORTANT: On ARM64/ARM64E, sc0 = ws0 which contains the entrypoint for the tail call.
+    # We must NOT clobber it. Use t3 for the thunk frame pointer instead.
+    addp sc2, t2, t3               # t3 = thunk frame FP = sc2 + 64
+
+    # Store original caller's FP in thunk frame (offset 0)
+    storep sc1, [t3]
+
+    # Store original return PC in thunk frame at the NEW offset (offsetOfOriginalReturnPC = +32)
+    # On ARM64E, we need to store the UNTAGGED return address because the restoration thunk
+    # will sign it with a different context (sp) when returning.
+if X86_64
+    loadp ReturnPC[sc2], sc3         # Load original return address from where it was stored
+    storep sc3, (constexpr Wasm::TailCallThunkCallee::offsetOfOriginalReturnPC)[t3]
+elsif ARM64E
+    # On ARM64E, lr is signed with instruction key B using (cfr + CallerFrameAndPCSize) as context.
+    # We need to authenticate it to get the raw address, then store the raw address.
+    # NOTE: Use t0 (not sc2 or sc3) as scratch:
+    #   - sc2 = new frame pointer which must be preserved for later use at .ipint_tail_call_no_thunk_insert
+    #   - sc3 = targetInstance which must be preserved
+    #   - t0 is free (its value was moved to ws0 at line 10905)
+    addp CallerFrameAndPCSize, cfr, t0   # t0 = authentication context = sp context for original return
+    untagReturnAddress t0                 # autib lr, t0 - now lr is untagged
+    storep lr, (constexpr Wasm::TailCallThunkCallee::offsetOfOriginalReturnPC)[t3]
+    # Also store the sp context so the restoration thunk can use it to re-sign the return address
+    storep t0, (constexpr Wasm::TailCallThunkCallee::offsetOfOriginalReturnSPContext)[t3]
+elsif ARM64 or RISCV64
+    storep lr, (constexpr Wasm::TailCallThunkCallee::offsetOfOriginalReturnPC)[t3]
+end
+
+    # Store wasmInstance at thunk frame CodeBlock slot (offset 16)
+    storep wasmInstance, CodeBlock[t3]
+
+    # Store wasmInstance at new offset 56 (saved instance) EARLY
+    # so we can use wasmInstance as scratch register for loading TailCallThunkCallee below.
+    storep wasmInstance, (constexpr Wasm::TailCallThunkCallee::offsetOfSavedInstance)[t3]
+
+    # Store boxed TailCallThunkCallee at thunk frame Callee slot (offset 24)
+    # IMPORTANT: On ARM64/ARM64E, wasmInstance = csr0 = sc2, so using wasmInstance
+    # as scratch here would clobber sc2 which we need later for PAC signing!
+    # Use t1 as scratch instead - it's free after line 10904.
+    # DO NOT use sc3 here - sc3 = targetInstance which is needed after thunk insertion!
+    leap _g_config, t1
+    loadp JSCConfigOffset + constexpr JSC::offsetOfJSCConfigWasmTailCallThunkCallee[t1], t1
+    storeq t1, Callee[t3]
+
+    # Store boundsCheckingSize at new offset 40
+    storep boundsCheckingSize, (constexpr Wasm::TailCallThunkCallee::offsetOfSavedBoundsSize)[t3]
+
+    # Store memoryBase at new offset 48
+    storep memoryBase, (constexpr Wasm::TailCallThunkCallee::offsetOfSavedMemoryBase)[t3]
+
+    # (wasmInstance/savedInstance was already stored above)
+
+if ARM64E
+    # Store PAC context (sc2) at new offset 64
+    # This is the signing context used for lr in the tail call chain.
+    # Subsequent tail calls need this to authenticate lr before the gate.
+    storep sc2, (constexpr Wasm::TailCallThunkCallee::offsetOfPACContext)[t3]
+end
+
+    # Store restoration thunk address at ReturnPC slot (+8)
+    # This is what gets loaded into lr when the tail-called function returns
+    # NOTE: sc2 = ws2 = t11 = x11 (wasm scratch register)
+    #       wasmInstance = csr0 = x19 (callee-saved, different from sc2!)
+    # Use t1 as scratch. DO NOT use sc3 - it holds targetInstance.
+    leap _g_config, t1
+    loadp JSCConfigOffset + constexpr JSC::offsetOfJSCConfigWasmTailCallRestorationThunk[t1], t1
+if X86_64
+    storep t1, ReturnPC[t3]        # Store restoration thunk at +8 in thunk frame
+elsif ARM64E
+    # On ARM64E, we need TWO different PAC contexts:
+    #
+    # 1. For thunk frame's ReturnPC (at t3+8): This is for when the restoration thunk
+    #    eventually returns to the original caller. At that point, sp = t3 + CallerFrameAndPCSize.
+    #
+    # 2. For lr (what func0 will store in its frame): This is for when func0 returns
+    #    to the restoration thunk. When func0 does ret, sp = sc2 (the new frame location
+    #    where func0 was entered, after it pops its frame).
+    #
+    # We must sign them with different contexts!
+    # IMPORTANT: t1 contains the restoration thunk address (loaded above).
+    # sc2 still contains the new frame location (preserved because we didn't clobber wasmInstance).
+
+    # First, sign restoration thunk for the thunk frame (context = t3 + 16)
+    # Use t0 as scratch - it's free (was moved to ws0 at line 10904)
+    addp CallerFrameAndPCSize, t3, t0    # t0 = t3 + 16 (thunk frame's return context)
+    move t1, lr                           # t1 = restoration thunk
+    tagReturnAddress t0                   # sign lr with t3+16 context
+    storep lr, ReturnPC[t3]              # Store in thunk frame at offset +8
+
+    # Now sign restoration thunk for lr (context = sc2)
+    # When func0 returns via ipint_exit, sp will equal sc2 + 16 (gate entry sp).
+    # The gate does pacibsp which signs with that sp. Then returnFromLLInt does
+    # retab which authenticates with sp. These sp values must match.
+    #
+    # Stack pointer flow:
+    # - Before gate jump: sp = sc2 + CallerFrameAndPCSize (= sc2 + 16)
+    # - Gate does pacibsp, so lr is signed with sp = sc2 + 16
+    # - ipint_entry does: push cfr, lr; move sp, cfr. So cfr = sc2 + 16 - 16 = sc2
+    # - On return: move cfr, sp; pop lr, cfr. So sp = sc2, then sp = sc2 + 16
+    # - returnFromLLInt does retab with sp = sc2 + 16 ✓
+    move t1, lr                           # t1 = restoration thunk
+    tagReturnAddress sc2                  # sign lr with sc2 (x11) context
+    # lr is now signed with x11 for gate authentication
+
+    # Verify register mapping for the gate:
+    # On ARM64/ARM64E: sc2 = ws2 = t11 = x11 (GPRInfo::wasmScratchGPR2)
+    # The gate (createWasmIPIntTailCallGate) does untagPtr(wasmScratchGPR2, lr)
+    # which emits "autib lr, x11". So x11 must contain the same value used for signing.
+    #
+    # Since sc2 IS t11 (both are x11), the move below is a no-op but kept for clarity.
+    # If sc2 and t11 were different registers, this would copy the signing context.
+    move sc2, t11
+elsif ARM64 or RISCV64
+    storep t1, ReturnPC[t3]        # Store restoration thunk at +8 (no PAC)
+    move t1, lr                     # Put in lr for the tail call gate
+end
+
+    # Update sc1 to point to the thunk frame instead of original caller
+    # This will be used to set cfr before jumping to the callee
+    move t3, sc1
+
+.ipint_tail_call_no_thunk_insert:
+
+    # For no-insertion path (t2 == 0, thunk already exists):
+    # sc1 still contains the popped caller FP from line 10925, but we need it to be
+    # the thunk frame pointer. The thunk frame is at [cfr] because:
+    # - cfr = current function's frame
+    # - [cfr] = caller's frame = thunk frame (since thunk exists)
+    btpnz t2, .ipint_tail_call_skip_sc1_load
+    loadp [cfr], sc1   # sc1 = thunk frame pointer
+.ipint_tail_call_skip_sc1_load:
+
+    # At this point:
+    # - For thunk insertion (t2 != 0): sc1 = t3 = newly created thunk frame
+    # - For no insertion (t2 == 0): sc1 = [cfr] = existing thunk frame from caller chain
+    #
+    # We DON'T store to [sc2] here because func0's prologue will overwrite it!
+    # Instead, we'll set cfr = sc1 before jumping, and the prologue's
+    # "stp x29, x30, [sp, #-16]!" will naturally save sc1 (thunk frame) at [new frame].
 
     #  <caller frame>
     #  return val
@@ -10880,9 +11175,25 @@ end
 
     move sc2, sp
 if ARM64E
-    addp CallerFrameAndPCSize, cfr, ws2
+    # Only compute t11 (wasmScratchGPR2 = x11) here if we didn't insert a thunk.
+    # If we inserted a thunk (t2 != 0), t11 was already set to the correct context
+    # in the thunk insertion code above.
+    btpnz t2, .ipint_tail_call_skip_t11_compute
+    # When thunk already exists (subsequent tail call in chain, t2 == 0):
+    # - lr = restoration thunk address, signed with the FIRST tail call's sc2 context
+    # - The signing context was stored in the thunk frame at offsetOfPACContext
+    # - [cfr] = thunk frame (we stored thunk FP at [sc2] during first tail call)
+    # - Load the PAC context from thunk frame to authenticate lr correctly
+    loadp [cfr], t0                       # t0 = thunk frame pointer
+    loadp (constexpr Wasm::TailCallThunkCallee::offsetOfPACContext)[t0], t11
+.ipint_tail_call_skip_t11_compute:
 end
-    # saved cfr
+    # Set cfr to the THUNK FRAME pointer (sc1), NOT the new function's frame (sc2).
+    # This is critical: when func0's prologue does "stp x29, x30, [sp, #-16]!", it
+    # saves cfr (x29) to [new frame]. We want [new frame] = thunk frame pointer.
+    #
+    # - For thunk insertion (t2 != 0): sc1 = newly created thunk frame (set at line 11108)
+    # - For no insertion (t2 == 0): sc1 = existing thunk frame from [cfr]
     move sc1, cfr
 
     # swap instances
@@ -10901,6 +11212,10 @@ end
 
     # go!
 if ARM64E
+    # t11 (wasmScratchGPR2 = x11) is already set correctly for gate authentication:
+    # - If thunk was inserted (t2 != 0): t11 = sc2 (set in thunk insertion code at line 11065)
+    # - If thunk exists (t2 == 0): t11 = PAC context from thunk frame (loaded at line 11115)
+    # The gate will authenticate and re-sign lr using t11 (x11) as context.
     leap _g_config, ws1
     jmp JSCConfigGateMapOffset + (constexpr Gate::wasmIPIntTailCallWasmEntryPtrTag) * PtrSize[ws1], NativeToJITGatePtrTag # WasmEntryPtrTag
 end

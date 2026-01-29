@@ -41,6 +41,8 @@ MacroAssemblerCodeRef<JITThunkPtrTag> throwExceptionFromWasmThunkGenerator(const
 MacroAssemblerCodeRef<JITThunkPtrTag> throwStackOverflowFromWasmThunkGenerator(const AbstractLocker&);
 MacroAssemblerCodeRef<JITThunkPtrTag> throwExceptionFromOMGThunkGenerator(const AbstractLocker&);
 
+MacroAssemblerCodeRef<JITThunkPtrTag> tailCallInstanceRestorationThunkGenerator(const AbstractLocker&);
+
 MacroAssemblerCodeRef<JITThunkPtrTag> catchInWasmThunkGenerator(const AbstractLocker&);
 MacroAssemblerCodeRef<JITThunkPtrTag> crashDueToBBQStackOverflowGenerator(const AbstractLocker&);
 MacroAssemblerCodeRef<JITThunkPtrTag> crashDueToOMGStackOverflowGenerator(const AbstractLocker&);

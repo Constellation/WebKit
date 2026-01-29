@@ -108,6 +108,7 @@ MacroAssemblerCodeRef<NativeToJITGatePtrTag> createJSGateThunk(void*, PtrTag, co
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> createWasmGateThunk(void*, PtrTag, const char*);
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> createTailCallGate(PtrTag, bool);
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> createWasmTailCallGate(PtrTag);
+MacroAssemblerCodeRef<NativeToJITGatePtrTag> createWasmIPIntTailCallGate(PtrTag);
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> loopOSREntryGateThunk();
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> entryOSREntryGateThunk();
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> wasmOSREntryGateThunk();

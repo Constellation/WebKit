@@ -579,6 +579,57 @@ MacroAssemblerCodeRef<NativeToJITGatePtrTag> createWasmTailCallGate(PtrTag tag)
     return FINALIZE_THUNK(patchBuffer, NativeToJITGatePtrTag, "TailCallWasmGate"_s, "LLInt wasm tail call gate thunk");
 }
 
+// Gate for IPInt tail calls.
+// createWasmIPIntTailCallGate - Gate for IPInt wasm tail calls on ARM64E.
+// The gate authenticates lr using wasmScratchGPR2 (x11) as context, then re-signs with sp.
+//
+// PAC flow:
+// 1. IPInt signs lr (restoration thunk address) with x11 context (the new frame location)
+// 2. This gate authenticates lr using x11 (must match the signing context)
+// 3. This gate re-signs lr with sp (so returnFromLLInt can authenticate with retab)
+// 4. The tail-called function runs via ipint_entry
+// 5. ipint_entry does preserveCallerPCAndCFR which pushes lr to stack
+// 6. On return, restoreCallerPCAndCFR restores lr and sp
+// 7. returnFromLLInt does retab which authenticates lr with sp
+//
+// For steps 3 and 7 to work, sp at step 3 must equal sp at step 7.
+// At step 3: sp = sc2 + CallerFrameAndPCSize (set by IPInt tail call code)
+// At step 7: sp = cfr + 16 where cfr was set to sp-16 by preserveCallerPCAndCFR
+// These should be equal: (sc2 + 16 - 16) + 16 = sc2 + 16 ✓
+MacroAssemblerCodeRef<NativeToJITGatePtrTag> createWasmIPIntTailCallGate(PtrTag tag)
+{
+    CCallHelpers jit;
+    UNUSED_PARAM(tag);
+
+    // Gate entry state:
+    // - lr = restoration thunk address, signed with wasmScratchGPR2 (x11) context
+    // - wasmScratchGPR2 (x11) = PAC signing context (the sc2 value used for signing)
+    // - wasmScratchGPR0 (x9) = callee entrypoint (ipint_entry), tagged with WasmEntryPtrTag
+    //
+    // We need to:
+    // 1. Authenticate lr using x11 as context
+    // 2. Re-sign lr with sp (so returnFromLLInt's retab can authenticate)
+    // 3. Branch to the callee entrypoint
+
+    // Step 1: Authenticate lr using wasmScratchGPR2 (x11) as context
+    jit.untagPtr(GPRInfo::wasmScratchGPR2, ARM64Registers::lr);
+    jit.validateUntaggedPtr(ARM64Registers::lr, GPRInfo::wasmScratchGPR2);
+
+    // Step 2: Re-sign lr with sp context (pacibsp)
+    // This is needed because ipint_entry's prologue does preserveCallerPCAndCFR
+    // which saves lr to the stack, and the epilogue restores it before ret.
+    // The ret instruction (retab) authenticates lr with sp, so we need to sign
+    // lr with sp here.
+    jit.tagReturnAddress();
+
+    // Step 3: Branch to the callee entrypoint
+    // wasmScratchGPR0 (x9) contains the entrypoint, tagged with WasmEntryPtrTag
+    jit.farJump(GPRInfo::wasmScratchGPR0, WasmEntryPtrTag);
+
+    LinkBuffer patchBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::LLIntThunk);
+    return FINALIZE_THUNK(patchBuffer, NativeToJITGatePtrTag, "IPIntTailCallWasmGate"_s, "IPInt wasm tail call gate thunk");
+}
+
 MacroAssemblerCodeRef<NativeToJITGatePtrTag> loopOSREntryGateThunk()
 {
     static LazyNeverDestroyed<MacroAssemblerCodeRef<NativeToJITGatePtrTag>> codeRef;

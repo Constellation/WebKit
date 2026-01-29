@@ -30,6 +30,9 @@
 
 #include "AllowMacroScratchRegisterUsage.h"
 #include "CCallHelpers.h"
+#include "CallFrame.h"
+#include "CalleeBits.h"
+#include "JSCConfig.h"
 #include "JSCJSValue.h"
 #include "JSInterfaceJIT.h"
 #include "JSWebAssemblyInstance.h"
@@ -37,8 +40,10 @@
 #include "ProbeContext.h"
 #include "ScratchRegisterAllocator.h"
 #include "WasmExceptionType.h"
+#include "WasmCallee.h"
 #include "WasmMergedProfile.h"
 #include "WasmOperations.h"
+#include "llint/LLIntData.h"
 #include <wtf/TZoneMallocInlines.h>
 
 namespace JSC { namespace Wasm {
@@ -134,6 +139,109 @@ MacroAssemblerCodeRef<JITThunkPtrTag> throwStackOverflowFromWasmThunkGenerator(c
     jit.jumpThunk(CodeLocationLabel<JITThunkPtrTag> { Thunks::singleton().stub(locker, throwExceptionFromWasmThunkGenerator).code() });
     LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
     return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "throwStackOverflowFromWasmThunk"_s, "Throw stack overflow from Wasm");
+}
+
+// This thunk is executed when a tail call chain returns. It restores the original
+// instance and memory state, then returns to the original caller.
+//
+// When entering this thunk:
+// - FP points to the thunk frame
+// - Return values are in registers (following Wasm calling convention)
+// - The thunk frame contains saved instance, memory base, bounds size, original return PC
+//
+// When exiting this thunk:
+// - wasmContextInstancePointer is restored to the original instance
+// - wasmBaseMemoryPointer and wasmBoundsCheckingSizeRegister are restored
+// - FP is restored to the original caller's FP
+// - Execution returns to the original caller
+MacroAssemblerCodeRef<JITThunkPtrTag> tailCallInstanceRestorationThunkGenerator(const AbstractLocker&)
+{
+    CCallHelpers jit;
+    JIT_COMMENT(jit, "tailCallInstanceRestorationThunk");
+
+#if USE(JSVALUE64)
+    // When we arrive here:
+    // - callFrameRegister (FP) points to the THUNK frame (NOT the function's frame!)
+    // - The function's prologue saved cfr (which was sc1 = thunk frame) to [function frame]
+    // - ipint_exit's restoreCallerPCAndCFR popped cfr from [function frame], so cfr = thunk frame
+    //
+    // Thunk frame layout (offsets relative to cfr):
+    // +0:  Original Caller Frame Pointer
+    // +8:  Restoration Thunk Address (this is where we came from)
+    // +16: Original Instance (codeBlock slot)
+    // +24: TailCallThunkCallee* (Callee slot)
+    // +32: Original Return PC (untagged on ARM64E)
+    // +40: Saved Bounds Size
+    // +48: Saved Memory Base
+    // +56: Saved Instance
+    // +64: PAC Context (ARM64E only)
+
+    // The thunk frame is directly at cfr - no offset calculation needed!
+    GPRReg thunkFrameReg = GPRInfo::callFrameRegister;
+
+    // Restore the saved instance pointer
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg, TailCallThunkCallee::offsetOfSavedInstance), GPRInfo::wasmContextInstancePointer);
+
+    // Restore memory pinned registers
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg, TailCallThunkCallee::offsetOfSavedMemoryBase), GPRInfo::wasmBaseMemoryPointer);
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg, TailCallThunkCallee::offsetOfSavedBoundsSize), GPRInfo::wasmBoundsCheckingSizeRegister);
+
+    // Re-cage the memory pointer if Gigacage is enabled
+    jit.cageConditionally(Gigacage::Primitive, GPRInfo::wasmBaseMemoryPointer, GPRInfo::wasmBoundsCheckingSizeRegister, jit.scratchRegister());
+
+#if CPU(ARM64E)
+    // On ARM64E, the original return address was untagged using the original sp context.
+    // We need to:
+    // 1. Load the original sp context (stored at offsetOfOriginalReturnSPContext)
+    // 2. Load the untagged return address
+    // 3. Load the original caller's FP
+    // 4. Set sp to the original sp context
+    // 5. Sign lr with sp (pacibsp)
+    // 6. Return
+    //
+    // Important: thunkFrameReg is cfr, so we need a scratch register to hold the sp context
+    // before we load the new cfr (which would clobber thunkFrameReg).
+
+    GPRReg scratchReg = GPRInfo::nonPreservedNonArgumentGPR0;
+
+    // Load the original sp context into scratch (before we load new cfr)
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg, TailCallThunkCallee::offsetOfOriginalReturnSPContext), scratchReg);
+
+    // Load the untagged original return address into lr
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg, TailCallThunkCallee::offsetOfOriginalReturnPC), ARM64Registers::lr);
+
+    // Load the original caller's FP (this changes cfr - thunkFrameReg is now invalid!)
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg), GPRInfo::callFrameRegister);
+
+    // Set sp to the original sp context (what it was when the original caller signed lr)
+    jit.move(scratchReg, MacroAssembler::stackPointerRegister);
+
+    // Sign lr with sp context (pacibsp)
+    jit.tagReturnAddress();
+
+    // Return to the original caller
+    jit.ret();
+#else
+    // For non-ARM64E, set sp to pop the thunk frame header
+    jit.addPtr(CCallHelpers::TrustedImm32(sizeof(CallerFrameAndPC)), thunkFrameReg, MacroAssembler::stackPointerRegister);
+
+    // Load the original return address into a temp register
+    GPRReg returnAddrReg = GPRInfo::nonPreservedNonArgumentGPR1;
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg, TailCallThunkCallee::offsetOfOriginalReturnPC), returnAddrReg);
+
+    // Load the original caller's FP
+    jit.loadPtr(CCallHelpers::Address(thunkFrameReg), GPRInfo::callFrameRegister);
+
+    // Jump to the original return address
+    jit.farJump(returnAddrReg, JSEntryPtrTag);
+#endif
+#else
+    // 32-bit is not currently supported for the new tail call mechanism
+    jit.breakpoint();
+#endif
+
+    LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
+    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "tailCallInstanceRestorationThunk"_s, "Restore instance after tail call chain");
 }
 
 #if ENABLE(WEBASSEMBLY_BBQJIT)
@@ -390,6 +498,28 @@ static Thunks* thunks;
 void Thunks::initialize()
 {
     thunks = new Thunks;
+
+    // Initialize tail call thunk config fields
+    Locker locker { thunks->m_lock };
+
+    // Store the boxed TailCallThunkCallee pointer
+    TailCallThunkCallee& tailCallThunkCallee = TailCallThunkCallee::singleton();
+    g_jscConfig.wasmTailCallThunkCallee = CalleeBits::boxNativeCallee(&tailCallThunkCallee);
+
+    // Generate and store the restoration thunk.
+    // We store the untagged (raw) pointer because on ARM64E, the IPInt code needs
+    // to sign it with the caller frame context (for the tail call gate to authenticate),
+    // which is different from the JITThunkPtrTag.
+    auto restorationThunk = thunks->stub(locker, tailCallInstanceRestorationThunkGenerator);
+    g_jscConfig.wasmTailCallRestorationThunk = restorationThunk.code().untaggedPtr();
+
+    // Store the direct ipint_entry address for tail calls.
+    // On ARM64E, tail calls need to skip the entry thunk because it does
+    // tagReturnAddress() (pacibsp), but lr is already signed by the tail call gate.
+    // By jumping directly to ipint_entry, we avoid the double-signing issue.
+    // Store it with WasmEntryPtrTag to match what the gate expects at line 625 of LLIntThunks.cpp.
+    auto ipintEntryCode = LLInt::getCodePtr<OperationPtrTag>(ipint_entry);
+    g_jscConfig.wasmIPIntDirectEntrypoint = ipintEntryCode.retagged<WasmEntryPtrTag>().taggedPtr();
 }
 
 Thunks& Thunks::singleton()

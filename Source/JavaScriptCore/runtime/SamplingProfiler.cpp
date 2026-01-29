@@ -1061,6 +1061,7 @@ static String tierName(SamplingProfiler::StackFrame& frame)
             case Wasm::CompilationMode::JSToWasmICMode:
             case Wasm::CompilationMode::WasmToJSMode:
             case Wasm::CompilationMode::WasmBuiltinMode:
+            case Wasm::CompilationMode::TailCallThunkMode:
                 // Just say "Wasm" for now.
                 break;
             case Wasm::CompilationMode::BBQMode:

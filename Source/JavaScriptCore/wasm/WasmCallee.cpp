@@ -56,6 +56,7 @@ WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(Callee);
 WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(JITCallee);
 WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(JSToWasmCallee);
 WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(WasmToJSCallee);
+WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(TailCallThunkCallee);
 WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(JSToWasmICCallee);
 WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(OptimizingJITCallee);
 WTF_MAKE_COMPACT_TZONE_ALLOCATED_IMPL(OMGCallee);
@@ -126,6 +127,9 @@ inline void Callee::runWithDowncast(const Func& func)
         break;
     case CompilationMode::WasmToJSMode:
         func(uncheckedDowncast<WasmToJSCallee>(this));
+        break;
+    case CompilationMode::TailCallThunkMode:
+        func(uncheckedDowncast<TailCallThunkCallee>(this));
         break;
     case CompilationMode::WasmBuiltinMode:
         func(uncheckedDowncast<WasmBuiltinCallee>(this));
@@ -243,6 +247,22 @@ WasmToJSCallee& WasmToJSCallee::singleton()
     static std::once_flag onceKey;
     std::call_once(onceKey, [&]() {
         callee.construct(adoptRef(*new WasmToJSCallee));
+    });
+    return callee.get().get();
+}
+
+TailCallThunkCallee::TailCallThunkCallee()
+    : Callee(Wasm::CompilationMode::TailCallThunkMode)
+{
+    NativeCalleeRegistry::singleton().registerCallee(this);
+}
+
+TailCallThunkCallee& TailCallThunkCallee::singleton()
+{
+    static LazyNeverDestroyed<Ref<TailCallThunkCallee>> callee;
+    static std::once_flag onceKey;
+    std::call_once(onceKey, [&]() {
+        callee.construct(adoptRef(*new TailCallThunkCallee));
     });
     return callee.get().get();
 }

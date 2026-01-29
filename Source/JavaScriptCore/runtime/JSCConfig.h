@@ -98,6 +98,13 @@ struct Config {
     void* defaultCallThunk;
     void* arityFixupThunk;
 
+#if ENABLE(WEBASSEMBLY)
+    // For tail call thunk mechanism
+    void* wasmTailCallThunkCallee; // Boxed pointer to TailCallThunkCallee singleton
+    void* wasmTailCallRestorationThunk; // Code pointer to restoration thunk
+    void* wasmIPIntDirectEntrypoint; // Direct ipint_entry address (skips entry thunk's pacibsp)
+#endif
+
 #if ENABLE(SEPARATED_WX_HEAP)
     JITWriteSeparateHeapsFunction jitWriteSeparateHeaps;
 #endif
@@ -145,6 +152,11 @@ constexpr size_t offsetOfJSCConfigInitializeHasBeenCalled = offsetof(JSC::Config
 constexpr size_t offsetOfJSCConfigGateMap = offsetof(JSC::Config, llint.gateMap);
 constexpr size_t offsetOfJSCConfigStructureIDBase = offsetof(JSC::Config, structureIDBase);
 constexpr size_t offsetOfJSCConfigDefaultCallThunk = offsetof(JSC::Config, defaultCallThunk);
+#if ENABLE(WEBASSEMBLY)
+constexpr size_t offsetOfJSCConfigWasmTailCallThunkCallee = offsetof(JSC::Config, wasmTailCallThunkCallee);
+constexpr size_t offsetOfJSCConfigWasmTailCallRestorationThunk = offsetof(JSC::Config, wasmTailCallRestorationThunk);
+constexpr size_t offsetOfJSCConfigWasmIPIntDirectEntrypoint = offsetof(JSC::Config, wasmIPIntDirectEntrypoint);
+#endif
 
 ALWAYS_INLINE PURE_FUNCTION uintptr_t startOfStructureHeap()
 {

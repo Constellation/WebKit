@@ -311,7 +311,7 @@ void initialize()
     {
         static LazyNeverDestroyed<MacroAssemblerCodeRef<NativeToJITGatePtrTag>> codeRef;
         if (Options::useJIT())
-            codeRef.construct(createWasmTailCallGate(WasmEntryPtrTag));
+            codeRef.construct(createWasmIPIntTailCallGate(WasmEntryPtrTag));
         else
             codeRef.construct(MacroAssemblerCodeRef<NativeToJITGatePtrTag>::createSelfManagedCodeRef(CodePtr<NativeToJITGatePtrTag>::fromTaggedPtr(retagCodePtr<void*, CFunctionPtrTag, NativeToJITGatePtrTag>(&wasmTailCallTrampoline))));
         g_jscConfig.llint.gateMap[static_cast<unsigned>(Gate::wasmIPIntTailCallWasmEntryPtrTag)]= codeRef.get().code().taggedPtr();
