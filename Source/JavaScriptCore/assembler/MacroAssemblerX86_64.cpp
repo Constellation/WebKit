@@ -31,6 +31,7 @@
 #include "OperationResult.h"
 #include "ProbeContext.h"
 #include <wtf/InlineASM.h>
+#include <wtf/TranslatedProcess.h>
 
 #if OS(DARWIN)
 #include <sys/sysctl.h>
@@ -507,14 +508,16 @@ void MacroAssemblerX86_64::collectCPUFeatures()
             s_sse4_1CheckState = (cpuid[2] & (1 << 19)) ? CPUIDCheckState::Set : CPUIDCheckState::Clear;
             s_sse4_2CheckState = (cpuid[2] & (1 << 20)) ? CPUIDCheckState::Set : CPUIDCheckState::Clear;
             s_popcntCheckState = (cpuid[2] & (1 << 23)) ? CPUIDCheckState::Set : CPUIDCheckState::Clear;
-#if OS(DARWIN)
-            s_avxCheckState = CPUIDCheckState::Set;
-#else
             s_avxCheckState = (cpuid[2] & (1 << 28)) ? CPUIDCheckState::Set : CPUIDCheckState::Clear;
-#endif
+            s_f16cCheckState = (cpuid[2] & (1 << 29)) ? CPUIDCheckState::Set : CPUIDCheckState::Clear;
         }
 #if OS(DARWIN)
-        {
+        if (WTF::isX86BinaryRunningOnARM()) {
+            s_avxCheckState = CPUIDCheckState::Set;
+            s_avx2CheckState = CPUIDCheckState::Set;
+            s_f16cCheckState = CPUIDCheckState::Set;
+            s_bmi1CheckState = CPUIDCheckState::Set;
+        } else {
             uint32_t val = 0;
             size_t valSize = sizeof(val);
             int rc = sysctlbyname("hw.optional.bmi1", &val, &valSize, nullptr, 0);
@@ -546,6 +549,7 @@ MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_avx2CheckState = C
 MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_lzcntCheckState = CPUIDCheckState::NotChecked;
 MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_bmi1CheckState = CPUIDCheckState::NotChecked;
 MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_popcntCheckState = CPUIDCheckState::NotChecked;
+MacroAssemblerX86_64::CPUIDCheckState MacroAssemblerX86_64::s_f16cCheckState = CPUIDCheckState::NotChecked;
 
 } // namespace JSC
 

@@ -9512,83 +9512,157 @@ public:
 
     void convertDoubleToFloat16(FPRegisterID src, FPRegisterID dest)
     {
-        UNUSED_PARAM(src);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        // Double rounding correction: a naive double→float32→float16 conversion
+        // can produce incorrect results when the float32 intermediate is at an
+        // exact midpoint between two float16 values. We detect this case and
+        // adjust the float32 mantissa before the final vcvtps2ph.
+        //
+        // For normal float16 range, the midpoint is when the low 13 bits of the
+        // float32 representation are exactly 0x1000. In this case, we compare
+        // the original double against the float32 round-trip to determine whether
+        // cvtsd2ss rounded up or down, then nudge the float32 ±1 to compensate.
+        //
+        // The implementation is coming from https://github.com/tc39/proposal-float16array/issues/12#issuecomment-2256642971.
+
+        ASSERT(supportsFloat16());
+
+        FPRegisterID originalDouble = fpTempRegister;
+        moveDouble(src, originalDouble);
+
+        // Step 1: Convert double → float32.
+        convertDoubleToFloat(src, dest);
+
+        // Step 2: Extract float32 bits to GPR.
+        m_assembler.vmovd_rr(dest, scratchRegister());
+
+        // Step 3: Get absolute value of float32 bits.
+        RegisterID absReg = scratchRegister();
+        and32(TrustedImm32(0x7FFFFFFF), absReg);
+
+        // Step 4: If outside the float16 normal range where double rounding matters,
+        // skip correction — vcvtps2ph handles these correctly on its own.
+        // abs < 0x33000000: underflow to zero
+        // abs >= 0x47800000: overflow to infinity or NaN
+        // abs < 0x38800000: subnormal float16 result (skip for simplicity; rare case)
+        auto underflow = branch32(Below, absReg, TrustedImm32(0x33000000));
+        auto overflow = branch32(AboveOrEqual, absReg, TrustedImm32(0x47800000));
+        auto isSubnormal = branch32(Below, absReg, TrustedImm32(0x38800000));
+
+        // Step 5: Check if low 13 bits == 0x1000 (exact float16 midpoint).
+        and32(TrustedImm32(0x1FFF), absReg);
+        auto notMidpoint = branch32(NotEqual, absReg, TrustedImm32(0x1000));
+
+        // Step 6: At a midpoint — determine rounding direction.
+        // Convert float32 back to double and compare with original.
+        // Re-extract the full float32 bits (the and32 above destroyed absReg).
+        m_assembler.vmovd_rr(dest, scratchRegister());
+
+        FPRegisterID roundTripped = dest; // Reuse dest temporarily.
+        convertFloatToDouble(dest, roundTripped);
+
+        // Compare: original vs round-tripped.
+        m_assembler.vucomisd_rr(roundTripped, originalDouble);
+
+        // If equal: exact representation, no adjustment needed.
+        auto exactlyEqual = Jump(m_assembler.je());
+
+        // CF=1 (jb): original < round-tripped, cvtsd2ss rounded up → subtract 1.
+        // CF=0 (jae): original > round-tripped, cvtsd2ss rounded down → add 1.
+        auto roundedUp = Jump(m_assembler.jb());
+
+        // cvtsd2ss rounded down: add 1 to float32 bits.
+        add32(TrustedImm32(1), scratchRegister());
+        auto doneAdjust = jump();
+
+        roundedUp.link(this);
+        // cvtsd2ss rounded up: subtract 1 from float32 bits.
+        add32(TrustedImm32(-1), scratchRegister());
+
+        doneAdjust.link(this);
+        // Write adjusted bits back to XMM.
+        m_assembler.vmovd_rr(scratchRegister(), dest);
+
+        notMidpoint.link(this);
+        isSubnormal.link(this);
+        underflow.link(this);
+        overflow.link(this);
+        exactlyEqual.link(this);
+
+        // Step 7: Convert (possibly adjusted) float32 → float16.
+        m_assembler.vcvtps2ph_rri(dest, dest, 0x04);
     }
 
     void convertFloat16ToDouble(FPRegisterID src, FPRegisterID dest)
     {
-        UNUSED_PARAM(src);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        // float16 bits → float32 → double
+        ASSERT(supportsFloat16());
+        m_assembler.vcvtph2ps_rr(src, dest);
+        convertFloatToDouble(dest, dest);
     }
 
     void loadFloat16(Address address, FPRegisterID dest)
     {
-        UNUSED_PARAM(address);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        m_assembler.vpinsrw_i8mrr(0, address.offset, address.base, dest, dest);
     }
 
     void loadFloat16(BaseIndex address, FPRegisterID dest)
     {
-        UNUSED_PARAM(address);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        m_assembler.vpinsrw_i8m_baseidx_rr(0, address.offset, address.base, address.index, address.scale, dest, dest);
     }
 
     void loadFloat16(TrustedImmPtr address, FPRegisterID dest)
     {
-        UNUSED_PARAM(address);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        move(address, scratchRegister());
+        loadFloat16(Address(scratchRegister()), dest);
     }
 
     void moveZeroToFloat16(FPRegisterID reg)
     {
-        UNUSED_PARAM(reg);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        moveZeroToFloat(reg);
     }
 
     void move16ToFloat16(RegisterID src, FPRegisterID dest)
     {
-        UNUSED_PARAM(src);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        m_assembler.vmovd_rr(src, dest);
     }
 
     void move16ToFloat16(TrustedImm32 imm, FPRegisterID dest)
     {
-        UNUSED_PARAM(imm);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        move32ToFloat(imm, dest);
     }
 
     void moveFloat16To16(FPRegisterID src, RegisterID dest)
     {
-        UNUSED_PARAM(src);
-        UNUSED_PARAM(dest);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        m_assembler.vmovd_rr(src, dest);
     }
 
     void storeFloat16(FPRegisterID src, Address address)
     {
-        UNUSED_PARAM(src);
-        UNUSED_PARAM(address);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        m_assembler.vpextrw_i8rm(0, src, address.base, address.offset);
     }
 
     void storeFloat16(FPRegisterID src, BaseIndex address)
     {
-        UNUSED_PARAM(src);
-        UNUSED_PARAM(address);
-        UNREACHABLE_FOR_PLATFORM();
+        ASSERT(supportsFloat16());
+        m_assembler.vpextrw_i8rm_baseidx(0, src, address.offset, address.base, address.index, address.scale);
     }
 
     // Misc helper functions.
 
-    static bool supportsFloat16() { return false; }
+    static bool supportsFloat16()
+    {
+        if (s_f16cCheckState == CPUIDCheckState::NotChecked)
+            collectCPUFeatures();
+        return s_f16cCheckState == CPUIDCheckState::Set;
+    }
 
     template<PtrTag resultTag, PtrTag locationTag>
     static CodePtr<resultTag> readCallTarget(CodeLocationCall<locationTag> call)
@@ -9680,6 +9754,7 @@ public:
     JS_EXPORT_PRIVATE static CPUIDCheckState s_lzcntCheckState;
     JS_EXPORT_PRIVATE static CPUIDCheckState s_bmi1CheckState;
     JS_EXPORT_PRIVATE static CPUIDCheckState s_popcntCheckState;
+    JS_EXPORT_PRIVATE static CPUIDCheckState s_f16cCheckState;
 
 private:
     // If lzcnt is not available, use this after BSR
