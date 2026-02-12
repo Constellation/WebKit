@@ -412,6 +412,7 @@ bool hasCapacityToUseLargeGigacage();
     v(Unsigned, maxSingleAllocationSize, 0, Configurable, "debugging option to limit individual allocations to a max size (0 = limit not set, N = limit size in bytes)"_s) \
     \
     v(GCLogLevel, logGC, GCLogging::None, Normal, "debugging option to log GC activity (0 = None, 1 = Basic, 2 = Verbose)"_s) \
+    v(Bool, logHeapStatistics, false, Normal, "Log heap statistics with timestamps for graphing (heap size, GC events, benchmark markers)"_s) \
     v(Bool, useGC, true, Normal, nullptr) \
     v(Bool, useGlobalGC, false, Normal, nullptr) \
     v(Bool, gcAtEnd, false, Normal, "If true, the jsc CLI will do a GC before exiting"_s) \

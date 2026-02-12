@@ -119,8 +119,13 @@ void ProfilerSupport::write(const AbstractLocker&, uint64_t start, uint64_t end,
     m_file.flush();
 }
 
-void ProfilerSupport::markStart(const void* identifier, Category category, CString&&)
+void ProfilerSupport::markStart(const void* identifier, Category category, CString&& message)
 {
+    if (Options::logHeapStatistics()) {
+        auto timestamp = MonotonicTime::now().secondsSinceEpoch().milliseconds();
+        dataLogLn("[HeapStats] ", timestamp, " BENCHMARK_START ", message);
+    }
+
     if (!Options::useTextMarkers())
         return;
     if (!identifier)
@@ -135,6 +140,11 @@ void ProfilerSupport::markStart(const void* identifier, Category category, CStri
 
 void ProfilerSupport::markEnd(const void* identifier, Category category, CString&& message)
 {
+    if (Options::logHeapStatistics()) {
+        auto timestamp = MonotonicTime::now().secondsSinceEpoch().milliseconds();
+        dataLogLn("[HeapStats] ", timestamp, " BENCHMARK_END ", message);
+    }
+
     if (!Options::useTextMarkers())
         return;
     if (!identifier)
@@ -181,6 +191,13 @@ void ProfilerSupport::mark(const void* identifier, Category, CString&& message)
 
 void ProfilerSupport::markInterval(const void* identifier, Category, MonotonicTime startTime, MonotonicTime endTime, CString&& message)
 {
+    if (Options::logHeapStatistics()) {
+        auto timestamp = MonotonicTime::now().secondsSinceEpoch().milliseconds();
+        auto start = startTime.secondsSinceEpoch().milliseconds();
+        auto end = endTime.secondsSinceEpoch().milliseconds();
+        dataLogLn("[HeapStats] ", timestamp, " BENCHMARK_INTERVAL start=", start, " end=", end, " duration=", (end - start), "ms ", message);
+    }
+
     if (!Options::useTextMarkers())
         return;
     if (!identifier)

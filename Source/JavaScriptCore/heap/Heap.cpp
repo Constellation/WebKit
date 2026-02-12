@@ -2381,7 +2381,7 @@ void Heap::willStartCollection()
     }
 
     dataLogIf(Options::logGC(), "=> ");
-    
+
     if (shouldDoFullCollection()) {
         m_collectionScope = CollectionScope::Full;
         m_shouldDoFullCollection = false;
@@ -2403,6 +2403,13 @@ void Heap::willStartCollection()
     } else {
         ASSERT(m_collectionScope && m_collectionScope.value() == CollectionScope::Eden);
         m_sizeBeforeLastEdenCollect = m_sizeAfterLastCollect + totalBytesAllocatedThisCycle();
+    }
+
+    if (Options::logHeapStatistics()) [[unlikely]] {
+        auto timestamp = MonotonicTime::now().secondsSinceEpoch().milliseconds();
+        bool isFullGC = m_collectionScope.value() == CollectionScope::Full;
+        size_t sizeBeforeCollect = isFullGC ? m_sizeBeforeLastFullCollect : m_sizeBeforeLastEdenCollect;
+        dataLogLn("[HeapStats] ", timestamp, " GC_START type=", (isFullGC ? "Full" : "Eden"), " version=", m_gcVersion, " capacity=", capacity(), " sizeBeforeCollect=", sizeBeforeCollect, " extraMemorySize=", extraMemorySize());
     }
 
     if (m_edenActivityCallback)
@@ -2566,6 +2573,14 @@ void Heap::didFinishCollection()
         m_lastFullGCLength = m_afterGC - m_beforeGC;
     else
         m_lastEdenGCLength = m_afterGC - m_beforeGC;
+
+    if (Options::logHeapStatistics()) [[unlikely]] {
+        auto timestamp = MonotonicTime::now().secondsSinceEpoch().milliseconds();
+        bool isFullGC = scope == CollectionScope::Full;
+        Seconds gcLength = isFullGC ? m_lastFullGCLength : m_lastEdenGCLength;
+        size_t sizeAfterCollect = isFullGC ? m_sizeAfterLastFullCollect : m_sizeAfterLastEdenCollect;
+        dataLogLn("[HeapStats] ", timestamp, " GC_END type=", (isFullGC ? "Full" : "Eden"), " version=", m_gcVersion, " capacity=", capacity(), " sizeAfterCollect=", sizeAfterCollect, " gcLength=", gcLength.milliseconds(), "ms totalBytesVisited=", m_totalBytesVisited);
+    }
 
 #if ENABLE(RESOURCE_USAGE)
     ASSERT(externalMemorySize() <= extraMemorySize());

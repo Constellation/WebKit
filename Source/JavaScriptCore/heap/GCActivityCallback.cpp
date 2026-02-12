@@ -30,7 +30,9 @@
 #include "GCActivityCallback.h"
 
 #include "HeapInlines.h"
+#include "Options.h"
 #include "VM.h"
+#include <wtf/MonotonicTime.h>
 
 namespace JSC {
 
@@ -79,12 +81,21 @@ void GCActivityCallback::scheduleTimer(Seconds newDelay)
 
 void GCActivityCallback::didAllocate(JSC::Heap& heap, size_t bytes)
 {
-    // The first byte allocated in an allocation cycle will report 0 bytes to didAllocate. 
+    // The first byte allocated in an allocation cycle will report 0 bytes to didAllocate.
     // We pretend it's one byte so that we don't ignore this allocation entirely.
     if (!bytes)
         bytes = 1;
     double bytesExpectedToReclaim = static_cast<double>(bytes) * deathRate(heap);
     Seconds newDelay = lastGCLength(heap) / gcTimeSlice(bytesExpectedToReclaim);
+
+    if (Options::logHeapStatistics()) [[unlikely]] {
+        static unsigned allocationLogCounter = 0;
+        if (!(allocationLogCounter++ % 1000)) {
+            auto timestamp = MonotonicTime::now().secondsSinceEpoch().milliseconds();
+            dataLogLn("[HeapStats] ", timestamp, " ALLOCATION capacity=", heap.capacity(), " size=", heap.size(), " bytesAllocated=", bytes, " deathRate=", deathRate(heap), " gcDelay=", newDelay.milliseconds(), "ms");
+        }
+    }
+
     scheduleTimer(newDelay);
 }
 

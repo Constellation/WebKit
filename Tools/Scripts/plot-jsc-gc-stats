@@ -1,0 +1,452 @@
+#!/usr/bin/env python3
+# Copyright (C) 2025 Apple Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"""
+GC Heap Statistics Visualizer for JavaScriptCore
+
+Parses log output from JSC's --logHeapStatistics=true option and generates
+graphs showing heap size over time with GC events and benchmark annotations.
+
+Usage:
+    plot-jsc-gc-stats <log_file> [output_file.png]
+
+To generate the log file, run JSC with:
+    JSC_logHeapStatistics=true jsc your_script.js 2>&1 | tee gc.log
+
+Or for Safari/WebKit:
+    JSC_logHeapStatistics=true /path/to/Safari
+
+The log contains entries like:
+    [HeapStats] <timestamp> ALLOCATION capacity=X size=Y bytesAllocated=Z ...
+    [HeapStats] <timestamp> GC_START type=Eden version=N capacity=X sizeBeforeCollect=Y ...
+    [HeapStats] <timestamp> GC_END type=Eden version=N sizeAfterCollect=X gcLength=Yms ...
+    [HeapStats] <timestamp> BENCHMARK_INTERVAL start=X end=Y duration=Zms <name>
+
+Output:
+    - gc_heap_stats.png: Main plot with heap size, GC events, benchmark regions
+    - gc_heap_stats_detail.png: Two-panel plot with heap size and GC pause times
+"""
+
+import argparse
+import os
+import re
+import sys
+from collections import defaultdict
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')  # Non-interactive backend for file output
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    import numpy as np
+except ImportError:
+    print("Error: matplotlib and numpy are required.")
+    print("Install with: pip3 install matplotlib numpy")
+    sys.exit(1)
+
+
+def parse_log(filename):
+    """Parse a JSC heap statistics log file.
+
+    Returns:
+        Tuple of (allocations, gc_starts, gc_ends, benchmarks) lists.
+    """
+    allocations = []
+    gc_starts = []
+    gc_ends = []
+    benchmarks = []
+
+    with open(filename, 'r') as f:
+        for line in f:
+            if not line.startswith('[HeapStats]'):
+                continue
+
+            parts = line.strip().split()
+            if len(parts) < 3:
+                continue
+
+            timestamp = float(parts[1])
+            event_type = parts[2]
+
+            if event_type == 'ALLOCATION':
+                data = {}
+                for part in parts[3:]:
+                    if '=' in part:
+                        key, val = part.split('=', 1)
+                        val = val.rstrip('ms')
+                        try:
+                            data[key] = float(val)
+                        except ValueError:
+                            data[key] = val
+                if 'capacity' in data:
+                    # Current heap size = size (after last GC) + bytesAllocated (since last GC)
+                    current_size = data.get('size', 0) + data.get('bytesAllocated', 0)
+                    allocations.append({
+                        'timestamp': timestamp,
+                        'capacity': data.get('capacity', 0),
+                        'size': current_size,
+                    })
+
+            elif event_type == 'GC_START':
+                data = {}
+                for part in parts[3:]:
+                    if '=' in part:
+                        key, val = part.split('=', 1)
+                        try:
+                            data[key] = float(val)
+                        except ValueError:
+                            data[key] = val
+                gc_starts.append({
+                    'timestamp': timestamp,
+                    'type': data.get('type', 'Unknown'),
+                    'version': int(data.get('version', 0)),
+                    'capacity': data.get('capacity', 0),
+                    'sizeBeforeCollect': data.get('sizeBeforeCollect', 0),
+                })
+
+            elif event_type == 'GC_END':
+                data = {}
+                for part in parts[3:]:
+                    if '=' in part:
+                        key, val = part.split('=', 1)
+                        val = val.rstrip('ms')
+                        try:
+                            data[key] = float(val)
+                        except ValueError:
+                            data[key] = val
+                gc_ends.append({
+                    'timestamp': timestamp,
+                    'type': data.get('type', 'Unknown'),
+                    'version': int(data.get('version', 0)),
+                    'capacity': data.get('capacity', 0),
+                    'sizeAfterCollect': data.get('sizeAfterCollect', 0),
+                    'gcLength': data.get('gcLength', 0),
+                    'totalBytesVisited': data.get('totalBytesVisited', 0),
+                })
+
+            elif event_type == 'BENCHMARK_INTERVAL':
+                data = {}
+                name_parts = []
+                for part in parts[3:]:
+                    if '=' in part:
+                        key, val = part.split('=', 1)
+                        val = val.rstrip('ms')
+                        try:
+                            data[key] = float(val)
+                        except ValueError:
+                            data[key] = val
+                    else:
+                        name_parts.append(part)
+
+                name = ' '.join(name_parts)
+                base_name = re.sub(r'-iteration-\d+$', '', name)
+
+                benchmarks.append({
+                    'timestamp': timestamp,
+                    'start': data.get('start', timestamp),
+                    'end': data.get('end', timestamp),
+                    'duration': data.get('duration', 0),
+                    'name': name,
+                    'base_name': base_name,
+                })
+
+    return allocations, gc_starts, gc_ends, benchmarks
+
+
+def plot_gc_stats(filename, output_filename='gc_heap_stats.png'):
+    """Generate GC heap statistics plots from a log file.
+
+    Args:
+        filename: Path to the log file.
+        output_filename: Path for the output PNG file.
+    """
+    print(f"Parsing {filename}...")
+    allocations, gc_starts, gc_ends, benchmarks = parse_log(filename)
+
+    print(f"Found {len(allocations)} allocations, {len(gc_starts)} GC starts, "
+          f"{len(gc_ends)} GC ends, {len(benchmarks)} benchmarks")
+
+    if not allocations and not gc_starts:
+        print("No data to plot!")
+        return
+
+    # Get time range
+    all_times = []
+    if allocations:
+        all_times.extend([a['timestamp'] for a in allocations])
+    if gc_starts:
+        all_times.extend([g['timestamp'] for g in gc_starts])
+    if gc_ends:
+        all_times.extend([g['timestamp'] for g in gc_ends])
+
+    min_time = min(all_times)
+    max_time = max(all_times)
+
+    def normalize_time(t):
+        return (t - min_time) / 1000.0  # Convert ms to seconds
+
+    # Group benchmarks by base name
+    benchmark_groups = defaultdict(lambda: {'start': float('inf'), 'end': float('-inf')})
+    for b in benchmarks:
+        base = b['base_name']
+        benchmark_groups[base]['start'] = min(benchmark_groups[base]['start'], b['start'])
+        benchmark_groups[base]['end'] = max(benchmark_groups[base]['end'], b['end'])
+
+    # Sort benchmarks by start time
+    sorted_benchmarks = sorted(benchmark_groups.items(), key=lambda x: x[1]['start'])
+
+    # Match GC starts with ends by version
+    gc_end_map = {g['version']: g for g in gc_ends}
+
+    # Get y range from data
+    all_sizes = []
+    if allocations:
+        all_sizes.extend([a['size'] / (1024 * 1024) for a in allocations])
+    if gc_starts:
+        all_sizes.extend([g['sizeBeforeCollect'] / (1024 * 1024) for g in gc_starts])
+    if gc_ends:
+        all_sizes.extend([g['sizeAfterCollect'] / (1024 * 1024) for g in gc_ends])
+
+    y_max = max(all_sizes) * 1.1 if all_sizes else 100
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(24, 14))
+
+    # Colors for benchmarks
+    colors = plt.cm.tab20(np.linspace(0, 1, 20))
+
+    # Draw benchmark regions as vertical bands with labels
+    for i, (name, times) in enumerate(sorted_benchmarks):
+        start = normalize_time(times['start'])
+        end = normalize_time(times['end'])
+        color = colors[i % len(colors)]
+
+        # Draw background rectangle
+        rect = mpatches.Rectangle((start, 0), end - start, y_max,
+                                   alpha=0.2, facecolor=color, edgecolor=color, linewidth=0.5)
+        ax.add_patch(rect)
+
+        # Add benchmark name at the bottom, rotated
+        mid = (start + end) / 2
+        ax.text(mid, -y_max * 0.02, name, fontsize=7,
+                rotation=90, ha='center', va='top',
+                color='black', fontweight='bold')
+
+    # Collect all size data points (allocations + GC events) for a continuous line
+    size_points = []
+
+    # Add allocation data points
+    if allocations:
+        for a in allocations:
+            size_points.append({
+                'time': a['timestamp'],
+                'size': a['size'] / (1024 * 1024)
+            })
+
+    # Add GC data points (before and after)
+    for gc in gc_starts:
+        size_points.append({
+            'time': gc['timestamp'],
+            'size': gc['sizeBeforeCollect'] / (1024 * 1024)
+        })
+        gc_end = gc_end_map.get(gc['version'])
+        if gc_end:
+            size_points.append({
+                'time': gc_end['timestamp'],
+                'size': gc_end['sizeAfterCollect'] / (1024 * 1024)
+            })
+
+    # Sort by time
+    size_points.sort(key=lambda x: x['time'])
+
+    # Plot size line
+    if size_points:
+        size_times = [normalize_time(p['time']) for p in size_points]
+        size_values = [p['size'] for p in size_points]
+        ax.plot(size_times, size_values, color='darkgreen', alpha=0.9, linewidth=2, label='Heap Size (MB)')
+
+    # Collect GC data
+    eden_gc_data = []
+    full_gc_data = []
+
+    for gc in gc_starts:
+        t = normalize_time(gc['timestamp'])
+        size_before = gc['sizeBeforeCollect'] / (1024 * 1024)
+        gc_end = gc_end_map.get(gc['version'])
+        size_after = gc_end['sizeAfterCollect'] / (1024 * 1024) if gc_end else size_before
+        gc_length = gc_end['gcLength'] if gc_end else 0
+
+        entry = {
+            'time': t,
+            'before': size_before,
+            'after': size_after,
+            'length': gc_length,
+        }
+
+        if gc['type'] == 'Eden':
+            eden_gc_data.append(entry)
+        else:
+            full_gc_data.append(entry)
+
+    # Plot Eden GC
+    if eden_gc_data:
+        for gc in eden_gc_data:
+            ax.plot([gc['time'], gc['time']], [gc['after'], gc['before']],
+                    'c-', linewidth=2, alpha=0.8)
+        eden_times = [gc['time'] for gc in eden_gc_data]
+        eden_before = [gc['before'] for gc in eden_gc_data]
+        eden_after = [gc['after'] for gc in eden_gc_data]
+        ax.scatter(eden_times, eden_before, c='cyan', s=30, marker='v',
+                   label='Eden GC (before)', zorder=5, edgecolors='darkblue', linewidths=0.5)
+        ax.scatter(eden_times, eden_after, c='cyan', s=30, marker='^',
+                   zorder=5, edgecolors='darkblue', linewidths=0.5)
+
+    # Plot Full GC
+    if full_gc_data:
+        for gc in full_gc_data:
+            ax.plot([gc['time'], gc['time']], [gc['after'], gc['before']],
+                    'r-', linewidth=3, alpha=0.9)
+        full_times = [gc['time'] for gc in full_gc_data]
+        full_before = [gc['before'] for gc in full_gc_data]
+        full_after = [gc['after'] for gc in full_gc_data]
+        ax.scatter(full_times, full_before, c='red', s=60, marker='v',
+                   label='Full GC (before)', zorder=6, edgecolors='darkred', linewidths=0.5)
+        ax.scatter(full_times, full_after, c='red', s=60, marker='^',
+                   zorder=6, edgecolors='darkred', linewidths=0.5)
+
+    # Configure axes
+    ax.set_xlabel('Time (seconds)', fontsize=14)
+    ax.set_ylabel('Heap Size (MB)', fontsize=14)
+    ax.set_title('GC Heap Statistics Over Time\n(Vertical bands = benchmark periods, Cyan = Eden GC, Red = Full GC)', fontsize=16)
+    ax.set_ylim(-y_max * 0.15, y_max)  # Extra space at bottom for labels
+    ax.set_xlim(0, normalize_time(max_time))
+
+    # Legend
+    ax.legend(loc='upper right', fontsize=11)
+
+    # Grid
+    ax.grid(True, alpha=0.3, which='both')
+    ax.axhline(y=0, color='black', linewidth=0.5)
+
+    # Summary stats
+    total_time = (max_time - min_time) / 1000
+    stats_text = (f'Duration: {total_time:.1f}s\n'
+                  f'Eden GCs: {len(eden_gc_data)}\n'
+                  f'Full GCs: {len(full_gc_data)}\n'
+                  f'Benchmarks: {len(benchmark_groups)}')
+    ax.text(0.01, 0.98, stats_text, transform=ax.transAxes, fontsize=11,
+            verticalalignment='top', horizontalalignment='left',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
+    plt.tight_layout()
+    plt.savefig(output_filename, dpi=150, bbox_inches='tight')
+    print(f"Saved plot to {output_filename}")
+
+    # === Second plot: with GC pause times ===
+    fig2, (ax1, ax2) = plt.subplots(2, 1, figsize=(24, 16), height_ratios=[3, 1], sharex=True)
+
+    # Top: Heap size with benchmarks
+    for i, (name, times) in enumerate(sorted_benchmarks):
+        start = normalize_time(times['start'])
+        end = normalize_time(times['end'])
+        color = colors[i % len(colors)]
+        rect = mpatches.Rectangle((start, 0), end - start, y_max,
+                                   alpha=0.2, facecolor=color, edgecolor=color, linewidth=0.5)
+        ax1.add_patch(rect)
+        mid = (start + end) / 2
+        ax1.text(mid, y_max * 0.98, name, fontsize=6,
+                 rotation=90, ha='center', va='top', color='black')
+
+    if size_points:
+        ax1.plot(size_times, size_values, color='darkgreen', alpha=0.9, linewidth=2, label='Heap Size (MB)')
+
+    if eden_gc_data:
+        for gc in eden_gc_data:
+            ax1.plot([gc['time'], gc['time']], [gc['after'], gc['before']], 'c-', linewidth=2, alpha=0.8)
+        ax1.scatter([gc['time'] for gc in eden_gc_data], [gc['before'] for gc in eden_gc_data],
+                    c='cyan', s=30, marker='v', label='Eden GC', zorder=5, edgecolors='darkblue', linewidths=0.5)
+        ax1.scatter([gc['time'] for gc in eden_gc_data], [gc['after'] for gc in eden_gc_data],
+                    c='cyan', s=30, marker='^', zorder=5, edgecolors='darkblue', linewidths=0.5)
+
+    if full_gc_data:
+        for gc in full_gc_data:
+            ax1.plot([gc['time'], gc['time']], [gc['after'], gc['before']], 'r-', linewidth=3, alpha=0.9)
+        ax1.scatter([gc['time'] for gc in full_gc_data], [gc['before'] for gc in full_gc_data],
+                    c='red', s=60, marker='v', label='Full GC', zorder=6, edgecolors='darkred', linewidths=0.5)
+        ax1.scatter([gc['time'] for gc in full_gc_data], [gc['after'] for gc in full_gc_data],
+                    c='red', s=60, marker='^', zorder=6, edgecolors='darkred', linewidths=0.5)
+
+    ax1.set_ylabel('Heap Size (MB)', fontsize=14)
+    ax1.set_title('GC Heap Statistics Over Time\n(Vertical bands = benchmark periods)', fontsize=16)
+    ax1.set_ylim(0, y_max)
+    ax1.legend(loc='upper right', fontsize=11)
+    ax1.grid(True, alpha=0.3)
+
+    # Bottom: GC pause times
+    if eden_gc_data:
+        ax2.bar([gc['time'] for gc in eden_gc_data], [gc['length'] for gc in eden_gc_data],
+                width=0.15, color='cyan', alpha=0.8, label='Eden GC', edgecolor='darkblue', linewidth=0.5)
+    if full_gc_data:
+        ax2.bar([gc['time'] for gc in full_gc_data], [gc['length'] for gc in full_gc_data],
+                width=0.15, color='red', alpha=0.8, label='Full GC', edgecolor='darkred', linewidth=0.5)
+
+    ax2.set_xlabel('Time (seconds)', fontsize=14)
+    ax2.set_ylabel('GC Pause (ms)', fontsize=14)
+    ax2.set_title('GC Pause Times', fontsize=12)
+    ax2.legend(loc='upper right', fontsize=11)
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    detail_filename = output_filename.replace('.png', '_detail.png')
+    plt.savefig(detail_filename, dpi=150, bbox_inches='tight')
+    print(f"Saved detailed plot to {detail_filename}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Plot JavaScriptCore GC heap statistics from log files.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    %(prog)s gc.log
+    %(prog)s gc.log output.png
+
+To generate the log file:
+    JSC_logHeapStatistics=true jsc script.js 2>&1 | tee gc.log
+""")
+    parser.add_argument('log_file', help='Path to the GC statistics log file')
+    parser.add_argument('output_file', nargs='?', default='gc_heap_stats.png',
+                        help='Output PNG file path (default: gc_heap_stats.png)')
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.log_file):
+        print(f"Error: Log file not found: {args.log_file}")
+        sys.exit(1)
+
+    plot_gc_stats(args.log_file, args.output_file)
+
+
+if __name__ == '__main__':
+    main()
