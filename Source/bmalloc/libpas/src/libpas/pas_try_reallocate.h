@@ -28,9 +28,11 @@
 
 #include "pas_bitfit_directory.h"
 #include "pas_deallocate.h"
+#include "pas_internal_config.h"
 #include "pas_large_map.h"
 #include "pas_malloc_stack_logging.h"
 #include "pas_mte.h"
+#include "pas_page_malloc.h"
 #include "pas_reallocate_free_mode.h"
 #include "pas_reallocate_heap_teleport_rule.h"
 #include "pas_try_allocate.h"
@@ -105,6 +107,33 @@ pas_try_allocate_for_reallocate_and_copy(
         if (verbose)
             pas_log("copying size %zu from %p to %p\n", copy_size, old_ptr, (void*)result.begin);
         PAS_PROFILE(TRY_REALLOCATE_AND_COPY, result.begin, old_ptr, copy_size);
+
+        /* Attempt page remapping for large copies.
+           Skip when MTE is active — MTE tags are stored in physical page
+           metadata and won't transfer correctly through VM remapping. */
+        if (!PAS_USE_MTE
+            && copy_size >= PAS_PAGE_REMAP_REALLOC_THRESHOLD) {
+            size_t page_size = pas_page_malloc_alignment();
+            if (pas_is_aligned((uintptr_t)old_ptr, page_size)
+                && pas_is_aligned(result.begin, page_size)) {
+                size_t remap_size = pas_round_down_to_power_of_2(copy_size, page_size);
+                if (remap_size >= page_size
+                    && pas_page_malloc_try_remap_pages(
+                           (void*)result.begin, old_ptr, remap_size)) {
+                    /* Remapped full pages. Copy any sub-page tail bytes. */
+                    size_t tail = copy_size - remap_size;
+                    if (tail)
+                        memcpy((char*)(void*)result.begin + remap_size,
+                               (char*)old_ptr + remap_size, tail);
+                    if (verbose) {
+                        pas_log("\t...done remapping+copying size %zu from %p to %p\n",
+                                copy_size, old_ptr, (void*)result.begin);
+                    }
+                    return result;
+                }
+            }
+        }
+
         PAS_MTE_HANDLE(TRY_REALLOCATE_AND_COPY, result.begin, old_ptr, copy_size);
         memcpy((void*)result.begin, old_ptr, copy_size);
         if (verbose)

@@ -80,6 +80,13 @@ PAS_API void pas_page_malloc_commit_without_mprotect(
 PAS_API void pas_page_malloc_decommit_without_mprotect(
     void* base, size_t size, pas_mmap_capability mmap_capability);
 
+/* Attempt to remap pages from src to dst without copying data.
+   Both src and dst must be page-aligned. remap_size must be a multiple of
+   pas_page_malloc_alignment(). On success, the physical pages previously
+   at src are now at dst, and src is replaced with fresh zero pages.
+   Returns true on success, false on failure (caller should fall back to memcpy). */
+PAS_API bool pas_page_malloc_try_remap_pages(void* dst, void* src, size_t remap_size);
+
 PAS_END_EXTERN_C;
 
 #endif /* PAS_PAGE_MALLOC_H */

@@ -38,8 +38,15 @@
 #include <unistd.h>
 #endif
 #if PAS_OS(DARWIN)
+#include <mach/mach_init.h>
 #include <mach/vm_page_size.h>
 #include <mach/vm_statistics.h>
+
+/* Forward-declare mach_vm_remap to avoid requiring the internal SDK.
+   Same pattern as WTF/wtf/spi/cocoa/MachVMSPI.h. */
+kern_return_t mach_vm_remap(vm_map_t targetTask, mach_vm_address_t*, mach_vm_size_t,
+    mach_vm_offset_t mask, int flags, vm_map_t srcTask, mach_vm_address_t srcAddress,
+    boolean_t copy, vm_prot_t* currentProtection, vm_prot_t* maximumProtection, vm_inherit_t);
 #endif
 
 #include "pas_internal_config.h"
@@ -477,13 +484,13 @@ void pas_page_malloc_decommit_without_mprotect(void* ptr, size_t size, pas_mmap_
 void pas_page_malloc_deallocate(void* ptr, size_t size)
 {
     uintptr_t ptr_as_int;
-    
+
     ptr_as_int = (uintptr_t)ptr;
     PAS_PROFILE(PAGE_DEALLOCATION, ptr_as_int);
     PAS_ASSERT(pas_is_aligned(ptr_as_int, pas_page_malloc_alignment()));
     PAS_ASSERT(pas_is_aligned(size, pas_page_malloc_alignment()));
     ptr = (void*)ptr_as_int;
-    
+
     if (!size)
         return;
 
@@ -494,6 +501,83 @@ void pas_page_malloc_deallocate(void* ptr, size_t size)
 #endif
 
     pas_page_malloc_num_allocated_bytes -= size;
+}
+
+bool pas_page_malloc_try_remap_pages(void* dst, void* src, size_t remap_size)
+{
+    size_t page_size;
+
+    page_size = pas_page_malloc_alignment();
+
+    PAS_ASSERT(pas_is_aligned((uintptr_t)dst, page_size));
+    PAS_ASSERT(pas_is_aligned((uintptr_t)src, page_size));
+    PAS_ASSERT(pas_is_aligned(remap_size, page_size));
+    PAS_ASSERT(remap_size);
+
+#if PAS_OS(DARWIN)
+    {
+        mach_vm_address_t dst_addr;
+        vm_prot_t cur_prot;
+        vm_prot_t max_prot;
+        kern_return_t kr;
+        void* mmap_result;
+
+        dst_addr = (mach_vm_address_t)(uintptr_t)dst;
+        kr = mach_vm_remap(
+            mach_task_self(),
+            &dst_addr,
+            remap_size,
+            0, /* mask */
+            VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE,
+            mach_task_self(),
+            (mach_vm_address_t)(uintptr_t)src,
+            FALSE, /* copy — share physical pages, no data copy */
+            &cur_prot,
+            &max_prot,
+            VM_INHERIT_DEFAULT);
+
+        if (kr != KERN_SUCCESS)
+            return false;
+
+        /* Replace old mapping at src with fresh zero pages.
+           This breaks the sharing established by mach_vm_remap.
+           Same pattern as pas_page_malloc_zero_fill(). */
+        mmap_result = mmap(src, remap_size, PROT_READ | PROT_WRITE,
+                           MAP_PRIVATE | MAP_ANON | MAP_FIXED | PAS_NORESERVE,
+                           PAS_VM_TAG, 0);
+        PAS_ASSERT(mmap_result == src);
+
+        return true;
+    }
+#elif PAS_OS(LINUX)
+    {
+        void* mremap_result;
+        void* mmap_result;
+
+        mremap_result = mremap(src, remap_size, remap_size,
+                               MREMAP_FIXED | MREMAP_MAYMOVE, dst);
+
+        if (mremap_result == MAP_FAILED)
+            return false;
+
+        PAS_ASSERT(mremap_result == dst);
+
+        /* Re-establish zero-filled mapping at src since mremap with
+           MREMAP_FIXED unmaps the old address. */
+        mmap_result = mmap(src, remap_size, PROT_READ | PROT_WRITE,
+                           MAP_PRIVATE | MAP_ANON | MAP_FIXED | PAS_NORESERVE,
+                           PAS_VM_TAG, 0);
+        PAS_ASSERT(mmap_result == src);
+
+        return true;
+    }
+#else
+    PAS_UNUSED_PARAM(dst);
+    PAS_UNUSED_PARAM(src);
+    PAS_UNUSED_PARAM(remap_size);
+    PAS_UNUSED_PARAM(page_size);
+    return false;
+#endif
 }
 
 #endif /* LIBPAS_ENABLED */

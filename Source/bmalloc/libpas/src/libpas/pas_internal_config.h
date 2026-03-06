@@ -69,6 +69,11 @@
 /* Use VA-based memory zeroing when the allocation size exceeds this threshold. */
 #define PAS_VA_BASED_ZERO_MEMORY_SHIFT   24
 
+/* Minimum copy size (in bytes) to attempt VM page remapping in realloc
+   instead of memcpy. Below this threshold, memcpy is likely faster
+   due to syscall overhead. */
+#define PAS_PAGE_REMAP_REALLOC_THRESHOLD ((size_t)131072) /* 128KB */
+
 /* Default amount of padding between backing allocations of different partial views within a
  * single segregated shared page. Most useful for heaps which allocate user-facing objects. */
 #define PAS_SMALL_PARTIAL_VIEW_PADDING   16
