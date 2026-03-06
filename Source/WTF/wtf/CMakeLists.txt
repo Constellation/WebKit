@@ -284,6 +284,7 @@ set(WTF_PUBLIC_HEADERS
     RobinHoodHashMap.h
     RobinHoodHashSet.h
     RobinHoodHashTable.h
+    SwissHashTable.h
     RunLoop.h
     RuntimeApplicationChecks.h
     SHA1.h

@@ -184,6 +184,7 @@ template<typename E, E...> struct EnumValues;
 template<typename> struct HashTraits;
 
 struct HashTableTraits;
+struct SwissHashTableTraits;
 struct IdentityExtractor;
 template<typename T> struct KeyValuePairKeyExtractor;
 template<typename KeyTraits, typename MappedTraits> struct KeyValuePairTraits;

@@ -469,6 +469,7 @@
 		DD3DC91827A4BF8E007E5B61 /* RecursiveLockAdapter.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDE87F61DFD07CC0064C390 /* RecursiveLockAdapter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD3DC91927A4BF8E007E5B61 /* WeakRandom.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3501631BB258C800F0A2A3 /* WeakRandom.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD3DC91A27A4BF8E007E5B61 /* RobinHoodHashTable.h in Headers */ = {isa = PBXBuildFile; fileRef = E31CF0A5261058580036E673 /* RobinHoodHashTable.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		6F0E533ACE48BF1595BE443B /* SwissHashTable.h in Headers */ = {isa = PBXBuildFile; fileRef = 2104F6418906E709F771918E /* SwissHashTable.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD3DC91B27A4BF8E007E5B61 /* Box.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F93274A1C17F4B700CF6564 /* Box.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD3DC91C27A4BF8E007E5B61 /* Brigand.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C3F72391D78811900674E26 /* Brigand.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD3DC91D27A4BF8E007E5B61 /* RefPtr.h in Headers */ = {isa = PBXBuildFile; fileRef = A8A47303151A825B004123FF /* RefPtr.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1957,6 +1958,7 @@
 		E311FB161F0A568B003C08DE /* ThreadGroup.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadGroup.h; sourceTree = "<group>"; };
 		E3149A3A228BDCAB00BFA6C7 /* ConcurrentBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConcurrentBuffer.cpp; sourceTree = "<group>"; };
 		E31CF0A5261058580036E673 /* RobinHoodHashTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RobinHoodHashTable.h; sourceTree = "<group>"; };
+		2104F6418906E709F771918E /* SwissHashTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwissHashTable.h; sourceTree = "<group>"; };
 		E3200AB41E9A536D003B59D2 /* PlatformRegisters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformRegisters.h; sourceTree = "<group>"; };
 		E320BFE32A7CB712003C0B3A /* unumberrangeformatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unumberrangeformatter.h; sourceTree = "<group>"; };
 		E320BFE42A7CB712003C0B3A /* localematcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = localematcher.h; sourceTree = "<group>"; };
@@ -2751,6 +2753,7 @@
 				93B07ED626B86BB500A09B34 /* SuspendableWorkQueue.h */,
 				9758E8EF2DDCA639004434FD /* SwiftBridging.h */,
 				5C12460D2DC25A130077D423 /* SwiftCXXThunk.h */,
+				2104F6418906E709F771918E /* SwissHashTable.h */,
 				5597F82C1D94B9970066BC21 /* SynchronizedFixedQueue.h */,
 				E3E158251EADA53C004A079D /* SystemFree.h */,
 				E4D2AE4D268A4C7F00DFEA02 /* SystemMalloc.h */,
@@ -3912,6 +3915,7 @@
 				E396C11E2BE885D9000CBAE1 /* sve.h in Headers */,
 				9758E8F02DDCA639004434FD /* SwiftBridging.h in Headers */,
 				5C12460E2DC25A130077D423 /* SwiftCXXThunk.h in Headers */,
+				6F0E533ACE48BF1595BE443B /* SwissHashTable.h in Headers */,
 				DDF307DA27C086DF006A526F /* SymbolImpl.h in Headers */,
 				DDF307EC27C086DF006A526F /* SymbolRegistry.h in Headers */,
 				DD3DC86727A4BF8E007E5B61 /* SynchronizedFixedQueue.h in Headers */,
