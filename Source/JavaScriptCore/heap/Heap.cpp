@@ -1503,6 +1503,12 @@ NEVER_INLINE bool Heap::runBeginPhase(GCConductor conn)
 
     m_parallelMarkersShouldExit = false;
 
+    m_currentMarkerCount = initialGCMarkerCount();
+    // Pass m_currentMarkerCount - 1 because the main thread also marks
+    unsigned helperThreadCount = m_currentMarkerCount > 1 ? m_currentMarkerCount - 1 : 0;
+
+    dataLogIf(Options::logGC() == GCLogging::Verbose, "[GC Scaling] runBeginPhase: starting with ", m_currentMarkerCount, " markers\n");
+
     m_helperClient.setFunction(
         [this] () {
             SlotVisitor* visitor;
@@ -1523,7 +1529,8 @@ NEVER_INLINE bool Heap::runBeginPhase(GCConductor conn)
                 Locker locker { m_parallelSlotVisitorLock };
                 m_availableParallelSlotVisitors.append(visitor);
             }
-        });
+        },
+        helperThreadCount);
 
     SlotVisitor& visitor = *m_collectorSlotVisitor;
 
@@ -1612,6 +1619,9 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
     }
         
     m_scheduler->synchronousDrainingDidStall();
+
+    // Consider scaling up marker threads based on scheduler recommendation
+    considerScalingMarkerThreads();
 
     // This is kinda tricky. The termination check looks at:
     //
@@ -2703,6 +2713,26 @@ bool Heap::shouldDoFullCollection()
     if (!m_currentRequest.scope)
         return m_shouldDoFullCollection || overCriticalMemoryThreshold();
     return *m_currentRequest.scope == CollectionScope::Full;
+}
+
+unsigned Heap::initialGCMarkerCount() const
+{
+    return std::min(Options::initialNumberOfGCMarkers(), Options::maxGCMarkersPerVM());
+}
+
+void Heap::considerScalingMarkerThreads()
+{
+    dataLogIf(Options::logGC() == GCLogging::Verbose, "[GC Scaling] considerScalingMarkerThreads called, currentMarkerCount=", m_currentMarkerCount, "\n");
+    // Query scheduler for recommendation (scheduler only provides info)
+    unsigned recommended = m_scheduler->recommendedNumberOfGCMarkers(m_currentMarkerCount);
+
+    // Heap decides whether to act on the recommendation
+    if (recommended > m_currentMarkerCount) {
+        dataLogIf(Options::logGC() == GCLogging::Verbose, "[GC Scaling] Increase # of GC markers ", m_currentMarkerCount, " -> ", recommended, "\n");
+        m_currentMarkerCount = recommended;
+        // Update this VM's thread limit and ensure pool has threads
+        m_helperClient.setMaxThreadsForCurrentTask(m_currentMarkerCount > 1 ? m_currentMarkerCount - 1 : 0);
+    }
 }
 
 void Heap::addLogicallyEmptyWeakBlock(WeakBlock* block)

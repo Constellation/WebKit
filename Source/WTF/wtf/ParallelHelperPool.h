@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <limits>
 #include <wtf/Box.h>
 #include <wtf/CheckedRef.h>
 #include <wtf/Condition.h>
@@ -87,6 +88,7 @@ private:
     friend class Thread;
 
     void didMakeWorkAvailable(const AbstractLocker&) WTF_REQUIRES_LOCK(m_lock);
+    void ensureThreadsWithLock(const AbstractLocker&, unsigned numThreads) WTF_REQUIRES_LOCK(m_lock);
 
     bool NODELETE hasClientWithTask() WTF_REQUIRES_LOCK(m_lock);
     ParallelHelperClient* NODELETE getClientWithTask() WTF_REQUIRES_LOCK(m_lock);
@@ -175,6 +177,7 @@ public:
     WTF_EXPORT_PRIVATE ~ParallelHelperClient();
 
     WTF_EXPORT_PRIVATE void setTask(RefPtr<SharedTask<void ()>>&&);
+    WTF_EXPORT_PRIVATE void setTask(RefPtr<SharedTask<void ()>>&&, unsigned maxThreads);
 
     template<typename Functor>
     void setFunction(const Functor& functor)
@@ -182,7 +185,17 @@ public:
         setTask(createSharedTask<void ()>(functor));
     }
 
+    template<typename Functor>
+    void setFunction(const Functor& functor, unsigned maxThreads)
+    {
+        setTask(createSharedTask<void ()>(functor), maxThreads);
+    }
+
     WTF_EXPORT_PRIVATE void finish();
+
+    // Update the maximum threads this client can use for the current task.
+    // Also ensures the pool has enough threads to satisfy the request.
+    WTF_EXPORT_PRIVATE void setMaxThreadsForCurrentTask(unsigned maxThreads);
 
     WTF_EXPORT_PRIVATE void doSomeHelping();
 
@@ -215,6 +228,7 @@ private:
     const RefPtr<ParallelHelperPool> m_pool;
     RefPtr<SharedTask<void ()>> m_task;
     unsigned m_numActive { 0 };
+    unsigned m_maxThreadsForTask { std::numeric_limits<unsigned>::max() };
 };
 
 } // namespace WTF

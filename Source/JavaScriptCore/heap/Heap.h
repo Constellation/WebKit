@@ -672,8 +672,11 @@ private:
     void reportExtraMemoryAllocatedPossiblyFromAlreadyMarkedCell(const JSCell*, size_t);
     JS_EXPORT_PRIVATE void reportExtraMemoryAllocatedSlowCase(GCDeferralContext*, const JSCell*, size_t);
     JS_EXPORT_PRIVATE void deprecatedReportExtraMemorySlowCase(size_t);
-    
+
     size_t totalBytesAllocatedThisCycle() { return m_nonOversizedBytesAllocatedThisCycle + m_oversizedBytesAllocatedThisCycle; }
+
+    unsigned initialGCMarkerCount() const;
+    void considerScalingMarkerThreads();
 
     bool shouldCollectInCollectorThread(const AbstractLocker&);
     void collectInCollectorThread();
@@ -934,6 +937,7 @@ private:
     std::unique_ptr<MarkStackArray> m_sharedMutatorMarkStack;
     unsigned m_numberOfActiveParallelMarkers { 0 };
     unsigned m_numberOfWaitingParallelMarkers { 0 };
+    unsigned m_currentMarkerCount { 0 };
 
     ConcurrentPtrHashSet m_opaqueRoots;
     static constexpr size_t s_blockFragmentLength = 32;

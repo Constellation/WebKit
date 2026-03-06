@@ -60,6 +60,20 @@ void ParallelHelperClient::setTask(RefPtr<SharedTask<void ()>>&& task)
     Locker locker { *m_pool->m_lock };
     RELEASE_ASSERT(!m_task);
     m_task = WTF::move(task);
+    m_maxThreadsForTask = std::numeric_limits<unsigned>::max();
+    m_pool->didMakeWorkAvailable(locker);
+}
+
+void ParallelHelperClient::setTask(RefPtr<SharedTask<void ()>>&& task, unsigned maxThreads)
+{
+    Locker locker { *m_pool->m_lock };
+    RELEASE_ASSERT(!m_task);
+    m_task = WTF::move(task);
+    m_maxThreadsForTask = maxThreads;
+
+    // Ensure pool has enough threads for this request
+    m_pool->ensureThreadsWithLock(locker, maxThreads);
+
     m_pool->didMakeWorkAvailable(locker);
 }
 
@@ -92,15 +106,28 @@ void ParallelHelperClient::runTaskInParallel(RefPtr<SharedTask<void ()>>&& task)
 void ParallelHelperClient::finishWithLock()
 {
     m_task = nullptr;
+    m_maxThreadsForTask = std::numeric_limits<unsigned>::max();
     while (m_numActive)
         m_pool->m_workCompleteCondition.wait(*m_pool->m_lock);
+}
+
+void ParallelHelperClient::setMaxThreadsForCurrentTask(unsigned maxThreads)
+{
+    Locker locker { *m_pool->m_lock };
+    m_maxThreadsForTask = maxThreads;
+    m_pool->ensureThreadsWithLock(locker, maxThreads);
+    m_pool->didMakeWorkAvailable(locker);
 }
 
 RefPtr<SharedTask<void ()>> ParallelHelperClient::claimTask()
 {
     if (!m_task)
         return nullptr;
-    
+
+    // Enforce per-client thread limit
+    if (m_numActive >= m_maxThreadsForTask)
+        return nullptr;
+
     m_numActive++;
     return m_task;
 }
@@ -153,7 +180,12 @@ ParallelHelperPool::~ParallelHelperPool()
 void ParallelHelperPool::ensureThreads(unsigned numThreads)
 {
     Locker locker { *m_lock };
-    if (numThreads < m_numThreads)
+    ensureThreadsWithLock(locker, numThreads);
+}
+
+void ParallelHelperPool::ensureThreadsWithLock(const AbstractLocker& locker, unsigned numThreads)
+{
+    if (numThreads <= m_numThreads)
         return;
     m_numThreads = numThreads;
     if (getClientWithTask())
@@ -171,6 +203,8 @@ void ParallelHelperPool::doSomeHelping()
             return;
         assertIsHeld(*client->m_pool->m_lock);
         task = client->claimTask();
+        if (!task)
+            return;
     }
 
     client->runTask(task);
@@ -201,7 +235,9 @@ private:
         if (m_client) {
             assertIsHeld(*m_client->m_pool->m_lock);
             m_task = m_client->claimTask();
-            return PollResult::Work;
+            if (m_task)
+                return PollResult::Work;
+            m_client = nullptr;
         }
         return PollResult::Wait;
     }
@@ -237,12 +273,12 @@ ParallelHelperClient* ParallelHelperPool::getClientWithTask()
     unsigned startIndex = m_random.getUint32(m_clients.size());
     for (unsigned index = startIndex; index < m_clients.size(); ++index) {
         ParallelHelperClient* client = m_clients[index];
-        if (client->m_task)
+        if (client->m_task && client->m_numActive < client->m_maxThreadsForTask)
             return client;
     }
     for (unsigned index = 0; index < startIndex; ++index) {
         ParallelHelperClient* client = m_clients[index];
-        if (client->m_task)
+        if (client->m_task && client->m_numActive < client->m_maxThreadsForTask)
             return client;
     }
 

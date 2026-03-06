@@ -65,10 +65,15 @@ public:
     virtual MonotonicTime timeToResume() = 0; // Call while stopped, to ask when to resume.
     
     virtual void log();
-    
+
     bool shouldStop(); // Call while resumed, to ask if we should stop now.
     bool shouldResume(); // Call while stopped, to ask if we should resume now.
-    
+
+    // Returns the recommended number of GC marker threads based on current state.
+    // This is advisory only - the caller decides whether to act on it.
+    // Default returns current marker count (no change).
+    virtual unsigned recommendedNumberOfGCMarkers(unsigned currentCount) { return currentCount; }
+
     virtual void endCollection() = 0;
 };
 

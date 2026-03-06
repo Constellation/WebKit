@@ -58,9 +58,11 @@ public:
     MonotonicTime timeToResume() final;
     
     void log() final;
-    
+
     void endCollection() final;
-    
+
+    unsigned recommendedNumberOfGCMarkers(unsigned currentCount) final;
+
 private:
     class Snapshot;
     friend class Snapshot;
@@ -83,6 +85,10 @@ private:
     double m_bytesAllocatedThisCycleAtTheBeginning { 0 };
     double m_bytesAllocatedThisCycleAtTheEnd { 0 };
     MonotonicTime m_startTime;
+
+    // Adaptive thread scaling tracking
+    MonotonicTime m_lastScalingCheckTime;
+    size_t m_lastScalingBytesVisited { 0 };
 };
 
 } // namespace JSC

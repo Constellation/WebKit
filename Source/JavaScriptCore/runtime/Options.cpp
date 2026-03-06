@@ -582,7 +582,9 @@ static void overrideDefaults()
     }
 
 #if OS(DARWIN) && CPU(ARM64)
-    Options::numberOfGCMarkers() = std::min<unsigned>(4, kernTCSMAwareNumberOfProcessorCores());
+    Options::numberOfGCMarkers() = std::min<unsigned>(8, kernTCSMAwareNumberOfProcessorCores());
+    Options::initialNumberOfGCMarkers() = std::min<unsigned>(4, kernTCSMAwareNumberOfProcessorCores());
+    Options::maxGCMarkersPerVM() = std::min<unsigned>(8, kernTCSMAwareNumberOfProcessorCores());
 
     Options::minNumberOfWorklistThreads() = 1;
     Options::maxNumberOfWorklistThreads() = std::min<unsigned>(4, kernTCSMAwareNumberOfProcessorCores());

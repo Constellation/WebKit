@@ -393,6 +393,12 @@ bool hasCapacityToUseLargeGigacage();
     \
     v(Unsigned, minimumNumberOfScansBetweenRebalance, 100, Normal, nullptr) \
     v(Unsigned, numberOfGCMarkers, computeNumberOfGCMarkers(8), Normal, nullptr) \
+    v(Unsigned, initialNumberOfGCMarkers, computeNumberOfGCMarkers(8), Normal, "Initial number of GC markers before adaptive scaling"_s) \
+    v(Unsigned, maxGCMarkersPerVM, computeNumberOfGCMarkers(8), Normal, "Maximum GC markers per VM for adaptive scaling"_s) \
+    v(Double, gcMarkerScalingCheckIntervalMS, 1.0, Normal, "Minimum interval (ms) between GC marker scaling checks"_s) \
+    v(Size, gcMarkerScalingMinBytesVisited, 8 * MB, Normal, "Minimum total bytes visited before considering scaling up GC markers"_s) \
+    v(Size, gcMarkerScalingBytesVisitedRateThreshold, 50 * MB, Normal, "Bytes visited per second rate threshold to trigger marker scaling"_s) \
+    v(Double, gcMarkerScalingHeadroomThreshold, 0.3, Normal, "Headroom fullness threshold to trigger marker scaling"_s) \
     v(Bool, useParallelMarkingConstraintSolver, true, Normal, nullptr) \
     v(Unsigned, opaqueRootMergeThreshold, 1000, Normal, nullptr) \
     v(Unsigned, maxHeapSizeAsRAMSizeMultiple, 0, Normal, nullptr) \

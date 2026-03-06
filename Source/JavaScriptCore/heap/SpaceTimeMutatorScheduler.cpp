@@ -75,9 +75,13 @@ void SpaceTimeMutatorScheduler::beginCollection()
     m_startTime = MonotonicTime::now();
 
     m_bytesAllocatedThisCycleAtTheBeginning = bytesAllocatedThisCycleImpl();
-    m_bytesAllocatedThisCycleAtTheEnd = 
+    m_bytesAllocatedThisCycleAtTheEnd =
         Options::concurrentGCMaxHeadroom() *
         std::max<double>(m_bytesAllocatedThisCycleAtTheBeginning, m_heap.m_maxEdenSize);
+
+    // Initialize adaptive scaling state
+    m_lastScalingCheckTime = m_startTime;
+    m_lastScalingBytesVisited = 0;
 }
 
 void SpaceTimeMutatorScheduler::didStop()
@@ -217,6 +221,53 @@ double SpaceTimeMutatorScheduler::phase(const Snapshot& snapshot)
 bool SpaceTimeMutatorScheduler::shouldBeResumed(const Snapshot& snapshot)
 {
     return phase(snapshot) > collectorUtilization(snapshot);
+}
+
+unsigned SpaceTimeMutatorScheduler::recommendedNumberOfGCMarkers(unsigned currentCount)
+{
+    Seconds minimumCheckInterval = Seconds::fromMilliseconds(Options::gcMarkerScalingCheckIntervalMS());
+
+    MonotonicTime now = MonotonicTime::now();
+    Seconds deltaTime = now - m_lastScalingCheckTime;
+    if (deltaTime < minimumCheckInterval)
+        return currentCount;
+
+    Snapshot snapshot(*this);
+    size_t currentBytesVisited = m_heap.bytesVisited();
+    double currentHeadroomFullness = headroomFullness(snapshot);
+
+    double bytesVisitedRate = 0;
+    if (deltaTime > 0_s)
+        bytesVisitedRate = static_cast<double>(currentBytesVisited - m_lastScalingBytesVisited) / deltaTime.seconds();
+
+    m_lastScalingCheckTime = now;
+    m_lastScalingBytesVisited = currentBytesVisited;
+
+    unsigned maxMarkers = Options::maxGCMarkersPerVM();
+    bool sufficientBytesVisited = currentBytesVisited > Options::gcMarkerScalingMinBytesVisited();
+    bool highVisitRate = bytesVisitedRate > static_cast<double>(Options::gcMarkerScalingBytesVisitedRateThreshold());
+    bool headroomPressure = currentHeadroomFullness > Options::gcMarkerScalingHeadroomThreshold();
+
+    if (sufficientBytesVisited && highVisitRate && headroomPressure && currentCount < maxMarkers) {
+        // Scale proportionally to how much the rate exceeds the threshold.
+        double rateRatio = bytesVisitedRate / static_cast<double>(Options::gcMarkerScalingBytesVisitedRateThreshold());
+        unsigned increment = std::max(1u, static_cast<unsigned>(rateRatio));
+        unsigned recommended = std::min(currentCount + increment, maxMarkers);
+        dataLogIf(Options::logGC() == GCLogging::Verbose,
+            "[GC Scaling] SCALE UP: visited=", currentBytesVisited / KB, "kb",
+            " rate=", static_cast<size_t>(bytesVisitedRate / MB), "MB/s",
+            " headroom=", format("%.3lf", currentHeadroomFullness),
+            " markers ", currentCount, " -> ", recommended, "\n");
+        return recommended;
+    }
+
+    dataLogIf(Options::logGC() == GCLogging::Verbose,
+        "[GC Scaling] no scale: visited=", currentBytesVisited / KB, "kb",
+        " rate=", static_cast<size_t>(bytesVisitedRate / MB), "MB/s",
+        " headroom=", format("%.3lf", currentHeadroomFullness),
+        " markers=", currentCount, "\n");
+
+    return currentCount;
 }
 
 } // namespace JSC
