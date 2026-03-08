@@ -43,7 +43,6 @@
 #include "JSBigInt.h"
 #include "JSCInlines.h"
 #include "JSCellButterfly.h"
-#include "JSTemplateObjectDescriptor.h"
 #include "Options.h"
 #include "PrivateFieldPutKind.h"
 #include "StrongInlines.h"
@@ -3421,14 +3420,11 @@ JSString* BytecodeGenerator::addStringConstant(const Identifier& identifier)
     return stringInMap;
 }
 
-RegisterID* BytecodeGenerator::addTemplateObjectConstant(Ref<TemplateObjectDescriptor>&& descriptor, int endOffset)
+RegisterID* BytecodeGenerator::addTemplateObjectConstant(Ref<TemplateObjectDescriptor>&& descriptor)
 {
-    auto result = m_templateObjectDescriptorSet.add(WTF::move(descriptor));
-    JSTemplateObjectDescriptor* descriptorValue = m_templateDescriptorMap.ensure(endOffset, [&] {
-        return JSTemplateObjectDescriptor::create(vm(), result.iterator->copyRef(), endOffset);
-    }).iterator->value;
+    unsigned descriptorIndex = m_codeBlock->addUnlinkedTemplateObjectDescriptor(WTF::move(descriptor));
     int index = addConstantIndex();
-    m_codeBlock->addConstant(descriptorValue);
+    m_codeBlock->addConstant(jsNumber(descriptorIndex), SourceCodeRepresentation::TemplateObjectDescriptor);
     return &m_constantPoolRegisters[index];
 }
 
@@ -4787,7 +4783,7 @@ RegisterID* BytecodeGenerator::emitGetTemplateObject(RegisterID* dst, TaggedTemp
         else
             cookedStrings.append(string->cooked()->impl());
     }
-    RefPtr<RegisterID> constant = addTemplateObjectConstant(TemplateObjectDescriptor::create(WTF::move(rawStrings), WTF::move(cookedStrings)), taggedTemplate->endOffset());
+    RefPtr<RegisterID> constant = addTemplateObjectConstant(TemplateObjectDescriptor::create(WTF::move(rawStrings), WTF::move(cookedStrings), taggedTemplate->endOffset()));
     if (!dst)
         return constant.unsafeGet();
     return move(dst, constant.get());

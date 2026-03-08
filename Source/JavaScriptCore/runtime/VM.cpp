@@ -88,7 +88,6 @@
 #include "JSScriptFetcherInlines.h"
 #include "JSSet.h"
 #include "JSSourceCodeInlines.h"
-#include "JSTemplateObjectDescriptorInlines.h"
 #include "JSToWasm.h"
 #include "LLIntData.h"
 #include "LLIntExceptions.h"
@@ -362,7 +361,6 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
     scriptFetchParametersStructure.setWithoutWriteBarrier(JSScriptFetchParameters::createStructure(*this, nullptr, jsNull()));
     structureChainStructure.setWithoutWriteBarrier(StructureChain::createStructure(*this, nullptr, jsNull()));
     sparseArrayValueMapStructure.setWithoutWriteBarrier(SparseArrayValueMap::createStructure(*this, nullptr, jsNull()));
-    templateObjectDescriptorStructure.setWithoutWriteBarrier(JSTemplateObjectDescriptor::createStructure(*this, nullptr, jsNull()));
     unlinkedFunctionExecutableStructure.setWithoutWriteBarrier(UnlinkedFunctionExecutable::createStructure(*this, nullptr, jsNull()));
     unlinkedProgramCodeBlockStructure.setWithoutWriteBarrier(UnlinkedProgramCodeBlock::createStructure(*this, nullptr, jsNull()));
     unlinkedEvalCodeBlockStructure.setWithoutWriteBarrier(UnlinkedEvalCodeBlock::createStructure(*this, nullptr, jsNull()));
@@ -1877,7 +1875,6 @@ void VM::visitAggregateImpl(Visitor& visitor)
     visitor.append(scriptFetchParametersStructure);
     visitor.append(structureChainStructure);
     visitor.append(sparseArrayValueMapStructure);
-    visitor.append(templateObjectDescriptorStructure);
     visitor.append(unlinkedFunctionExecutableStructure);
     visitor.append(unlinkedProgramCodeBlockStructure);
     visitor.append(unlinkedEvalCodeBlockStructure);

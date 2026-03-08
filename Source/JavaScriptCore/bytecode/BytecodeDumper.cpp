@@ -155,6 +155,9 @@ void CodeBlockBytecodeDumper<Block>::dumpConstants()
             case SourceCodeRepresentation::SymbolTable:
                 sourceCodeRepresentationDescription = ": in source as symbol-table-index";
                 break;
+            case SourceCodeRepresentation::TemplateObjectDescriptor:
+                sourceCodeRepresentationDescription = ": in source as template-object-descriptor-index";
+                break;
             }
             this->m_out.printf("   k%u = %s%s\n", static_cast<unsigned>(i), toCString(constant.get()).data(), sourceCodeRepresentationDescription);
             ++i;

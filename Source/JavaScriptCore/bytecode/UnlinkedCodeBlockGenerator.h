@@ -27,6 +27,7 @@
 #pragma once
 
 #include "UnlinkedCodeBlock.h"
+#include "UnlinkedSymbolTable.h"
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 
@@ -171,7 +172,18 @@ public:
         return size;
     }
 
-    unsigned addUnlinkedSymbolTable(Ref<UnlinkedSymbolTable>&& table) { return m_codeBlock->addUnlinkedSymbolTable(std::move(table)); }
+    unsigned addUnlinkedSymbolTable(Ref<UnlinkedSymbolTable>&& table)
+    {
+        unsigned index = m_unlinkedSymbolTables.size();
+        m_unlinkedSymbolTables.append(std::move(table));
+        return index;
+    }
+    unsigned addUnlinkedTemplateObjectDescriptor(Ref<TemplateObjectDescriptor>&& descriptor)
+    {
+        unsigned index = m_unlinkedTemplateObjectDescriptors.size();
+        m_unlinkedTemplateObjectDescriptors.append(std::move(descriptor));
+        return index;
+    }
 
     size_t numberOfIdentifiers() const { return m_identifiers.size(); }
     const Identifier& identifier(int index) const { return m_identifiers[index]; }
@@ -212,6 +224,8 @@ private:
     Vector<SourceCodeRepresentation> m_constantsSourceCodeRepresentation;
     Vector<WriteBarrier<UnlinkedFunctionExecutable>> m_functionDecls;
     Vector<WriteBarrier<UnlinkedFunctionExecutable>> m_functionExprs;
+    Vector<Ref<UnlinkedSymbolTable>> m_unlinkedSymbolTables;
+    Vector<Ref<TemplateObjectDescriptor>> m_unlinkedTemplateObjectDescriptors;
     ExpressionInfo::Encoder m_expressionInfoEncoder;
     OutOfLineJumpTargets m_outOfLineJumpTargets;
     // In RareData.

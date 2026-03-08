@@ -33,7 +33,6 @@
 #include "JSCBytecodeCacheVersion.h"
 #include "JSCInlines.h"
 #include "JSCellButterfly.h"
-#include "JSTemplateObjectDescriptor.h"
 #include "ScopedArgumentsTable.h"
 #include "SourceCodeKey.h"
 #include "SourceProvider.h"
@@ -1249,9 +1248,9 @@ private:
     CachedPrivateNameEnvironment m_privateNames;
 };
 
-class CachedUnlinkedSymbolTableVector : public VariableLengthObject<Vector<Ref<UnlinkedSymbolTable>>> {
+class CachedUnlinkedSymbolTableVector : public VariableLengthObject<FixedVector<Ref<UnlinkedSymbolTable>>> {
 public:
-    void encode(Encoder& encoder, const Vector<Ref<UnlinkedSymbolTable>>& vector)
+    void encode(Encoder& encoder, const FixedVector<Ref<UnlinkedSymbolTable>>& vector)
     {
         m_size = vector.size();
         if (!m_size)
@@ -1261,14 +1260,68 @@ public:
             buffer[i].encode(encoder, vector[i].get());
     }
 
-    void decode(Decoder& decoder, Vector<Ref<UnlinkedSymbolTable>>& vector) const
+    void decode(Decoder& decoder, FixedVector<Ref<UnlinkedSymbolTable>>& vector) const
     {
         if (!m_size)
             return;
-        vector.reserveInitialCapacity(m_size);
+        Vector<Ref<UnlinkedSymbolTable>> tmp;
+        tmp.reserveInitialCapacity(m_size);
         const CachedUnlinkedSymbolTable* buffer = this->template buffer<CachedUnlinkedSymbolTable>();
         for (unsigned i = 0; i < m_size; ++i)
-            vector.append(buffer[i].decode(decoder));
+            tmp.append(buffer[i].decode(decoder));
+        vector = WTF::move(tmp);
+    }
+
+private:
+    unsigned m_size { 0 };
+};
+
+class CachedTemplateObjectDescriptor : public CachedObject<TemplateObjectDescriptor> {
+public:
+    void encode(Encoder& encoder, const TemplateObjectDescriptor& descriptor)
+    {
+        m_rawStrings.encode(encoder, descriptor.rawStrings());
+        m_cookedStrings.encode(encoder, descriptor.cookedStrings());
+        m_endOffset = descriptor.endOffset();
+    }
+
+    Ref<TemplateObjectDescriptor> decode(Decoder& decoder) const
+    {
+        TemplateObjectDescriptor::StringVector decodedRawStrings;
+        TemplateObjectDescriptor::OptionalStringVector decodedCookedStrings;
+        m_rawStrings.decode(decoder, decodedRawStrings);
+        m_cookedStrings.decode(decoder, decodedCookedStrings);
+        return TemplateObjectDescriptor::create(WTF::move(decodedRawStrings), WTF::move(decodedCookedStrings), m_endOffset);
+    }
+
+private:
+    CachedVector<CachedString, 4> m_rawStrings;
+    CachedVector<CachedOptional<CachedString>, 4> m_cookedStrings;
+    int m_endOffset;
+};
+
+class CachedUnlinkedTemplateObjectDescriptorVector : public VariableLengthObject<FixedVector<Ref<TemplateObjectDescriptor>>> {
+public:
+    void encode(Encoder& encoder, const FixedVector<Ref<TemplateObjectDescriptor>>& vector)
+    {
+        m_size = vector.size();
+        if (!m_size)
+            return;
+        CachedTemplateObjectDescriptor* buffer = this->template allocate<CachedTemplateObjectDescriptor>(encoder, m_size);
+        for (unsigned i = 0; i < m_size; ++i)
+            buffer[i].encode(encoder, vector[i].get());
+    }
+
+    void decode(Decoder& decoder, FixedVector<Ref<TemplateObjectDescriptor>>& vector) const
+    {
+        if (!m_size)
+            return;
+        Vector<Ref<TemplateObjectDescriptor>> tmp;
+        tmp.reserveInitialCapacity(m_size);
+        const CachedTemplateObjectDescriptor* buffer = this->template buffer<CachedTemplateObjectDescriptor>();
+        for (unsigned i = 0; i < m_size; ++i)
+            tmp.append(buffer[i].decode(decoder));
+        vector = WTF::move(tmp);
     }
 
 private:
@@ -1329,30 +1382,6 @@ public:
 private:
     CachedString m_patternString;
     OptionSet<Yarr::Flags> m_flags;
-};
-
-class CachedTemplateObjectDescriptor : public CachedObject<TemplateObjectDescriptor> {
-public:
-    void encode(Encoder& encoder, const JSTemplateObjectDescriptor& descriptor)
-    {
-        m_rawStrings.encode(encoder, descriptor.descriptor().rawStrings());
-        m_cookedStrings.encode(encoder, descriptor.descriptor().cookedStrings());
-        m_endOffset = descriptor.endOffset();
-    }
-
-    JSTemplateObjectDescriptor* decode(Decoder& decoder) const
-    {
-        TemplateObjectDescriptor::StringVector decodedRawStrings;
-        TemplateObjectDescriptor::OptionalStringVector decodedCookedStrings;
-        m_rawStrings.decode(decoder, decodedRawStrings);
-        m_cookedStrings.decode(decoder, decodedCookedStrings);
-        return JSTemplateObjectDescriptor::create(decoder.vm(), TemplateObjectDescriptor::create(WTF::move(decodedRawStrings), WTF::move(decodedCookedStrings)), m_endOffset);
-    }
-
-private:
-    CachedVector<CachedString, 4> m_rawStrings;
-    CachedVector<CachedOptional<CachedString>, 4> m_cookedStrings;
-    int m_endOffset;
 };
 
 class CachedBigInt : public VariableLengthObject<JSBigInt> {
@@ -1419,12 +1448,6 @@ public:
             return;
         }
 
-        if (auto* templateObjectDescriptor = jsDynamicCast<JSTemplateObjectDescriptor*>(cell)) {
-            m_type = EncodedType::TemplateObjectDescriptor;
-            this->allocate<CachedTemplateObjectDescriptor>(encoder)->encode(encoder, *templateObjectDescriptor);
-            return;
-        }
-
         if (auto* bigInt = jsDynamicCast<JSBigInt*>(cell)) {
             m_type = EncodedType::BigInt;
             this->allocate<CachedBigInt>(encoder)->encode(encoder, *bigInt);
@@ -1452,9 +1475,6 @@ public:
         case EncodedType::RegExp:
             v = this->buffer<CachedRegExp>()->decode(decoder);
             break;
-        case EncodedType::TemplateObjectDescriptor:
-            v = this->buffer<CachedTemplateObjectDescriptor>()->decode(decoder);
-            break;
         case EncodedType::BigInt:
             v = this->buffer<CachedBigInt>()->decode(decoder);
             break;
@@ -1470,7 +1490,6 @@ private:
         String,
         ImmutableButterfly,
         RegExp,
-        TemplateObjectDescriptor,
         BigInt,
     };
 
@@ -2070,6 +2089,7 @@ private:
     CachedVector<CachedWriteBarrier<CachedFunctionExecutable>> m_functionDecls;
     CachedVector<CachedWriteBarrier<CachedFunctionExecutable>> m_functionExprs;
     CachedUnlinkedSymbolTableVector m_unlinkedSymbolTables;
+    CachedUnlinkedTemplateObjectDescriptorVector m_unlinkedTemplateObjectDescriptors;
 };
 
 class CachedProgramCodeBlock : public CachedCodeBlock<UnlinkedProgramCodeBlock> {
@@ -2276,6 +2296,7 @@ ALWAYS_INLINE void CachedCodeBlock<CodeBlockType>::decode(Decoder& decoder, Unli
     m_functionDecls.decode(decoder, codeBlock.m_functionDecls, &codeBlock);
     m_functionExprs.decode(decoder, codeBlock.m_functionExprs, &codeBlock);
     m_unlinkedSymbolTables.decode(decoder, codeBlock.m_unlinkedSymbolTables);
+    m_unlinkedTemplateObjectDescriptors.decode(decoder, codeBlock.m_unlinkedTemplateObjectDescriptors);
 }
 
 ALWAYS_INLINE UnlinkedProgramCodeBlock::UnlinkedProgramCodeBlock(Decoder& decoder, const CachedProgramCodeBlock& cachedCodeBlock)
@@ -2460,6 +2481,7 @@ ALWAYS_INLINE void CachedCodeBlock<CodeBlockType>::encode(Encoder& encoder, cons
     m_functionDecls.encode(encoder, codeBlock.m_functionDecls);
     m_functionExprs.encode(encoder, codeBlock.m_functionExprs);
     m_unlinkedSymbolTables.encode(encoder, codeBlock.m_unlinkedSymbolTables);
+    m_unlinkedTemplateObjectDescriptors.encode(encoder, codeBlock.m_unlinkedTemplateObjectDescriptors);
 }
 
 class CachedSourceCodeKey : public CachedObject<SourceCodeKey> {

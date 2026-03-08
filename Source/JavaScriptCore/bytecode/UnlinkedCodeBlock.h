@@ -39,6 +39,7 @@
 #include <JavaScriptCore/Opcode.h>
 #include <JavaScriptCore/ParserModes.h>
 #include <JavaScriptCore/RegExp.h>
+#include <JavaScriptCore/TemplateObjectDescriptor.h>
 #include <JavaScriptCore/UnlinkedFunctionExecutable.h>
 #include <JavaScriptCore/UnlinkedMetadataTable.h>
 #include <JavaScriptCore/ValueProfile.h>
@@ -209,9 +210,12 @@ public:
     const FixedVector<SourceCodeRepresentation>& constantsSourceCodeRepresentation() { return m_constantsSourceCodeRepresentation; }
 
     // UnlinkedSymbolTable storage
-    unsigned addUnlinkedSymbolTable(Ref<UnlinkedSymbolTable>&& table);
     UnlinkedSymbolTable& unlinkedSymbolTable(unsigned index) const;
-    const Vector<Ref<UnlinkedSymbolTable>>& unlinkedSymbolTables() const { return m_unlinkedSymbolTables; }
+    const FixedVector<Ref<UnlinkedSymbolTable>>& unlinkedSymbolTables() const { return m_unlinkedSymbolTables; }
+
+    // UnlinkedTemplateObjectDescriptor storage
+    const TemplateObjectDescriptor& unlinkedTemplateObjectDescriptor(unsigned index) const;
+    const FixedVector<Ref<TemplateObjectDescriptor>>& unlinkedTemplateObjectDescriptors() const { return m_unlinkedTemplateObjectDescriptors; }
 
     SourceCodeRepresentation constantSourceCodeRepresentation(VirtualRegister reg) const
     {
@@ -477,7 +481,8 @@ private:
     FixedVector<Identifier> m_identifiers;
     FixedVector<WriteBarrier<Unknown>> m_constantRegisters;
     FixedVector<SourceCodeRepresentation> m_constantsSourceCodeRepresentation;
-    Vector<Ref<UnlinkedSymbolTable>> m_unlinkedSymbolTables;
+    FixedVector<Ref<UnlinkedSymbolTable>> m_unlinkedSymbolTables;
+    FixedVector<Ref<TemplateObjectDescriptor>> m_unlinkedTemplateObjectDescriptors;
     using FunctionExpressionVector = FixedVector<WriteBarrier<UnlinkedFunctionExecutable>>;
     FunctionExpressionVector m_functionDecls;
     FunctionExpressionVector m_functionExprs;

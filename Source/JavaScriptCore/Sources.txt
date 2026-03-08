@@ -975,7 +975,6 @@ runtime/JSString.cpp
 runtime/JSStringIterator.cpp
 runtime/JSStringJoiner.cpp
 runtime/JSSymbolTableObject.cpp
-runtime/JSTemplateObjectDescriptor.cpp
 runtime/JSType.cpp
 runtime/JSTypedArrayConstructors.cpp
 runtime/JSTypedArrayPrototypes.cpp

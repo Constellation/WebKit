@@ -62,7 +62,6 @@
 #include "JSModuleEnvironment.h"
 #include "JSSet.h"
 #include "JSString.h"
-#include "JSTemplateObjectDescriptor.h"
 #include "LLIntData.h"
 #include "LLIntEntrypoint.h"
 #include "LLIntExceptions.h"
@@ -409,7 +408,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
     // We wait to initialize template objects until the end of finishCreation beecause it can
     // throw. We rely on linking to put the CodeBlock into a coherent state, so we can't throw
     // until we're all done linking.
-    Vector<unsigned> templateObjectIndices = setConstantRegisters(unlinkedCodeBlock->constantRegisters(), unlinkedCodeBlock->constantsSourceCodeRepresentation());
+    Vector<std::pair<unsigned, unsigned>> templateObjectIndices = setConstantRegisters(unlinkedCodeBlock->constantRegisters(), unlinkedCodeBlock->constantsSourceCodeRepresentation());
 
     // We already have the cloned symbol table for the module environment since we need to instantiate
     // the module environments before linking the code block. We replace the stored symbol table with the already cloned one.
@@ -1027,27 +1026,21 @@ bool CodeBlock::isConstantOwnedByUnlinkedCodeBlock(VirtualRegister reg) const
         return true;
     case SourceCodeRepresentation::SymbolTable:
     case SourceCodeRepresentation::LinkTimeConstant:
+    case SourceCodeRepresentation::TemplateObjectDescriptor:
         return false;
-    case SourceCodeRepresentation::Other: {
-        JSValue value = unlinkedCodeBlock()->getConstant(reg);
-        if (!value || !value.isCell())
-            return true;
-        JSCell* cell = value.asCell();
-        if (cell->inherits<JSTemplateObjectDescriptor>())
-            return false;
+    case SourceCodeRepresentation::Other:
         return true;
-    }
     default:
         RELEASE_ASSERT_NOT_REACHED();
     }
 }
 
-Vector<unsigned> CodeBlock::setConstantRegisters(const FixedVector<WriteBarrier<Unknown>>& constants, const FixedVector<SourceCodeRepresentation>& constantsSourceCodeRepresentation)
+Vector<std::pair<unsigned, unsigned>> CodeBlock::setConstantRegisters(const FixedVector<WriteBarrier<Unknown>>& constants, const FixedVector<SourceCodeRepresentation>& constantsSourceCodeRepresentation)
 {
     VM& vm = *m_vm;
     JSGlobalObject* globalObject = m_globalObject.get();
 
-    Vector<unsigned> templateObjectIndices;
+    Vector<std::pair<unsigned, unsigned>> templateObjectIndices;
 
     ASSERT(constants.size() == constantsSourceCodeRepresentation.size());
     size_t count = constants.size();
@@ -1066,14 +1059,12 @@ Vector<unsigned> CodeBlock::setConstantRegisters(const FixedVector<WriteBarrier<
         case SourceCodeRepresentation::Other:
         case SourceCodeRepresentation::Integer:
         case SourceCodeRepresentation::Double:
-            if (!constant.isEmpty()) {
-                if (constant.isCell()) {
-                    JSCell* cell = constant.asCell();
-                    if (jsDynamicCast<JSTemplateObjectDescriptor*>(cell))
-                        templateObjectIndices.append(i);
-                }
-            }
             break;
+        case SourceCodeRepresentation::TemplateObjectDescriptor: {
+            unsigned descriptorIndex = constant.asInt32();
+            templateObjectIndices.append({ static_cast<unsigned>(i), descriptorIndex });
+            break;
+        }
         case SourceCodeRepresentation::SymbolTable: {
             unsigned index = constant.asInt32();
             UnlinkedSymbolTable& unlinkedSymbolTable = m_unlinkedCode->unlinkedSymbolTable(index);
@@ -1115,14 +1106,14 @@ Vector<unsigned> CodeBlock::setConstantRegisters(const FixedVector<WriteBarrier<
     return templateObjectIndices;
 }
 
-void CodeBlock::initializeTemplateObjects(ScriptExecutable* topLevelExecutable, const Vector<unsigned>& templateObjectIndices)
+void CodeBlock::initializeTemplateObjects(ScriptExecutable* topLevelExecutable, const Vector<std::pair<unsigned, unsigned>>& templateObjectIndices)
 {
     auto scope = DECLARE_THROW_SCOPE(vm());
-    for (unsigned i : templateObjectIndices) {
-        auto* descriptor = jsCast<JSTemplateObjectDescriptor*>(m_constantRegisters[i].get());
+    for (auto [constantIndex, descriptorIndex] : templateObjectIndices) {
+        auto& descriptor = m_unlinkedCode->unlinkedTemplateObjectDescriptor(descriptorIndex);
         auto* templateObject = topLevelExecutable->createTemplateObject(globalObject(), descriptor);
         RETURN_IF_EXCEPTION(scope, void());
-        m_constantRegisters[i].set(vm(), this, templateObject);
+        m_constantRegisters[constantIndex].set(vm(), this, templateObject);
     }
 }
 

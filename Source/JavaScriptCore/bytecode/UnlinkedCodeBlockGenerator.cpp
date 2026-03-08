@@ -66,6 +66,8 @@ void UnlinkedCodeBlockGenerator::finalize(std::unique_ptr<JSInstructionStream> i
         m_codeBlock->m_constantsSourceCodeRepresentation = WTF::move(m_constantsSourceCodeRepresentation);
         m_codeBlock->m_functionDecls = WTF::move(m_functionDecls);
         m_codeBlock->m_functionExprs = WTF::move(m_functionExprs);
+        m_codeBlock->m_unlinkedSymbolTables = WTF::move(m_unlinkedSymbolTables);
+        m_codeBlock->m_unlinkedTemplateObjectDescriptors = WTF::move(m_unlinkedTemplateObjectDescriptors);
         m_codeBlock->m_expressionInfo = m_expressionInfoEncoder.createExpressionInfo();
 
         m_codeBlock->m_outOfLineJumpTargets = WTF::move(m_outOfLineJumpTargets);

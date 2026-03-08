@@ -32,8 +32,8 @@
 namespace JSC {
 
 class JSArray;
-class JSTemplateObjectDescriptor;
 class IsoCellSet;
+class TemplateObjectDescriptor;
 
 class ScriptExecutable : public ExecutableBase {
 public:
@@ -123,7 +123,7 @@ public:
     void prepareForExecution(VM&, JSFunction*, JSScope*, CodeSpecializationKind, CodeBlock*&);
 
     ScriptExecutable* topLevelExecutable();
-    JSArray* createTemplateObject(JSGlobalObject*, JSTemplateObjectDescriptor*);
+    JSArray* createTemplateObject(JSGlobalObject*, const TemplateObjectDescriptor&);
 
 private:
     friend class ExecutableBase;

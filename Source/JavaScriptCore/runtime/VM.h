@@ -545,7 +545,6 @@ public:
     WriteBarrier<Structure> scriptFetchParametersStructure;
     WriteBarrier<Structure> structureChainStructure;
     WriteBarrier<Structure> sparseArrayValueMapStructure;
-    WriteBarrier<Structure> templateObjectDescriptorStructure;
     WriteBarrier<Structure> unlinkedFunctionExecutableStructure;
     WriteBarrier<Structure> unlinkedProgramCodeBlockStructure;
     WriteBarrier<Structure> unlinkedEvalCodeBlockStructure;

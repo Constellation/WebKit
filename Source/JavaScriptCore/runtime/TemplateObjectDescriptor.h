@@ -54,28 +54,32 @@ public:
     const StringVector& rawStrings() const { return m_rawStrings; }
     const OptionalStringVector& cookedStrings() const { return m_cookedStrings; }
 
+    int endOffset() const { return m_endOffset; }
+
     bool operator==(const TemplateObjectDescriptor& other) const { return m_hash == other.m_hash && m_rawStrings == other.m_rawStrings; }
 
     static unsigned calculateHash(const StringVector& rawStrings);
     ~TemplateObjectDescriptor();
 
-    static Ref<TemplateObjectDescriptor> create(StringVector&& rawStrings, OptionalStringVector&& cookedStrings)
+    static Ref<TemplateObjectDescriptor> create(StringVector&& rawStrings, OptionalStringVector&& cookedStrings, int endOffset)
     {
-        return adoptRef(*new TemplateObjectDescriptor(WTF::move(rawStrings), WTF::move(cookedStrings)));
+        return adoptRef(*new TemplateObjectDescriptor(WTF::move(rawStrings), WTF::move(cookedStrings), endOffset));
     }
 
 private:
-    TemplateObjectDescriptor(StringVector&& rawStrings, OptionalStringVector&& cookedStrings);
+    TemplateObjectDescriptor(StringVector&& rawStrings, OptionalStringVector&& cookedStrings, int endOffset);
 
     StringVector m_rawStrings;
     OptionalStringVector m_cookedStrings;
     unsigned m_hash { 0 };
+    int m_endOffset { 0 };
 };
 
-inline TemplateObjectDescriptor::TemplateObjectDescriptor(StringVector&& rawStrings, OptionalStringVector&& cookedStrings)
+inline TemplateObjectDescriptor::TemplateObjectDescriptor(StringVector&& rawStrings, OptionalStringVector&& cookedStrings, int endOffset)
     : m_rawStrings(WTF::move(rawStrings))
     , m_cookedStrings(WTF::move(cookedStrings))
     , m_hash(calculateHash(m_rawStrings))
+    , m_endOffset(endOffset)
 {
 }
 
@@ -102,9 +106,3 @@ inline unsigned TemplateObjectDescriptor::calculateHash(const StringVector& rawS
 }
 
 } // namespace JSC
-
-namespace WTF {
-template<> struct HashTraits<JSC::TemplateObjectDescriptor> : CustomHashTraits<JSC::TemplateObjectDescriptor> {
-};
-
-} // namespace WTF

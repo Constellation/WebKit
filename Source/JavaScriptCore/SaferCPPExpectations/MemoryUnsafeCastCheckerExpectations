@@ -102,7 +102,6 @@ runtime/JSSourceCode.cpp
 runtime/JSString.cpp
 runtime/JSString.h
 runtime/JSStringInlines.h
-runtime/JSTemplateObjectDescriptor.cpp
 runtime/ModuleProgramExecutable.cpp
 runtime/NativeExecutable.cpp
 runtime/ObjectConstructor.cpp
