@@ -479,7 +479,7 @@ public:
     FixedVector<LazyProperty<JSGlobalObject, JSCell>> m_linkTimeConstants;
 
     StructureCache m_structureCache;
-    HashMap<UnlinkedSymbolTable*, Weak<SymbolTable>> m_symbolTableCache;
+    WeakGCMap<UnlinkedSymbolTable*, SymbolTable> m_symbolTableCache;
 
     String m_name;
 
@@ -1050,7 +1050,7 @@ public:
     const String& name() const { return m_name; }
 
     StructureCache& structureCache() { return m_structureCache; }
-    HashMap<UnlinkedSymbolTable*, Weak<SymbolTable>>& symbolTableCache() { return m_symbolTableCache; }
+    WeakGCMap<UnlinkedSymbolTable*, SymbolTable>& symbolTableCache() { return m_symbolTableCache; }
 
     inline void setUnhandledRejectionCallback(VM&, JSObject*);
     JSObject* unhandledRejectionCallback() const { return m_unhandledRejectionCallback.get(); }

@@ -1069,10 +1069,7 @@ Vector<std::pair<unsigned, unsigned>> CodeBlock::setConstantRegisters(const Fixe
             unsigned index = constant.asInt32();
             UnlinkedSymbolTable& unlinkedSymbolTable = m_unlinkedCode->unlinkedSymbolTable(index);
 
-            SymbolTable* symbolTable = nullptr;
-            auto iter = globalObject->symbolTableCache().find(&unlinkedSymbolTable);
-            if (iter != globalObject->symbolTableCache().end())
-                symbolTable = iter->value.get();
+            SymbolTable* symbolTable = globalObject->symbolTableCache().get(&unlinkedSymbolTable);
             if (!symbolTable) {
                 symbolTable = SymbolTable::create(vm, Ref { unlinkedSymbolTable });
 
