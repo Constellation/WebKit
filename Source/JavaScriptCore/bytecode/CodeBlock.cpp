@@ -1110,7 +1110,7 @@ void CodeBlock::initializeTemplateObjects(ScriptExecutable* topLevelExecutable, 
 {
     auto scope = DECLARE_THROW_SCOPE(vm());
     for (auto [constantIndex, descriptorIndex] : templateObjectIndices) {
-        auto& descriptor = m_unlinkedCode->unlinkedTemplateObjectDescriptor(descriptorIndex);
+        auto& descriptor = m_unlinkedCode->templateObjectDescriptor(descriptorIndex);
         auto* templateObject = topLevelExecutable->createTemplateObject(globalObject(), descriptor);
         RETURN_IF_EXCEPTION(scope, void());
         m_constantRegisters[constantIndex].set(vm(), this, templateObject);

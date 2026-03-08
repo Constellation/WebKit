@@ -47,9 +47,9 @@ UnlinkedSymbolTable& UnlinkedCodeBlock::unlinkedSymbolTable(unsigned index) cons
     return m_unlinkedSymbolTables[index].get();
 }
 
-const TemplateObjectDescriptor& UnlinkedCodeBlock::unlinkedTemplateObjectDescriptor(unsigned index) const
+const TemplateObjectDescriptor& UnlinkedCodeBlock::templateObjectDescriptor(unsigned index) const
 {
-    return m_unlinkedTemplateObjectDescriptors[index].get();
+    return m_templateObjectDescriptors[index].get();
 }
 
 const ClassInfo UnlinkedCodeBlock::s_info = { "UnlinkedCodeBlock"_s, nullptr, nullptr, nullptr, CREATE_METHOD_TABLE(UnlinkedCodeBlock) };

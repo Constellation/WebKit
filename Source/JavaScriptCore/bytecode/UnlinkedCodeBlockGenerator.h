@@ -178,10 +178,10 @@ public:
         m_unlinkedSymbolTables.append(std::move(table));
         return index;
     }
-    unsigned addUnlinkedTemplateObjectDescriptor(Ref<TemplateObjectDescriptor>&& descriptor)
+    unsigned addTemplateObjectDescriptor(Ref<TemplateObjectDescriptor>&& descriptor)
     {
-        unsigned index = m_unlinkedTemplateObjectDescriptors.size();
-        m_unlinkedTemplateObjectDescriptors.append(std::move(descriptor));
+        unsigned index = m_templateObjectDescriptors.size();
+        m_templateObjectDescriptors.append(std::move(descriptor));
         return index;
     }
 
@@ -225,7 +225,7 @@ private:
     Vector<WriteBarrier<UnlinkedFunctionExecutable>> m_functionDecls;
     Vector<WriteBarrier<UnlinkedFunctionExecutable>> m_functionExprs;
     Vector<Ref<UnlinkedSymbolTable>> m_unlinkedSymbolTables;
-    Vector<Ref<TemplateObjectDescriptor>> m_unlinkedTemplateObjectDescriptors;
+    Vector<Ref<TemplateObjectDescriptor>> m_templateObjectDescriptors;
     ExpressionInfo::Encoder m_expressionInfoEncoder;
     OutOfLineJumpTargets m_outOfLineJumpTargets;
     // In RareData.

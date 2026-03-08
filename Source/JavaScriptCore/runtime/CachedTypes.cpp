@@ -1300,7 +1300,7 @@ private:
     int m_endOffset;
 };
 
-class CachedUnlinkedTemplateObjectDescriptorVector : public VariableLengthObject<FixedVector<Ref<TemplateObjectDescriptor>>> {
+class CachedTemplateObjectDescriptorVector : public VariableLengthObject<FixedVector<Ref<TemplateObjectDescriptor>>> {
 public:
     void encode(Encoder& encoder, const FixedVector<Ref<TemplateObjectDescriptor>>& vector)
     {
@@ -2089,7 +2089,7 @@ private:
     CachedVector<CachedWriteBarrier<CachedFunctionExecutable>> m_functionDecls;
     CachedVector<CachedWriteBarrier<CachedFunctionExecutable>> m_functionExprs;
     CachedUnlinkedSymbolTableVector m_unlinkedSymbolTables;
-    CachedUnlinkedTemplateObjectDescriptorVector m_unlinkedTemplateObjectDescriptors;
+    CachedTemplateObjectDescriptorVector m_templateObjectDescriptors;
 };
 
 class CachedProgramCodeBlock : public CachedCodeBlock<UnlinkedProgramCodeBlock> {
@@ -2296,7 +2296,7 @@ ALWAYS_INLINE void CachedCodeBlock<CodeBlockType>::decode(Decoder& decoder, Unli
     m_functionDecls.decode(decoder, codeBlock.m_functionDecls, &codeBlock);
     m_functionExprs.decode(decoder, codeBlock.m_functionExprs, &codeBlock);
     m_unlinkedSymbolTables.decode(decoder, codeBlock.m_unlinkedSymbolTables);
-    m_unlinkedTemplateObjectDescriptors.decode(decoder, codeBlock.m_unlinkedTemplateObjectDescriptors);
+    m_templateObjectDescriptors.decode(decoder, codeBlock.m_templateObjectDescriptors);
 }
 
 ALWAYS_INLINE UnlinkedProgramCodeBlock::UnlinkedProgramCodeBlock(Decoder& decoder, const CachedProgramCodeBlock& cachedCodeBlock)
@@ -2481,7 +2481,7 @@ ALWAYS_INLINE void CachedCodeBlock<CodeBlockType>::encode(Encoder& encoder, cons
     m_functionDecls.encode(encoder, codeBlock.m_functionDecls);
     m_functionExprs.encode(encoder, codeBlock.m_functionExprs);
     m_unlinkedSymbolTables.encode(encoder, codeBlock.m_unlinkedSymbolTables);
-    m_unlinkedTemplateObjectDescriptors.encode(encoder, codeBlock.m_unlinkedTemplateObjectDescriptors);
+    m_templateObjectDescriptors.encode(encoder, codeBlock.m_templateObjectDescriptors);
 }
 
 class CachedSourceCodeKey : public CachedObject<SourceCodeKey> {

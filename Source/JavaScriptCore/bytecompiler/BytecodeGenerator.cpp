@@ -3422,7 +3422,7 @@ JSString* BytecodeGenerator::addStringConstant(const Identifier& identifier)
 
 RegisterID* BytecodeGenerator::addTemplateObjectConstant(Ref<TemplateObjectDescriptor>&& descriptor)
 {
-    unsigned descriptorIndex = m_codeBlock->addUnlinkedTemplateObjectDescriptor(WTF::move(descriptor));
+    unsigned descriptorIndex = m_codeBlock->addTemplateObjectDescriptor(WTF::move(descriptor));
     int index = addConstantIndex();
     m_codeBlock->addConstant(jsNumber(descriptorIndex), SourceCodeRepresentation::TemplateObjectDescriptor);
     return &m_constantPoolRegisters[index];

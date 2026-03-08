@@ -209,13 +209,11 @@ public:
     ALWAYS_INLINE JSValue getConstant(VirtualRegister reg) const { return m_constantRegisters[reg.toConstantIndex()].get(); }
     const FixedVector<SourceCodeRepresentation>& constantsSourceCodeRepresentation() { return m_constantsSourceCodeRepresentation; }
 
-    // UnlinkedSymbolTable storage
     UnlinkedSymbolTable& unlinkedSymbolTable(unsigned index) const;
     const FixedVector<Ref<UnlinkedSymbolTable>>& unlinkedSymbolTables() const { return m_unlinkedSymbolTables; }
 
-    // UnlinkedTemplateObjectDescriptor storage
-    const TemplateObjectDescriptor& unlinkedTemplateObjectDescriptor(unsigned index) const;
-    const FixedVector<Ref<TemplateObjectDescriptor>>& unlinkedTemplateObjectDescriptors() const { return m_unlinkedTemplateObjectDescriptors; }
+    const TemplateObjectDescriptor& templateObjectDescriptor(unsigned index) const;
+    const FixedVector<Ref<TemplateObjectDescriptor>>& templateObjectDescriptors() const { return m_templateObjectDescriptors; }
 
     SourceCodeRepresentation constantSourceCodeRepresentation(VirtualRegister reg) const
     {
@@ -482,7 +480,7 @@ private:
     FixedVector<WriteBarrier<Unknown>> m_constantRegisters;
     FixedVector<SourceCodeRepresentation> m_constantsSourceCodeRepresentation;
     FixedVector<Ref<UnlinkedSymbolTable>> m_unlinkedSymbolTables;
-    FixedVector<Ref<TemplateObjectDescriptor>> m_unlinkedTemplateObjectDescriptors;
+    FixedVector<Ref<TemplateObjectDescriptor>> m_templateObjectDescriptors;
     using FunctionExpressionVector = FixedVector<WriteBarrier<UnlinkedFunctionExecutable>>;
     FunctionExpressionVector m_functionDecls;
     FunctionExpressionVector m_functionExprs;
