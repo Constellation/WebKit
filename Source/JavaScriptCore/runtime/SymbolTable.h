@@ -50,35 +50,11 @@ class SymbolTable;
 class UnlinkedSymbolTable;
 struct DebuggerLocation;
 
-DECLARE_ALLOCATOR_WITH_HEAP_IDENTIFIER(SymbolTableEntryFatEntry);
-
 static ALWAYS_INLINE int missingSymbolMarker() { return std::numeric_limits<int>::max(); }
 
 // The bit twiddling in this class assumes that every register index is a
 // reasonably small positive or negative number, and therefore has its high
 // four bits all set or all unset.
-
-// In addition to implementing semantics-mandated variable attributes and
-// implementation-mandated variable indexing, this class also implements
-// watchpoints to be used for JIT optimizations. Because watchpoints are
-// meant to be relatively rare, this class optimizes heavily for the case
-// that they are not being used. To that end, this class uses the thin-fat
-// idiom: either it is thin, in which case it contains an in-place encoded
-// word that consists of attributes, the index, and a bit saying that it is
-// thin; or it is fat, in which case it contains a pointer to a malloc'd
-// data structure and a bit saying that it is fat. The malloc'd data
-// structure will be malloced a second time upon copy, to preserve the
-// property that in-place edits to SymbolTableEntry do not manifest in any
-// copies. However, the malloc'd FatEntry data structure contains a ref-
-// counted pointer to a shared WatchpointSet. Thus, in-place edits of the
-// WatchpointSet will manifest in all copies. Here's a picture:
-//
-// SymbolTableEntry --> FatEntry --> WatchpointSet
-//
-// If you make a copy of a SymbolTableEntry, you will have:
-//
-// original: SymbolTableEntry --> FatEntry --> WatchpointSet
-// copy:     SymbolTableEntry --> FatEntry -----^
 
 struct SymbolTableEntry {
     friend class CachedSymbolTableEntry;
@@ -117,7 +93,7 @@ public:
         }
 
         ALWAYS_INLINE Fast(const SymbolTableEntry& entry)
-            : m_bits(entry.bits())
+            : m_bits(entry.m_bits)
         {
         }
 
@@ -159,11 +135,6 @@ public:
             return attributes;
         }
 
-        bool isFat() const
-        {
-            return !(m_bits & SlimFlag);
-        }
-
     private:
         friend struct SymbolTableEntry;
         intptr_t m_bits;
@@ -188,51 +159,14 @@ public:
         pack(offset, true, attributes & PropertyAttribute::ReadOnly, attributes & PropertyAttribute::DontEnum);
     }
 
-    ~SymbolTableEntry()
-    {
-        freeFatEntry();
-    }
-
-    SymbolTableEntry(const SymbolTableEntry& other)
-        : m_bits(SlimFlag)
-    {
-        *this = other;
-    }
-
-    SymbolTableEntry& operator=(const SymbolTableEntry& other)
-    {
-        if (other.isFat()) [[unlikely]]
-            return copySlow(other);
-        freeFatEntry();
-        m_bits = other.m_bits;
-        return *this;
-    }
-
-    SymbolTableEntry(SymbolTableEntry&& other)
-        : m_bits(SlimFlag)
-    {
-        swap(other);
-    }
-
-    SymbolTableEntry& operator=(SymbolTableEntry&& other)
-    {
-        swap(other);
-        return *this;
-    }
-
-    void swap(SymbolTableEntry& other)
-    {
-        std::swap(m_bits, other.m_bits);
-    }
-
     bool isNull() const
     {
-        return !(bits() & ~SlimFlag);
+        return !(m_bits & ~SlimFlag);
     }
 
     VarOffset varOffset() const
     {
-        return varOffsetFromBits(bits());
+        return varOffsetFromBits(m_bits);
     }
 
     bool isWatchable() const
@@ -245,23 +179,12 @@ public:
     // varOffset().scopeOffset().
     ScopeOffset scopeOffset() const
     {
-        return scopeOffsetFromBits(bits());
+        return scopeOffsetFromBits(m_bits);
     }
 
     ALWAYS_INLINE Fast getFast() const
     {
         return Fast(*this);
-    }
-
-    ALWAYS_INLINE Fast getFast(bool& wasFat) const
-    {
-        Fast result;
-        wasFat = isFat();
-        if (wasFat)
-            result.m_bits = fatEntry()->m_bits | SlimFlag;
-        else
-            result.m_bits = m_bits;
-        return result;
     }
 
     unsigned getAttributes() const
@@ -271,12 +194,12 @@ public:
 
     void setReadOnly()
     {
-        bits() |= ReadOnlyFlag;
+        m_bits |= ReadOnlyFlag;
     }
 
     bool isReadOnly() const
     {
-        return bits() & ReadOnlyFlag;
+        return m_bits & ReadOnlyFlag;
     }
 
     ConstantMode constantMode() const
@@ -286,45 +209,7 @@ public:
 
     bool isDontEnum() const
     {
-        return bits() & DontEnumFlag;
-    }
-
-    void disableWatching(VM& vm)
-    {
-        if (WatchpointSet* set = watchpointSet())
-            set->invalidate(vm, "Disabling watching in symbol table");
-        if (varOffset().isScope())
-            pack(varOffset(), false, isReadOnly(), isDontEnum());
-    }
-
-    void prepareToWatch();
-
-    // This watchpoint set is initialized clear, and goes through the following state transitions:
-    //
-    // First write to this var, in any scope that has this symbol table: Clear->IsWatched.
-    //
-    // Second write to this var, in any scope that has this symbol table: IsWatched->IsInvalidated.
-    //
-    // We ensure that we touch the set (i.e. trigger its state transition) after we do the write. This
-    // means that if you're in the compiler thread, and you:
-    //
-    // 1) Observe that the set IsWatched and commit to adding your watchpoint.
-    // 2) Load a value from any scope that has this watchpoint set.
-    //
-    // Then you can be sure that that value is either going to be the correct value for that var forever,
-    // or the watchpoint set will invalidate and you'll get fired.
-    //
-    // It's possible to write a program that first creates multiple scopes with the same var, and then
-    // initializes that var in just one of them. This means that a compilation could constant-fold to one
-    // of the scopes that still has an undefined value for this variable. That's fine, because at that
-    // point any write to any of the instances of that variable would fire the watchpoint.
-    //
-    // Note that watchpointSet() returns nullptr if JIT is disabled.
-    WatchpointSet* watchpointSet()
-    {
-        if (!isFat())
-            return nullptr;
-        return fatEntry()->m_watchpoints.get();
+        return m_bits & DontEnumFlag;
     }
 
 private:
@@ -339,74 +224,9 @@ private:
     static const intptr_t DirectArgumentKindBits = 0x30;
     static const intptr_t FlagBits = 6;
 
-    class FatEntry {
-        WTF_DEPRECATED_MAKE_STRUCT_FAST_ALLOCATED_WITH_HEAP_IDENTIFIER(FatEntry, SymbolTableEntryFatEntry);
-    public:
-        FatEntry(intptr_t bits)
-            : m_bits(bits & ~SlimFlag)
-        {
-        }
-
-        intptr_t m_bits; // always has FatFlag set and exactly matches what the bits would have been if this wasn't fat.
-
-        RefPtr<WatchpointSet> m_watchpoints;
-    };
-
-    SymbolTableEntry& copySlow(const SymbolTableEntry&);
-
-    bool isFat() const
-    {
-        return !(m_bits & SlimFlag);
-    }
-
-    const FatEntry* fatEntry() const
-    {
-        ASSERT(isFat());
-        return std::bit_cast<const FatEntry*>(m_bits);
-    }
-
-    FatEntry* fatEntry()
-    {
-        ASSERT(isFat());
-        return std::bit_cast<FatEntry*>(m_bits);
-    }
-
-    FatEntry* inflate()
-    {
-        if (isFat()) [[likely]]
-            return fatEntry();
-        return inflateSlow();
-    }
-
-    FatEntry* inflateSlow();
-
-    ALWAYS_INLINE intptr_t bits() const
-    {
-        if (isFat())
-            return fatEntry()->m_bits;
-        return m_bits;
-    }
-
-    ALWAYS_INLINE intptr_t& bits()
-    {
-        if (isFat())
-            return fatEntry()->m_bits;
-        return m_bits;
-    }
-
-    void freeFatEntry()
-    {
-        if (!isFat()) [[likely]]
-            return;
-        freeFatEntrySlow();
-    }
-
-    JS_EXPORT_PRIVATE void freeFatEntrySlow();
-
     void pack(VarOffset offset, bool isWatchable, bool readOnly, bool dontEnum)
     {
-        ASSERT(!isFat());
-        intptr_t& bitsRef = bits();
+        intptr_t& bitsRef = m_bits;
         bitsRef =
             (static_cast<intptr_t>(offset.rawOffset()) << FlagBits) | NotNullFlag | SlimFlag;
         if (readOnly)
@@ -441,7 +261,7 @@ private:
 };
 
 struct SymbolTableIndexHashTraits : HashTraits<SymbolTableEntry> {
-    static constexpr DestructionMode needsDestruction = NeedsDestruction;
+    static constexpr DestructionMode needsDestruction = DoesNotNeedDestruction;
 };
 
 class SymbolTable final : public JSCell {
@@ -588,13 +408,16 @@ public:
         return true;
     }
 
-    void prepareToWatchScopedArgument(SymbolTableEntry& entry, uint32_t i)
+    void prepareToWatch(ScopeOffset);
+    WatchpointSet* watchpointSet(ScopeOffset);
+
+    void prepareToWatchScopedArgument(ScopeOffset offset, uint32_t i)
     {
-        entry.prepareToWatch();
+        prepareToWatch(offset);
         if (!m_arguments)
             return;
 
-        WatchpointSet* watchpoints = entry.watchpointSet();
+        WatchpointSet* watchpoints = watchpointSet(offset);
         m_arguments->trySetWatchpointSet(i, watchpoints);
     }
 
@@ -696,6 +519,8 @@ private:
     WriteBarrier<ScopedArgumentsTable> m_arguments;
     WriteBarrier<SymbolTable> m_clonedFrom;
     InferredValue<JSScope> m_singleton;
+
+    Vector<RefPtr<WatchpointSet>> m_watchpointSets;
 
     std::unique_ptr<LocalToEntryVec> m_localToEntry;
 };

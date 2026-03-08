@@ -2390,12 +2390,12 @@ void JSGlobalObject::addSymbolTableEntry(const Identifier& ident)
 {
     ConcurrentJSLocker locker(symbolTable()->m_lock);
     ASSERT(!symbolTable()->contains(locker, ident.impl()));
-    
+
     ScopeOffset offset = symbolTable()->takeNextScopeOffset(locker);
     SymbolTableEntry newEntry(VarOffset(offset), 0);
-    newEntry.prepareToWatch();
     symbolTable()->add(locker, ident.impl(), WTF::move(newEntry));
-    
+    symbolTable()->prepareToWatch(offset);
+
     ScopeOffset offsetForAssert = addVariables(1, jsUndefined());
     RELEASE_ASSERT(offsetForAssert == offset);
 }
@@ -3125,9 +3125,9 @@ void JSGlobalObject::addStaticGlobals(std::span<GlobalPropertyInfo> globals)
             ScopeOffset offset = symbolTable()->takeNextScopeOffset(locker);
             RELEASE_ASSERT(offset == startOffset + i);
             SymbolTableEntry newEntry(VarOffset(offset), global.attributes);
-            newEntry.prepareToWatch();
-            watchpointSet = newEntry.watchpointSet();
             symbolTable()->add(locker, global.identifier.impl(), WTF::move(newEntry));
+            symbolTable()->prepareToWatch(offset);
+            watchpointSet = symbolTable()->watchpointSet(offset);
             variable = &variableAt(offset);
         }
         symbolTablePutTouchWatchpointSet(vm(), this, global.identifier, global.value, variable, watchpointSet);

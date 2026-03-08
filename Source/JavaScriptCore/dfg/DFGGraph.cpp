@@ -1474,7 +1474,7 @@ JSValue Graph::tryGetConstantClosureVar(JSValue base, ScopeOffset offset)
         if (!entry)
             return JSValue();
         
-        set = entry->watchpointSet();
+        set = symbolTable->watchpointSet(offset);
         if (!set)
             return JSValue();
         

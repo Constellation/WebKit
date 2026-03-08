@@ -74,7 +74,7 @@ static inline bool abstractAccess(JSGlobalObject* globalObject, JSScope* scope, 
                     return true;
                 }
 
-                op = ResolveOp(makeType(ClosureVar, needsVarInjectionChecks), depth, nullptr, lexicalEnvironment, entry.watchpointSet(), entry.scopeOffset().offset());
+                op = ResolveOp(makeType(ClosureVar, needsVarInjectionChecks), depth, nullptr, lexicalEnvironment, symbolTable->watchpointSet(entry.scopeOffset()), entry.scopeOffset().offset());
                 return true;
             }
         }
@@ -94,7 +94,7 @@ static inline bool abstractAccess(JSGlobalObject* globalObject, JSScope* scope, 
                 ASSERT(iter != symbolTable->end(locker));
                 SymbolTableEntry& entry = iter->value;
                 ASSERT(!entry.isNull());
-                op = ResolveOp(makeType(ModuleVar, needsVarInjectionChecks), depth, nullptr, importedEnvironment, entry.watchpointSet(), entry.scopeOffset().offset(), resolution.localName.impl());
+                op = ResolveOp(makeType(ModuleVar, needsVarInjectionChecks), depth, nullptr, importedEnvironment, symbolTable->watchpointSet(entry.scopeOffset()), entry.scopeOffset().offset(), resolution.localName.impl());
                 return true;
             }
         }
@@ -128,7 +128,7 @@ static inline bool abstractAccess(JSGlobalObject* globalObject, JSScope* scope, 
             // We still need to make the slow path correct for when we need to fire a watchpoint.
             ResolveType resolveType = initializationMode == InitializationMode::ConstInitialization ? GlobalLexicalVar : makeType(GlobalLexicalVar, needsVarInjectionChecks);
             op = ResolveOp(
-                resolveType, depth, nullptr, nullptr, entry.watchpointSet(),
+                resolveType, depth, nullptr, nullptr, symbolTable->watchpointSet(entry.scopeOffset()),
                 reinterpret_cast<uintptr_t>(globalLexicalEnvironment->variableAt(entry.scopeOffset()).slot()));
             return true;
         }
@@ -152,7 +152,7 @@ static inline bool abstractAccess(JSGlobalObject* globalObject, JSScope* scope, 
                 }
 
                 op = ResolveOp(
-                    makeType(GlobalVar, needsVarInjectionChecks), depth, nullptr, nullptr, entry.watchpointSet(),
+                    makeType(GlobalVar, needsVarInjectionChecks), depth, nullptr, nullptr, symbolTable->watchpointSet(entry.scopeOffset()),
                     reinterpret_cast<uintptr_t>(globalObject->variableAt(entry.scopeOffset()).slot()));
                 return true;
             }

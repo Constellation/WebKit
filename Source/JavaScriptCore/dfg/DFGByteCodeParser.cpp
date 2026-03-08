@@ -9785,7 +9785,7 @@ void ByteCodeParser::parseBlock(unsigned limit)
                 {
                     ConcurrentJSLocker locker(scopeObject->symbolTable()->m_lock);
                     SymbolTableEntry entry = scopeObject->symbolTable()->get(locker, uid);
-                    watchpointSet = entry.watchpointSet();
+                    watchpointSet = scopeObject->symbolTable()->watchpointSet(entry.scopeOffset());
                     offset = entry.scopeOffset();
                 }
                 if (watchpointSet && watchpointSet->state() == IsWatched) {
@@ -9973,7 +9973,7 @@ void ByteCodeParser::parseBlock(unsigned limit)
                 JSSegmentedVariableObject* scopeObject = jsCast<JSSegmentedVariableObject*>(JSScope::constantScopeForCodeBlock(resolveType, m_inlineStackTop->m_codeBlock));
                 if (watchpoints) {
                     SymbolTableEntry entry = scopeObject->symbolTable()->get(uid);
-                    ASSERT_UNUSED(entry, watchpoints == entry.watchpointSet());
+                    ASSERT_UNUSED(entry, watchpoints == scopeObject->symbolTable()->watchpointSet(entry.scopeOffset()));
                 }
                 Node* valueNode = get(bytecode.m_value);
                 addToGraph(PutGlobalVariable, OpInfo(operand), weakJSConstant(scopeObject), valueNode);

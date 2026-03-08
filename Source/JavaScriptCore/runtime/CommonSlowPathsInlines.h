@@ -66,7 +66,7 @@ inline void tryCachePutToScopeGlobal(
             ASSERT(!entry.isNull());
             ConcurrentJSLocker locker(codeBlock->m_lock);
             metadata.m_getPutInfo = GetPutInfo(metadata.m_getPutInfo.resolveMode(), newResolveType, metadata.m_getPutInfo.initializationMode(), metadata.m_getPutInfo.ecmaMode());
-            metadata.m_watchpointSet = entry.watchpointSet();
+            metadata.m_watchpointSet = globalLexicalEnvironment->symbolTable()->watchpointSet(entry.scopeOffset());
             metadata.m_operand = reinterpret_cast<uintptr_t>(globalLexicalEnvironment->variableAt(entry.scopeOffset()).slot());
             return;
         }
@@ -132,7 +132,7 @@ inline void tryCacheGetFromScopeGlobal(
             ASSERT(!entry.isNull());
             ConcurrentJSLocker locker(codeBlock->m_lock);
             metadata.m_getPutInfo = GetPutInfo(metadata.m_getPutInfo.resolveMode(), newResolveType, metadata.m_getPutInfo.initializationMode(), metadata.m_getPutInfo.ecmaMode());
-            metadata.m_watchpointSet = entry.watchpointSet();
+            metadata.m_watchpointSet = globalLexicalEnvironment->symbolTable()->watchpointSet(entry.scopeOffset());
             metadata.m_operand = reinterpret_cast<uintptr_t>(globalLexicalEnvironment->variableAt(entry.scopeOffset()).slot());
             return;
         }

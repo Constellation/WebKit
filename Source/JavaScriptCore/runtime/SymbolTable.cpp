@@ -88,44 +88,10 @@ void SymbolTable::markIsNestedLexicalScope() { m_unlinkedSymbolTable->markIsNest
 void SymbolTable::setScopeType(ScopeType type) { m_unlinkedSymbolTable->setScopeType(type); }
 SymbolTable::ScopeType SymbolTable::scopeType() const { return m_unlinkedSymbolTable->scopeType(); }
 
-DEFINE_ALLOCATOR_WITH_HEAP_IDENTIFIER(SymbolTableEntryFatEntry);
-
-SymbolTableEntry& SymbolTableEntry::copySlow(const SymbolTableEntry& other)
-{
-    ASSERT(other.isFat());
-    FatEntry* newFatEntry = new FatEntry(*other.fatEntry());
-    freeFatEntry();
-    m_bits = std::bit_cast<intptr_t>(newFatEntry);
-    return *this;
-}
-
 void SymbolTable::destroy(JSCell* cell)
 {
     SymbolTable* thisObject = static_cast<SymbolTable*>(cell);
     thisObject->SymbolTable::~SymbolTable();
-}
-
-void SymbolTableEntry::freeFatEntrySlow()
-{
-    ASSERT(isFat());
-    delete fatEntry();
-}
-
-void SymbolTableEntry::prepareToWatch()
-{
-    if (!isWatchable())
-        return;
-    FatEntry* entry = inflate();
-    if (entry->m_watchpoints)
-        return;
-    entry->m_watchpoints = WatchpointSet::create(ClearWatchpoint);
-}
-
-SymbolTableEntry::FatEntry* SymbolTableEntry::inflateSlow()
-{
-    FatEntry* entry = new FatEntry(m_bits);
-    m_bits = std::bit_cast<intptr_t>(entry);
-    return entry;
 }
 
 SymbolTable::SymbolTable(VM& vm)
@@ -332,15 +298,30 @@ RefPtr<TypeSet> SymbolTable::globalTypeSetForVariable(const ConcurrentJSLocker& 
     return iter->value;
 }
 
-#if ASSERT_ENABLED
-bool SymbolTable::hasScopedWatchpointSet(WatchpointSet* watchpointSet)
+void SymbolTable::prepareToWatch(ScopeOffset offset)
 {
-    for (auto iter = m_unlinkedSymbolTable->map().begin(), end = m_unlinkedSymbolTable->map().end(); iter != end; ++iter) {
-        if (!iter->value.varOffset().isScope())
-            continue;
+    if (!Options::useJIT())
+        return;
+    unsigned index = offset.offset();
+    if (index >= m_watchpointSets.size())
+        m_watchpointSets.grow(index + 1);
+    if (!m_watchpointSets[index])
+        m_watchpointSets[index] = WatchpointSet::create(ClearWatchpoint);
+}
 
-        auto* entryWatchpointSet = iter->value.watchpointSet();
-        if (entryWatchpointSet && entryWatchpointSet == watchpointSet)
+WatchpointSet* SymbolTable::watchpointSet(ScopeOffset offset)
+{
+    unsigned index = offset.offset();
+    if (index >= m_watchpointSets.size())
+        return nullptr;
+    return m_watchpointSets[index].get();
+}
+
+#if ASSERT_ENABLED
+bool SymbolTable::hasScopedWatchpointSet(WatchpointSet* targetSet)
+{
+    for (auto& set : m_watchpointSets) {
+        if (set.get() == targetSet)
             return true;
     }
 

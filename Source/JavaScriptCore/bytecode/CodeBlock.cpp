@@ -624,10 +624,10 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
                     if (bytecode.m_getPutInfo.initializationMode() == InitializationMode::ScopedArgumentInitialization) {
                         ASSERT(bytecode.m_value.isArgument());
                         unsigned argumentIndex = bytecode.m_value.toArgument() - 1;
-                        symbolTable->prepareToWatchScopedArgument(iter->value, argumentIndex);
+                        symbolTable->prepareToWatchScopedArgument(iter->value.scopeOffset(), argumentIndex);
                     } else
-                        iter->value.prepareToWatch();
-                    metadata.m_watchpointSet = iter->value.watchpointSet();
+                        symbolTable->prepareToWatch(iter->value.scopeOffset());
+                    metadata.m_watchpointSet = symbolTable->watchpointSet(iter->value.scopeOffset());
                 } else
                     metadata.m_watchpointSet = nullptr;
                 break;

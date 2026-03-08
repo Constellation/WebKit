@@ -255,8 +255,8 @@ JSObject* ProgramExecutable::initializeGlobalProperties(VM& vm, JSGlobalObject* 
             }
             ScopeOffset offset = symbolTable->takeNextScopeOffset(locker);
             SymbolTableEntry newEntry(VarOffset(offset), static_cast<unsigned>(entry.value.isConst() ? PropertyAttribute::ReadOnly : PropertyAttribute::None));
-            newEntry.prepareToWatch();
             symbolTable->add(locker, entry.key.get(), newEntry);
+            symbolTable->prepareToWatch(offset);
             
             ScopeOffset offsetForAssert = globalLexicalEnvironment->addVariables(1, jsTDZValue());
             RELEASE_ASSERT(offsetForAssert == offset);

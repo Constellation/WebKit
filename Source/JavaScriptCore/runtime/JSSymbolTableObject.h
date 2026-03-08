@@ -156,8 +156,7 @@ inline bool symbolTablePut(SymbolTableObjectType* object, JSGlobalObject* global
         SymbolTable::Map::iterator iter = symbolTable.find(locker, propertyName.uid());
         if (iter == symbolTable.end(locker))
             return false;
-        bool wasFat;
-        SymbolTableEntry::Fast fastEntry = iter->value.getFast(wasFat);
+        SymbolTableEntry::Fast fastEntry = iter->value.getFast();
         ASSERT(!fastEntry.isNull());
         if (fastEntry.isReadOnly() && !ignoreReadOnlyErrors) {
             if (shouldThrowReadOnlyError)
@@ -172,7 +171,7 @@ inline bool symbolTablePut(SymbolTableObjectType* object, JSGlobalObject* global
         if (!object->isValidScopeOffset(offset))
             return false;
 
-        set = iter->value.watchpointSet();
+        set = symbolTable.watchpointSet(fastEntry.scopeOffset());
         reg = &object->variableAt(offset);
     }
     // I'd prefer we not hold lock while executing barriers, since I prefer to reserve
