@@ -27,6 +27,7 @@
 
 #include "CodeCache.h"
 #include "Debugger.h"
+#include "UnlinkedSymbolTable.h"
 
 namespace JSC {
 
@@ -65,8 +66,9 @@ UnlinkedModuleProgramCodeBlock* ModuleProgramExecutable::getUnlinkedCodeBlock(JS
 
     m_unlinkedCodeBlock.set(vm, this, unlinkedModuleProgramCode);
     VirtualRegister symbolTableReg = VirtualRegister(unlinkedModuleProgramCode->moduleEnvironmentSymbolTableConstantRegisterOffset());
-    SymbolTable* symbolTable = jsCast<SymbolTable*>(unlinkedModuleProgramCode->getConstant(symbolTableReg));
-    m_moduleEnvironmentSymbolTable.set(vm, this, symbolTable->cloneScopePart(vm));
+    unsigned symbolTableIndex = unlinkedModuleProgramCode->getConstant(symbolTableReg).asInt32();
+    UnlinkedSymbolTable& unlinkedSymbolTable = unlinkedModuleProgramCode->unlinkedSymbolTable(symbolTableIndex);
+    m_moduleEnvironmentSymbolTable.set(vm, this, SymbolTable::create(vm, Ref { unlinkedSymbolTable }));
     RELEASE_AND_RETURN(throwScope, unlinkedModuleProgramCode);
 }
 

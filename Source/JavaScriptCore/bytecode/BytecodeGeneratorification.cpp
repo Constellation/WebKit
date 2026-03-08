@@ -38,6 +38,7 @@
 #include "StrongInlines.h"
 #include "UnlinkedCodeBlockGenerator.h"
 #include "UnlinkedMetadataTableInlines.h"
+#include "UnlinkedSymbolTable.h"
 
 namespace JSC {
 
@@ -59,12 +60,12 @@ public:
         VirtualRegister m_initialValue;
     };
 
-    BytecodeGeneratorification(BytecodeGenerator& bytecodeGenerator, UnlinkedCodeBlockGenerator* codeBlock, JSInstructionStreamWriter& instructions, SymbolTable* generatorFrameSymbolTable, int generatorFrameSymbolTableIndex)
+    BytecodeGeneratorification(BytecodeGenerator& bytecodeGenerator, UnlinkedCodeBlockGenerator* codeBlock, JSInstructionStreamWriter& instructions, UnlinkedSymbolTable* generatorFrameSymbolTable, int generatorFrameSymbolTableIndex)
         : m_bytecodeGenerator(bytecodeGenerator)
         , m_codeBlock(codeBlock)
         , m_instructions(instructions)
         , m_graph(m_codeBlock, m_instructions)
-        , m_generatorFrameSymbolTable(codeBlock->vm(), generatorFrameSymbolTable)
+        , m_generatorFrameSymbolTable(generatorFrameSymbolTable)
         , m_generatorFrameSymbolTableIndex(generatorFrameSymbolTableIndex)
     {
         for (const auto& instruction : m_instructions) {
@@ -174,7 +175,7 @@ private:
     BytecodeGraph m_graph;
     Vector<std::optional<Storage>> m_storages;
     Yields m_yields;
-    Strong<SymbolTable> m_generatorFrameSymbolTable;
+    RefPtr<UnlinkedSymbolTable> m_generatorFrameSymbolTable;
     int m_generatorFrameSymbolTableIndex;
 };
 
@@ -288,7 +289,7 @@ void BytecodeGeneratorification::run()
     rewriter.execute();
 }
 
-void performGeneratorification(BytecodeGenerator& bytecodeGenerator, UnlinkedCodeBlockGenerator* codeBlock, JSInstructionStreamWriter& instructions, SymbolTable* generatorFrameSymbolTable, int generatorFrameSymbolTableIndex)
+void performGeneratorification(BytecodeGenerator& bytecodeGenerator, UnlinkedCodeBlockGenerator* codeBlock, JSInstructionStreamWriter& instructions, UnlinkedSymbolTable* generatorFrameSymbolTable, int generatorFrameSymbolTableIndex)
 {
     if (Options::dumpBytecodesBeforeGeneratorification()) [[unlikely]] {
         dataLogLn("Bytecodes before generatorification");

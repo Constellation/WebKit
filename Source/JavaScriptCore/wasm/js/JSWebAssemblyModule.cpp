@@ -30,6 +30,7 @@
 
 #include "JSCInlines.h"
 #include "JSWebAssemblyCompileError.h"
+#include "SymbolTableInlines.h"
 #include "JSWebAssemblyLinkError.h"
 #include "WasmBinding.h"
 #include "WasmDebugServer.h"

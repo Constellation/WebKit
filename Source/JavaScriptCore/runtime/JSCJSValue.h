@@ -137,6 +137,7 @@ enum class SourceCodeRepresentation : uint8_t {
     Integer,
     Double,
     LinkTimeConstant,
+    SymbolTable,
 };
 
 extern JS_EXPORT_PRIVATE const ASCIILiteral SymbolCoercionError;

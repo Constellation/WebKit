@@ -66,6 +66,7 @@ class UnlinkedCodeBlock;
 class UnlinkedCodeBlockGenerator;
 class UnlinkedFunctionCodeBlock;
 class UnlinkedFunctionExecutable;
+class UnlinkedSymbolTable;
 class BaselineJITCode;
 struct ExecutableInfo;
 enum class LinkTimeConstant : int32_t;
@@ -206,6 +207,11 @@ public:
     WriteBarrier<Unknown>& constantRegister(VirtualRegister reg) { return m_constantRegisters[reg.toConstantIndex()]; }
     ALWAYS_INLINE JSValue getConstant(VirtualRegister reg) const { return m_constantRegisters[reg.toConstantIndex()].get(); }
     const FixedVector<SourceCodeRepresentation>& constantsSourceCodeRepresentation() { return m_constantsSourceCodeRepresentation; }
+
+    // UnlinkedSymbolTable storage
+    unsigned addUnlinkedSymbolTable(Ref<UnlinkedSymbolTable>&& table);
+    UnlinkedSymbolTable& unlinkedSymbolTable(unsigned index) const;
+    const Vector<Ref<UnlinkedSymbolTable>>& unlinkedSymbolTables() const { return m_unlinkedSymbolTables; }
 
     SourceCodeRepresentation constantSourceCodeRepresentation(VirtualRegister reg) const
     {
@@ -471,6 +477,7 @@ private:
     FixedVector<Identifier> m_identifiers;
     FixedVector<WriteBarrier<Unknown>> m_constantRegisters;
     FixedVector<SourceCodeRepresentation> m_constantsSourceCodeRepresentation;
+    Vector<Ref<UnlinkedSymbolTable>> m_unlinkedSymbolTables;
     using FunctionExpressionVector = FixedVector<WriteBarrier<UnlinkedFunctionExecutable>>;
     FunctionExpressionVector m_functionDecls;
     FunctionExpressionVector m_functionExprs;

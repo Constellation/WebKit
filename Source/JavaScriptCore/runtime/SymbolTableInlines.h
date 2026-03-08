@@ -27,6 +27,7 @@
 
 #include "InferredValueInlines.h"
 #include "SymbolTable.h"
+#include "UnlinkedSymbolTable.h"
 
 namespace JSC {
 
@@ -38,6 +39,18 @@ inline Structure* SymbolTable::createStructure(VM& vm, JSGlobalObject* globalObj
 inline void SymbolTable::finalizeUnconditionally(VM& vm, CollectionScope collectionScope)
 {
     m_singleton.finalizeUnconditionally(vm, collectionScope);
+}
+
+template<typename Entry>
+void SymbolTable::add(const ConcurrentJSLocker& locker, UniquedStringImpl* key, Entry&& entry)
+{
+    m_unlinkedSymbolTable->add(locker, key, std::forward<Entry>(entry));
+}
+
+template<typename Entry>
+void SymbolTable::set(const ConcurrentJSLocker& locker, UniquedStringImpl* key, Entry&& entry)
+{
+    m_unlinkedSymbolTable->set(locker, key, std::forward<Entry>(entry));
 }
 
 } // namespace JSC

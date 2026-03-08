@@ -402,7 +402,7 @@ namespace JSC {
         Variable variable(const Identifier&, ThisResolutionType = ThisResolutionType::Local);
         
         enum ExistingVariableMode { VerifyExisting, IgnoreExisting };
-        void createVariable(const Identifier&, VarKind, SymbolTable*, ExistingVariableMode = VerifyExisting); // Creates the variable, or asserts that the already-created variable is sufficiently compatible.
+        void createVariable(const Identifier&, VarKind, UnlinkedSymbolTable*, ExistingVariableMode = VerifyExisting); // Creates the variable, or asserts that the already-created variable is sufficiently compatible.
         
         // Returns the register storing "this"
         RegisterID* thisRegister() { return &m_thisRegister; }
@@ -1102,8 +1102,8 @@ namespace JSC {
         void initializeBlockScopedFunctions(VariableEnvironment&, FunctionStack&, RegisterID* constantSymbolTable);
         void popLexicalScopeInternal(VariableEnvironment&);
         template<typename LookUpVarKindFunctor>
-        bool instantiateLexicalVariables(const VariableEnvironment&, ScopeType, SymbolTable*, ScopeRegisterType, LookUpVarKindFunctor);
-        void emitPrefillStackTDZVariables(const VariableEnvironment&, SymbolTable*);
+        bool instantiateLexicalVariables(const VariableEnvironment&, ScopeType, UnlinkedSymbolTable*, ScopeRegisterType, LookUpVarKindFunctor);
+        void emitPrefillStackTDZVariables(const VariableEnvironment&, UnlinkedSymbolTable*);
         RegisterID* emitGetParentScope(RegisterID* dst, RegisterID* scope);
         void emitPushFunctionNameScope(const Identifier& property, RegisterID* value, bool isCaptured);
         void emitNewFunctionExpressionCommon(RegisterID*, FunctionMetadataNode*);
@@ -1188,6 +1188,7 @@ namespace JSC {
         unsigned addConstant(const Identifier&);
         RegisterID* addConstantValue(JSValue, SourceCodeRepresentation = SourceCodeRepresentation::Other);
         RegisterID* addConstantEmptyValue();
+        RegisterID* addUnlinkedSymbolTableConstant(Ref<UnlinkedSymbolTable>&&);
 
         UnlinkedFunctionExecutable* makeFunction(FunctionMetadataNode* metadata)
         {
@@ -1236,9 +1237,9 @@ namespace JSC {
         void emitLogShadowChickenTailIfNecessary();
 
         void initializeParameters(FunctionParameters&);
-        void initializeVarLexicalEnvironment(int symbolTableConstantIndex, SymbolTable* functionSymbolTable, bool hasCapturedVariables);
-        void initializeDefaultParameterValuesAndSetupFunctionScopeStack(FunctionParameters&, bool isSimpleParameterList, FunctionNode*, SymbolTable*, int symbolTableConstantIndex, const ScopedLambda<bool (UniquedStringImpl*)>& captures, bool shouldCreateArgumentsVariableInParameterScope);
-        void initializeArrowFunctionContextScopeIfNeeded(SymbolTable* functionSymbolTable = nullptr, bool canReuseLexicalEnvironment = false);
+        void initializeVarLexicalEnvironment(int symbolTableConstantIndex, RefPtr<UnlinkedSymbolTable>&& functionSymbolTable, bool hasCapturedVariables);
+        void initializeDefaultParameterValuesAndSetupFunctionScopeStack(FunctionParameters&, bool isSimpleParameterList, FunctionNode*, UnlinkedSymbolTable*, int symbolTableConstantIndex, const ScopedLambda<bool (UniquedStringImpl*)>& captures, bool shouldCreateArgumentsVariableInParameterScope);
+        void initializeArrowFunctionContextScopeIfNeeded(UnlinkedSymbolTable* functionSymbolTable = nullptr, bool canReuseLexicalEnvironment = false);
         bool needsDerivedConstructorInArrowFunctionLexicalEnvironment();
 
         enum class TDZNecessityLevel {
@@ -1303,7 +1304,7 @@ namespace JSC {
         OptionSet<CodeGenerationMode> m_codeGenerationMode;
 
         struct LexicalScopeStackEntry {
-            SymbolTable* m_symbolTable;
+            RefPtr<UnlinkedSymbolTable> m_symbolTable;
             RegisterID* m_scope;
             bool m_isWithScope;
             int m_symbolTableConstantIndex;
@@ -1360,7 +1361,7 @@ namespace JSC {
         unsigned m_yieldPoints { 0 };
         bool m_needsGeneratorification { false };
 
-        Strong<SymbolTable> m_generatorFrameSymbolTable;
+        RefPtr<UnlinkedSymbolTable> m_generatorFrameSymbolTable;
         int m_generatorFrameSymbolTableIndex { 0 };
 
         enum FunctionVariableType : uint8_t { NormalFunctionVariable, TopLevelFunctionVariable };

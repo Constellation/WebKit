@@ -33,6 +33,7 @@
 #include "JSModuleEnvironment.h"
 #include "JSModuleNamespaceObject.h"
 #include "JSONObject.h"
+#include "SymbolTableInlines.h"
 
 namespace JSC {
 

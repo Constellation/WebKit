@@ -171,6 +171,8 @@ public:
         return size;
     }
 
+    unsigned addUnlinkedSymbolTable(Ref<UnlinkedSymbolTable>&& table) { return m_codeBlock->addUnlinkedSymbolTable(std::move(table)); }
+
     size_t numberOfIdentifiers() const { return m_identifiers.size(); }
     const Identifier& identifier(int index) const { return m_identifiers[index]; }
     void addIdentifier(const Identifier& i) { return m_identifiers.append(i); }

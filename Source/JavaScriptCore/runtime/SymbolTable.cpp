@@ -35,12 +35,58 @@
 #include "ResourceExhaustion.h"
 #include "ScriptExecutable.h"
 #include "TypeProfiler.h"
+#include "UnlinkedSymbolTable.h"
 
 #include <wtf/CommaPrinter.h>
 
 namespace JSC {
 
 const ClassInfo SymbolTable::s_info = { "SymbolTable"_s, nullptr, nullptr, nullptr, CREATE_METHOD_TABLE(SymbolTable) };
+
+// Delegation methods to UnlinkedSymbolTable
+
+UnlinkedSymbolTable& SymbolTable::unlinkedSymbolTable() const { return m_unlinkedSymbolTable.get(); }
+
+SymbolTable::Map::iterator SymbolTable::find(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->find(locker, key); }
+SymbolTable::Map::iterator SymbolTable::find(const GCSafeConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->find(locker, key); }
+
+SymbolTableEntry SymbolTable::get(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->get(locker, key); }
+SymbolTableEntry SymbolTable::get(UniquedStringImpl* key) { return m_unlinkedSymbolTable->get(key); }
+
+SymbolTableEntry SymbolTable::inlineGet(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->inlineGet(locker, key); }
+SymbolTableEntry SymbolTable::inlineGet(UniquedStringImpl* key) { return m_unlinkedSymbolTable->inlineGet(key); }
+
+SymbolTable::Map::iterator SymbolTable::begin(const ConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->begin(locker); }
+SymbolTable::Map::iterator SymbolTable::end(const ConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->end(locker); }
+SymbolTable::Map::iterator SymbolTable::end(const GCSafeConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->end(locker); }
+
+size_t SymbolTable::size(const ConcurrentJSLocker& locker) const { return m_unlinkedSymbolTable->size(locker); }
+size_t SymbolTable::size() const { return m_unlinkedSymbolTable->size(); }
+
+ScopeOffset SymbolTable::maxScopeOffset() const { return m_unlinkedSymbolTable->maxScopeOffset(); }
+void SymbolTable::didUseScopeOffset(ScopeOffset offset) { m_unlinkedSymbolTable->didUseScopeOffset(offset); }
+void SymbolTable::didUseVarOffset(VarOffset offset) { m_unlinkedSymbolTable->didUseVarOffset(offset); }
+unsigned SymbolTable::scopeSize() const { return m_unlinkedSymbolTable->scopeSize(); }
+ScopeOffset SymbolTable::nextScopeOffset() const { return m_unlinkedSymbolTable->nextScopeOffset(); }
+ScopeOffset SymbolTable::takeNextScopeOffset(const ConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->takeNextScopeOffset(locker); }
+ScopeOffset SymbolTable::takeNextScopeOffset() { return m_unlinkedSymbolTable->takeNextScopeOffset(); }
+
+bool SymbolTable::hasPrivateNames() const { return m_unlinkedSymbolTable->hasPrivateNames(); }
+SymbolTable::PrivateNameIteratorRange SymbolTable::privateNames() { return m_unlinkedSymbolTable->privateNames(); }
+void SymbolTable::addPrivateName(const RefPtr<UniquedStringImpl>& key, PrivateNameEntry value) { m_unlinkedSymbolTable->addPrivateName(key, value); }
+bool SymbolTable::hasPrivateName(const RefPtr<UniquedStringImpl>& key) const { return m_unlinkedSymbolTable->hasPrivateName(key); }
+
+bool SymbolTable::contains(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->contains(locker, key); }
+bool SymbolTable::contains(UniquedStringImpl* key) { return m_unlinkedSymbolTable->contains(key); }
+
+bool SymbolTable::usesSloppyEval() const { return m_unlinkedSymbolTable->usesSloppyEval(); }
+void SymbolTable::setUsesSloppyEval(bool value) { m_unlinkedSymbolTable->setUsesSloppyEval(value); }
+
+bool SymbolTable::isNestedLexicalScope() const { return m_unlinkedSymbolTable->isNestedLexicalScope(); }
+void SymbolTable::markIsNestedLexicalScope() { m_unlinkedSymbolTable->markIsNestedLexicalScope(); }
+
+void SymbolTable::setScopeType(ScopeType type) { m_unlinkedSymbolTable->setScopeType(type); }
+SymbolTable::ScopeType SymbolTable::scopeType() const { return m_unlinkedSymbolTable->scopeType(); }
 
 DEFINE_ALLOCATOR_WITH_HEAP_IDENTIFIER(SymbolTableEntryFatEntry);
 
@@ -84,9 +130,13 @@ SymbolTableEntry::FatEntry* SymbolTableEntry::inflateSlow()
 
 SymbolTable::SymbolTable(VM& vm)
     : JSCell(vm, vm.symbolTableStructure.get())
-    , m_usesSloppyEval(false)
-    , m_nestedLexicalScope(false)
-    , m_scopeType(VarScope)
+    , m_unlinkedSymbolTable(UnlinkedSymbolTable::create())
+{
+}
+
+SymbolTable::SymbolTable(VM& vm, Ref<UnlinkedSymbolTable>&& unlinkedSymbolTable)
+    : JSCell(vm, vm.symbolTableStructure.get())
+    , m_unlinkedSymbolTable(std::move(unlinkedSymbolTable))
 {
 }
 
@@ -113,20 +163,20 @@ const SymbolTable::LocalToEntryVec& SymbolTable::localToEntry(const ConcurrentJS
 {
     if (!m_localToEntry) [[unlikely]] {
         unsigned size = 0;
-        for (auto& entry : m_map) {
+        for (auto& entry : m_unlinkedSymbolTable->map()) {
             VarOffset offset = entry.value.varOffset();
             if (offset.isScope())
                 size = std::max(size, offset.scopeOffset().offset() + 1);
         }
-    
+
         m_localToEntry = makeUnique<LocalToEntryVec>(size, nullptr);
-        for (auto& entry : m_map) {
+        for (auto& entry : m_unlinkedSymbolTable->map()) {
             VarOffset offset = entry.value.varOffset();
             if (offset.isScope())
                 m_localToEntry->at(offset.scopeOffset().offset()) = &entry.value;
         }
     }
-    
+
     return *m_localToEntry;
 }
 
@@ -140,49 +190,20 @@ SymbolTableEntry* SymbolTable::entryFor(const ConcurrentJSLocker& locker, ScopeO
 
 SymbolTable* SymbolTable::cloneScopePart(VM& vm)
 {
-    SymbolTable* result = SymbolTable::create(vm);
-    
-    result->m_usesSloppyEval = m_usesSloppyEval;
-    result->m_nestedLexicalScope = m_nestedLexicalScope;
-    result->m_scopeType = m_scopeType;
+    SymbolTable* result = SymbolTable::create(vm, Ref { m_unlinkedSymbolTable });
 
-    UncheckedKeyHashMap<VarOffset, uint32_t> varOffsetToArgIndexMap;
-
-    if (this->arguments()) {
-        // Copy the arguments, but not the WatchpointSets. We create new WatchpointSets as appropriate when we create the SymbolTableEntry
-        // copies below and propogate the new watchpointSets to the new ScopedArgumentsTable.
-        auto length = this->arguments()->length();
+    if (m_unlinkedSymbolTable->argumentsLength()) {
+        auto length = m_unlinkedSymbolTable->argumentsLength();
         ScopedArgumentsTable* arguments = ScopedArgumentsTable::tryCreate(vm, length);
         RELEASE_ASSERT_RESOURCE_AVAILABLE(arguments, MemoryExhaustion, "Crash intentionally because memory is exhausted.");
 
         for (uint32_t index = 0; index < length; ++index) {
-            ScopeOffset offset = this->arguments()->get(index);
-
+            ScopeOffset offset = m_unlinkedSymbolTable->argumentScopeOffset(index);
             arguments->trySet(vm, index, offset);
-            if (this->arguments()->getWatchpointSet(index))
-                varOffsetToArgIndexMap.set(VarOffset(offset), index);
         }
 
         result->m_arguments.set(vm, result, arguments);
     }
-
-    bool hasScopedArgumentWatchpoints = !varOffsetToArgIndexMap.isEmpty();
-
-    for (auto iter = m_map.begin(), end = m_map.end(); iter != end; ++iter) {
-        if (!iter->value.varOffset().isScope())
-            continue;
-        SymbolTableEntry entry(iter->value.varOffset(), iter->value.getAttributes());
-
-        if (hasScopedArgumentWatchpoints) {
-            auto findIter = varOffsetToArgIndexMap.find(iter->value.varOffset());
-            if (findIter != varOffsetToArgIndexMap.end())
-                result->prepareToWatchScopedArgument(entry, findIter->value);
-        }
-
-        result->m_map.add(iter->key, WTF::move(entry));
-    }
-
-    result->m_maxScopeOffset = m_maxScopeOffset;
 
     if (m_rareData) {
         result->ensureRareData();
@@ -207,11 +228,6 @@ SymbolTable* SymbolTable::cloneScopePart(VM& vm)
             for (; iter != end; ++iter)
                 result->m_rareData->m_uniqueTypeSetMap.set(iter->key, iter->value);
         }
-
-        {
-            for (auto name : m_rareData->m_privateNames)
-                result->m_rareData->m_privateNames.add(name.key, name.value);
-        }
     }
     result->m_clonedFrom.set(vm, result, this);
     return result;
@@ -224,7 +240,7 @@ void SymbolTable::prepareForTypeProfiling(const ConcurrentJSLocker&)
 
     auto& rareData = ensureRareData();
 
-    for (auto iter = m_map.begin(), end = m_map.end(); iter != end; ++iter) {
+    for (auto iter = m_unlinkedSymbolTable->map().begin(), end = m_unlinkedSymbolTable->map().end(); iter != end; ++iter) {
         rareData.m_uniqueIDMap.set(iter->key, TypeProfilerNeedsUniqueIDGeneration);
         rareData.m_offsetToVariableMap.set(iter->value.varOffset(), iter->key);
     }
@@ -319,7 +335,7 @@ RefPtr<TypeSet> SymbolTable::globalTypeSetForVariable(const ConcurrentJSLocker& 
 #if ASSERT_ENABLED
 bool SymbolTable::hasScopedWatchpointSet(WatchpointSet* watchpointSet)
 {
-    for (auto iter = m_map.begin(), end = m_map.end(); iter != end; ++iter) {
+    for (auto iter = m_unlinkedSymbolTable->map().begin(), end = m_unlinkedSymbolTable->map().end(); iter != end; ++iter) {
         if (!iter->value.varOffset().isScope())
             continue;
 
@@ -347,10 +363,9 @@ void SymbolTable::dump(PrintStream& out) const
 
     CommaPrinter comma;
     out.print(" <"_s);
-    for (auto& iter : m_map)
+    for (auto& iter : m_unlinkedSymbolTable->map())
         out.print(comma, *iter.key, ": "_s, iter.value.varOffset());
     out.println(">"_s);
 }
 
 } // namespace JSC
-

@@ -28,6 +28,7 @@
 #include "BatchedTransitionOptimizer.h"
 #include "CodeCache.h"
 #include "Debugger.h"
+#include "SymbolTableInlines.h"
 #include "VMTrapsInlines.h"
 #include <wtf/text/MakeString.h>
 

@@ -48,6 +48,7 @@
 #include "PrivateFieldPutKind.h"
 #include "StrongInlines.h"
 #include "SuperSampler.h"
+#include "SymbolTableInlines.h"
 #include "TopExceptionScope.h"
 #include "UnlinkedCodeBlock.h"
 #include "UnlinkedEvalCodeBlock.h"
@@ -446,7 +447,7 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, FunctionNode* functionNode, Unlinke
     ECMAMode ecmaMode = m_ecmaMode;
     pushPrivateAccessNames(parentPrivateNameEnvironment);
 
-    SymbolTable* functionSymbolTable = SymbolTable::create(m_vm);
+    Ref<UnlinkedSymbolTable> functionSymbolTable = UnlinkedSymbolTable::create();
     functionSymbolTable->setUsesSloppyEval(m_usesSloppyEval);
     int symbolTableConstantIndex = 0;
 
@@ -582,13 +583,13 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, FunctionNode* functionNode, Unlinke
         m_lexicalEnvironmentRegister = addVar();
 
     if (isGeneratorOrAsyncFunctionBodyParseMode(parseMode) || shouldCaptureSomeOfTheThings || shouldEmitTypeProfilerHooks())
-        symbolTableConstantIndex = addConstantValue(functionSymbolTable)->index();
+        symbolTableConstantIndex = addUnlinkedSymbolTableConstant(Ref { functionSymbolTable })->index();
 
     // We can allocate the "var" environment if we don't have default parameter expressions. If we have
     // default parameter expressions, we have to hold off on allocating the "var" environment because
     // the parent scope of the "var" environment is the parameter environment.
     if (isSimpleParameterList)
-        initializeVarLexicalEnvironment(symbolTableConstantIndex, functionSymbolTable, shouldCaptureSomeOfTheThings);
+        initializeVarLexicalEnvironment(symbolTableConstantIndex, functionSymbolTable.copyRef(), shouldCaptureSomeOfTheThings);
 
     // Need to know what our functions are called. Parameters have some goofy behaviors when it
     // comes to functions of the same name.
@@ -625,7 +626,7 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, FunctionNode* functionNode, Unlinke
         
         if (capturesAnyParameterByName) {
             ASSERT(m_lexicalEnvironmentRegister);
-            bool success = functionSymbolTable->trySetArgumentsLength(vm, parameters.size());
+            bool success = functionSymbolTable->trySetArgumentsLength(parameters.size());
             if (!success) [[unlikely]] {
                 m_outOfMemoryDuringConstruction = true;
                 return;
@@ -637,11 +638,7 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, FunctionNode* functionNode, Unlinke
             // way we lift the value into the scope.
             for (unsigned i = 0; i < parameters.size(); ++i) {
                 ScopeOffset offset = functionSymbolTable->takeNextScopeOffset(NoLockingNecessary);
-                bool success = functionSymbolTable->trySetArgumentOffset(vm, i, offset);
-                if (!success) [[unlikely]] {
-                    m_outOfMemoryDuringConstruction = true;
-                    return;
-                }
+                functionSymbolTable->setArgumentScopeOffset(i, offset);
 
                 unsigned varOrAnonymous = UINT_MAX;
 
@@ -753,7 +750,7 @@ IGNORE_GCC_WARNINGS_END
         // Do not create arguments variable in case of Arrow function. Value will be loaded from parent scope
         if (shouldCreateArgumensVariable && !shouldCreateArgumentsVariableInParameterScope) {
             createVariable(
-                propertyNames().arguments, varKind(propertyNames().arguments.impl()), functionSymbolTable);
+                propertyNames().arguments, varKind(propertyNames().arguments.impl()), functionSymbolTable.ptr());
 
             m_needToInitializeArguments = true;
         }
@@ -761,7 +758,7 @@ IGNORE_GCC_WARNINGS_END
 
     for (FunctionMetadataNode* function : functionNode->functionStack()) {
         const Identifier& ident = function->ident();
-        createVariable(ident, varKind(ident.impl()), functionSymbolTable);
+        createVariable(ident, varKind(ident.impl()), functionSymbolTable.ptr());
         m_functionsToInitialize.append(std::make_pair(function, NormalFunctionVariable));
     }
     for (auto& entry : functionNode->varDeclarations()) {
@@ -772,7 +769,7 @@ IGNORE_GCC_WARNINGS_END
             continue;
         if (isGeneratorOrAsyncFunctionBodyParseMode(parseMode) && generatorOrAsyncWrapperFunctionParameterNames->contains(entry.key.get()))
             continue;
-        createVariable(Identifier::fromUid(m_vm, entry.key.get()), varKind(entry.key.get()), functionSymbolTable, IgnoreExisting);
+        createVariable(Identifier::fromUid(m_vm, entry.key.get()), varKind(entry.key.get()), functionSymbolTable.ptr(), IgnoreExisting);
     }
 
 
@@ -913,7 +910,7 @@ IGNORE_GCC_WARNINGS_END
 
     if (needsToUpdateArrowFunctionContext() && !codeBlock->isArrowFunction()) {
         bool canReuseLexicalEnvironment = isSimpleParameterList;
-        initializeArrowFunctionContextScopeIfNeeded(functionSymbolTable, canReuseLexicalEnvironment);
+        initializeArrowFunctionContextScopeIfNeeded(functionSymbolTable.ptr(), canReuseLexicalEnvironment);
         emitPutThisToArrowFunctionContextScope();
         emitPutNewTargetToArrowFunctionContextScope();
         emitPutDerivedConstructorToArrowFunctionContextScope();
@@ -925,7 +922,7 @@ IGNORE_GCC_WARNINGS_END
     asyncFuncParametersTryCatchWrap([&]() {
         // All "addVar()"s needs to happen before "initializeDefaultParameterValuesAndSetupFunctionScopeStack()" is called
         // because a function's default parameter ExpressionNodes will use temporary registers.
-        initializeDefaultParameterValuesAndSetupFunctionScopeStack(parameters, isSimpleParameterList, functionNode, functionSymbolTable, symbolTableConstantIndex, captures, shouldCreateArgumentsVariableInParameterScope);
+        initializeDefaultParameterValuesAndSetupFunctionScopeStack(parameters, isSimpleParameterList, functionNode, functionSymbolTable.ptr(), symbolTableConstantIndex, captures, shouldCreateArgumentsVariableInParameterScope);
     });
 
     // If we don't have  default parameter expression, then loading |this| inside an arrow function must be done
@@ -947,7 +944,7 @@ IGNORE_GCC_WARNINGS_END
     // Set up the lexical environment scope as the generator frame. We store the saved and resumed generator registers into this scope with the symbol keys.
     // Since they are symbol keyed, these variables cannot be reached from the usual code.
     if (isGeneratorOrAsyncFunctionBodyParseMode(parseMode)) {
-        m_generatorFrameSymbolTable.set(m_vm, functionSymbolTable);
+        m_generatorFrameSymbolTable = functionSymbolTable.ptr();
         m_generatorFrameSymbolTableIndex = symbolTableConstantIndex;
         if (m_lexicalEnvironmentRegister)
             move(generatorFrameRegister(), m_lexicalEnvironmentRegister);
@@ -1051,7 +1048,7 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, ModuleProgramNode* moduleProgramNod
 {
     ASSERT_UNUSED(parentScopeTDZVariables, !parentScopeTDZVariables);
 
-    SymbolTable* moduleEnvironmentSymbolTable = SymbolTable::create(m_vm);
+    Ref<UnlinkedSymbolTable> moduleEnvironmentSymbolTable = UnlinkedSymbolTable::create();
     moduleEnvironmentSymbolTable->setUsesSloppyEval(m_usesSloppyEval);
     moduleEnvironmentSymbolTable->setScopeType(SymbolTable::ScopeType::LexicalScope);
 
@@ -1097,9 +1094,9 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, ModuleProgramNode* moduleProgramNod
 
     // Now declare all variables.
 
-    createVariable(m_vm.propertyNames->starNamespacePrivateName, VarKind::Scope, moduleEnvironmentSymbolTable, VerifyExisting);
+    createVariable(m_vm.propertyNames->starNamespacePrivateName, VarKind::Scope, moduleEnvironmentSymbolTable.ptr(), VerifyExisting);
     if (moduleProgramNode->features() & ImportMetaFeature)
-        createVariable(m_vm.propertyNames->builtinNames().metaPrivateName(), VarKind::Scope, moduleEnvironmentSymbolTable, VerifyExisting);
+        createVariable(m_vm.propertyNames->builtinNames().metaPrivateName(), VarKind::Scope, moduleEnvironmentSymbolTable.ptr(), VerifyExisting);
 
     for (auto& entry : moduleProgramNode->varDeclarations()) {
         ASSERT(!entry.value.isLet() && !entry.value.isConst());
@@ -1110,21 +1107,18 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, ModuleProgramNode* moduleProgramNod
         // the code block, we resolve the reference to the "ModuleVar".
         if (entry.value.isImported() && !entry.value.isImportedNamespace())
             continue;
-        createVariable(Identifier::fromUid(m_vm, entry.key.get()), lookUpVarKind(entry.key.get(), entry.value), moduleEnvironmentSymbolTable, IgnoreExisting);
+        createVariable(Identifier::fromUid(m_vm, entry.key.get()), lookUpVarKind(entry.key.get(), entry.value), moduleEnvironmentSymbolTable.ptr(), IgnoreExisting);
     }
 
     VariableEnvironment& lexicalVariables = moduleProgramNode->lexicalVariables();
-    instantiateLexicalVariables(lexicalVariables, ScopeType::LetConstScope, moduleEnvironmentSymbolTable, ScopeRegisterType::Block, lookUpVarKind);
+    instantiateLexicalVariables(lexicalVariables, ScopeType::LetConstScope, moduleEnvironmentSymbolTable.ptr(), ScopeRegisterType::Block, lookUpVarKind);
 
     // We keep the symbol table in the constant pool.
     RegisterID* constantSymbolTable = nullptr;
-    if (shouldEmitTypeProfilerHooks() || moduleProgramNode->usesAwait())
-        constantSymbolTable = addConstantValue(moduleEnvironmentSymbolTable);
-    else
-        constantSymbolTable = addConstantValue(moduleEnvironmentSymbolTable->cloneScopePart(m_vm));
+    constantSymbolTable = addUnlinkedSymbolTableConstant(Ref { moduleEnvironmentSymbolTable });
 
     if (moduleProgramNode->usesAwait()) {
-        m_generatorFrameSymbolTable.set(m_vm, moduleEnvironmentSymbolTable);
+        m_generatorFrameSymbolTable = moduleEnvironmentSymbolTable.ptr();
         m_generatorFrameSymbolTableIndex = constantSymbolTable->index();
         emitPutInternalField(generatorRegister(), static_cast<unsigned>(AbstractModuleRecord::Field::Frame), generatorFrameRegister());
     }
@@ -1132,8 +1126,8 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, ModuleProgramNode* moduleProgramNod
     pushTDZVariables(lexicalVariables, TDZCheckOptimization::Optimize, TDZRequirement::UnderTDZ);
     bool isWithScope = false;
 
-    m_lexicalScopeStack.append({ moduleEnvironmentSymbolTable, m_topLevelScopeRegister, isWithScope, constantSymbolTable->index() });
-    emitPrefillStackTDZVariables(lexicalVariables, moduleEnvironmentSymbolTable);
+    m_lexicalScopeStack.append({ moduleEnvironmentSymbolTable.copyRef(), m_topLevelScopeRegister, isWithScope, constantSymbolTable->index() });
+    emitPrefillStackTDZVariables(lexicalVariables, moduleEnvironmentSymbolTable.ptr());
 
     // makeFunction assumes that there's correct TDZ stack entries.
     // So it should be called after putting our lexical environment to the TDZ stack correctly.
@@ -1199,7 +1193,7 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, ModuleProgramNode* moduleProgramNod
 BytecodeGenerator::~BytecodeGenerator() = default;
 
 void BytecodeGenerator::initializeDefaultParameterValuesAndSetupFunctionScopeStack(
-    FunctionParameters& parameters, bool isSimpleParameterList, FunctionNode* functionNode, SymbolTable* functionSymbolTable, 
+    FunctionParameters& parameters, bool isSimpleParameterList, FunctionNode* functionNode, UnlinkedSymbolTable* functionSymbolTable,
     int symbolTableConstantIndex, const ScopedLambda<bool (UniquedStringImpl*)>& captures, bool shouldCreateArgumentsVariableInParameterScope)
 {
     Vector<std::pair<Identifier, RefPtr<RegisterID>>> valuesToMoveIntoVars;
@@ -1275,7 +1269,7 @@ void BytecodeGenerator::initializeDefaultParameterValuesAndSetupFunctionScopeSta
         // parameter environment record as its parent.
         // See step 28 of section 9.2.12.
         bool hasCapturedVariables = !!m_lexicalEnvironmentRegister; 
-        initializeVarLexicalEnvironment(symbolTableConstantIndex, functionSymbolTable, hasCapturedVariables);
+        initializeVarLexicalEnvironment(symbolTableConstantIndex, RefPtr { functionSymbolTable }, hasCapturedVariables);
     }
 
     // This completes step 28 of section 9.2.12.
@@ -1293,7 +1287,7 @@ bool BytecodeGenerator::needsDerivedConstructorInArrowFunctionLexicalEnvironment
     return m_codeBlock->isClassContext() && isSuperUsedInInnerArrowFunction();
 }
 
-void BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded(SymbolTable* functionSymbolTable, bool canReuseLexicalEnvironment)
+void BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded(UnlinkedSymbolTable* functionSymbolTable, bool canReuseLexicalEnvironment)
 {
     ASSERT(!m_arrowFunctionContextLexicalEnvironmentRegister);
 
@@ -1388,7 +1382,7 @@ void BytecodeGenerator::initializeParameters(FunctionParameters& parameters)
     }
 }
 
-void BytecodeGenerator::initializeVarLexicalEnvironment(int symbolTableConstantIndex, SymbolTable* functionSymbolTable, bool hasCapturedVariables)
+void BytecodeGenerator::initializeVarLexicalEnvironment(int symbolTableConstantIndex, RefPtr<UnlinkedSymbolTable>&& functionSymbolTable, bool hasCapturedVariables)
 {
     if (hasCapturedVariables) {
         RELEASE_ASSERT(m_lexicalEnvironmentRegister);
@@ -1399,7 +1393,7 @@ void BytecodeGenerator::initializeVarLexicalEnvironment(int symbolTableConstantI
         pushLocalControlFlowScope();
     }
     bool isWithScope = false;
-    m_lexicalScopeStack.append({ functionSymbolTable, m_lexicalEnvironmentRegister, isWithScope, symbolTableConstantIndex });
+    m_lexicalScopeStack.append({ WTF::move(functionSymbolTable), m_lexicalEnvironmentRegister, isWithScope, symbolTableConstantIndex });
     m_varScopeLexicalScopeStackIndex = m_lexicalScopeStack.size() - 1;
 }
 
@@ -1678,6 +1672,12 @@ RegisterID* BytecodeGenerator::addConstantValue(JSValue v, SourceCodeRepresentat
     } else
         index = result.iterator->value;
     return &m_constantPoolRegisters[index];
+}
+
+RegisterID* BytecodeGenerator::addUnlinkedSymbolTableConstant(Ref<UnlinkedSymbolTable>&& unlinkedSymbolTable)
+{
+    unsigned symbolTableIndex = m_codeBlock->addUnlinkedSymbolTable(Ref { unlinkedSymbolTable });
+    return addConstantValue(jsNumber(symbolTableIndex), SourceCodeRepresentation::SymbolTable);
 }
 
 RegisterID* BytecodeGenerator::moveLinkTimeConstant(RegisterID* dst, LinkTimeConstant type)
@@ -2059,7 +2059,7 @@ RegisterID* BytecodeGenerator::emitLoad(RegisterID* dst, IdentifierSet&& set)
 }
 
 template<typename LookUpVarKindFunctor>
-bool BytecodeGenerator::instantiateLexicalVariables(const VariableEnvironment& lexicalVariables, ScopeType scopeType, SymbolTable* symbolTable, ScopeRegisterType scopeRegisterType, LookUpVarKindFunctor lookUpVarKind)
+bool BytecodeGenerator::instantiateLexicalVariables(const VariableEnvironment& lexicalVariables, ScopeType scopeType, UnlinkedSymbolTable* symbolTable, ScopeRegisterType scopeRegisterType, LookUpVarKindFunctor lookUpVarKind)
 {
     bool hasCapturedVariables = false;
     {
@@ -2149,7 +2149,7 @@ bool BytecodeGenerator::instantiateLexicalVariables(const VariableEnvironment& l
     return hasCapturedVariables;
 }
 
-void BytecodeGenerator::emitPrefillStackTDZVariables(const VariableEnvironment& lexicalVariables, SymbolTable* symbolTable)
+void BytecodeGenerator::emitPrefillStackTDZVariables(const VariableEnvironment& lexicalVariables, UnlinkedSymbolTable* symbolTable)
 {
     // Prefill stack variables with the TDZ empty value.
     // Scope variables will be initialized to the TDZ empty value when JSLexicalEnvironment is allocated.
@@ -2207,7 +2207,7 @@ void BytecodeGenerator::pushLexicalScopeInternal(VariableEnvironment& environmen
     if (shouldEmitDebugHooks())
         environment.markAllVariablesAsCaptured();
 
-    SymbolTable* symbolTable = SymbolTable::create(m_vm);
+    Ref<UnlinkedSymbolTable> symbolTable = UnlinkedSymbolTable::create();
     switch (scopeType) {
     case ScopeType::CatchScope:
         symbolTable->setScopeType(SymbolTable::ScopeType::CatchScope);
@@ -2231,13 +2231,13 @@ void BytecodeGenerator::pushLexicalScopeInternal(VariableEnvironment& environmen
         return entry.isCaptured() ? VarKind::Scope : VarKind::Stack;
     };
 
-    bool hasCapturedVariables = instantiateLexicalVariables(environment, scopeType, symbolTable, scopeRegisterType, lookUpVarKind);
+    bool hasCapturedVariables = instantiateLexicalVariables(environment, scopeType, symbolTable.ptr(), scopeRegisterType, lookUpVarKind);
 
     RegisterID* newScope = nullptr;
     RegisterID* constantSymbolTable = nullptr;
     int symbolTableConstantIndex = 0;
     if (shouldEmitTypeProfilerHooks()) {
-        constantSymbolTable = addConstantValue(symbolTable);
+        constantSymbolTable = addUnlinkedSymbolTableConstant(Ref { symbolTable });
         symbolTableConstantIndex = constantSymbolTable->index();
     }
     if (hasCapturedVariables) {
@@ -2248,7 +2248,7 @@ void BytecodeGenerator::pushLexicalScopeInternal(VariableEnvironment& environmen
             newScope = addVar();
         if (!constantSymbolTable) {
             ASSERT(!shouldEmitTypeProfilerHooks());
-            constantSymbolTable = addConstantValue(symbolTable->cloneScopePart(m_vm));
+            constantSymbolTable = addUnlinkedSymbolTableConstant(Ref { symbolTable });
             symbolTableConstantIndex = constantSymbolTable->index();
         }
         if (constantSymbolTableResult)
@@ -2262,11 +2262,11 @@ void BytecodeGenerator::pushLexicalScopeInternal(VariableEnvironment& environmen
     }
 
     bool isWithScope = false;
-    m_lexicalScopeStack.append({ symbolTable, newScope, isWithScope, symbolTableConstantIndex });
+    m_lexicalScopeStack.append({ symbolTable.copyRef(), newScope, isWithScope, symbolTableConstantIndex });
     pushTDZVariables(environment, tdzCheckOptimization, tdzRequirement);
 
     if (tdzRequirement == TDZRequirement::UnderTDZ)
-        emitPrefillStackTDZVariables(environment, symbolTable);
+        emitPrefillStackTDZVariables(environment, symbolTable.ptr());
 }
 
 void BytecodeGenerator::initializeBlockScopedFunctions(VariableEnvironment& environment, FunctionStack& functionStack, RegisterID* constantSymbolTable)
@@ -2305,7 +2305,7 @@ void BytecodeGenerator::initializeBlockScopedFunctions(VariableEnvironment& envi
     if (!functionStack.size())
         return;
 
-    SymbolTable* symbolTable = m_lexicalScopeStack.last().m_symbolTable;
+    UnlinkedSymbolTable* symbolTable = m_lexicalScopeStack.last().m_symbolTable;
     RegisterID* scope = m_lexicalScopeStack.last().m_scope;
     RefPtr<RegisterID> temp = newTemporary();
     int symbolTableIndex = constantSymbolTable ? constantSymbolTable->index() : 0;
@@ -2315,7 +2315,7 @@ void BytecodeGenerator::initializeBlockScopedFunctions(VariableEnvironment& envi
         RELEASE_ASSERT(iter != environment.end());
         RELEASE_ASSERT(iter->value.isFunction());
         // We purposefully don't hold the symbol table lock around this loop because emitNewFunctionExpressionCommon may GC.
-        SymbolTableEntry entry = symbolTable->get(NoLockingNecessary, name.impl()); 
+        SymbolTableEntry entry = symbolTable->get(NoLockingNecessary, name.impl());
         RELEASE_ASSERT(!entry.isNull());
         emitNewFunctionExpressionCommon(temp.get(), function);
         bool isLexicallyScoped = true;
@@ -2348,7 +2348,7 @@ void BytecodeGenerator::hoistSloppyModeFunctionIfNecessary(FunctionMetadataNode*
             ASSERT(m_varScopeLexicalScopeStackIndex);
             ASSERT(*m_varScopeLexicalScopeStackIndex < m_lexicalScopeStack.size());
             LexicalScopeStackEntry varScope = m_lexicalScopeStack[*m_varScopeLexicalScopeStackIndex];
-            SymbolTable* varSymbolTable = varScope.m_symbolTable;
+            UnlinkedSymbolTable* varSymbolTable = varScope.m_symbolTable;
             ASSERT(varSymbolTable->scopeType() == SymbolTable::ScopeType::VarScope);
             SymbolTableEntry entry = varSymbolTable->get(NoLockingNecessary, functionName.impl());
             if (functionName == propertyNames().arguments && entry.isNull()) {
@@ -2359,7 +2359,7 @@ void BytecodeGenerator::hoistSloppyModeFunctionIfNecessary(FunctionMetadataNode*
                 // function foo(x = arguments) { { function arguments() { } } }
                 RELEASE_ASSERT(*m_varScopeLexicalScopeStackIndex > 0);
                 varScope = m_lexicalScopeStack[*m_varScopeLexicalScopeStackIndex - 1];
-                SymbolTable* parameterSymbolTable = varScope.m_symbolTable;
+                UnlinkedSymbolTable* parameterSymbolTable = varScope.m_symbolTable;
                 entry = parameterSymbolTable->get(NoLockingNecessary, functionName.impl());
             }
             RELEASE_ASSERT(!entry.isNull());
@@ -2412,7 +2412,7 @@ void BytecodeGenerator::popLexicalScopeInternal(VariableEnvironment& environment
         environment.markAllVariablesAsCaptured();
 
     auto stackEntry = m_lexicalScopeStack.takeLast();
-    SymbolTable* symbolTable = stackEntry.m_symbolTable;
+    UnlinkedSymbolTable* symbolTable = stackEntry.m_symbolTable;
     bool hasCapturedVariables = false;
     for (auto& entry : environment) {
         if (entry.value.isCaptured()) {
@@ -2457,7 +2457,7 @@ void BytecodeGenerator::prepareLexicalScopeForNextForLoopIteration(VariableEnvir
     // gets a new activation.
 
     auto stackEntry = m_lexicalScopeStack.last();
-    SymbolTable* symbolTable = stackEntry.m_symbolTable;
+    UnlinkedSymbolTable* symbolTable = stackEntry.m_symbolTable;
     RegisterID* loopScope = stackEntry.m_scope;
     ASSERT(symbolTable->scopeSize());
     ASSERT(loopScope);
@@ -2466,7 +2466,7 @@ void BytecodeGenerator::prepareLexicalScopeForNextForLoopIteration(VariableEnvir
         auto begin() const { return symbolTable->begin(NoLockingNecessary); }
         auto end() const { return symbolTable->end(NoLockingNecessary); }
         size_t size() const { return symbolTable->scopeSize(); }
-        SymbolTable* symbolTable;
+        UnlinkedSymbolTable* symbolTable;
     } symbolTableWithoutLocks { symbolTable };
 
     auto activationValuesToCopyOver = WTF::compactMap(symbolTableWithoutLocks, [&](auto& pair) -> std::optional<std::pair<RegisterID*, Identifier>> {
@@ -2534,7 +2534,7 @@ Variable BytecodeGenerator::variable(const Identifier& property, ThisResolutionT
         auto& stackEntry = m_lexicalScopeStack[i];
         if (stackEntry.m_isWithScope)
             return Variable(property);
-        SymbolTable* symbolTable = stackEntry.m_symbolTable;
+        UnlinkedSymbolTable* symbolTable = stackEntry.m_symbolTable;
         SymbolTableEntry symbolTableEntry = symbolTable->get(NoLockingNecessary, property.impl());
         if (symbolTableEntry.isNull())
             continue;
@@ -2572,7 +2572,7 @@ Variable BytecodeGenerator::variableForLocalEntry(
 }
 
 void BytecodeGenerator::createVariable(
-    const Identifier& property, VarKind varKind, SymbolTable* symbolTable, ExistingVariableMode existingVariableMode)
+    const Identifier& property, VarKind varKind, UnlinkedSymbolTable* symbolTable, ExistingVariableMode existingVariableMode)
 {
     ASSERT(property != propertyNames().builtinNames().thisPrivateName());
     SymbolTableEntry entry = symbolTable->get(NoLockingNecessary, property.impl());

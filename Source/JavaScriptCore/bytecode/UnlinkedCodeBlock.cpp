@@ -35,11 +35,24 @@
 #include "InstructionStream.h"
 #include "JSCJSValueInlines.h"
 #include "UnlinkedMetadataTableInlines.h"
+#include "UnlinkedSymbolTable.h"
 #include <wtf/DataLog.h>
 
 namespace JSC {
 
 DEFINE_ALLOCATOR_WITH_HEAP_IDENTIFIER(UnlinkedCodeBlock_RareData);
+
+unsigned UnlinkedCodeBlock::addUnlinkedSymbolTable(Ref<UnlinkedSymbolTable>&& table)
+{
+    unsigned index = m_unlinkedSymbolTables.size();
+    m_unlinkedSymbolTables.append(std::move(table));
+    return index;
+}
+
+UnlinkedSymbolTable& UnlinkedCodeBlock::unlinkedSymbolTable(unsigned index) const
+{
+    return m_unlinkedSymbolTables[index].get();
+}
 
 const ClassInfo UnlinkedCodeBlock::s_info = { "UnlinkedCodeBlock"_s, nullptr, nullptr, nullptr, CREATE_METHOD_TABLE(UnlinkedCodeBlock) };
 

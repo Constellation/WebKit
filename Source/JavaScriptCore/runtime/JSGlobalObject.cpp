@@ -263,6 +263,7 @@
 #include "SymbolConstructorInlines.h"
 #include "SymbolObjectInlines.h"
 #include "SymbolPrototypeInlines.h"
+#include "SymbolTableInlines.h"
 #include "SyntheticModuleRecord.h"
 #include "TemporalCalendar.h"
 #include "TemporalCalendarPrototype.h"
@@ -914,7 +915,6 @@ JSGlobalObject::JSGlobalObject(VM& vm, Structure* structure, const GlobalObjectM
     , m_microtaskQueue(vm.defaultMicrotaskQueue())
     , m_linkTimeConstants(numberOfLinkTimeConstants)
     , m_structureCache(vm)
-    , m_symbolTableCache(vm)
     , m_masqueradesAsUndefinedWatchpointSet(WatchpointSet::create(IsWatched))
     , m_havingABadTimeWatchpointSet(WatchpointSet::create(IsWatched))
     , m_varInjectionWatchpointSet(WatchpointSet::create(IsWatched))

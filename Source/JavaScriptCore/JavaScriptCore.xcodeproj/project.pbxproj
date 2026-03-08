@@ -1855,6 +1855,7 @@
 		BC18C4680E16F5CD00B34460 /* StringObject.h in Headers */ = {isa = PBXBuildFile; fileRef = BC18C3C30E16EE3300B34460 /* StringObject.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C46A0E16F5CD00B34460 /* StringPrototype.h in Headers */ = {isa = PBXBuildFile; fileRef = BC18C3C60E16EE3300B34460 /* StringPrototype.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C46B0E16F5CD00B34460 /* SymbolTable.h in Headers */ = {isa = PBXBuildFile; fileRef = 14A396A60CD2933100B5B4FF /* SymbolTable.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		EC1F2250CC7871C8E0877E15 /* UnlinkedSymbolTable.h in Headers */ = {isa = PBXBuildFile; fileRef = A038673499EF5881365C86B4 /* UnlinkedSymbolTable.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C47A0E16F5CD00B34460 /* WebKitAvailability.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DE3D0F40DD8DDFB00468714 /* WebKitAvailability.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		BC3046070E1F497F003232CF /* Error.h in Headers */ = {isa = PBXBuildFile; fileRef = BC3046060E1F497F003232CF /* Error.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC6AAAE50E1F426500AD87D8 /* ClassInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = BC6AAAE40E1F426500AD87D8 /* ClassInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3296,6 +3297,7 @@
 		0F919D2215853CDE004A4E7D /* Watchpoint.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Watchpoint.cpp; sourceTree = "<group>"; };
 		0F919D2315853CDE004A4E7D /* Watchpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Watchpoint.h; sourceTree = "<group>"; };
 		0F919D2715856770004A4E7D /* SymbolTable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolTable.cpp; sourceTree = "<group>"; };
+		01896FBB6E983E65CD3A9B0F /* UnlinkedSymbolTable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UnlinkedSymbolTable.cpp; sourceTree = "<group>"; };
 		0F93274C1C1F66AA00CF6564 /* GPRInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GPRInfo.cpp; sourceTree = "<group>"; };
 		0F9327591C20BCBA00CF6564 /* dynbench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dynbench; sourceTree = BUILT_PRODUCTS_DIR; };
 		0F93275A1C20BCDF00CF6564 /* dynbench.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dynbench.cpp; sourceTree = "<group>"; };
@@ -3876,6 +3878,7 @@
 		149DAAF212EB559D0083B12B /* ConservativeRoots.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConservativeRoots.h; sourceTree = "<group>"; };
 		14A1563010966365006FA260 /* DateInstanceCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DateInstanceCache.h; sourceTree = "<group>"; };
 		14A396A60CD2933100B5B4FF /* SymbolTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SymbolTable.h; sourceTree = "<group>"; };
+		A038673499EF5881365C86B4 /* UnlinkedSymbolTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UnlinkedSymbolTable.h; sourceTree = "<group>"; };
 		14A46809216FA534000D2B1A /* Fits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Fits.h; sourceTree = "<group>"; };
 		14A4680A216FA535000D2B1A /* Instruction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Instruction.h; sourceTree = "<group>"; };
 		14A4680B216FA535000D2B1A /* OpcodeSize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OpcodeSize.h; sourceTree = "<group>"; };
@@ -9407,6 +9410,8 @@
 				A7A8AF3317ADB5F3005AB174 /* Uint32Array.h */,
 				A7A8AF3017ADB5F3005AB174 /* Uint8Array.h */,
 				A7A8AF3117ADB5F3005AB174 /* Uint8ClampedArray.h */,
+				01896FBB6E983E65CD3A9B0F /* UnlinkedSymbolTable.cpp */,
+				A038673499EF5881365C86B4 /* UnlinkedSymbolTable.h */,
 				0FE050231AA9095600D33B33 /* VarOffset.cpp */,
 				0FE050241AA9095600D33B33 /* VarOffset.h */,
 				E18E3A570DF9278C00D90B34 /* VM.cpp */,
@@ -12486,6 +12491,7 @@
 				14AD91261DCA9FA40014F9FE /* UnlinkedProgramCodeBlock.h in Headers */,
 				278D25FF2A70CE88007F5BC3 /* UnlinkedProgramCodeBlockInlines.h in Headers */,
 				14AB66761DECF40900A56C26 /* UnlinkedSourceCode.h in Headers */,
+				EC1F2250CC7871C8E0877E15 /* UnlinkedSymbolTable.h in Headers */,
 				99DA00B11BD5994E00F4575C /* UpdateContents.py in Headers */,
 				0F963B3813FC6FE90002D9B2 /* ValueProfile.h in Headers */,
 				0F426A481460CBB300131F8F /* ValueRecovery.h in Headers */,

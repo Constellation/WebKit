@@ -152,6 +152,9 @@ void CodeBlockBytecodeDumper<Block>::dumpConstants()
             case SourceCodeRepresentation::LinkTimeConstant:
                 sourceCodeRepresentationDescription = ": in source as link-time-constant";
                 break;
+            case SourceCodeRepresentation::SymbolTable:
+                sourceCodeRepresentationDescription = ": in source as symbol-table-index";
+                break;
             }
             this->m_out.printf("   k%u = %s%s\n", static_cast<unsigned>(i), toCString(constant.get()).data(), sourceCodeRepresentationDescription);
             ++i;

@@ -74,12 +74,15 @@
 #include "ProfilerDatabase.h"
 #include "ProgramCodeBlock.h"
 #include "ReduceWhitespace.h"
+#include "ResourceExhaustion.h"
+#include "ScopedArgumentsTable.h"
 #include "SlotVisitorInlines.h"
 #include "SourceProvider.h"
 #include "StackVisitor.h"
 #include "StructureStubInfo.h"
 #include "TypeLocationCache.h"
 #include "TypeProfiler.h"
+#include "UnlinkedSymbolTable.h"
 #include "VMInlines.h"
 #include <wtf/Forward.h>
 #include <wtf/SimpleStats.h>
@@ -1022,17 +1025,18 @@ bool CodeBlock::isConstantOwnedByUnlinkedCodeBlock(VirtualRegister reg) const
     case SourceCodeRepresentation::Integer:
     case SourceCodeRepresentation::Double:
         return true;
+    case SourceCodeRepresentation::SymbolTable:
+    case SourceCodeRepresentation::LinkTimeConstant:
+        return false;
     case SourceCodeRepresentation::Other: {
         JSValue value = unlinkedCodeBlock()->getConstant(reg);
         if (!value || !value.isCell())
             return true;
         JSCell* cell = value.asCell();
-        if (cell->inherits<SymbolTable>() || cell->inherits<JSTemplateObjectDescriptor>())
+        if (cell->inherits<JSTemplateObjectDescriptor>())
             return false;
         return true;
     }
-    case SourceCodeRepresentation::LinkTimeConstant:
-        return false;
     default:
         RELEASE_ASSERT_NOT_REACHED();
     }
@@ -1065,30 +1069,45 @@ Vector<unsigned> CodeBlock::setConstantRegisters(const FixedVector<WriteBarrier<
             if (!constant.isEmpty()) {
                 if (constant.isCell()) {
                     JSCell* cell = constant.asCell();
-                    if (SymbolTable* symbolTable = jsDynamicCast<SymbolTable*>(cell)) {
-                        if (m_unlinkedCode->wasCompiledWithTypeProfilerOpcodes()) {
-                            ConcurrentJSLocker locker(symbolTable->m_lock);
-                            symbolTable->prepareForTypeProfiling(locker);
-                        }
-
-                        // We have to make sure to use a single code block for constant watchpointing.
-                        // If we didn't then we could jettison a compilation because that constant changed
-                        // but invalidate the clone. Then the next compilation would see the original
-                        // watchpoint intact and assume the value is still the original constant.
-                        SymbolTable* clone = globalObject->symbolTableCache().get(symbolTable);
-                        if (!clone) {
-                            clone = symbolTable->cloneScopePart(vm);
-                            globalObject->symbolTableCache().set(symbolTable, clone);
-                        }
-                        if (wasCompiledWithDebuggingOpcodes())
-                            clone->collectDebuggerInfo(this);
-
-                        constant = clone;
-                    } else if (jsDynamicCast<JSTemplateObjectDescriptor*>(cell))
+                    if (jsDynamicCast<JSTemplateObjectDescriptor*>(cell))
                         templateObjectIndices.append(i);
                 }
             }
             break;
+        case SourceCodeRepresentation::SymbolTable: {
+            unsigned index = constant.asInt32();
+            UnlinkedSymbolTable& unlinkedSymbolTable = m_unlinkedCode->unlinkedSymbolTable(index);
+
+            SymbolTable* symbolTable = nullptr;
+            auto iter = globalObject->symbolTableCache().find(&unlinkedSymbolTable);
+            if (iter != globalObject->symbolTableCache().end())
+                symbolTable = iter->value.get();
+            if (!symbolTable) {
+                symbolTable = SymbolTable::create(vm, Ref { unlinkedSymbolTable });
+
+                // Create ScopedArgumentsTable from unlinked arguments data
+                if (unlinkedSymbolTable.argumentsLength()) {
+                    auto length = unlinkedSymbolTable.argumentsLength();
+                    ScopedArgumentsTable* arguments = ScopedArgumentsTable::tryCreate(vm, length);
+                    RELEASE_ASSERT_RESOURCE_AVAILABLE(arguments, MemoryExhaustion, "Crash intentionally because memory is exhausted.");
+                    for (uint32_t argIndex = 0; argIndex < length; ++argIndex)
+                        arguments->trySet(vm, argIndex, unlinkedSymbolTable.argumentScopeOffset(argIndex));
+                    symbolTable->setArguments(vm, arguments);
+                }
+
+                globalObject->symbolTableCache().set(&unlinkedSymbolTable, Weak<SymbolTable>(symbolTable));
+            }
+
+            if (m_unlinkedCode->wasCompiledWithTypeProfilerOpcodes()) {
+                ConcurrentJSLocker locker(symbolTable->m_lock);
+                symbolTable->prepareForTypeProfiling(locker);
+            }
+            if (wasCompiledWithDebuggingOpcodes())
+                symbolTable->collectDebuggerInfo(this);
+
+            constant = symbolTable;
+            break;
+        }
         }
         m_constantRegisters[i].set(vm, this, constant);
     }

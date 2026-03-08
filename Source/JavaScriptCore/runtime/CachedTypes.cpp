@@ -42,6 +42,7 @@
 #include "UnlinkedMetadataTableInlines.h"
 #include "UnlinkedModuleProgramCodeBlock.h"
 #include "UnlinkedProgramCodeBlock.h"
+#include "UnlinkedSymbolTable.h"
 #include <wtf/FileHandle.h>
 #include <wtf/MallocPtr.h>
 #include <wtf/MallocSpan.h>
@@ -1205,51 +1206,35 @@ private:
     intptr_t m_bits;
 };
 
-class CachedSymbolTableRareData : public CachedObject<SymbolTable::SymbolTableRareData> {
+class CachedUnlinkedSymbolTable : public CachedObject<UnlinkedSymbolTable> {
 public:
-    void encode(Encoder& encoder, const SymbolTable::SymbolTableRareData& rareData)
-    {
-        m_privateNames.encode(encoder, rareData.m_privateNames);
-    }
-
-    void decode(Decoder& decoder, SymbolTable::SymbolTableRareData& rareData) const
-    {
-        m_privateNames.decode(decoder, rareData.m_privateNames);
-    }
-
-private:
-    CachedPrivateNameEnvironment m_privateNames;
-};
-
-class CachedSymbolTable : public CachedObject<SymbolTable> {
-public:
-    void encode(Encoder& encoder, const SymbolTable& symbolTable)
+    void encode(Encoder& encoder, const UnlinkedSymbolTable& symbolTable)
     {
         m_map.encode(encoder, symbolTable.m_map);
         m_maxScopeOffset = symbolTable.m_maxScopeOffset;
         m_usesSloppyEval = symbolTable.m_usesSloppyEval;
         m_nestedLexicalScope = symbolTable.m_nestedLexicalScope;
         m_scopeType = symbolTable.m_scopeType;
-        m_arguments.encode(encoder, symbolTable.m_arguments.get());
-        m_rareData.encode(encoder, symbolTable.m_rareData.get());
+        m_argumentsLength = symbolTable.m_argumentsLength;
+        if (m_argumentsLength)
+            m_argumentScopeOffsets.encode(encoder, symbolTable.m_argumentScopeOffsets.begin(), m_argumentsLength);
+        m_privateNames.encode(encoder, symbolTable.m_privateNames);
     }
 
-    SymbolTable* decode(Decoder& decoder) const
+    Ref<UnlinkedSymbolTable> decode(Decoder& decoder) const
     {
-        SymbolTable* symbolTable = SymbolTable::create(decoder.vm());
+        Ref<UnlinkedSymbolTable> symbolTable = UnlinkedSymbolTable::create();
         m_map.decode(decoder, symbolTable->m_map);
         symbolTable->m_maxScopeOffset = m_maxScopeOffset;
         symbolTable->m_usesSloppyEval = m_usesSloppyEval;
         symbolTable->m_nestedLexicalScope = m_nestedLexicalScope;
         symbolTable->m_scopeType = m_scopeType;
-        ScopedArgumentsTable* scopedArgumentsTable = m_arguments.decode(decoder);
-        if (scopedArgumentsTable)
-            symbolTable->m_arguments.set(decoder.vm(), symbolTable, scopedArgumentsTable);
-        if (!m_rareData.isEmpty()) {
-            symbolTable->m_rareData = WTF::makeUnique<SymbolTable::SymbolTableRareData>();
-            m_rareData->decode(decoder, *symbolTable->m_rareData);
+        symbolTable->m_argumentsLength = m_argumentsLength;
+        if (m_argumentsLength) {
+            symbolTable->m_argumentScopeOffsets = FixedVector<ScopeOffset>(m_argumentsLength);
+            m_argumentScopeOffsets.decode(decoder, symbolTable->m_argumentScopeOffsets.begin(), m_argumentsLength);
         }
-
+        m_privateNames.decode(decoder, symbolTable->m_privateNames);
         return symbolTable;
     }
 
@@ -1259,8 +1244,35 @@ private:
     unsigned m_usesSloppyEval : 1;
     unsigned m_nestedLexicalScope : 1;
     unsigned m_scopeType : 3;
-    CachedPtr<CachedScopedArgumentsTable> m_arguments;
-    CachedPtr<CachedSymbolTableRareData> m_rareData;
+    uint32_t m_argumentsLength { 0 };
+    CachedArray<ScopeOffset> m_argumentScopeOffsets;
+    CachedPrivateNameEnvironment m_privateNames;
+};
+
+class CachedUnlinkedSymbolTableVector : public VariableLengthObject<Vector<Ref<UnlinkedSymbolTable>>> {
+public:
+    void encode(Encoder& encoder, const Vector<Ref<UnlinkedSymbolTable>>& vector)
+    {
+        m_size = vector.size();
+        if (!m_size)
+            return;
+        CachedUnlinkedSymbolTable* buffer = this->template allocate<CachedUnlinkedSymbolTable>(encoder, m_size);
+        for (unsigned i = 0; i < m_size; ++i)
+            buffer[i].encode(encoder, vector[i].get());
+    }
+
+    void decode(Decoder& decoder, Vector<Ref<UnlinkedSymbolTable>>& vector) const
+    {
+        if (!m_size)
+            return;
+        vector.reserveInitialCapacity(m_size);
+        const CachedUnlinkedSymbolTable* buffer = this->template buffer<CachedUnlinkedSymbolTable>();
+        for (unsigned i = 0; i < m_size; ++i)
+            vector.append(buffer[i].decode(decoder));
+    }
+
+private:
+    unsigned m_size { 0 };
 };
 
 class CachedJSValue;
@@ -1387,12 +1399,6 @@ public:
 
         JSCell* cell = v.asCell();
 
-        if (auto* symbolTable = jsDynamicCast<SymbolTable*>(cell)) {
-            m_type = EncodedType::SymbolTable;
-            this->allocate<CachedSymbolTable>(encoder)->encode(encoder, *symbolTable);
-            return;
-        }
-
         if (auto* string = jsDynamicCast<JSString*>(cell)) {
             m_type = EncodedType::String;
             // TODO: This seems wrong? What if this fails.
@@ -1435,9 +1441,6 @@ public:
         case EncodedType::JSValue:
             v = JSValue::decode(*this->buffer<EncodedJSValue>());
             break;
-        case EncodedType::SymbolTable:
-            v = this->buffer<CachedSymbolTable>()->decode(decoder);
-            break;
         case EncodedType::String: {
             StringImpl* impl = this->buffer<CachedUniquedStringImpl>()->decode(decoder);
             v = jsString(decoder.vm(), adoptRef(*impl));
@@ -1464,7 +1467,6 @@ public:
 private:
     enum class EncodedType : uint8_t {
         JSValue,
-        SymbolTable,
         String,
         ImmutableButterfly,
         RegExp,
@@ -2067,6 +2069,7 @@ private:
     CachedVector<CachedIdentifier> m_identifiers;
     CachedVector<CachedWriteBarrier<CachedFunctionExecutable>> m_functionDecls;
     CachedVector<CachedWriteBarrier<CachedFunctionExecutable>> m_functionExprs;
+    CachedUnlinkedSymbolTableVector m_unlinkedSymbolTables;
 };
 
 class CachedProgramCodeBlock : public CachedCodeBlock<UnlinkedProgramCodeBlock> {
@@ -2272,6 +2275,7 @@ ALWAYS_INLINE void CachedCodeBlock<CodeBlockType>::decode(Decoder& decoder, Unli
     m_identifiers.decode(decoder, codeBlock.m_identifiers);
     m_functionDecls.decode(decoder, codeBlock.m_functionDecls, &codeBlock);
     m_functionExprs.decode(decoder, codeBlock.m_functionExprs, &codeBlock);
+    m_unlinkedSymbolTables.decode(decoder, codeBlock.m_unlinkedSymbolTables);
 }
 
 ALWAYS_INLINE UnlinkedProgramCodeBlock::UnlinkedProgramCodeBlock(Decoder& decoder, const CachedProgramCodeBlock& cachedCodeBlock)
@@ -2455,6 +2459,7 @@ ALWAYS_INLINE void CachedCodeBlock<CodeBlockType>::encode(Encoder& encoder, cons
     m_identifiers.encode(encoder, codeBlock.m_identifiers);
     m_functionDecls.encode(encoder, codeBlock.m_functionDecls);
     m_functionExprs.encode(encoder, codeBlock.m_functionExprs);
+    m_unlinkedSymbolTables.encode(encoder, codeBlock.m_unlinkedSymbolTables);
 }
 
 class CachedSourceCodeKey : public CachedObject<SourceCodeKey> {
