@@ -221,7 +221,8 @@ JSValue DebuggerScope::caughtValue(JSGlobalObject* globalObject) const
     JSLexicalEnvironment* catchEnvironment = jsCast<JSLexicalEnvironment*>(m_scope.get());
     SymbolTable* catchSymbolTable = catchEnvironment->symbolTable();
     RELEASE_ASSERT(catchSymbolTable->size() == 1);
-    PropertyName errorName(catchSymbolTable->begin(catchSymbolTable->m_lock)->key.get());
+    Locker locker { catchSymbolTable->cellLock() };
+    PropertyName errorName(catchSymbolTable->begin(locker)->key.get());
     PropertySlot slot(m_scope.get(), PropertySlot::InternalMethodType::Get);
     bool success = catchEnvironment->getOwnPropertySlot(catchEnvironment, globalObject, errorName, slot);
     RELEASE_ASSERT(success && slot.isValue());

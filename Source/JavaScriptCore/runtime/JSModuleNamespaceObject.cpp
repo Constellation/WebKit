@@ -107,7 +107,7 @@ static JSValue getValue(JSModuleEnvironment* environment, PropertyName localName
 {
     SymbolTable* symbolTable = environment->symbolTable();
     {
-        ConcurrentJSLocker locker(symbolTable->m_lock);
+        Locker locker { symbolTable->cellLock() };
         auto iter = symbolTable->find(locker, localName.uid());
         ASSERT(iter != symbolTable->end(locker));
         SymbolTableEntry& entry = iter->value;

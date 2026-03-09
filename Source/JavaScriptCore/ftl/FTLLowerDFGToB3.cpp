@@ -18105,7 +18105,7 @@ IGNORE_CLANG_WARNINGS_END
 
         if (validationEnabled()) {
             // Validate to make sure every slot in the scope has one value.
-            ConcurrentJSLocker locker(table->m_lock);
+            Locker locker { table->cellLock() };
             for (auto iter = table->begin(locker), end = table->end(locker); iter != end; ++iter) {
                 bool found = false;
                 for (unsigned i = 0; i < data.m_properties.size(); ++i) {

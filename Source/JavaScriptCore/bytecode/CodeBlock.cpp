@@ -415,7 +415,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
     if (UnlinkedModuleProgramCodeBlock* unlinkedModuleProgramCodeBlock = jsDynamicCast<UnlinkedModuleProgramCodeBlock*>(unlinkedCodeBlock)) {
         SymbolTable* clonedSymbolTable = jsCast<ModuleProgramExecutable*>(ownerExecutable)->moduleEnvironmentSymbolTable();
         if (m_unlinkedCode->wasCompiledWithTypeProfilerOpcodes()) {
-            ConcurrentJSLocker locker(clonedSymbolTable->m_lock);
+            Locker locker { clonedSymbolTable->cellLock() };
             clonedSymbolTable->prepareForTypeProfiling(locker);
         }
         replaceConstant(VirtualRegister(unlinkedModuleProgramCodeBlock->moduleEnvironmentSymbolTableConstantRegisterOffset()), clonedSymbolTable);
@@ -618,7 +618,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
                 if (bytecode.m_var != UINT_MAX) {
                     SymbolTable* symbolTable = jsCast<SymbolTable*>(getConstant(bytecode.m_symbolTableOrScopeDepth.symbolTable()));
                     const Identifier& ident = identifier(bytecode.m_var);
-                    ConcurrentJSLocker locker(symbolTable->m_lock);
+                    Locker locker { symbolTable->cellLock() };
                     auto iter = symbolTable->find(locker, ident.impl());
                     ASSERT(iter != symbolTable->end(locker));
                     if (bytecode.m_getPutInfo.initializationMode() == InitializationMode::ScopedArgumentInitialization) {
@@ -676,7 +676,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
 
                 UniquedStringImpl* impl = (op.type == ModuleVar) ? op.importedName.get() : ident.impl();
                 if (symbolTable) {
-                    ConcurrentJSLocker locker(symbolTable->m_lock);
+                    Locker locker { symbolTable->cellLock() };
                     // If our parent scope was created while profiling was disabled, it will not have prepared for profiling yet.
                     symbolTable->prepareForTypeProfiling(locker);
                     globalVariableID = symbolTable->uniqueIDForVariable(locker, impl, vm);
@@ -689,7 +689,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
             case ProfileTypeBytecodeLocallyResolved: {
                 SymbolTable* symbolTable = jsCast<SymbolTable*>(getConstant(bytecode.m_symbolTableOrScopeDepth.symbolTable()));
                 const Identifier& ident = identifier(bytecode.m_identifier);
-                ConcurrentJSLocker locker(symbolTable->m_lock);
+                Locker locker { symbolTable->cellLock() };
                 // If our parent scope was created while profiling was disabled, it will not have prepared for profiling yet.
                 globalVariableID = symbolTable->uniqueIDForVariable(locker, ident.impl(), vm);
                 globalTypeSet = symbolTable->globalTypeSetForVariable(locker, ident.impl(), vm);
@@ -1087,7 +1087,7 @@ Vector<std::pair<unsigned, unsigned>> CodeBlock::setConstantRegisters(const Fixe
             }
 
             if (m_unlinkedCode->wasCompiledWithTypeProfilerOpcodes()) {
-                ConcurrentJSLocker locker(symbolTable->m_lock);
+                Locker locker { symbolTable->cellLock() };
                 symbolTable->prepareForTypeProfiling(locker);
             }
             if (wasCompiledWithDebuggingOpcodes())
@@ -3235,7 +3235,7 @@ void CodeBlock::notifyLexicalBindingUpdate()
     ConcurrentJSLocker locker(m_lock);
 
     auto isShadowed = [&] (UniquedStringImpl* uid) {
-        ConcurrentJSLocker locker(symbolTable->m_lock);
+        Locker locker { symbolTable->cellLock() };
         return symbolTable->contains(locker, uid);
     };
 
@@ -3348,7 +3348,7 @@ String CodeBlock::nameForRegister(VirtualRegister virtualRegister)
         if (constantRegister.get().isEmpty())
             continue;
         if (SymbolTable* symbolTable = jsDynamicCast<SymbolTable*>(constantRegister.get())) {
-            ConcurrentJSLocker locker(symbolTable->m_lock);
+            Locker locker { symbolTable->cellLock() };
             auto end = symbolTable->end(locker);
             for (auto ptr = symbolTable->begin(locker); ptr != end; ++ptr) {
                 if (ptr->value.varOffset() == VarOffset(virtualRegister)) {

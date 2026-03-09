@@ -232,7 +232,7 @@ void WebAssemblyModuleRecord::initializeImports(JSGlobalObject* globalObject, JS
             // https://github.com/WebAssembly/esm-integration/tree/master/proposals/esm-integration#js---wasm-cycle-where-js-is-higher-in-the-module-graph
             if (importedEnvironment) {
                 SymbolTable* symbolTable = importedEnvironment->symbolTable();
-                ConcurrentJSLocker locker(symbolTable->m_lock);
+                Locker locker { symbolTable->cellLock() };
                 auto iter = symbolTable->find(locker, resolution.localName.impl());
                 ASSERT(iter != symbolTable->end(locker));
                 SymbolTableEntry& entry = iter->value;

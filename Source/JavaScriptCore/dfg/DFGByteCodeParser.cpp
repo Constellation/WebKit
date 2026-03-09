@@ -9783,7 +9783,7 @@ void ByteCodeParser::parseBlock(unsigned limit)
                 ScopeOffset offset;
                 JSSegmentedVariableObject* scopeObject = jsCast<JSSegmentedVariableObject*>(JSScope::constantScopeForCodeBlock(resolveType, m_inlineStackTop->m_codeBlock));
                 {
-                    ConcurrentJSLocker locker(scopeObject->symbolTable()->m_lock);
+                    Locker locker { scopeObject->symbolTable()->cellLock() };
                     SymbolTableEntry entry = scopeObject->symbolTable()->get(locker, uid);
                     watchpointSet = scopeObject->symbolTable()->watchpointSet(entry.scopeOffset());
                     offset = entry.scopeOffset();

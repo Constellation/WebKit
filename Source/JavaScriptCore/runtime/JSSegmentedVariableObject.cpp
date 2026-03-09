@@ -83,7 +83,7 @@ void JSSegmentedVariableObject::analyzeHeap(JSCell* cell, HeapAnalyzer& analyzer
     JSSegmentedVariableObject* thisObject = jsCast<JSSegmentedVariableObject*>(cell);
     Base::analyzeHeap(cell, analyzer);
 
-    ConcurrentJSLocker locker(thisObject->symbolTable()->m_lock);
+    Locker locker { thisObject->symbolTable()->cellLock() };
     SymbolTable::Map::iterator end = thisObject->symbolTable()->end(locker);
     for (SymbolTable::Map::iterator it = thisObject->symbolTable()->begin(locker); it != end; ++it) {
         SymbolTableEntry::Fast entry = it->value;

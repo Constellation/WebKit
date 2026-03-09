@@ -62,7 +62,7 @@ void JSSymbolTableObject::getOwnSpecialPropertyNames(JSObject* object, JSGlobalO
     JSSymbolTableObject* thisObject = jsCast<JSSymbolTableObject*>(object);
     SymbolTable* symbolTable = thisObject->symbolTable();
     {
-        ConcurrentJSLocker locker(symbolTable->m_lock);
+        Locker locker { symbolTable->cellLock() };
         SymbolTable::Map::iterator end = symbolTable->end(locker);
         for (SymbolTable::Map::iterator it = symbolTable->begin(locker); it != end; ++it) {
             if (mode == DontEnumPropertiesMode::Include || !it->value.isDontEnum()) {

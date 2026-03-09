@@ -436,7 +436,7 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMaterializeObjectInOSR, HeapCell*, (J
 
         if (validationEnabled()) {
             // Validate to make sure every slot in the scope has one value.
-            ConcurrentJSLocker locker(table->m_lock);
+            Locker locker { table->cellLock() };
             for (auto iter = table->begin(locker), end = table->end(locker); iter != end; ++iter) {
                 bool found = false;
                 for (unsigned i = materialization->properties().size(); i--;) {

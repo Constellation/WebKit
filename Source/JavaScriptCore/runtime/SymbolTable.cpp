@@ -46,20 +46,18 @@ const ClassInfo SymbolTable::s_info = { "SymbolTable"_s, nullptr, nullptr, nullp
 
 UnlinkedSymbolTable& SymbolTable::unlinkedSymbolTable() const { return m_unlinkedSymbolTable.get(); }
 
-SymbolTable::Map::iterator SymbolTable::find(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->find(locker, key); }
-SymbolTable::Map::iterator SymbolTable::find(const GCSafeConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->find(locker, key); }
+SymbolTable::Map::iterator SymbolTable::find(const AbstractLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->find(locker, key); }
 
-SymbolTableEntry SymbolTable::get(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->get(locker, key); }
+SymbolTableEntry SymbolTable::get(const AbstractLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->get(locker, key); }
 SymbolTableEntry SymbolTable::get(UniquedStringImpl* key) { return m_unlinkedSymbolTable->get(key); }
 
-SymbolTableEntry SymbolTable::inlineGet(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->inlineGet(locker, key); }
+SymbolTableEntry SymbolTable::inlineGet(const AbstractLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->inlineGet(locker, key); }
 SymbolTableEntry SymbolTable::inlineGet(UniquedStringImpl* key) { return m_unlinkedSymbolTable->inlineGet(key); }
 
-SymbolTable::Map::iterator SymbolTable::begin(const ConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->begin(locker); }
-SymbolTable::Map::iterator SymbolTable::end(const ConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->end(locker); }
-SymbolTable::Map::iterator SymbolTable::end(const GCSafeConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->end(locker); }
+SymbolTable::Map::iterator SymbolTable::begin(const AbstractLocker& locker) { return m_unlinkedSymbolTable->begin(locker); }
+SymbolTable::Map::iterator SymbolTable::end(const AbstractLocker& locker) { return m_unlinkedSymbolTable->end(locker); }
 
-size_t SymbolTable::size(const ConcurrentJSLocker& locker) const { return m_unlinkedSymbolTable->size(locker); }
+size_t SymbolTable::size(const AbstractLocker& locker) const { return m_unlinkedSymbolTable->size(locker); }
 size_t SymbolTable::size() const { return m_unlinkedSymbolTable->size(); }
 
 ScopeOffset SymbolTable::maxScopeOffset() const { return m_unlinkedSymbolTable->maxScopeOffset(); }
@@ -67,7 +65,7 @@ void SymbolTable::didUseScopeOffset(ScopeOffset offset) { m_unlinkedSymbolTable-
 void SymbolTable::didUseVarOffset(VarOffset offset) { m_unlinkedSymbolTable->didUseVarOffset(offset); }
 unsigned SymbolTable::scopeSize() const { return m_unlinkedSymbolTable->scopeSize(); }
 ScopeOffset SymbolTable::nextScopeOffset() const { return m_unlinkedSymbolTable->nextScopeOffset(); }
-ScopeOffset SymbolTable::takeNextScopeOffset(const ConcurrentJSLocker& locker) { return m_unlinkedSymbolTable->takeNextScopeOffset(locker); }
+ScopeOffset SymbolTable::takeNextScopeOffset(const AbstractLocker& locker) { return m_unlinkedSymbolTable->takeNextScopeOffset(locker); }
 ScopeOffset SymbolTable::takeNextScopeOffset() { return m_unlinkedSymbolTable->takeNextScopeOffset(); }
 
 bool SymbolTable::hasPrivateNames() const { return m_unlinkedSymbolTable->hasPrivateNames(); }
@@ -75,7 +73,7 @@ SymbolTable::PrivateNameIteratorRange SymbolTable::privateNames() { return m_unl
 void SymbolTable::addPrivateName(const RefPtr<UniquedStringImpl>& key, PrivateNameEntry value) { m_unlinkedSymbolTable->addPrivateName(key, value); }
 bool SymbolTable::hasPrivateName(const RefPtr<UniquedStringImpl>& key) const { return m_unlinkedSymbolTable->hasPrivateName(key); }
 
-bool SymbolTable::contains(const ConcurrentJSLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->contains(locker, key); }
+bool SymbolTable::contains(const AbstractLocker& locker, UniquedStringImpl* key) { return m_unlinkedSymbolTable->contains(locker, key); }
 bool SymbolTable::contains(UniquedStringImpl* key) { return m_unlinkedSymbolTable->contains(key); }
 
 bool SymbolTable::usesSloppyEval() const { return m_unlinkedSymbolTable->usesSloppyEval(); }
@@ -117,13 +115,13 @@ void SymbolTable::visitChildrenImpl(JSCell* thisCell, Visitor& visitor)
     visitor.append(thisSymbolTable->m_arguments);
 
     // Save some memory. This is O(n) to rebuild and we do so on the fly.
-    ConcurrentJSLocker locker(thisSymbolTable->m_lock);
+    Locker locker { thisSymbolTable->cellLock() };
     thisSymbolTable->m_localToEntry = nullptr;
 }
 
 DEFINE_VISIT_CHILDREN(SymbolTable);
 
-const SymbolTable::LocalToEntryVec& SymbolTable::localToEntry(const ConcurrentJSLocker&)
+const SymbolTable::LocalToEntryVec& SymbolTable::localToEntry(const AbstractLocker&)
 {
     if (!m_localToEntry) [[unlikely]] {
         unsigned size = 0;
@@ -144,7 +142,7 @@ const SymbolTable::LocalToEntryVec& SymbolTable::localToEntry(const ConcurrentJS
     return *m_localToEntry;
 }
 
-SymbolTableEntry* SymbolTable::entryFor(const ConcurrentJSLocker& locker, ScopeOffset offset)
+SymbolTableEntry* SymbolTable::entryFor(const AbstractLocker& locker, ScopeOffset offset)
 {
     auto& toEntryVector = localToEntry(locker);
     if (offset.offset() >= toEntryVector.size())
@@ -152,7 +150,7 @@ SymbolTableEntry* SymbolTable::entryFor(const ConcurrentJSLocker& locker, ScopeO
     return toEntryVector[offset.offset()];
 }
 
-void SymbolTable::prepareForTypeProfiling(const ConcurrentJSLocker&)
+void SymbolTable::prepareForTypeProfiling(const AbstractLocker&)
 {
     if (m_rareData)
         return;
@@ -192,7 +190,7 @@ void SymbolTable::collectDebuggerInfo(CodeBlock* codeBlock)
     }
 }
 
-GlobalVariableID SymbolTable::uniqueIDForVariable(const ConcurrentJSLocker&, UniquedStringImpl* key, VM& vm)
+GlobalVariableID SymbolTable::uniqueIDForVariable(const AbstractLocker&, UniquedStringImpl* key, VM& vm)
 {
     RELEASE_ASSERT(m_rareData);
 
@@ -211,7 +209,7 @@ GlobalVariableID SymbolTable::uniqueIDForVariable(const ConcurrentJSLocker&, Uni
     return id;
 }
 
-GlobalVariableID SymbolTable::uniqueIDForOffset(const ConcurrentJSLocker& locker, VarOffset offset, VM& vm)
+GlobalVariableID SymbolTable::uniqueIDForOffset(const AbstractLocker& locker, VarOffset offset, VM& vm)
 {
     RELEASE_ASSERT(m_rareData);
 
@@ -223,7 +221,7 @@ GlobalVariableID SymbolTable::uniqueIDForOffset(const ConcurrentJSLocker& locker
     return uniqueIDForVariable(locker, iter->value.get(), vm);
 }
 
-RefPtr<TypeSet> SymbolTable::globalTypeSetForOffset(const ConcurrentJSLocker& locker, VarOffset offset, VM& vm)
+RefPtr<TypeSet> SymbolTable::globalTypeSetForOffset(const AbstractLocker& locker, VarOffset offset, VM& vm)
 {
     RELEASE_ASSERT(m_rareData);
 
@@ -237,7 +235,7 @@ RefPtr<TypeSet> SymbolTable::globalTypeSetForOffset(const ConcurrentJSLocker& lo
     return globalTypeSetForVariable(locker, iter->value.get(), vm);
 }
 
-RefPtr<TypeSet> SymbolTable::globalTypeSetForVariable(const ConcurrentJSLocker& locker, UniquedStringImpl* key, VM& vm)
+RefPtr<TypeSet> SymbolTable::globalTypeSetForVariable(const AbstractLocker& locker, UniquedStringImpl* key, VM& vm)
 {
     RELEASE_ASSERT(m_rareData);
 
@@ -292,7 +290,7 @@ SymbolTable::SymbolTableRareData& SymbolTable::ensureRareDataSlow()
 
 void SymbolTable::dump(PrintStream& out) const
 {
-    ConcurrentJSLocker locker(m_lock);
+    Locker locker { cellLock() };
     Base::dump(out);
 
     CommaPrinter comma;

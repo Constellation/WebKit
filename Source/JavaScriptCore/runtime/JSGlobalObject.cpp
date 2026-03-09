@@ -2388,7 +2388,7 @@ template void JSGlobalObject::createGlobalFunctionBinding<BindingCreationContext
 
 void JSGlobalObject::addSymbolTableEntry(const Identifier& ident)
 {
-    ConcurrentJSLocker locker(symbolTable()->m_lock);
+    Locker locker { symbolTable()->cellLock() };
     ASSERT(!symbolTable()->contains(locker, ident.impl()));
 
     ScopeOffset offset = symbolTable()->takeNextScopeOffset(locker);
@@ -3121,7 +3121,7 @@ void JSGlobalObject::addStaticGlobals(std::span<GlobalPropertyInfo> globals)
         WatchpointSet* watchpointSet = nullptr;
         WriteBarrierBase<Unknown>* variable = nullptr;
         {
-            ConcurrentJSLocker locker(symbolTable()->m_lock);
+            Locker locker { symbolTable()->cellLock() };
             ScopeOffset offset = symbolTable()->takeNextScopeOffset(locker);
             RELEASE_ASSERT(offset == startOffset + i);
             SymbolTableEntry newEntry(VarOffset(offset), global.attributes);

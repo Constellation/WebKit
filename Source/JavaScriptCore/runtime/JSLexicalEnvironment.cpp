@@ -52,7 +52,7 @@ void JSLexicalEnvironment::analyzeHeap(JSCell* cell, HeapAnalyzer& analyzer)
     auto* thisObject = jsCast<JSLexicalEnvironment*>(cell);
     Base::analyzeHeap(cell, analyzer);
 
-    ConcurrentJSLocker locker(thisObject->symbolTable()->m_lock);
+    Locker locker { thisObject->symbolTable()->cellLock() };
     SymbolTable::Map::iterator end = thisObject->symbolTable()->end(locker);
     for (SymbolTable::Map::iterator it = thisObject->symbolTable()->begin(locker); it != end; ++it) {
         SymbolTableEntry::Fast entry = it->value;
@@ -73,7 +73,7 @@ void JSLexicalEnvironment::getOwnSpecialPropertyNames(JSObject* object, JSGlobal
     SymbolTable* symbolTable = thisObject->symbolTable();
 
     {
-        ConcurrentJSLocker locker(symbolTable->m_lock);
+        Locker locker { symbolTable->cellLock() };
         SymbolTable::Map::iterator end = symbolTable->end(locker);
         VM& vm = globalObject->vm();
         for (SymbolTable::Map::iterator it = symbolTable->begin(locker); it != end; ++it) {

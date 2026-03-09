@@ -42,13 +42,13 @@ inline void SymbolTable::finalizeUnconditionally(VM& vm, CollectionScope collect
 }
 
 template<typename Entry>
-void SymbolTable::add(const ConcurrentJSLocker& locker, UniquedStringImpl* key, Entry&& entry)
+void SymbolTable::add(const AbstractLocker& locker, UniquedStringImpl* key, Entry&& entry)
 {
     m_unlinkedSymbolTable->add(locker, key, std::forward<Entry>(entry));
 }
 
 template<typename Entry>
-void SymbolTable::set(const ConcurrentJSLocker& locker, UniquedStringImpl* key, Entry&& entry)
+void SymbolTable::set(const AbstractLocker& locker, UniquedStringImpl* key, Entry&& entry)
 {
     m_unlinkedSymbolTable->set(locker, key, std::forward<Entry>(entry));
 }

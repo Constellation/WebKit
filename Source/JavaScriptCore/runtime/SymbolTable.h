@@ -310,19 +310,17 @@ public:
     UnlinkedSymbolTable& unlinkedSymbolTable() const;
 
     // You must hold the lock until after you're done with the iterator.
-    Map::iterator find(const ConcurrentJSLocker&, UniquedStringImpl*);
-    Map::iterator find(const GCSafeConcurrentJSLocker&, UniquedStringImpl*);
+    Map::iterator find(const AbstractLocker&, UniquedStringImpl*);
 
-    SymbolTableEntry get(const ConcurrentJSLocker&, UniquedStringImpl*);
+    SymbolTableEntry get(const AbstractLocker&, UniquedStringImpl*);
     SymbolTableEntry get(UniquedStringImpl*);
-    SymbolTableEntry inlineGet(const ConcurrentJSLocker&, UniquedStringImpl*);
+    SymbolTableEntry inlineGet(const AbstractLocker&, UniquedStringImpl*);
     SymbolTableEntry inlineGet(UniquedStringImpl*);
 
-    Map::iterator begin(const ConcurrentJSLocker&);
-    Map::iterator end(const ConcurrentJSLocker&);
-    Map::iterator end(const GCSafeConcurrentJSLocker&);
+    Map::iterator begin(const AbstractLocker&);
+    Map::iterator end(const AbstractLocker&);
 
-    size_t size(const ConcurrentJSLocker&) const;
+    size_t size(const AbstractLocker&) const;
     size_t size() const;
 
     ScopeOffset maxScopeOffset() const;
@@ -330,16 +328,16 @@ public:
     void didUseVarOffset(VarOffset);
     unsigned scopeSize() const;
     ScopeOffset nextScopeOffset() const;
-    ScopeOffset takeNextScopeOffset(const ConcurrentJSLocker&);
+    ScopeOffset takeNextScopeOffset(const AbstractLocker&);
     ScopeOffset takeNextScopeOffset();
 
     template<typename Entry>
-    void add(const ConcurrentJSLocker& locker, UniquedStringImpl* key, Entry&& entry);
+    void add(const AbstractLocker& locker, UniquedStringImpl* key, Entry&& entry);
 
     template<typename Entry>
     void add(UniquedStringImpl* key, Entry&& entry)
     {
-        ConcurrentJSLocker locker(m_lock);
+        Locker locker { cellLock() };
         add(locker, key, std::forward<Entry>(entry));
     }
 
@@ -349,16 +347,16 @@ public:
     bool hasPrivateName(const RefPtr<UniquedStringImpl>&) const;
 
     template<typename Entry>
-    void set(const ConcurrentJSLocker& locker, UniquedStringImpl* key, Entry&& entry);
+    void set(const AbstractLocker& locker, UniquedStringImpl* key, Entry&& entry);
 
     template<typename Entry>
     void set(UniquedStringImpl* key, Entry&& entry)
     {
-        ConcurrentJSLocker locker(m_lock);
+        Locker locker { cellLock() };
         set(locker, key, std::forward<Entry>(entry));
     }
 
-    bool contains(const ConcurrentJSLocker&, UniquedStringImpl*);
+    bool contains(const AbstractLocker&, UniquedStringImpl*);
     bool contains(UniquedStringImpl*);
 
     // The principle behind ScopedArgumentsTable modifications is that we will create one and
@@ -434,13 +432,13 @@ public:
         m_arguments.set(vm, this, table);
     }
 
-    const LocalToEntryVec& localToEntry(const ConcurrentJSLocker&);
-    SymbolTableEntry* entryFor(const ConcurrentJSLocker&, ScopeOffset);
+    const LocalToEntryVec& localToEntry(const AbstractLocker&);
+    SymbolTableEntry* entryFor(const AbstractLocker&, ScopeOffset);
 
-    GlobalVariableID uniqueIDForVariable(const ConcurrentJSLocker&, UniquedStringImpl* key, VM&);
-    GlobalVariableID uniqueIDForOffset(const ConcurrentJSLocker&, VarOffset, VM&);
-    RefPtr<TypeSet> globalTypeSetForOffset(const ConcurrentJSLocker&, VarOffset, VM&);
-    RefPtr<TypeSet> globalTypeSetForVariable(const ConcurrentJSLocker&, UniquedStringImpl* key, VM&);
+    GlobalVariableID uniqueIDForVariable(const AbstractLocker&, UniquedStringImpl* key, VM&);
+    GlobalVariableID uniqueIDForOffset(const AbstractLocker&, VarOffset, VM&);
+    RefPtr<TypeSet> globalTypeSetForOffset(const AbstractLocker&, VarOffset, VM&);
+    RefPtr<TypeSet> globalTypeSetForVariable(const AbstractLocker&, UniquedStringImpl* key, VM&);
 
     bool usesSloppyEval() const;
     void setUsesSloppyEval(bool);
@@ -459,7 +457,7 @@ public:
     void setScopeType(ScopeType);
     ScopeType scopeType() const;
 
-    void prepareForTypeProfiling(const ConcurrentJSLocker&);
+    void prepareForTypeProfiling(const AbstractLocker&);
 
     String inferredName();
     DebuggerLocation debuggerLocation();
@@ -508,8 +506,6 @@ private:
     JS_EXPORT_PRIVATE SymbolTableRareData& ensureRareDataSlow();
 
     Ref<UnlinkedSymbolTable> m_unlinkedSymbolTable;
-public:
-    mutable ConcurrentJSLock m_lock;
 
 private:
     std::unique_ptr<SymbolTableRareData> m_rareData;

@@ -53,10 +53,9 @@ public:
     }
 
     // Map access
-    Map::iterator find(const ConcurrentJSLocker&, UniquedStringImpl* key) { return m_map.find(key); }
-    Map::iterator find(const GCSafeConcurrentJSLocker&, UniquedStringImpl* key) { return m_map.find(key); }
+    Map::iterator find(const AbstractLocker&, UniquedStringImpl* key) { return m_map.find(key); }
 
-    SymbolTableEntry get(const ConcurrentJSLocker&, UniquedStringImpl* key) { return m_map.get(key); }
+    SymbolTableEntry get(const AbstractLocker&, UniquedStringImpl* key) { return m_map.get(key); }
 
     SymbolTableEntry get(UniquedStringImpl* key)
     {
@@ -64,7 +63,7 @@ public:
         return get(locker, key);
     }
 
-    SymbolTableEntry inlineGet(const ConcurrentJSLocker&, UniquedStringImpl* key) { return m_map.inlineGet(key); }
+    SymbolTableEntry inlineGet(const AbstractLocker&, UniquedStringImpl* key) { return m_map.inlineGet(key); }
 
     SymbolTableEntry inlineGet(UniquedStringImpl* key)
     {
@@ -72,7 +71,7 @@ public:
         return inlineGet(locker, key);
     }
 
-    bool contains(const ConcurrentJSLocker&, UniquedStringImpl* key) { return m_map.contains(key); }
+    bool contains(const AbstractLocker&, UniquedStringImpl* key) { return m_map.contains(key); }
 
     bool contains(UniquedStringImpl* key)
     {
@@ -80,11 +79,10 @@ public:
         return contains(locker, key);
     }
 
-    Map::iterator begin(const ConcurrentJSLocker&) { return m_map.begin(); }
-    Map::iterator end(const ConcurrentJSLocker&) { return m_map.end(); }
-    Map::iterator end(const GCSafeConcurrentJSLocker&) { return m_map.end(); }
+    Map::iterator begin(const AbstractLocker&) { return m_map.begin(); }
+    Map::iterator end(const AbstractLocker&) { return m_map.end(); }
 
-    size_t size(const ConcurrentJSLocker&) const { return m_map.size(); }
+    size_t size(const AbstractLocker&) const { return m_map.size(); }
 
     size_t size() const
     {
@@ -93,7 +91,7 @@ public:
     }
 
     template<typename Entry>
-    void add(const ConcurrentJSLocker&, UniquedStringImpl* key, Entry&& entry)
+    void add(const AbstractLocker&, UniquedStringImpl* key, Entry&& entry)
     {
         didUseVarOffset(entry.varOffset());
         Map::AddResult result = m_map.add(key, std::forward<Entry>(entry));
@@ -108,7 +106,7 @@ public:
     }
 
     template<typename Entry>
-    void set(const ConcurrentJSLocker&, UniquedStringImpl* key, Entry&& entry)
+    void set(const AbstractLocker&, UniquedStringImpl* key, Entry&& entry)
     {
         didUseVarOffset(entry.varOffset());
         m_map.set(key, std::forward<Entry>(entry));
@@ -156,7 +154,7 @@ public:
 
     ScopeOffset nextScopeOffset() const { return ScopeOffset(scopeSize()); }
 
-    ScopeOffset takeNextScopeOffset(const ConcurrentJSLocker&)
+    ScopeOffset takeNextScopeOffset(const AbstractLocker&)
     {
         ScopeOffset result = nextScopeOffset();
         m_maxScopeOffset = result;

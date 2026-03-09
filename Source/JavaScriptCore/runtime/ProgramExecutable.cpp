@@ -247,7 +247,7 @@ JSObject* ProgramExecutable::initializeGlobalProperties(VM& vm, JSGlobalObject* 
 
     {
         SymbolTable* symbolTable = globalLexicalEnvironment->symbolTable();
-        ConcurrentJSLocker locker(symbolTable->m_lock);
+        Locker locker { symbolTable->cellLock() };
         for (auto& entry : lexicalDeclarations) {
             if (entry.value.isConst() && !vm.globalConstRedeclarationShouldThrow() && !isInStrictContext()) [[unlikely]] {
                 if (symbolTable->contains(locker, entry.key.get()))

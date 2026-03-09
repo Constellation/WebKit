@@ -82,7 +82,7 @@ inline bool symbolTableGet(
     SymbolTableObjectType* object, PropertyName propertyName, PropertySlot& slot)
 {
     SymbolTable& symbolTable = *object->symbolTable();
-    ConcurrentJSLocker locker(symbolTable.m_lock);
+    Locker locker { symbolTable.cellLock() };
     SymbolTable::Map::iterator iter = symbolTable.find(locker, propertyName.uid());
     if (iter == symbolTable.end(locker))
         return false;
@@ -103,7 +103,7 @@ inline bool symbolTableGet(
     SymbolTableObjectType* object, PropertyName propertyName, SymbolTableEntry& entry, PropertyDescriptor& descriptor)
 {
     SymbolTable& symbolTable = *object->symbolTable();
-    ConcurrentJSLocker locker(symbolTable.m_lock);
+    Locker locker { symbolTable.cellLock() };
     SymbolTable::Map::iterator iter = symbolTable.find(locker, propertyName.uid());
     if (iter == symbolTable.end(locker))
         return false;
@@ -152,7 +152,8 @@ inline bool symbolTablePut(SymbolTableObjectType* object, JSGlobalObject* global
         SymbolTable& symbolTable = *object->symbolTable();
         // FIXME: This is very suspicious. We shouldn't need a GC-safe lock here.
         // https://bugs.webkit.org/show_bug.cgi?id=134601
-        GCSafeConcurrentJSLocker locker(symbolTable.m_lock, vm);
+        DeferGC deferGC(vm);
+        Locker locker { symbolTable.cellLock() };
         SymbolTable::Map::iterator iter = symbolTable.find(locker, propertyName.uid());
         if (iter == symbolTable.end(locker))
             return false;

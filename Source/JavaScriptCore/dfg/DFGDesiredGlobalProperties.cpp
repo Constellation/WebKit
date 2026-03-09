@@ -44,7 +44,7 @@ bool DesiredGlobalProperties::isStillValidOnMainThread(VM& vm, DesiredIdentifier
         JSGlobalObject* globalObject = property.globalObject();
         {
             SymbolTable* symbolTable = globalObject->globalLexicalEnvironment()->symbolTable();
-            ConcurrentJSLocker locker(symbolTable->m_lock);
+            Locker locker { symbolTable->cellLock() };
             if (!symbolTable->contains(locker, uid))
                 continue;
         }
