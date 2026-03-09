@@ -459,8 +459,6 @@ public:
     void setScopeType(ScopeType);
     ScopeType scopeType() const;
 
-    SymbolTable* cloneScopePart(VM&);
-
     void prepareForTypeProfiling(const ConcurrentJSLocker&);
 
     String inferredName();
@@ -517,7 +515,6 @@ private:
     std::unique_ptr<SymbolTableRareData> m_rareData;
 
     WriteBarrier<ScopedArgumentsTable> m_arguments;
-    WriteBarrier<SymbolTable> m_clonedFrom;
     InferredValue<JSScope> m_singleton;
 
     Vector<RefPtr<WatchpointSet>> m_watchpointSets;

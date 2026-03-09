@@ -32,7 +32,6 @@
 #include "CodeBlock.h"
 #include "DebuggerLocation.h"
 #include "JSCJSValueInlines.h"
-#include "ResourceExhaustion.h"
 #include "ScriptExecutable.h"
 #include "TypeProfiler.h"
 #include "UnlinkedSymbolTable.h"
@@ -116,7 +115,6 @@ void SymbolTable::visitChildrenImpl(JSCell* thisCell, Visitor& visitor)
     Base::visitChildren(thisSymbolTable, visitor);
 
     visitor.append(thisSymbolTable->m_arguments);
-    visitor.append(thisSymbolTable->m_clonedFrom);
 
     // Save some memory. This is O(n) to rebuild and we do so on the fly.
     ConcurrentJSLocker locker(thisSymbolTable->m_lock);
@@ -152,51 +150,6 @@ SymbolTableEntry* SymbolTable::entryFor(const ConcurrentJSLocker& locker, ScopeO
     if (offset.offset() >= toEntryVector.size())
         return nullptr;
     return toEntryVector[offset.offset()];
-}
-
-SymbolTable* SymbolTable::cloneScopePart(VM& vm)
-{
-    SymbolTable* result = SymbolTable::create(vm, Ref { m_unlinkedSymbolTable });
-
-    if (m_unlinkedSymbolTable->argumentsLength()) {
-        auto length = m_unlinkedSymbolTable->argumentsLength();
-        ScopedArgumentsTable* arguments = ScopedArgumentsTable::tryCreate(vm, length);
-        RELEASE_ASSERT_RESOURCE_AVAILABLE(arguments, MemoryExhaustion, "Crash intentionally because memory is exhausted.");
-
-        for (uint32_t index = 0; index < length; ++index) {
-            ScopeOffset offset = m_unlinkedSymbolTable->argumentScopeOffset(index);
-            arguments->trySet(vm, index, offset);
-        }
-
-        result->m_arguments.set(vm, result, arguments);
-    }
-
-    if (m_rareData) {
-        result->ensureRareData();
-
-        {
-            auto iter = m_rareData->m_uniqueIDMap.begin();
-            auto end = m_rareData->m_uniqueIDMap.end();
-            for (; iter != end; ++iter)
-                result->m_rareData->m_uniqueIDMap.set(iter->key, iter->value);
-        }
-
-        {
-            auto iter = m_rareData->m_offsetToVariableMap.begin();
-            auto end = m_rareData->m_offsetToVariableMap.end();
-            for (; iter != end; ++iter)
-                result->m_rareData->m_offsetToVariableMap.set(iter->key, iter->value);
-        }
-
-        {
-            auto iter = m_rareData->m_uniqueTypeSetMap.begin();
-            auto end = m_rareData->m_uniqueTypeSetMap.end();
-            for (; iter != end; ++iter)
-                result->m_rareData->m_uniqueTypeSetMap.set(iter->key, iter->value);
-        }
-    }
-    result->m_clonedFrom.set(vm, result, this);
-    return result;
 }
 
 void SymbolTable::prepareForTypeProfiling(const ConcurrentJSLocker&)
