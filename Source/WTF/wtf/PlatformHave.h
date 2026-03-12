@@ -285,6 +285,10 @@
 #define HAVE_FRINT_INSTRUCTION 1
 #endif
 
+#if COMPILER(CLANG) && defined(__ARM_FEATURE_SHA3) && __ARM_FEATURE_SHA3
+#define HAVE_SHA3_INSTRUCTION 1
+#endif
+
 #if OS(DARWIN) && CPU(ARM64)
 #define HAVE_FLOAT16 1
 #endif

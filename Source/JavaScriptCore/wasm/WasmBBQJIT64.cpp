@@ -3942,7 +3942,7 @@ void BBQJIT::materializeVectorConstant(v128_t value, Location result)
 
             if (info.lane == SIMDLane::i8x16) {
                 m_jit.vectorExtractPair(SIMDInfo { SIMDLane::i8x16, SIMDSignMode::None }, TrustedImm32(8), scratches.fpr(0), scratches.fpr(0), wasmScratchFPR);
-                m_jit.vectorZipUpper(SIMDInfo { SIMDLane::i8x16, SIMDSignMode::None }, scratches.fpr(0), wasmScratchFPR, scratches.fpr(0));
+                m_jit.vectorZipLower(SIMDInfo { SIMDLane::i8x16, SIMDSignMode::None }, scratches.fpr(0), wasmScratchFPR, scratches.fpr(0));
                 info.lane = SIMDLane::i16x8;
             }
 

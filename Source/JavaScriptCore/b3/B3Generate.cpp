@@ -46,6 +46,7 @@
 #include "B3OptimizeAssociativeExpressionTrees.h"
 #include "B3Procedure.h"
 #include "B3ReduceDoubleToFloat.h"
+#include "B3ReduceSIMDShuffle.h"
 #include "B3ReduceStrength.h"
 #include "B3Validate.h"
 #include "CompilerTimingScope.h"
@@ -85,6 +86,8 @@ void generateToAir(Procedure& procedure)
     if (procedure.optLevel() >= 2) {
         reduceDoubleToFloat(procedure);
         reduceStrength(procedure);
+        if (isARM64() && procedure.usesSIMD() && Options::useB3ReduceSIMDShuffle())
+            reduceSIMDShuffle(procedure);
         if (Options::useB3HoistLoopInvariantValues())
             hoistLoopInvariantValues(procedure);
         if (eliminateCommonSubexpressions(procedure))

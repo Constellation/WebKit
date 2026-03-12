@@ -1142,6 +1142,22 @@ void run(const TestConfig* config)
         if (isARM64()) {
             RUN(testVectorFmulByElementFloat());
             RUN(testVectorFmulByElementDouble());
+            RUN(testVectorXorRotateRight64());
+            RUN(testVectorUnzipEven());
+            RUN(testVectorUnzipOdd());
+            RUN(testVectorZipLower());
+            RUN(testVectorZipHigher());
+            RUN(testVectorTransposeEven());
+            RUN(testVectorTransposeOdd());
+            RUN(testVectorReverse());
+            RUN(testVectorShiftByVectorShlByOne());
+            RUN(testVectorSwizzleToUnzipEven());
+            RUN(testVectorSwizzleBinaryToUnzipOdd());
+            RUN(testVectorSwizzleBinaryCanonical());
+            RUN(testVectorSwizzleUnaryCanonical());
+            RUN(testVectorExtractPair());
+            RUN(testVectorSwizzleBinaryToEXT());
+            RUN(testVectorSwizzleUnaryToEXT());
         }
         RUN(testMulHigh32());
         RUN(testMulHigh64());

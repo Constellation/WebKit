@@ -97,6 +97,15 @@ public:
         case VectorExtaddPairwise:
         case VectorMulSat:
         case VectorSwizzle:
+        case VectorSwizzle8:
+        case VectorUnzipEven:
+        case VectorUnzipOdd:
+        case VectorZipLower:
+        case VectorZipHigher:
+        case VectorTransposeEven:
+        case VectorTransposeOdd:
+        case VectorReverse:
+        case VectorExtractPair:
         case VectorMulByElement:
         case VectorShiftByVector:
         case VectorDotProduct:

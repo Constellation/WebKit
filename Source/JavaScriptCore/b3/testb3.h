@@ -1501,4 +1501,28 @@ void testFCCmpGreaterEqualOrDouble(double, double, double, double);
 void testFCCmpNaN(double, double, double, double);
 void testFCCmpNegatedAndDouble(double, double, double, double);
 
+// SIMD XOR+rotate pattern matching
+void testVectorXorRotateRight64();
+
+// SIMD VectorUnzip/Zip/Transpose/Reverse B3 opcodes
+void testVectorUnzipEven();
+void testVectorUnzipOdd();
+void testVectorZipLower();
+void testVectorZipHigher();
+void testVectorTransposeEven();
+void testVectorTransposeOdd();
+void testVectorReverse();
+
+// SIMD strength reduction: shift-by-1 → add
+void testVectorShiftByVectorShlByOne();
+
+// SIMD shuffle → canonical instruction strength reduction
+void testVectorSwizzleToUnzipEven();
+void testVectorSwizzleBinaryToUnzipOdd();
+void testVectorSwizzleBinaryCanonical();
+void testVectorSwizzleUnaryCanonical();
+void testVectorExtractPair();
+void testVectorSwizzleBinaryToEXT();
+void testVectorSwizzleUnaryToEXT();
+
 #endif // ENABLE(B3_JIT)

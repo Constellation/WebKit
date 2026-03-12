@@ -95,6 +95,45 @@ namespace B3ReduceStrengthInternal {
 static constexpr bool verbose = false;
 }
 
+struct CanonicalShuffleInfo {
+    B3::Opcode opcode;
+    SIMDLane lane;
+    uint8_t groupSize; // For VectorReverse: 2, 4, or 8. 0 otherwise.
+};
+
+static inline std::optional<CanonicalShuffleInfo> canonicalShuffleInfo(CanonicalShuffle canonical)
+{
+    switch (canonical) {
+    case CanonicalShuffle::S64x2UnzipEven: return CanonicalShuffleInfo { VectorUnzipEven, SIMDLane::i64x2, 0 };
+    case CanonicalShuffle::S64x2UnzipOdd: return CanonicalShuffleInfo { VectorUnzipOdd, SIMDLane::i64x2, 0 };
+    case CanonicalShuffle::S32x4UnzipEven: return CanonicalShuffleInfo { VectorUnzipEven, SIMDLane::i32x4, 0 };
+    case CanonicalShuffle::S32x4UnzipOdd: return CanonicalShuffleInfo { VectorUnzipOdd, SIMDLane::i32x4, 0 };
+    case CanonicalShuffle::S32x4ZipLower: return CanonicalShuffleInfo { VectorZipLower, SIMDLane::i32x4, 0 };
+    case CanonicalShuffle::S32x4ZipHigher: return CanonicalShuffleInfo { VectorZipHigher, SIMDLane::i32x4, 0 };
+    case CanonicalShuffle::S32x4TransposeEven: return CanonicalShuffleInfo { VectorTransposeEven, SIMDLane::i32x4, 0 };
+    case CanonicalShuffle::S32x4TransposeOdd: return CanonicalShuffleInfo { VectorTransposeOdd, SIMDLane::i32x4, 0 };
+    case CanonicalShuffle::S32x2Reverse: return CanonicalShuffleInfo { VectorReverse, SIMDLane::i32x4, 8 };
+    case CanonicalShuffle::S16x8UnzipEven: return CanonicalShuffleInfo { VectorUnzipEven, SIMDLane::i16x8, 0 };
+    case CanonicalShuffle::S16x8UnzipOdd: return CanonicalShuffleInfo { VectorUnzipOdd, SIMDLane::i16x8, 0 };
+    case CanonicalShuffle::S16x8ZipLower: return CanonicalShuffleInfo { VectorZipLower, SIMDLane::i16x8, 0 };
+    case CanonicalShuffle::S16x8ZipHigher: return CanonicalShuffleInfo { VectorZipHigher, SIMDLane::i16x8, 0 };
+    case CanonicalShuffle::S16x8TransposeEven: return CanonicalShuffleInfo { VectorTransposeEven, SIMDLane::i16x8, 0 };
+    case CanonicalShuffle::S16x8TransposeOdd: return CanonicalShuffleInfo { VectorTransposeOdd, SIMDLane::i16x8, 0 };
+    case CanonicalShuffle::S16x2Reverse: return CanonicalShuffleInfo { VectorReverse, SIMDLane::i16x8, 4 };
+    case CanonicalShuffle::S16x4Reverse: return CanonicalShuffleInfo { VectorReverse, SIMDLane::i16x8, 8 };
+    case CanonicalShuffle::S8x16UnzipEven: return CanonicalShuffleInfo { VectorUnzipEven, SIMDLane::i8x16, 0 };
+    case CanonicalShuffle::S8x16UnzipOdd: return CanonicalShuffleInfo { VectorUnzipOdd, SIMDLane::i8x16, 0 };
+    case CanonicalShuffle::S8x16ZipLower: return CanonicalShuffleInfo { VectorZipLower, SIMDLane::i8x16, 0 };
+    case CanonicalShuffle::S8x16ZipHigher: return CanonicalShuffleInfo { VectorZipHigher, SIMDLane::i8x16, 0 };
+    case CanonicalShuffle::S8x16TransposeEven: return CanonicalShuffleInfo { VectorTransposeEven, SIMDLane::i8x16, 0 };
+    case CanonicalShuffle::S8x16TransposeOdd: return CanonicalShuffleInfo { VectorTransposeOdd, SIMDLane::i8x16, 0 };
+    case CanonicalShuffle::S8x2Reverse: return CanonicalShuffleInfo { VectorReverse, SIMDLane::i8x16, 2 };
+    case CanonicalShuffle::S8x4Reverse: return CanonicalShuffleInfo { VectorReverse, SIMDLane::i8x16, 4 };
+    case CanonicalShuffle::S8x8Reverse: return CanonicalShuffleInfo { VectorReverse, SIMDLane::i8x16, 8 };
+    default: return std::nullopt;
+    }
+}
+
 // FIXME: This IntRange stuff should be refactored into a general constant propagator. It's weird
 // that it's just sitting here in this file.
 class IntRange {
@@ -3382,6 +3421,35 @@ private:
             break;
         }
 
+        case VectorShiftByVector: {
+            // VectorShiftByVector(x, splat(1)) for unsigned left shift → VectorAdd(x, x)
+            // Since x + x = x << 1, this avoids the shift instruction.
+            if constexpr (isARM64()) {
+                SIMDValue* value = m_value->as<SIMDValue>();
+                if (value->signMode() == SIMDSignMode::Unsigned || value->signMode() == SIMDSignMode::None) {
+                    Value* shiftVec = m_value->child(1);
+                    if (shiftVec->opcode() == Const128) {
+                        v128_t val = shiftVec->as<Const128Value>()->value();
+
+                        // All bytes must be 1 (splat of byte value 1 = left shift by 1).
+                        bool isShiftByOne = true;
+                        for (unsigned i = 0; i < 16; ++i) {
+                            if (val.u8x16[i] != 1) {
+                                isShiftByOne = false;
+                                break;
+                            }
+                        }
+
+                        if (isShiftByOne) {
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorAdd, B3::V128, value->simdLane(), SIMDSignMode::None, m_value->child(0), m_value->child(0));
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
         case VectorSwizzle: {
             if (m_value->numChildren() == 2 && m_value->child(1)->isConstant()) {
                 v128_t pattern = m_value->child(1)->as<Const128Value>()->value();
@@ -3415,6 +3483,36 @@ private:
                         replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, lane.value(), m_value->child(0));
                         break;
                     }
+
+                    // Check if this unary pattern matches a canonical instruction
+                    // (UZP, ZIP, TRN) when treated as both inputs being the same register.
+                    // Reduce to the dedicated B3 opcode.
+                    {
+                        auto canonical = SIMDShuffle::tryMatchUnaryAsBinaryCanonical(pattern);
+                        if (auto info = canonicalShuffleInfo(canonical)) {
+                            auto newOp = info->opcode;
+                            ASSERT(newOp != VectorReverse);
+                            replaceWithNew<SIMDValue>(m_value->origin(), newOp, B3::V128, info->lane, SIMDSignMode::None, m_value->child(0), m_value->child(0));
+                            break;
+                        }
+                    }
+
+                    // Also try unary-specific patterns (REV, EXT).
+                    {
+                        auto canonical = SIMDShuffle::tryMatchCanonicalUnary(pattern);
+                        if (canonical == CanonicalShuffle::S64x2Reverse) {
+                            // S64x2Reverse = swap 64-bit halves = EXT #8 with same register.
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(8), m_value->child(0), m_value->child(0));
+                            break;
+                        }
+                        if (auto info = canonicalShuffleInfo(canonical)) {
+                            if (info->opcode == VectorReverse) {
+                                replaceWithNew<SIMDValue>(m_value->origin(), info->opcode, B3::V128, info->lane, SIMDSignMode::None, info->groupSize, m_value->child(0));
+                                break;
+                            }
+                        }
+                    }
+
                     break;
                 }
             }
@@ -3422,6 +3520,45 @@ private:
             if constexpr (isARM64()) {
                 if (m_value->numChildren() == 3 && m_value->child(2)->isConstant()) {
                     v128_t pattern = m_value->child(2)->as<Const128Value>()->value();
+
+                    // Try to match binary canonical patterns (UZP, ZIP, TRN) and reduce
+                    // to dedicated B3 opcodes. This must happen before MoveConstants
+                    // moves the Const128 pattern to the constant pool.
+                    {
+                        auto canonical = SIMDShuffle::tryMatchCanonicalBinary(pattern);
+                        if (auto info = canonicalShuffleInfo(canonical)) {
+                            auto newOp = info->opcode;
+                            ASSERT(newOp != VectorReverse);
+                            replaceWithNew<SIMDValue>(m_value->origin(), newOp, B3::V128, info->lane, SIMDSignMode::None, m_value->child(0), m_value->child(1));
+                            break;
+                        }
+                    }
+
+                    // Try EXT pattern: contiguous byte extraction from concatenation.
+                    if (auto extInfo = SIMDShuffle::isEXTWithSwap(pattern)) {
+                        if (extInfo->needsSwap)
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(extInfo->offset), m_value->child(1), m_value->child(0));
+                        else
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(extInfo->offset), m_value->child(0), m_value->child(1));
+                        break;
+                    }
+
+                    // If both inputs are the same value, normalize all indices to 0-15 range
+                    // and convert to a 2-child (unary) VectorSwizzle.
+                    // e.g. {0,1,2,3,4,5,6,7, 16,17,18,19,20,21,22,23} with child(0)==child(1)
+                    // becomes {0,1,2,3,4,5,6,7, 0,1,2,3,4,5,6,7} which can then be detected as DUP.
+                    if (m_value->child(0) == m_value->child(1)) {
+                        v128_t newPattern = pattern;
+                        for (unsigned i = 0; i < 16; ++i) {
+                            if (newPattern.u8x16[i] >= 16 && newPattern.u8x16[i] < 32)
+                                newPattern.u8x16[i] -= 16;
+                        }
+                        Value* newPatternValue = m_proc.addConstant(m_value->origin(), B3::V128, newPattern);
+                        m_insertionSet.insertValue(m_index, newPatternValue);
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(0), newPatternValue);
+                        break;
+                    }
+
                     if (auto child = SIMDShuffle::isOnlyOneSideMask(pattern)) {
                         switch (child.value()) {
                         case 0: {
