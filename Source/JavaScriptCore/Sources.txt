@@ -624,6 +624,7 @@ inspector/agents/JSGlobalObjectDebuggerAgent.cpp
 inspector/agents/JSGlobalObjectRuntimeAgent.cpp
 
 interpreter/CachedCall.cpp
+interpreter/MicrotaskCall.cpp
 interpreter/CLoopStack.cpp
 interpreter/CallFrame.cpp
 interpreter/Interpreter.cpp

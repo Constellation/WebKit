@@ -1742,6 +1742,8 @@
 		A7FB61001040C38B0017A286 /* PropertyDescriptor.h in Headers */ = {isa = PBXBuildFile; fileRef = A7FB604B103F5EAB0017A286 /* PropertyDescriptor.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A7FCC26D17A0B6AA00786D1A /* FTLSwitchCase.h in Headers */ = {isa = PBXBuildFile; fileRef = A7FCC26C17A0B6AA00786D1A /* FTLSwitchCase.h */; };
 		AA45D14F2EB82FEB00FCBD16 /* CachedCallInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = AA45D14E2EB82FEB00FCBD16 /* CachedCallInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E30001002EF0001000000004 /* MicrotaskCall.h in Headers */ = {isa = PBXBuildFile; fileRef = E30001002EF0001000000001 /* MicrotaskCall.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E30001002EF0001000000005 /* MicrotaskCallInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = E30001002EF0001000000002 /* MicrotaskCallInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AA785BEB2E77BECA0097F688 /* JSPromiseCombinatorsContext.h in Headers */ = {isa = PBXBuildFile; fileRef = AA785BEA2E77BECA0097F688 /* JSPromiseCombinatorsContext.h */; };
 		AA785BEE2E77BED70097F688 /* JSPromiseCombinatorsContextInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = AA785BED2E77BED70097F688 /* JSPromiseCombinatorsContextInlines.h */; };
 		AD00659E1ECAC812000CA926 /* WasmLimits.h in Headers */ = {isa = PBXBuildFile; fileRef = AD00659D1ECAC7FE000CA926 /* WasmLimits.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -5493,6 +5495,9 @@
 		A8E894310CD0602400367179 /* JSCallbackObjectFunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSCallbackObjectFunctions.h; sourceTree = "<group>"; };
 		A8E894330CD0603F00367179 /* JSGlobalObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSGlobalObject.h; sourceTree = "<group>"; };
 		AA45D14E2EB82FEB00FCBD16 /* CachedCallInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CachedCallInlines.h; sourceTree = "<group>"; };
+		E30001002EF0001000000001 /* MicrotaskCall.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MicrotaskCall.h; sourceTree = "<group>"; };
+		E30001002EF0001000000002 /* MicrotaskCallInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MicrotaskCallInlines.h; sourceTree = "<group>"; };
+		E30001002EF0001000000003 /* MicrotaskCall.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MicrotaskCall.cpp; sourceTree = "<group>"; };
 		AA785BEA2E77BECA0097F688 /* JSPromiseCombinatorsContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSPromiseCombinatorsContext.h; sourceTree = "<group>"; };
 		AA785BEC2E77BECF0097F688 /* JSPromiseCombinatorsContext.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JSPromiseCombinatorsContext.cpp; sourceTree = "<group>"; };
 		AA785BED2E77BED70097F688 /* JSPromiseCombinatorsContextInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSPromiseCombinatorsContextInlines.h; sourceTree = "<group>"; };
@@ -7222,6 +7227,9 @@
 				1429D7D30ED2128200B89619 /* Interpreter.cpp */,
 				1429D77B0ED20D7300B89619 /* Interpreter.h */,
 				E39D9D841D39000600667282 /* InterpreterInlines.h */,
+				E30001002EF0001000000003 /* MicrotaskCall.cpp */,
+				E30001002EF0001000000001 /* MicrotaskCall.h */,
+				E30001002EF0001000000002 /* MicrotaskCallInlines.h */,
 				65FB5115184EE8F800C12B70 /* ProtoCallFrame.h */,
 				FE1D6D742362649D007A5C26 /* ProtoCallFrameInlines.h */,
 				149B24FF0D8AF6D1009CB8C7 /* Register.h */,
@@ -12102,6 +12110,8 @@
 				142F16E021558802003D49C9 /* MetadataTable.h in Headers */,
 				0FB5467B14F5C7E1002C2989 /* MethodOfGettingAValueProfile.h in Headers */,
 				7C008CE7187631B600955C24 /* Microtask.h in Headers */,
+				E30001002EF0001000000004 /* MicrotaskCall.h in Headers */,
+				E30001002EF0001000000005 /* MicrotaskCallInlines.h in Headers */,
 				E36965F32D76E975005BCC77 /* MicrotaskQueue.h in Headers */,
 				E306C1BC2D79000D0011D5AC /* MicrotaskQueueInlines.h in Headers */,
 				FE2A87601F02381600EB31B2 /* MinimumReservedZoneSize.h in Headers */,

@@ -27,6 +27,7 @@
 #include "CallLinkInfoBase.h"
 
 #include "CachedCall.h"
+#include "MicrotaskCall.h"
 #include "CallLinkInfo.h"
 #include "JSCJSValueInlines.h"
 #include "JSFunctionInlines.h"
@@ -50,6 +51,9 @@ void CallLinkInfoBase::unlinkOrUpgrade(VM& vm, CodeBlock* oldCodeBlock, CodeBloc
 #endif
     case CallSiteType::CachedCall:
         static_cast<CachedCall*>(this)->unlinkOrUpgradeImpl(vm, oldCodeBlock, newCodeBlock);
+        break;
+    case CallSiteType::MicrotaskCall:
+        static_cast<MicrotaskCall*>(this)->unlinkOrUpgradeImpl(vm, oldCodeBlock, newCodeBlock);
         break;
     }
 }

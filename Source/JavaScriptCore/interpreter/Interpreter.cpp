@@ -53,6 +53,7 @@
 #include "JSBoundFunctionInlines.h"
 #include "JSCInlines.h"
 #include "JSCellButterfly.h"
+#include "MicrotaskCall.h"
 #include "JSLexicalEnvironment.h"
 #include "JSModuleEnvironment.h"
 #include "JSModuleRecord.h"
@@ -1428,6 +1429,24 @@ CodeBlock* Interpreter::prepareForCachedCall(CachedCall& cachedCall, JSFunction*
 
     cachedCall.m_addressForCall = newCodeBlock->jitCode()->addressForCall();
     newCodeBlock->linkIncomingCall(nullptr, &cachedCall);
+    return newCodeBlock;
+}
+
+CodeBlock* Interpreter::prepareForMicrotaskCall(MicrotaskCall& microtaskCall, JSFunction* function)
+{
+    VM& vm = this->vm();
+    auto throwScope = DECLARE_THROW_SCOPE(vm);
+
+    // Compile the callee:
+    CodeBlock* newCodeBlock;
+    microtaskCall.functionExecutable()->prepareForExecution<FunctionExecutable>(vm, function, function->scope(), CodeSpecializationKind::CodeForCall, newCodeBlock);
+    RETURN_IF_EXCEPTION(throwScope, { });
+
+    ASSERT(newCodeBlock);
+    newCodeBlock->m_shouldAlwaysBeInlined = false;
+
+    microtaskCall.m_addressForCall = newCodeBlock->jitCode()->addressForCall();
+    newCodeBlock->linkIncomingCall(nullptr, &microtaskCall);
     return newCodeBlock;
 }
 
