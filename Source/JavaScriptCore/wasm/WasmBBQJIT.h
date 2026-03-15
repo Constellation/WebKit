@@ -693,6 +693,12 @@ public:
             : m_enclosedHeight(0)
         { }
 
+        ControlData(BlockSignature&& signature, BlockType type)
+            : m_signature(WTF::move(signature))
+            , m_blockType(type)
+            , m_enclosedHeight(0)
+        { }
+
         ControlData(BBQJIT& generator, BlockType, BlockSignature&&, LocalOrTempIndex enclosedHeight, RegisterSet liveScratchGPRs, RegisterSet liveScratchFPRs);
 
         // Re-use the argument layout of another block (eg. else will re-use the argument/result locations from if)

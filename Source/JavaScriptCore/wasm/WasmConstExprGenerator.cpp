@@ -156,6 +156,9 @@ public:
         ControlData(BlockSignature&& signature)
             : m_signature(WTF::move(signature))
         { }
+        ControlData(BlockSignature&& signature, BlockType)
+            : m_signature(WTF::move(signature))
+        { }
 
         const BlockSignature& signature() const { return m_signature; }
         FunctionArgCount branchTargetArity() const { return 0; }

@@ -236,6 +236,14 @@ public:
         {
         }
 
+        ControlData(BlockSignature&& signature, BlockType type)
+            : controlBlockType(type)
+            , m_signature(WTF::move(signature))
+            , continuation(nullptr)
+            , special(nullptr)
+        {
+        }
+
         static bool isIf(const ControlData& control) { return control.blockType() == BlockType::If; }
         static bool isElse(const ControlData& control) { return control.blockType() == BlockType::Else; }
         static bool isTry(const ControlData& control) { return control.blockType() == BlockType::Try; }

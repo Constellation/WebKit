@@ -250,6 +250,10 @@ enum class TypeKind : int8_t {
 };
 #undef CREATE_ENUM_VALUE
 
+// Bot is the bottom type used only for validation of unreachable code (polymorphic stack).
+// Defined outside the enum so -Wswitch does not require Bot cases in every switch on TypeKind.
+static constexpr TypeKind TypeKindBot = static_cast<TypeKind>(minTypeValue - 1);
+
 #define CREATE_ENUM_VALUE(name, id) name = id,
 enum class PackedType: int8_t {
     FOR_EACH_WASM_PACKED_TYPE(CREATE_ENUM_VALUE)
@@ -317,7 +321,10 @@ constexpr Type IPtr = I64;
 #elif USE(JSVALUE32_64)
 constexpr Type IPtr = I32;
 #endif
+constexpr Type Bot = Type{TypeKindBot, 0u};
 } // namespace Types
+
+constexpr bool isBot(Type type) { return type.kind == TypeKindBot; }
 
 #define CREATE_CASE(name, id, ...) case id: return true;
 template <typename Int>
@@ -350,6 +357,7 @@ inline ASCIILiteral makeString(TypeKind kind)
 {
     switch (kind) {
     FOR_EACH_WASM_TYPE(CREATE_CASE)
+    case TypeKind::Bot: return "Bot"_s;
     }
     RELEASE_ASSERT_NOT_REACHED();
     return { };
@@ -372,6 +380,8 @@ inline int linearizeType(TypeKind kind)
 {
     switch (kind) {
     FOR_EACH_WASM_TYPE(CREATE_CASE)
+    case TypeKind::Bot:
+        RELEASE_ASSERT_NOT_REACHED();
     }
     RELEASE_ASSERT_NOT_REACHED();
     return 0;

@@ -132,6 +132,12 @@ struct IPIntControlType {
     {
     }
 
+    IPIntControlType(BlockSignature&& signature, BlockType blockType)
+        : m_signature(WTF::move(signature))
+        , m_blockType(blockType)
+        , m_stackSize(0)
+    { }
+
     IPIntControlType(BlockSignature&& signature, uint32_t stackSize, BlockType blockType, CatchKind catchKind = CatchKind::Catch)
         : m_signature(WTF::move(signature))
         , m_blockType(blockType)
