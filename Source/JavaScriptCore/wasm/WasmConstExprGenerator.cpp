@@ -150,6 +150,7 @@ public:
         static bool isTopLevel(const ControlData&) { return true; }
         static bool isLoop(const ControlData&) { return false; }
         static bool isBlock(const ControlData&) { return false; }
+        [[noreturn]] void convertIfToBlock() { RELEASE_ASSERT_NOT_REACHED(); }
 
         ControlData()
         { }

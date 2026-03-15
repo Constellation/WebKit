@@ -164,6 +164,11 @@ struct IPIntControlType {
     { }
 
     BlockType blockType() const { return m_blockType; }
+    void convertIfToBlock()
+    {
+        ASSERT(m_blockType == BlockType::If);
+        m_blockType = BlockType::Block;
+    }
     CatchKind catchKind() const { return m_catchKind; }
     const BlockSignature& signature() const { return m_signature; }
     unsigned stackSize() const { return m_stackSize; }

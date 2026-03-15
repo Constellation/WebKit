@@ -15,6 +15,6 @@ try {
     exception = "" + e;
 }
 
-assert.eq(exception, "CompileError: WebAssembly.Module doesn't parse at byte 3: load/store instruction without memory, in function at index 0 (evaluating 'new WebAssembly.Module(wasm_code)')");
+assert.eq(exception, "CompileError: WebAssembly.Module doesn't validate: load instruction without memory, in function at index 0 (evaluating 'new WebAssembly.Module(wasm_code)')");
 
 // this should throw a parse error instead of triggering a runtime assertion

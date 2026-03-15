@@ -52,5 +52,5 @@ function shouldThrow(run, errorType, message) {
     ]);
     shouldThrow(() => {
         new WebAssembly.Module(wasm);
-    }, WebAssembly.CompileError, "WebAssembly.Module doesn't parse at byte 4: can't get heap type for RefNull in unreachable context, in function at index 0 (evaluating 'new WebAssembly.Module(wasm)')")
+    }, WebAssembly.CompileError, "WebAssembly.Module doesn't parse at byte 4: ref.null heaptype must be funcref, externref or type_idx, in function at index 0 (evaluating 'new WebAssembly.Module(wasm)')")
 }

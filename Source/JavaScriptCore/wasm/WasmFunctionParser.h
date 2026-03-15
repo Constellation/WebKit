@@ -1809,6 +1809,13 @@ auto FunctionParser<Context>::checkBranchTarget(const ControlType& target, Branc
             if (conditionality == Conditional)
                 m_expressionStack[offset + i].setType(target.branchTargetType(targetOffset + i));
         }
+        // For conditional branches, pad missing values with target types so the stack reflects the fallthrough state.
+        if (conditionality == Conditional && available < target.branchTargetArity()) {
+            unsigned missing = target.branchTargetArity() - available;
+            // Insert entries typed as the branch target types at the bottom of the branch target region
+            for (unsigned i = 0; i < missing; ++i)
+                m_expressionStack.insert(offset + i, TypedExpression { target.branchTargetType(i), Context::emptyExpression() });
+        }
         return { };
     }
 
@@ -2741,15 +2748,16 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
             const auto& typeDefinition = m_info.typeSignatures[typeIndex];
             const auto* structType = typeDefinition->expand().template as<StructType>();
-            WASM_PARSER_FAIL_IF(structType->fieldCount() > m_expressionStack.size(), "struct.new "_s, typeIndex, " requires "_s, structType->fieldCount(), " values, but the expression stack currently holds "_s, m_expressionStack.size(), " values"_s);
+            WASM_PARSER_FAIL_IF(!m_unreachable && structType->fieldCount() > m_expressionStack.size(), "struct.new "_s, typeIndex, " requires "_s, structType->fieldCount(), " values, but the expression stack currently holds "_s, m_expressionStack.size(), " values"_s);
 
             ArgumentList args;
-            size_t firstArgumentIndex = m_expressionStack.size() - structType->fieldCount();
+            size_t available = std::min(static_cast<size_t>(structType->fieldCount()), m_expressionStack.size());
+            size_t firstArgumentIndex = m_expressionStack.size() - available;
             WASM_ALLOCATOR_FAIL_IF(!args.tryReserveInitialCapacity(structType->fieldCount()), "can't allocate enough memory for struct.new "_s, structType->fieldCount(), " values"_s);
             args.grow(structType->fieldCount());
 
             bool hasV128Args = false;
-            for (size_t i = 0; i < structType->fieldCount(); ++i) {
+            for (size_t i = 0; i < available; ++i) {
                 TypedExpression arg = m_expressionStack.at(m_expressionStack.size() - i - 1);
                 const auto& fieldType = structType->field(StructFieldCount(structType->fieldCount() - i - 1)).type.unpacked();
                 WASM_VALIDATOR_FAIL_IF(!isValidSubtype(arg.type(), fieldType), "argument type mismatch in struct.new, got "_s, arg.type(), ", expected "_s, fieldType);
@@ -2758,6 +2766,9 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 args[args.size() - i - 1] = arg;
                 m_context.didPopValueFromStack(arg, "StructNew*"_s);
             }
+            // Fill remaining (polymorphic) arguments with Bot
+            for (size_t i = available; i < structType->fieldCount(); ++i)
+                args[structType->fieldCount() - i - 1] = TypedExpression { Types::Bot, Context::emptyExpression() };
             m_expressionStack.shrink(firstArgumentIndex);
             RELEASE_ASSERT(structType->fieldCount() == args.size());
 
@@ -2915,8 +2926,12 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
             // Manually pop the stack in order to avoid decreasing the stack size, as we will immediately put it back.
             TypedExpression ref;
-            WASM_PARSER_FAIL_IF(m_expressionStack.isEmpty(), "can't pop empty stack in "_s, opName);
-            ref = m_expressionStack.takeLast();
+            if (m_expressionStack.isEmpty()) {
+                WASM_PARSER_FAIL_IF(!m_unreachable, "can't pop empty stack in "_s, opName);
+                ref = TypedExpression { Types::Bot, Context::emptyExpression() };
+            } else {
+                ref = m_expressionStack.takeLast();
+            }
 
             WASM_VALIDATOR_FAIL_IF(!isValidSubtype(ref.type(), Type { hasNull1 ? TypeKind::RefNull : TypeKind::Ref, typeIndex1 }), opName, " to type "_s, ref.type(), " expected a reference type with source heaptype"_s);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(Type { hasNull2 ? TypeKind::RefNull : TypeKind::Ref, typeIndex2 }, Type { hasNull1 ? TypeKind::RefNull : TypeKind::Ref, typeIndex1 }), "target heaptype was not a subtype of source heaptype for "_s, opName);
@@ -3095,9 +3110,16 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
         TypedExpression ref;
         // Pop the stack manually to avoid changing the stack size, because the branch needs the value with a different type.
-        WASM_PARSER_FAIL_IF(m_expressionStack.isEmpty(), "can't pop empty stack in br_on_non_null"_s);
-        ref = m_expressionStack.takeLast();
-        m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, ref.value());
+        if (m_expressionStack.isEmpty()) {
+            WASM_PARSER_FAIL_IF(!m_unreachable, "can't pop empty stack in br_on_non_null"_s);
+            ref = TypedExpression { Types::Bot, Context::emptyExpression() };
+        } else {
+            ref = m_expressionStack.takeLast();
+        }
+        if (!isBot(ref.type()))
+            m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, ref.value());
+        else
+            m_expressionStack.constructAndAppend(Types::Bot, ref.value());
         WASM_VALIDATOR_FAIL_IF(!isRefType(ref.type()), "br_on_non_null ref to type "_s, ref.type(), " expected a reference type"_s);
 
         ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
@@ -3159,7 +3181,6 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_FAIL_IF_HELPER_FAILS(parseIndexForLocal(index));
         pushLocalInitialized(index);
 
-        WASM_PARSER_FAIL_IF(m_expressionStack.isEmpty(), "can't tee_local on empty expression stack"_s);
         TypedExpression value;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(value, "tee_local"_s);
         WASM_VALIDATOR_FAIL_IF(index >= m_locals.size(), "attempt to tee unknown local "_s, index, "_s, the number of locals is "_s, m_locals.size());
@@ -3216,19 +3237,23 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         TypeIndex calleeTypeIndex = m_info.typeIndexFromFunctionIndexSpace(functionIndex);
         const TypeDefinition& typeDefinition = TypeInformation::get(calleeTypeIndex).expand();
         const auto& calleeSignature = *typeDefinition.as<FunctionSignature>();
-        WASM_PARSER_FAIL_IF(calleeSignature.argumentCount() > m_expressionStack.size(), "call function index "_s, functionIndex, " has "_s, calleeSignature.argumentCount(), " arguments, but the expression stack currently holds "_s, m_expressionStack.size(), " values"_s);
+        WASM_PARSER_FAIL_IF(!m_unreachable && calleeSignature.argumentCount() > m_expressionStack.size(), "call function index "_s, functionIndex, " has "_s, calleeSignature.argumentCount(), " arguments, but the expression stack currently holds "_s, m_expressionStack.size(), " values"_s);
 
-        size_t firstArgumentIndex = m_expressionStack.size() - calleeSignature.argumentCount();
+        size_t available = std::min(static_cast<size_t>(calleeSignature.argumentCount()), m_expressionStack.size());
+        size_t firstArgumentIndex = m_expressionStack.size() - available;
         ArgumentList args;
         WASM_ALLOCATOR_FAIL_IF(!args.tryReserveInitialCapacity(calleeSignature.argumentCount()), "can't allocate enough memory for call's "_s, calleeSignature.argumentCount(), " arguments"_s);
         args.grow(calleeSignature.argumentCount());
-        for (size_t i = 0; i < calleeSignature.argumentCount(); ++i) {
+        for (size_t i = 0; i < available; ++i) {
             size_t stackIndex = m_expressionStack.size() - i - 1;
             TypedExpression arg = m_expressionStack.at(stackIndex);
             WASM_VALIDATOR_FAIL_IF(!isValidSubtype(arg.type(), calleeSignature.argumentType(calleeSignature.argumentCount() - i - 1)), "argument type mismatch in call, got "_s, arg.type(), ", expected "_s, calleeSignature.argumentType(calleeSignature.argumentCount() - i - 1));
             args[args.size() - i - 1] = arg;
             m_context.didPopValueFromStack(arg, "Call"_s);
         }
+        // Fill remaining (polymorphic) arguments with Bot
+        for (size_t i = available; i < calleeSignature.argumentCount(); ++i)
+            args[calleeSignature.argumentCount() - i - 1] = TypedExpression { Types::Bot, Context::emptyExpression() };
         m_expressionStack.shrink(firstArgumentIndex);
 
         RELEASE_ASSERT(calleeSignature.argumentCount() == args.size());
@@ -3288,15 +3313,17 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_VALIDATOR_FAIL_IF(!typeDefinition.expand().is<FunctionSignature>(), "invalid type index (not a function signature) for call_indirect, got ", signatureIndex);
         const auto& calleeSignature = *typeDefinition.expand().as<FunctionSignature>();
         size_t argumentCount = calleeSignature.argumentCount() + 1; // Add the callee's index.
-        WASM_PARSER_FAIL_IF(argumentCount > m_expressionStack.size(), "call_indirect expects "_s, argumentCount, " arguments, but the expression stack currently holds "_s, m_expressionStack.size(), " values"_s);
+        WASM_PARSER_FAIL_IF(!m_unreachable && argumentCount > m_expressionStack.size(), "call_indirect expects "_s, argumentCount, " arguments, but the expression stack currently holds "_s, m_expressionStack.size(), " values"_s);
 
-        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(m_expressionStack.last().type(), Types::I32), "non-i32 call_indirect index "_s, m_expressionStack.last().type());
+        if (!m_expressionStack.isEmpty())
+            WASM_VALIDATOR_FAIL_IF(!isValidSubtype(m_expressionStack.last().type(), Types::I32), "non-i32 call_indirect index "_s, m_expressionStack.last().type());
 
+        size_t available = std::min(argumentCount, m_expressionStack.size());
         ArgumentList args;
         WASM_ALLOCATOR_FAIL_IF(!args.tryReserveInitialCapacity(argumentCount), "can't allocate enough memory for "_s, argumentCount, " call_indirect arguments"_s);
         args.grow(argumentCount);
-        size_t firstArgumentIndex = m_expressionStack.size() - argumentCount;
-        for (size_t i = 0; i < argumentCount; ++i) {
+        size_t firstArgumentIndex = m_expressionStack.size() - available;
+        for (size_t i = 0; i < available; ++i) {
             size_t stackIndex = m_expressionStack.size() - i - 1;
             TypedExpression arg = m_expressionStack.at(stackIndex);
             if (i > 0)
@@ -3304,6 +3331,9 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             args[args.size() - i - 1] = arg;
             m_context.didPopValueFromStack(arg, "CallIndirect"_s);
         }
+        // Fill remaining (polymorphic) arguments with Bot
+        for (size_t i = available; i < argumentCount; ++i)
+            args[argumentCount - i - 1] = TypedExpression { Types::Bot, Context::emptyExpression() };
         m_expressionStack.shrink(firstArgumentIndex);
 
         ResultList results;
@@ -3349,23 +3379,25 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_PARSER_FAIL_IF(!parseVarUInt32(typeIndex), "can't get call_ref's signature index"_s);
         WASM_VALIDATOR_FAIL_IF(typeIndex >= m_info.typeCount(), "call_ref index ", typeIndex, " is out of bounds");
 
-        WASM_PARSER_FAIL_IF(m_expressionStack.isEmpty(), "can't call_ref on empty expression stack"_s);
+        WASM_PARSER_FAIL_IF(!m_unreachable && m_expressionStack.isEmpty(), "can't call_ref on empty expression stack"_s);
 
         const TypeDefinition& typeDefinition = m_info.typeSignatures[typeIndex];
         const TypeIndex calleeTypeIndex = typeDefinition.index();
         WASM_VALIDATOR_FAIL_IF(!typeDefinition.expand().is<FunctionSignature>(), "invalid type index (not a function signature) for call_ref, got ", typeIndex);
         const auto& calleeSignature = *typeDefinition.expand().as<FunctionSignature>();
         Type calleeType = Type { TypeKind::RefNull, calleeTypeIndex };
-        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(m_expressionStack.last().type(), calleeType), "invalid type for call_ref value, expected ", calleeType, " got ", m_expressionStack.last().type());
+        if (!m_expressionStack.isEmpty())
+            WASM_VALIDATOR_FAIL_IF(!isValidSubtype(m_expressionStack.last().type(), calleeType), "invalid type for call_ref value, expected ", calleeType, " got ", m_expressionStack.last().type());
 
         size_t argumentCount = calleeSignature.argumentCount() + 1; // Add the callee's value.
-        WASM_PARSER_FAIL_IF(argumentCount > m_expressionStack.size(), "call_ref expects ", argumentCount, " arguments, but the expression stack currently holds ", m_expressionStack.size(), " values");
+        WASM_PARSER_FAIL_IF(!m_unreachable && argumentCount > m_expressionStack.size(), "call_ref expects ", argumentCount, " arguments, but the expression stack currently holds ", m_expressionStack.size(), " values");
 
+        size_t available = std::min(argumentCount, m_expressionStack.size());
         ArgumentList args;
         WASM_ALLOCATOR_FAIL_IF(!args.tryReserveInitialCapacity(argumentCount), "can't allocate enough memory for ", argumentCount, " call_indirect arguments");
         args.grow(argumentCount);
-        size_t firstArgumentIndex = m_expressionStack.size() - argumentCount;
-        for (size_t i = 0; i < argumentCount; ++i) {
+        size_t firstArgumentIndex = m_expressionStack.size() - available;
+        for (size_t i = 0; i < available; ++i) {
             size_t stackIndex = m_expressionStack.size() - i - 1;
             TypedExpression arg = m_expressionStack.at(stackIndex);
             if (i > 0)
@@ -3373,6 +3405,9 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             args[args.size() - i - 1] = arg;
             m_context.didPopValueFromStack(arg, "CallRef"_s);
         }
+        // Fill remaining (polymorphic) arguments with Bot
+        for (size_t i = available; i < argumentCount; ++i)
+            args[argumentCount - i - 1] = TypedExpression { Types::Bot, Context::emptyExpression() };
         m_expressionStack.shrink(firstArgumentIndex);
 
         ResultList results;
@@ -3597,8 +3632,9 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
         WASM_VALIDATOR_FAIL_IF(!ControlType::isIf(controlEntry.controlData), "else block isn't associated to an if");
         if (m_skipCodeGen) {
-            // Lightweight ControlType - just swap stacks
+            // Lightweight ControlType - just swap stacks and convert to block
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
+            controlEntry.controlData.convertIfToBlock();
         } else if (m_unreachable) {
             WASM_FAIL_IF_HELPER_FAILS(m_context.addElseToUnreachable(controlEntry.controlData));
         } else {
@@ -3903,17 +3939,21 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         const TypeDefinition& signature = TypeInformation::get(typeIndex).expand();
         const auto& exceptionSignature = *signature.as<FunctionSignature>();
 
-        WASM_VALIDATOR_FAIL_IF(m_expressionStack.size() < exceptionSignature.argumentCount(), "Too few arguments on stack for the exception being thrown. The exception expects ", exceptionSignature.argumentCount(), ", but only ", m_expressionStack.size(), " were present. Exception has signature: ", exceptionSignature);
-        unsigned offset = m_expressionStack.size() - exceptionSignature.argumentCount();
+        WASM_VALIDATOR_FAIL_IF(!m_unreachable && m_expressionStack.size() < exceptionSignature.argumentCount(), "Too few arguments on stack for the exception being thrown. The exception expects ", exceptionSignature.argumentCount(), ", but only ", m_expressionStack.size(), " were present. Exception has signature: ", exceptionSignature);
+        unsigned available = std::min(static_cast<unsigned>(m_expressionStack.size()), static_cast<unsigned>(exceptionSignature.argumentCount()));
+        unsigned offset = m_expressionStack.size() - available;
         ArgumentList args;
         WASM_ALLOCATOR_FAIL_IF(!args.tryReserveInitialCapacity(exceptionSignature.argumentCount()), "can't allocate enough memory for throw's "_s, exceptionSignature.argumentCount(), " arguments"_s);
         args.grow(exceptionSignature.argumentCount());
-        for (unsigned i = 0; i < exceptionSignature.argumentCount(); ++i) {
+        for (unsigned i = 0; i < available; ++i) {
             TypedExpression arg = m_expressionStack.at(m_expressionStack.size() - i - 1);
             WASM_VALIDATOR_FAIL_IF(!isValidSubtype(arg.type(), exceptionSignature.argumentType(exceptionSignature.argumentCount() - i - 1)), "The exception being thrown expects the argument at index ", i, " to be ", exceptionSignature.argumentType(exceptionSignature.argumentCount() - i - 1), " but argument has type ", arg.type());
             args[args.size() - i - 1] = arg;
             m_context.didPopValueFromStack(arg, "Throw"_s);
         }
+        // Fill remaining (polymorphic) arguments with Bot
+        for (unsigned i = available; i < exceptionSignature.argumentCount(); ++i)
+            args[exceptionSignature.argumentCount() - i - 1] = TypedExpression { Types::Bot, Context::emptyExpression() };
         m_expressionStack.shrink(offset);
 
         WASM_TRY_ADD_TO_CONTEXT(m_context.addThrow(exceptionIndex, args, m_expressionStack));
@@ -3953,13 +3993,14 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_TRY_POP_EXPRESSION_STACK_INTO(condition, "br / br_if condition"_s);
             WASM_VALIDATOR_FAIL_IF(!isValidSubtype(condition.type(), Types::I32), "conditional branch with non-i32 condition ", condition.type());
         } else {
-            setUnreachable();
             condition = TypedExpression { Types::Void, Context::emptyExpression() };
         }
 
         ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, m_currentOpcode == BrIf ? Conditional : Unconditional));
         WASM_TRY_ADD_TO_CONTEXT(m_context.addBranch(data, condition, m_expressionStack));
+        if (m_currentOpcode == Br)
+            setUnreachable();
         return { };
     }
 
@@ -4040,6 +4081,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(data.controlData));
                 WASM_FAIL_IF_HELPER_FAILS(m_context.endBlock(data, m_expressionStack));
             } else {
+                WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(data.controlData));
                 Stack emptyStack;
                 WASM_FAIL_IF_HELPER_FAILS(m_context.addEndToUnreachable(data, emptyStack));
             }
