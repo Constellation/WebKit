@@ -452,9 +452,6 @@ ALWAYS_INLINE bool isSubtype(Type sub, Type parent)
     // Fast path.
     if (sub == parent)
         return true;
-    // Bot is a subtype of everything (used for polymorphic stack in unreachable code).
-    if (isBot(sub))
-        return true;
     return isSubtypeSlow(sub, parent);
 }
 
