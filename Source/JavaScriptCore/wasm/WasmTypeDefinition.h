@@ -275,11 +275,12 @@ using SupertypeCount = uint32_t;
 
 ALWAYS_INLINE Width Type::width() const
 {
+    if (kind == TypeKindBot)
+        return Width::Width32; // Bot is only used for validation; width is irrelevant.
     switch (kind) {
 #define CREATE_CASE(name, id, b3type, inc, wasmName, width, ...) case TypeKind::name: return widthForBytes(width / 8);
     FOR_EACH_WASM_TYPE(CREATE_CASE)
 #undef CREATE_CASE
-    case TypeKind::Bot: return Width::Width32; // Bot is only used for validation; width is irrelevant.
     }
     RELEASE_ASSERT_NOT_REACHED();
 }
@@ -288,9 +289,10 @@ ALWAYS_INLINE Width Type::width() const
 #define CREATE_CASE(name, id, b3type, ...) case TypeKind::name: return b3type;
 inline B3::Type toB3Type(Type type)
 {
+    if (type.kind == TypeKindBot)
+        return B3::Void; // Bot is only used for validation; B3 type is irrelevant.
     switch (type.kind) {
     FOR_EACH_WASM_TYPE(CREATE_CASE)
-    case TypeKind::Bot: return B3::Void; // Bot is only used for validation; B3 type is irrelevant.
     }
     RELEASE_ASSERT_NOT_REACHED();
     return B3::Void;
@@ -334,8 +336,7 @@ constexpr size_t typeKindSizeInBytes(TypeKind kind)
     case TypeKind::Noneref:
     case TypeKind::Nofuncref:
     case TypeKind::Noexternref:
-    case TypeKind::I31ref:
-    case TypeKind::Bot: {
+    case TypeKind::I31ref: {
         break;
     }
     }
@@ -919,8 +920,9 @@ inline void Type::dump(PrintStream& out) const
 #define CREATE_CASE(name, ...) case TypeKind::name: out.print(#name); break;
         FOR_EACH_WASM_TYPE(CREATE_CASE)
 #undef CREATE_CASE
-    case TypeKind::Bot: out.print("Bot"); break;
     }
+    if (kindToPrint == TypeKindBot)
+        out.print("Bot");
 }
 
 struct TypeHash {

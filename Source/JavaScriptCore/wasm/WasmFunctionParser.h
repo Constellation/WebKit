@@ -325,11 +325,9 @@ private:
     };
     [[nodiscard]] PartialResult parseStructFieldManipulation(StructFieldManipulation& result, ASCIILiteral operation);
 
-#define WASM_TRY_ADD_TO_CONTEXT(add_expression) WASM_FAIL_IF_HELPER_FAILS(m_context.add_expression)
-
-#define WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(add_expression) do { \
+#define WASM_TRY_ADD_TO_CONTEXT(add_expression) do { \
         if (shouldCallContext()) \
-            WASM_FAIL_IF_HELPER_FAILS(m_context.add_expression); \
+            WASM_FAIL_IF_HELPER_FAILS(add_expression); \
     } while (0)
 
     template <typename ...Args>
@@ -486,7 +484,7 @@ auto FunctionParser<Context>::parse() -> Result
         WASM_ALLOCATOR_FAIL_IF(!m_locals.tryReserveCapacity(totalNumberOfLocals), "can't allocate enough memory for function's "_s, totalNumberOfLocals, " locals"_s);
         m_locals.appendUsingFunctor(numberOfLocals, [&](size_t) { return typeOfLocal; });
 
-        WASM_TRY_ADD_TO_CONTEXT(addLocal(typeOfLocal, numberOfLocals));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addLocal(typeOfLocal, numberOfLocals));
     }
 
     WASM_ALLOCATOR_FAIL_IF(!m_localInitStack.tryReserveCapacity(totalNonDefaultableLocals), "can't allocate enough memory for tracking function's local initialization"_s);
@@ -581,8 +579,7 @@ auto FunctionParser<Context>::binaryCase(OpType op, BinaryOperationHandler handl
     WASM_VALIDATOR_FAIL_IF(!isSubtype(right.type(), rhsType), op, " right value type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS((m_context.*handler)(left, right, result));
+    WASM_TRY_ADD_TO_CONTEXT((m_context.*handler)(left, right, result));
     m_expressionStack.constructAndAppend(returnType, result);
     return { };
 }
@@ -618,7 +615,7 @@ auto FunctionParser<Context>::binaryCompareCase(OpType op, BinaryOperationHandle
 
             ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
             WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, Conditional));
-            WASM_TRY_ADD_TO_CONTEXT(addFusedBranchCompare(op, data, left, right, m_expressionStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addFusedBranchCompare(op, data, left, right, m_expressionStack));
             m_context.didParseOpcode();
             return { };
         }
@@ -640,7 +637,7 @@ auto FunctionParser<Context>::binaryCompareCase(OpType op, BinaryOperationHandle
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType control;
-            WASM_TRY_ADD_TO_CONTEXT(addFusedIfCompare(op, left, right, WTF::move(inlineSignature), m_expressionStack, control, newStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addFusedIfCompare(op, left, right, WTF::move(inlineSignature), m_expressionStack, control, newStack));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == control.signature().argumentCount());
             ASSERT(newStack.size() == control.signature().argumentCount());
 
@@ -666,8 +663,7 @@ auto FunctionParser<Context>::unaryCase(OpType op, UnaryOperationHandler handler
     WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), operandType), op, " value type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS((m_context.*handler)(value, result));
+    WASM_TRY_ADD_TO_CONTEXT((m_context.*handler)(value, result));
     m_expressionStack.constructAndAppend(returnType, result);
     return { };
 }
@@ -696,7 +692,7 @@ auto FunctionParser<Context>::unaryCompareCase(OpType op, UnaryOperationHandler 
 
             ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
             WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, Conditional));
-            WASM_TRY_ADD_TO_CONTEXT(addFusedBranchCompare(op, data, value, m_expressionStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addFusedBranchCompare(op, data, value, m_expressionStack));
             return { };
         }
         if (nextOpcode == OpType::If) {
@@ -714,7 +710,7 @@ auto FunctionParser<Context>::unaryCompareCase(OpType op, UnaryOperationHandler 
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType control;
-            WASM_TRY_ADD_TO_CONTEXT(addFusedIfCompare(op, value, WTF::move(inlineSignature), m_expressionStack, control, newStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addFusedIfCompare(op, value, WTF::move(inlineSignature), m_expressionStack, control, newStack));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == control.signature().argumentCount());
             ASSERT(newStack.size() == control.signature().argumentCount());
 
@@ -756,8 +752,7 @@ auto FunctionParser<Context>::load(Type memoryType) -> PartialResult
         WASM_VALIDATOR_FAIL_IF(!isSubtype(pointer.type(), Types::I32), m_currentOpcode, " pointer type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.load(static_cast<LoadOpType>(m_currentOpcode), pointer, result, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.load(static_cast<LoadOpType>(m_currentOpcode), pointer, result, offset));
     m_expressionStack.constructAndAppend(memoryType, result);
     return { };
 }
@@ -790,7 +785,7 @@ auto FunctionParser<Context>::store(Type memoryType) -> PartialResult
 
     WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), memoryType), m_currentOpcode, " value type mismatch"_s);
 
-    WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(store(static_cast<StoreOpType>(m_currentOpcode), pointer, value, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.store(static_cast<StoreOpType>(m_currentOpcode), pointer, value, offset));
     return { };
 }
 
@@ -803,8 +798,7 @@ auto FunctionParser<Context>::truncSaturated(Ext1OpType op, Type returnType, Typ
     WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), operandType), "trunc-saturated value type mismatch. Expected: "_s, operandType, " but expression stack has "_s, value.type());
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.truncSaturated(op, value, result, returnType, operandType));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.truncSaturated(op, value, result, returnType, operandType));
     m_expressionStack.constructAndAppend(returnType, result);
     return { };
 }
@@ -825,8 +819,7 @@ auto FunctionParser<Context>::atomicLoad(ExtAtomicOpType op, Type memoryType) ->
     WASM_VALIDATOR_FAIL_IF(!isSubtype(pointer.type(), Types::I32), static_cast<unsigned>(op), " pointer type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.atomicLoad(op, memoryType, pointer, result, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicLoad(op, memoryType, pointer, result, offset));
     m_expressionStack.constructAndAppend(memoryType, result);
     return { };
 }
@@ -849,7 +842,7 @@ auto FunctionParser<Context>::atomicStore(ExtAtomicOpType op, Type memoryType) -
     WASM_VALIDATOR_FAIL_IF(!isSubtype(pointer.type(), Types::I32), m_currentOpcode, " pointer type mismatch"_s);
     WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), memoryType), m_currentOpcode, " value type mismatch"_s);
 
-    WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(atomicStore(op, memoryType, pointer, value, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicStore(op, memoryType, pointer, value, offset));
     return { };
 }
 
@@ -872,8 +865,7 @@ auto FunctionParser<Context>::atomicBinaryRMW(ExtAtomicOpType op, Type memoryTyp
     WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), memoryType), static_cast<unsigned>(op), " value type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.atomicBinaryRMW(op, memoryType, pointer, value, result, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicBinaryRMW(op, memoryType, pointer, value, result, offset));
     m_expressionStack.constructAndAppend(memoryType, result);
     return { };
 }
@@ -900,8 +892,7 @@ auto FunctionParser<Context>::atomicCompareExchange(ExtAtomicOpType op, Type mem
     WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), memoryType), static_cast<unsigned>(op), " value type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.atomicCompareExchange(op, memoryType, pointer, expected, value, result, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicCompareExchange(op, memoryType, pointer, expected, value, result, offset));
     m_expressionStack.constructAndAppend(memoryType, result);
     return { };
 }
@@ -928,8 +919,7 @@ auto FunctionParser<Context>::atomicWait(ExtAtomicOpType op, Type memoryType) ->
     WASM_VALIDATOR_FAIL_IF(!isSubtype(timeout.type(), Types::I64), static_cast<unsigned>(op), " timeout type mismatch"_s);
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.atomicWait(op, pointer, value, timeout, result, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicWait(op, pointer, value, timeout, result, offset));
     m_expressionStack.constructAndAppend(Types::I32, result);
     return { };
 }
@@ -953,8 +943,7 @@ auto FunctionParser<Context>::atomicNotify(ExtAtomicOpType op) -> PartialResult
     WASM_VALIDATOR_FAIL_IF(!isSubtype(count.type(), Types::I32), static_cast<unsigned>(op), " count type mismatch"_s); // The spec's definition is saying i64, but all implementations (including tests) are using i32. So looks like the spec is wrong.
 
     ExpressionType result = Context::emptyExpression();
-    if (shouldCallContext())
-        WASM_FAIL_IF_HELPER_FAILS(m_context.atomicNotify(op, pointer, count, result, offset));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicNotify(op, pointer, count, result, offset));
     m_expressionStack.constructAndAppend(Types::I32, result);
     return { };
 }
@@ -965,7 +954,7 @@ auto FunctionParser<Context>::atomicFence(ExtAtomicOpType op) -> PartialResult
     uint8_t flags;
     WASM_PARSER_FAIL_IF(!parseUInt8(flags), "can't get flags"_s);
     WASM_PARSER_FAIL_IF(flags != 0x0, "flags should be 0x0 but got "_s, flags);
-    WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(atomicFence(op, flags));
+    WASM_TRY_ADD_TO_CONTEXT(m_context.atomicFence(op, flags));
     return { };
 }
 
@@ -1093,7 +1082,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDSplat(lane, scalar, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDSplat(lane, scalar, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1113,7 +1102,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDShift(op, SIMDInfo { lane, signMode }, vector, shift, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDShift(op, SIMDInfo { lane, signMode }, vector, shift, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1134,7 +1123,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDExtmul(op, SIMDInfo { lane, signMode }, lhs, rhs, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDExtmul(op, SIMDInfo { lane, signMode }, lhs, rhs, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1155,9 +1144,9 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
             if (op == SIMDLaneOperation::Load)
-                WASM_TRY_ADD_TO_CONTEXT(addSIMDLoad(pointer, offset, result));
+                WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDLoad(pointer, offset, result));
             else
-                WASM_TRY_ADD_TO_CONTEXT(addSIMDLoadSplat(op, pointer, offset, result));
+                WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDLoadSplat(op, pointer, offset, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1179,7 +1168,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         if (Context::tierSupportsSIMD())
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDStore(val, pointer, offset));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDStore(val, pointer, offset));
         return { };
     }
     case SIMDLaneOperation::LoadLane8:
@@ -1218,7 +1207,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDLoadLane(op, pointer, vector, offset, laneIndex, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDLoadLane(op, pointer, vector, offset, laneIndex, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1259,7 +1248,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         if (Context::tierSupportsSIMD())
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDStoreLane(op, pointer, vector, offset, laneIndex));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDStoreLane(op, pointer, vector, offset, laneIndex));
         return { };
     }
     case SIMDLaneOperation::LoadExtend8U:
@@ -1278,7 +1267,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDLoadExtend(op, pointer, offset, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDLoadExtend(op, pointer, offset, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1296,7 +1285,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDLoadPad(op, pointer, offset, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDLoadPad(op, pointer, offset, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1321,7 +1310,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDShuffle(imm, a, b, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDShuffle(imm, a, b, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1340,7 +1329,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDExtractLane(SIMDInfo { lane, signMode }, laneIdx, v, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDExtractLane(SIMDInfo { lane, signMode }, laneIdx, v, result));
             m_expressionStack.constructAndAppend(simdScalarType(lane), result);
             return { };
         }
@@ -1362,7 +1351,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDReplaceLane(SIMDInfo { lane, signMode }, laneIdx, v, s, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDReplaceLane(SIMDInfo { lane, signMode }, laneIdx, v, s, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1380,7 +1369,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDI_V(op, SIMDInfo { lane, signMode }, v, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDI_V(op, SIMDInfo { lane, signMode }, v, result));
             m_expressionStack.constructAndAppend(Types::I32, result);
             return { };
         }
@@ -1413,7 +1402,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDV_V(op, SIMDInfo { lane, signMode }, v, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDV_V(op, SIMDInfo { lane, signMode }, v, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1436,7 +1425,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDBitwiseSelect(v1, v2, c, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDBitwiseSelect(v1, v2, c, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1458,7 +1447,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDRelOp(op, SIMDInfo { lane, signMode }, lhs, rhs, optionalRelation, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDRelOp(op, SIMDInfo { lane, signMode }, lhs, rhs, optionalRelation, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1478,7 +1467,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDRelOp(op, SIMDInfo { lane, signMode }, lhs, rhs, optionalRelation, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDRelOp(op, SIMDInfo { lane, signMode }, lhs, rhs, optionalRelation, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1516,7 +1505,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDV_VV(op, SIMDInfo { lane, signMode }, a, b, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDV_VV(op, SIMDInfo { lane, signMode }, a, b, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1538,7 +1527,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
-            WASM_TRY_ADD_TO_CONTEXT(addSIMDRelaxedFMA(op, SIMDInfo { lane, signMode }, a, b, c, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addSIMDRelaxedFMA(op, SIMDInfo { lane, signMode }, a, b, c, result));
             m_expressionStack.constructAndAppend(Types::V128, result);
             return { };
         }
@@ -1944,7 +1933,7 @@ ALWAYS_INLINE auto FunctionParser<Context>::parseNestedBlocksEagerly(bool& shoul
         int64_t oldSize = m_expressionStack.size();
         Stack newStack;
         ControlType block;
-        WASM_TRY_ADD_TO_CONTEXT(addBlock(WTF::move(inlineSignature), m_expressionStack, block, newStack));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addBlock(WTF::move(inlineSignature), m_expressionStack, block, newStack));
         ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == block.signature().argumentCount());
         ASSERT(newStack.size() == block.signature().argumentCount());
 
@@ -2063,8 +2052,7 @@ auto FunctionParser<Context>::parseExpression() -> PartialResult
         WASM_VALIDATOR_FAIL_IF(!isBot(nonZero.type()) && !isBot(zero.type()) && nonZero.type() != zero.type(), "select result types must match, got "_s, nonZero.type(), " and "_s, zero.type());
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addSelect(condition, nonZero, zero, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addSelect(condition, nonZero, zero, result));
 
         Type resultType = isBot(nonZero.type()) ? zero.type() : nonZero.type();
         m_expressionStack.constructAndAppend(resultType, result);
@@ -2088,8 +2076,7 @@ auto FunctionParser<Context>::parseExpression() -> PartialResult
         WASM_VALIDATOR_FAIL_IF(!isSubtype(zero.type(), immediates.targetType), "select result types must match, got "_s, zero.type(), " and "_s, immediates.targetType);
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addSelect(condition, nonZero, zero, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addSelect(condition, nonZero, zero, result));
 
         m_expressionStack.constructAndAppend(immediates.targetType, result);
         return { };
@@ -2153,8 +2140,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_VALIDATOR_FAIL_IF(!isSubtype(index.type(), Types::I32), "table.get index to type "_s, index.type(), " expected "_s, TypeKind::I32);
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addTableGet(tableIndex, index, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addTableGet(tableIndex, index, result));
         Type resultType = m_info.tables[tableIndex].wasmType();
         m_expressionStack.constructAndAppend(resultType, result);
         return { };
@@ -2171,7 +2157,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         Type type = m_info.tables[tableIndex].wasmType();
         WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), type), "table.set value to type "_s, value.type(), " expected "_s, type);
         RELEASE_ASSERT(m_info.tables[tableIndex].type() == TableElementType::Externref || m_info.tables[tableIndex].type() == TableElementType::Funcref);
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addTableSet(tableIndex, index, value));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addTableSet(tableIndex, index, value));
         return { };
     }
 
@@ -2198,14 +2184,14 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(srcOffset.type(), Types::I32), "table.init src_offset to type "_s, srcOffset.type(), " expected "_s, TypeKind::I32);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(length.type(), Types::I32), "table.init length to type "_s, length.type(), " expected "_s, TypeKind::I32);
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addTableInit(immediates.elementIndex, immediates.tableIndex, dstOffset, srcOffset, length));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTableInit(immediates.elementIndex, immediates.tableIndex, dstOffset, srcOffset, length));
             break;
         }
         case Ext1OpType::ElemDrop: {
             unsigned elementIndex;
             WASM_FAIL_IF_HELPER_FAILS(parseElementIndex(elementIndex));
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addElemDrop(elementIndex));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addElemDrop(elementIndex));
             break;
         }
         case Ext1OpType::TableSize: {
@@ -2213,8 +2199,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_FAIL_IF_HELPER_FAILS(parseTableIndex(tableIndex));
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addTableSize(tableIndex, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTableSize(tableIndex, result));
             m_expressionStack.constructAndAppend(Types::I32, result);
             break;
         }
@@ -2232,8 +2217,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(delta.type(), Types::I32), "table.grow expects an i32 delta value, got "_s, delta.type());
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addTableGrow(tableIndex, fill, delta, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTableGrow(tableIndex, fill, delta, result));
             m_expressionStack.constructAndAppend(Types::I32, result);
             break;
         }
@@ -2251,7 +2235,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(offset.type(), Types::I32), "table.fill expects an i32 offset value, got "_s, offset.type());
             WASM_VALIDATOR_FAIL_IF(!isSubtype(count.type(), Types::I32), "table.fill expects an i32 count value, got "_s, count.type());
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addTableFill(tableIndex, offset, fill, count));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTableFill(tableIndex, offset, fill, count));
             break;
         }
         case Ext1OpType::TableCopy: {
@@ -2273,7 +2257,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(srcOffset.type(), Types::I32), "table.copy src_offset to type "_s, srcOffset.type(), " expected "_s, TypeKind::I32);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(length.type(), Types::I32), "table.copy length to type "_s, length.type(), " expected "_s, TypeKind::I32);
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addTableCopy(immediates.dstTableIndex, immediates.srcTableIndex, dstOffset, srcOffset, length));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTableCopy(immediates.dstTableIndex, immediates.srcTableIndex, dstOffset, srcOffset, length));
             break;
         }
         case Ext1OpType::MemoryFill: {
@@ -2299,7 +2283,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 WASM_VALIDATOR_FAIL_IF(!isSubtype(count.type(), Types::I32), "memory.fill size to type ", count.type(), " expected ", TypeKind::I32);
             }
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addMemoryFill(dstAddress, targetValue, count));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addMemoryFill(dstAddress, targetValue, count));
             break;
         }
         case Ext1OpType::MemoryCopy: {
@@ -2325,7 +2309,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 WASM_VALIDATOR_FAIL_IF(!isSubtype(count.type(), Types::I32), "memory.copy size to type ", count.type(), " expected ", TypeKind::I32);
             }
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addMemoryCopy(dstAddress, srcAddress, count));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addMemoryCopy(dstAddress, srcAddress, count));
             break;
         }
         case Ext1OpType::MemoryInit: {
@@ -2347,14 +2331,14 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(srcAddress.type(), Types::I32), "memory.init src address to type ", srcAddress.type(), " expected ", TypeKind::I32);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(length.type(), Types::I32), "memory.init length to type ", length.type(), " expected ", TypeKind::I32);
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addMemoryInit(immediates.dataSegmentIndex, dstAddress, srcAddress, length));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addMemoryInit(immediates.dataSegmentIndex, dstAddress, srcAddress, length));
             break;
         }
         case Ext1OpType::DataDrop: {
             unsigned dataSegmentIndex;
             WASM_FAIL_IF_HELPER_FAILS(parseDataSegmentIndex(dataSegmentIndex));
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addDataDrop(dataSegmentIndex));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addDataDrop(dataSegmentIndex));
             break;
         }
 
@@ -2381,8 +2365,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), Types::I32), "ref.i31 value to type ", value.type(), " expected ", TypeKind::I32);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addRefI31(value, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addRefI31(value, result));
 
             m_expressionStack.constructAndAppend(Type { TypeKind::Ref, static_cast<TypeIndex>(TypeKind::I31ref) }, result);
             break;
@@ -2393,8 +2376,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isI31ref(ref.type()), "i31.get_s ref to type ", ref.type(), " expected ", TypeKind::I31ref);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addI31GetS(ref, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addI31GetS(ref, result));
 
             m_expressionStack.constructAndAppend(Types::I32, result);
             break;
@@ -2405,8 +2387,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isI31ref(ref.type()), "i31.get_u ref to type ", ref.type(), " expected ", TypeKind::I31ref);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addI31GetU(ref, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addI31GetU(ref, result));
 
             m_expressionStack.constructAndAppend(Types::I32, result);
             break;
@@ -2428,8 +2409,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 m_context.notifyFunctionUsesSIMD();
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayNew(typeIndex, size, value, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayNew(typeIndex, size, value, result));
 
             m_expressionStack.constructAndAppend(arrayRefType, result);
 
@@ -2447,8 +2427,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(size.type(), Types::I32), "array.new_default index to type ", size.type(), " expected ", TypeKind::I32);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayNewDefault(typeIndex, size, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayNewDefault(typeIndex, size, result));
 
             m_expressionStack.constructAndAppend(arrayRefType, result);
             break;
@@ -2491,8 +2470,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 m_context.notifyFunctionUsesSIMD();
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayNewFixed(typeIndex, args, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayNewFixed(typeIndex, args, result));
             m_expressionStack.constructAndAppend(arrayRefType, result);
             break;
         }
@@ -2522,8 +2500,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(offset.type(), Types::I32), "array.new_data: offset has type ", offset.type().kind, " expected ", TypeKind::I32);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayNewData(typeIndex, dataIndex, size, offset, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayNewData(typeIndex, dataIndex, size, offset, result));
             m_expressionStack.constructAndAppend(arrayRefType, result);
             break;
         }
@@ -2565,8 +2542,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(offset.type(), Types::I32), "array.new_elem: offset has type ", offset.type().kind, " expected ", TypeKind::I32);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayNewElem(typeIndex, elemSegmentIndex, size, offset, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayNewElem(typeIndex, elemSegmentIndex, size, offset, result));
             m_expressionStack.constructAndAppend(arrayRefType, result);
             break;
         }
@@ -2601,8 +2577,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 m_context.notifyFunctionUsesSIMD();
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayGet(op, typeIndex, arrayref, index, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayGet(op, typeIndex, arrayref, index, result));
 
             m_expressionStack.constructAndAppend(resultType, result);
             break;
@@ -2629,7 +2604,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             if (unpackedElementType.isV128())
                 m_context.notifyFunctionUsesSIMD();
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addArraySet(typeIndex, arrayref, index, value));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArraySet(typeIndex, arrayref, index, value));
 
             break;
         }
@@ -2639,8 +2614,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(arrayref.type(), Type { TypeKind::RefNull, static_cast<TypeIndex>(TypeKind::Arrayref) }), "array.len value to type ", arrayref.type(), " expected arrayref");
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addArrayLen(arrayref, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayLen(arrayref, result));
 
             m_expressionStack.constructAndAppend(Types::I32, result);
             break;
@@ -2667,7 +2641,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             if (unpackedElementType.isV128())
                 m_context.notifyFunctionUsesSIMD();
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addArrayFill(typeIndex, arrayref, offset, value, size));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayFill(typeIndex, arrayref, offset, value, size));
             break;
         }
         case ExtGCOpType::ArrayCopy: {
@@ -2695,7 +2669,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(srcOffset.type(), Types::I32), "array.copy srcOffset to type ", srcOffset.type(), " expected ", TypeKind::I32);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(size.type(), Types::I32), "array.copy size to type ", size.type(), " expected ", TypeKind::I32);
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addArrayCopy(dstTypeIndex, dst, dstOffset, srcTypeIndex, src, srcOffset, size));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayCopy(dstTypeIndex, dst, dstOffset, srcTypeIndex, src, srcOffset, size));
             break;
         }
         case ExtGCOpType::ArrayInitElem: {
@@ -2726,7 +2700,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(srcOffset.type(), Types::I32), "array.init_elem srcOffset to type ", srcOffset.type(), " expected ", TypeKind::I32);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(size.type(), Types::I32), "array.init_elem size to type ", size.type(), " expected ", TypeKind::I32);
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addArrayInitElem(dstTypeIndex, dst, dstOffset, elemSegmentIndex, srcOffset, size));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayInitElem(dstTypeIndex, dst, dstOffset, elemSegmentIndex, srcOffset, size));
             break;
         }
         case ExtGCOpType::ArrayInitData: {
@@ -2751,7 +2725,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(srcOffset.type(), Types::I32), "array.init_data srcOffset to type "_s, srcOffset.type(), " expected "_s, TypeKind::I32);
             WASM_VALIDATOR_FAIL_IF(!isSubtype(size.type(), Types::I32), "array.init_data size to type "_s, size.type(), " expected "_s, TypeKind::I32);
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addArrayInitData(dstTypeIndex, dst, dstOffset, dataSegmentIndex, srcOffset, size));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addArrayInitData(dstTypeIndex, dst, dstOffset, dataSegmentIndex, srcOffset, size));
             break;
         }
         case ExtGCOpType::StructNew: {
@@ -2784,8 +2758,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 m_context.notifyFunctionUsesSIMD();
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addStructNew(typeIndex, args, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addStructNew(typeIndex, args, result));
             m_expressionStack.constructAndAppend(Type { TypeKind::Ref, typeDefinition->index() }, result);
             break;
         }
@@ -2800,8 +2773,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
                 WASM_PARSER_FAIL_IF(!isDefaultableType(structType->field(i).type), "struct.new_default "_s, typeIndex, " requires all fields to be defaultable, but field "_s, i, " has type "_s, structType->field(i).type);
 
             ExpressionType result = Context::emptyExpression();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addStructNewDefault(typeIndex, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addStructNewDefault(typeIndex, result));
             m_expressionStack.constructAndAppend(Type { TypeKind::Ref, typeDefinition->index() }, result);
             break;
         }
@@ -2825,8 +2797,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             ExpressionType result = Context::emptyExpression();
             const auto& structType = *m_info.typeSignatures[structGetInput.indices.structTypeIndex]->expand().template as<StructType>();
             const RTT& rtt = m_info.rtts[structGetInput.indices.structTypeIndex].get();
-            if (shouldCallContext())
-                WASM_TRY_ADD_TO_CONTEXT(addStructGet(op, structGetInput.structReference, structType, rtt, structGetInput.indices.fieldIndex, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addStructGet(op, structGetInput.structReference, structType, rtt, structGetInput.indices.fieldIndex, result));
 
             m_expressionStack.constructAndAppend(structGetInput.field.type.unpacked(), result);
             break;
@@ -2847,7 +2818,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
             const auto& structType = *m_info.typeSignatures[structSetInput.indices.structTypeIndex]->expand().template as<StructType>();
             const RTT& rtt = m_info.rtts[structSetInput.indices.structTypeIndex].get();
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addStructSet(structSetInput.structReference, structType, rtt, structSetInput.indices.fieldIndex, value));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addStructSet(structSetInput.structReference, structType, rtt, structSetInput.indices.fieldIndex, value));
             break;
         }
         case ExtGCOpType::RefTest:
@@ -2900,12 +2871,10 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             ExpressionType result = Context::emptyExpression();
             bool allowNull = op == ExtGCOpType::RefCastNull || op == ExtGCOpType::RefTestNull;
             if (op == ExtGCOpType::RefCast || op == ExtGCOpType::RefCastNull) {
-                if (shouldCallContext())
-                    WASM_TRY_ADD_TO_CONTEXT(addRefCast(ref, allowNull, heapType, result));
+                WASM_TRY_ADD_TO_CONTEXT(m_context.addRefCast(ref, allowNull, heapType, result));
                 m_expressionStack.constructAndAppend(Type { allowNull ? TypeKind::RefNull : TypeKind::Ref, resultTypeIndex }, result);
             } else {
-                if (shouldCallContext())
-                    WASM_TRY_ADD_TO_CONTEXT(addRefTest(ref, allowNull, heapType, false, result));
+                WASM_TRY_ADD_TO_CONTEXT(m_context.addRefTest(ref, allowNull, heapType, false, result));
                 m_expressionStack.constructAndAppend(Types::I32, result);
             }
 
@@ -2964,7 +2933,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             m_expressionStack.takeLast();
             m_expressionStack.constructAndAppend(nonTakenType, ref.value());
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addBranchCast(data, ref, m_expressionStack, hasNull2, heapType2, op == ExtGCOpType::BrOnCastFail));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addBranchCast(data, ref, m_expressionStack, hasNull2, heapType2, op == ExtGCOpType::BrOnCastFail));
 
             break;
         }
@@ -2974,7 +2943,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isExternref(reference.type()), "any.convert_extern reference to type "_s, reference.type(), " expected "_s, TypeKind::Externref);
 
             ExpressionType result = Context::emptyExpression();
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addAnyConvertExtern(reference, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addAnyConvertExtern(reference, result));
             m_expressionStack.constructAndAppend(anyrefType(reference.type().isNullable()), result);
             break;
         }
@@ -2984,7 +2953,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             WASM_VALIDATOR_FAIL_IF(!isSubtype(reference.type(), anyrefType()), "extern.convert_any reference to type "_s, reference.type(), " expected "_s, TypeKind::Anyref);
 
             ExpressionType result = Context::emptyExpression();
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addExternConvertAny(reference, result));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addExternConvertAny(reference, result));
             m_expressionStack.constructAndAppend(externrefType(reference.type().isNullable()), result);
             break;
         }
@@ -3061,8 +3030,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_TRY_POP_EXPRESSION_STACK_INTO(value, "ref.is_null"_s);
         WASM_VALIDATOR_FAIL_IF(!isRefType(value.type()), "ref.is_null to type "_s, value.type(), " expected a reference type"_s);
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addRefIsNull(value, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addRefIsNull(value, result));
         m_expressionStack.constructAndAppend(Types::I32, result);
         return { };
     }
@@ -3076,8 +3044,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         m_info.addReferencedFunction(index);
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addRefFunc(index, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addRefFunc(index, result));
 
         TypeIndex typeIndex = m_info.typeIndexFromFunctionIndexSpace(index);
         m_expressionStack.constructAndAppend(Type { TypeKind::Ref, typeIndex }, result);
@@ -3090,8 +3057,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_VALIDATOR_FAIL_IF(!isRefType(ref.type()), "ref.as_non_null ref to type ", ref.type(), " expected a reference type");
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addRefAsNonNull(ref, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addRefAsNonNull(ref, result));
 
         m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, result);
         return { };
@@ -3110,8 +3076,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, Conditional));
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addBranchNull(data, ref, m_expressionStack, false, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addBranchNull(data, ref, m_expressionStack, false, result));
         m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, result);
 
         return { };
@@ -3132,13 +3097,13 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, Conditional));
 
         ExpressionType unused;
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addBranchNull(data, ref, m_expressionStack, true, unused));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addBranchNull(data, ref, m_expressionStack, true, unused));
 
         // On a non-taken branch, the value is null so it's not needed on the stack.
         // We add a drop to ensure the context knows we are discarding this ref value,
         // not popping it before use in some operation.
         WASM_TRY_POP_EXPRESSION_STACK_INTO(ref, "br_on_non_null"_s);
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addDrop(ref));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addDrop(ref));
 
         return { };
     }
@@ -3152,8 +3117,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_VALIDATOR_FAIL_IF(!isSubtype(ref1.type(), eqrefType()), "ref.eq ref1 to type "_s, ref1.type().kind, " expected "_s, TypeKind::Eqref);
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addRefEq(ref0, ref1, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addRefEq(ref0, ref1, result));
 
         m_expressionStack.constructAndAppend(Types::I32, result);
         return { };
@@ -3165,8 +3129,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_FAIL_IF_HELPER_FAILS(checkLocalInitialized(index));
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(getLocal(index, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.getLocal(index, result));
         m_expressionStack.constructAndAppend(m_locals[index], result);
         return { };
     }
@@ -3180,7 +3143,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_TRY_POP_EXPRESSION_STACK_INTO(value, "set_local"_s);
         WASM_VALIDATOR_FAIL_IF(index >= m_locals.size(), "attempt to set unknown local "_s, index, ", the number of locals is "_s, m_locals.size());
         WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), m_locals[index]), "set_local to type "_s, value.type(), " expected "_s, m_locals[index]);
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(setLocal(index, value));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.setLocal(index, value));
         return { };
     }
 
@@ -3195,8 +3158,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_VALIDATOR_FAIL_IF(index >= m_locals.size(), "attempt to tee unknown local "_s, index, "_s, the number of locals is "_s, m_locals.size());
         WASM_VALIDATOR_FAIL_IF(!isSubtype(value.type(), m_locals[index]), "set_local to type "_s, value.type(), " expected "_s, m_locals[index]);
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(teeLocal(index, value, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.teeLocal(index, value, result));
         m_expressionStack.constructAndAppend(m_locals[index], result);
         return { };
     }
@@ -3211,8 +3173,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             m_context.notifyFunctionUsesSIMD();
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(getGlobal(index, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.getGlobal(index, result));
         m_expressionStack.constructAndAppend(resultType, result);
         return { };
     }
@@ -3234,7 +3195,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         if (globalType.isV128())
             m_context.notifyFunctionUsesSIMD();
 
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(setGlobal(index, value));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.setGlobal(index, value));
         return { };
     }
 
@@ -3276,7 +3237,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             for (unsigned i = 0; i < calleeSignature.returnCount(); ++i)
                 WASM_VALIDATOR_FAIL_IF(!isSubtype(calleeSignature.returnType(i), callerSignature.returnType(i)), "tail call function index "_s, functionIndex, " return type mismatch: "_s , "expected "_s, callerSignature.returnType(i), ", got "_s, calleeSignature.returnType(i));
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addCall(m_callProfileIndex++, functionIndex, typeDefinition, args, results, CallType::TailCall));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addCall(m_callProfileIndex++, functionIndex, typeDefinition, args, results, CallType::TailCall));
 
             setUnreachable();
 
@@ -3284,7 +3245,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         }
 
         if (shouldCallContext()) {
-            WASM_TRY_ADD_TO_CONTEXT(addCall(m_callProfileIndex++, functionIndex, typeDefinition, args, results));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addCall(m_callProfileIndex++, functionIndex, typeDefinition, args, results));
             RELEASE_ASSERT(calleeSignature.returnCount() == results.size());
         }
 
@@ -3349,15 +3310,14 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             for (unsigned i = 0; i < calleeSignature.returnCount(); ++i)
                 WASM_VALIDATOR_FAIL_IF(!isSubtype(calleeSignature.returnType(i), callerSignature.returnType(i)), "tail call indirect return type mismatch: "_s , "expected "_s, callerSignature.returnType(i), ", got "_s, calleeSignature.returnType(i));
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addCallIndirect(m_callProfileIndex++, tableIndex, typeDefinition, args, results, CallType::TailCall));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addCallIndirect(m_callProfileIndex++, tableIndex, typeDefinition, args, results, CallType::TailCall));
 
             setUnreachable();
 
             return { };
         }
 
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addCallIndirect(m_callProfileIndex++, tableIndex, typeDefinition, args, results));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addCallIndirect(m_callProfileIndex++, tableIndex, typeDefinition, args, results));
 
         for (unsigned i = 0; i < calleeSignature.returnCount(); ++i) {
             Type returnType = calleeSignature.returnType(i);
@@ -3418,15 +3378,14 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             for (unsigned i = 0; i < calleeSignature.returnCount(); ++i)
                 WASM_VALIDATOR_FAIL_IF(!isSubtype(calleeSignature.returnType(i), callerSignature.returnType(i)), "tail call ref return type mismatch: "_s , "expected "_s, callerSignature.returnType(i), ", got "_s, calleeSignature.returnType(i));
 
-            WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addCallRef(m_callProfileIndex++, typeDefinition, args, results, CallType::TailCall));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addCallRef(m_callProfileIndex++, typeDefinition, args, results, CallType::TailCall));
 
             setUnreachable();
 
             return { };
         }
 
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addCallRef(m_callProfileIndex++, typeDefinition, args, results));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addCallRef(m_callProfileIndex++, typeDefinition, args, results));
 
         for (unsigned i = 0; i < calleeSignature.returnCount(); ++i) {
             Type returnType = calleeSignature.returnType(i);
@@ -3475,7 +3434,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType block;
-            WASM_TRY_ADD_TO_CONTEXT(addBlock(WTF::move(inlineSignature), m_expressionStack, block, newStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addBlock(WTF::move(inlineSignature), m_expressionStack, block, newStack));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == block.signature().argumentCount());
             ASSERT(newStack.size() == block.signature().argumentCount());
 
@@ -3526,7 +3485,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType loop;
-            WASM_TRY_ADD_TO_CONTEXT(addLoop(WTF::move(inlineSignature), m_expressionStack, loop, newStack, m_loopIndex++));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addLoop(WTF::move(inlineSignature), m_expressionStack, loop, newStack, m_loopIndex++));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == loop.signature().argumentCount());
             ASSERT(newStack.size() == loop.signature().argumentCount());
 
@@ -3586,7 +3545,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType control;
-            WASM_TRY_ADD_TO_CONTEXT(addIf(condition, WTF::move(inlineSignature), m_expressionStack, control, newStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addIf(condition, WTF::move(inlineSignature), m_expressionStack, control, newStack));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == control.signature().argumentCount());
             ASSERT(newStack.size() == control.signature().argumentCount());
 
@@ -3634,10 +3593,10 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             // Lightweight ControlType - just swap stacks
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
         } else if (m_unreachable) {
-            WASM_TRY_ADD_TO_CONTEXT(addElseToUnreachable(controlEntry.controlData));
+            WASM_FAIL_IF_HELPER_FAILS(m_context.addElseToUnreachable(controlEntry.controlData));
         } else {
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
-            WASM_TRY_ADD_TO_CONTEXT(addElse(controlEntry.controlData, m_expressionStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addElse(controlEntry.controlData, m_expressionStack));
         }
         m_expressionStack = WTF::move(controlEntry.elseBlockStack);
         resetLocalInitStackToHeight(controlEntry.localInitStackHeight);
@@ -3667,7 +3626,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType control;
-            WASM_TRY_ADD_TO_CONTEXT(addTry(WTF::move(inlineSignature), m_expressionStack, control, newStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTry(WTF::move(inlineSignature), m_expressionStack, control, newStack));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == control.signature().argumentCount());
             ASSERT(newStack.size() == control.signature().argumentCount());
 
@@ -3726,7 +3685,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         } else if (m_unreachable) {
             m_expressionStack.shrink(0);
             ResultList results;
-            WASM_TRY_ADD_TO_CONTEXT(addCatchToUnreachable(exceptionIndex, signature, controlEntry.controlData, results));
+            WASM_FAIL_IF_HELPER_FAILS(m_context.addCatchToUnreachable(exceptionIndex, signature, controlEntry.controlData, results));
             RELEASE_ASSERT(exceptionSignature.argumentCount() == results.size());
             for (unsigned i = 0; i < exceptionSignature.argumentCount(); ++i) {
                 Type argumentType = exceptionSignature.argumentType(i);
@@ -3739,7 +3698,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             ResultList results;
             Stack preCatchStack;
             m_expressionStack.swap(preCatchStack);
-            WASM_TRY_ADD_TO_CONTEXT(addCatch(exceptionIndex, signature, preCatchStack, controlEntry.controlData, results));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addCatch(exceptionIndex, signature, preCatchStack, controlEntry.controlData, results));
             RELEASE_ASSERT(exceptionSignature.argumentCount() == results.size());
             for (unsigned i = 0; i < exceptionSignature.argumentCount(); ++i) {
                 Type argumentType = exceptionSignature.argumentType(i);
@@ -3767,13 +3726,13 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             m_expressionStack.shrink(0);
         } else if (m_unreachable) {
             m_expressionStack.shrink(0);
-            WASM_TRY_ADD_TO_CONTEXT(addCatchAllToUnreachable(controlEntry.controlData));
+            WASM_FAIL_IF_HELPER_FAILS(m_context.addCatchAllToUnreachable(controlEntry.controlData));
         } else {
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
             ResultList results;
             Stack preCatchStack;
             m_expressionStack.swap(preCatchStack);
-            WASM_TRY_ADD_TO_CONTEXT(addCatchAll(preCatchStack, controlEntry.controlData));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addCatchAll(preCatchStack, controlEntry.controlData));
         }
         resetLocalInitStackToHeight(controlEntry.localInitStackHeight);
         m_unreachable = false;
@@ -3872,7 +3831,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             int64_t oldSize = m_expressionStack.size();
             Stack newStack;
             ControlType block;
-            WASM_TRY_ADD_TO_CONTEXT(addTryTable(WTF::move(inlineSignature), m_expressionStack, targets, block, newStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addTryTable(WTF::move(inlineSignature), m_expressionStack, targets, block, newStack));
             ASSERT_UNUSED(oldSize, oldSize - m_expressionStack.size() == block.signature().argumentCount());
             ASSERT(newStack.size() == block.signature().argumentCount());
 
@@ -3915,13 +3874,13 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             for (unsigned i = 0; i < controlEntry.controlData.signature().returnCount(); ++i)
                 controlEntry.enclosedExpressionStack.constructAndAppend(controlEntry.controlData.signature().returnType(i), Context::emptyExpression());
         } else if (m_unreachable) {
-            WASM_TRY_ADD_TO_CONTEXT(addDelegateToUnreachable(targetData, controlEntry.controlData));
+            WASM_FAIL_IF_HELPER_FAILS(m_context.addDelegateToUnreachable(targetData, controlEntry.controlData));
             Stack emptyStack;
-            WASM_TRY_ADD_TO_CONTEXT(addEndToUnreachable(controlEntry, emptyStack));
+            WASM_FAIL_IF_HELPER_FAILS(m_context.addEndToUnreachable(controlEntry, emptyStack));
         } else {
-            WASM_TRY_ADD_TO_CONTEXT(addDelegate(targetData, controlEntry.controlData));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.addDelegate(targetData, controlEntry.controlData));
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
-            WASM_TRY_ADD_TO_CONTEXT(endBlock(controlEntry, m_expressionStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.endBlock(controlEntry, m_expressionStack));
         }
         m_expressionStack.swap(controlEntry.enclosedExpressionStack);
         m_unreachable = controlEntry.savedUnreachable;
@@ -3950,7 +3909,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         }
         m_expressionStack.shrink(offset);
 
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addThrow(exceptionIndex, args, m_expressionStack));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addThrow(exceptionIndex, args, m_expressionStack));
         setUnreachable();
         return { };
     }
@@ -3960,7 +3919,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_TRY_POP_EXPRESSION_STACK_INTO(exnref, "exception reference"_s);
         WASM_VALIDATOR_FAIL_IF(!isSubtype(exnref.type(), exnrefType()), "throw_ref expected an exception reference"_s);
 
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addThrowRef(exnref, m_expressionStack));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addThrowRef(exnref, m_expressionStack));
         setUnreachable();
         return { };
     }
@@ -3972,7 +3931,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
         WASM_VALIDATOR_FAIL_IF(!ControlType::isAnyCatch(data), "rethrow doesn't refer to a catch block");
 
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addRethrow(target, data));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addRethrow(target, data));
         setUnreachable();
         return { };
     }
@@ -3993,7 +3952,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
         ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, m_currentOpcode == BrIf ? Conditional : Unconditional));
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addBranch(data, condition, m_expressionStack));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addBranch(data, condition, m_expressionStack));
         return { };
     }
 
@@ -4039,7 +3998,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         }
 
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(defaultTarget, Unconditional));
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addSwitch(condition, targets, defaultTarget, m_expressionStack));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addSwitch(condition, targets, defaultTarget, m_expressionStack));
 
         setUnreachable();
         return { };
@@ -4047,7 +4006,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
     case Return: {
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(m_controlStack[0].controlData, Unconditional));
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addReturn(m_controlStack[0].controlData, m_expressionStack));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addReturn(m_controlStack[0].controlData, m_expressionStack));
         setUnreachable();
         return { };
     }
@@ -4069,19 +4028,19 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         } else if (m_unreachable) {
             // Block reached unreachable during execution but was created with code gen
             if (ControlType::isIf(data.controlData)) {
-                WASM_TRY_ADD_TO_CONTEXT(addElseToUnreachable(data.controlData));
+                WASM_FAIL_IF_HELPER_FAILS(m_context.addElseToUnreachable(data.controlData));
                 m_expressionStack = WTF::move(data.elseBlockStack);
                 WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(data.controlData));
-                WASM_TRY_ADD_TO_CONTEXT(endBlock(data, m_expressionStack));
+                WASM_FAIL_IF_HELPER_FAILS(m_context.endBlock(data, m_expressionStack));
             } else {
                 Stack emptyStack;
-                WASM_TRY_ADD_TO_CONTEXT(addEndToUnreachable(data, emptyStack));
+                WASM_FAIL_IF_HELPER_FAILS(m_context.addEndToUnreachable(data, emptyStack));
             }
         } else {
             // Normal reachable path
             if (ControlType::isIf(data.controlData)) {
                 WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(data.controlData));
-                WASM_TRY_ADD_TO_CONTEXT(addElse(data.controlData, m_expressionStack));
+                WASM_TRY_ADD_TO_CONTEXT(m_context.addElse(data.controlData, m_expressionStack));
                 m_expressionStack = WTF::move(data.elseBlockStack);
             }
             // When ending an 'if'/'else', including a synthetic 'else' added right above,
@@ -4091,7 +4050,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             // That's a little too effectful for me but I don't have a better API right now.
             // see: https://bugs.webkit.org/show_bug.cgi?id=164353
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(data.controlData, shouldForceSignature));
-            WASM_TRY_ADD_TO_CONTEXT(endBlock(data, m_expressionStack));
+            WASM_TRY_ADD_TO_CONTEXT(m_context.endBlock(data, m_expressionStack));
         }
 
         m_expressionStack.swap(data.enclosedExpressionStack);
@@ -4103,7 +4062,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
     }
 
     case Unreachable: {
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addUnreachable());
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addUnreachable());
         setUnreachable();
         return { };
     }
@@ -4111,7 +4070,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
     case Drop: {
         TypedExpression last;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(last, "can't drop on empty stack"_s);
-        WASM_TRY_ADD_TO_CONTEXT_IF_REACHABLE(addDrop(last));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addDrop(last));
         return { };
     }
 
@@ -4137,8 +4096,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         }
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addGrowMemory(delta, result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addGrowMemory(delta, result));
         m_expressionStack.constructAndAppend(isMemory64 ? Types::I64 : Types::I32, result);
 
         return { };
@@ -4152,8 +4110,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_PARSER_FAIL_IF(reserved, "reserved byte for current_memory must be zero"_s);
 
         ExpressionType result = Context::emptyExpression();
-        if (shouldCallContext())
-            WASM_TRY_ADD_TO_CONTEXT(addCurrentMemory(result));
+        WASM_TRY_ADD_TO_CONTEXT(m_context.addCurrentMemory(result));
         m_expressionStack.constructAndAppend(m_info.theOnlyMemory().isMemory64() ? Types::I64 : Types::I32, result);
 
         return { };

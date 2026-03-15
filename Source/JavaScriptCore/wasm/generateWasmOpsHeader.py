@@ -355,9 +355,10 @@ inline bool isValidPackedType(Int i)
 #define CREATE_CASE(name, ...) case TypeKind::name: return #name ## _s;
 inline ASCIILiteral makeString(TypeKind kind)
 {
+    if (kind == TypeKindBot)
+        return "Bot"_s;
     switch (kind) {
     FOR_EACH_WASM_TYPE(CREATE_CASE)
-    case TypeKind::Bot: return "Bot"_s;
     }
     RELEASE_ASSERT_NOT_REACHED();
     return { };
@@ -378,10 +379,9 @@ inline ASCIILiteral makeString(PackedType packedType)
 #define CREATE_CASE(name, id, b3type, inc, ...) case TypeKind::name: return inc;
 inline int linearizeType(TypeKind kind)
 {
+    RELEASE_ASSERT(kind != TypeKindBot);
     switch (kind) {
     FOR_EACH_WASM_TYPE(CREATE_CASE)
-    case TypeKind::Bot:
-        RELEASE_ASSERT_NOT_REACHED();
     }
     RELEASE_ASSERT_NOT_REACHED();
     return 0;

@@ -231,7 +231,6 @@ private:
             case TypeKind::Sub:
             case TypeKind::Subfinal:
             case TypeKind::Rec:
-            case TypeKind::Bot:
                 RELEASE_ASSERT_NOT_REACHED();
             }
         }
