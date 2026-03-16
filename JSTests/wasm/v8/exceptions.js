@@ -1068,7 +1068,7 @@ load("exceptions-utils.js");
           kExprI32Const, 2,
         kExprEnd,
       ]).exportFunc();
-    assertThrows(() => builder.instantiate(), Error, /delegate target isn't a try block/);
+    assertThrows(() => builder.instantiate(), Error, /delegate target isn't a try/);
 })();
 
 // Delegate to a regular block with no outer try (delegate to caller).

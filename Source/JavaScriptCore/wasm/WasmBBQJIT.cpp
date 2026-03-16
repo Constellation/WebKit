@@ -3629,6 +3629,10 @@ void BBQJIT::emitLoopTierUpCheckAndOSREntryData(const ControlData& data, Stack& 
     // We want to flush or consume all values on the stack to reset the allocator
     // state entering the else block.
     data.flushAtBlockBoundary(*this, 0, m_parser->expressionStack(), true);
+    // The parser clears the expression stack when entering unreachable mode (per spec),
+    // so flushAtBlockBoundary may not see all BBQ-bound values. Unbind all registers
+    // to ensure a clean state entering the else block (matching addEndToUnreachable).
+    unbindAllRegisters();
 
     ControlData dataElse(ControlData::UseBlockCallingConventionOfOtherBranch, BlockType::Else, data);
     data.linkJumps(&m_jit);
