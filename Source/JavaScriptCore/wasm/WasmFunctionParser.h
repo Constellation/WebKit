@@ -1034,7 +1034,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         WASM_TRY_POP_EXPRESSION_STACK_INTO(pointer, "simd memory op pointer"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(pointer.type()) && !pointer.type().isI32(), "pointer must be i32"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(pointer.type(), Types::I32), "pointer must be i32"_s);
 
         return { };
     };
@@ -1070,24 +1070,24 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         if (isBot(scalar.type()))
             okType = true;
         else {
-        switch (lane) {
-        case SIMDLane::i8x16:
-        case SIMDLane::i16x8:
-        case SIMDLane::i32x4:
-            okType = scalar.type().isI32();
-            break;
-        case SIMDLane::i64x2:
-            okType = scalar.type().isI64();
-            break;
-        case SIMDLane::f32x4:
-            okType = scalar.type().isF32();
-            break;
-        case SIMDLane::f64x2:
-            okType = scalar.type().isF64();
-            break;
-        default:
-            RELEASE_ASSERT_NOT_REACHED();
-        }
+            switch (lane) {
+            case SIMDLane::i8x16:
+            case SIMDLane::i16x8:
+            case SIMDLane::i32x4:
+                okType = scalar.type().isI32();
+                break;
+            case SIMDLane::i64x2:
+                okType = scalar.type().isI64();
+                break;
+            case SIMDLane::f32x4:
+                okType = scalar.type().isF32();
+                break;
+            case SIMDLane::f64x2:
+                okType = scalar.type().isF64();
+                break;
+            default:
+                RELEASE_ASSERT_NOT_REACHED();
+            }
         }
         WASM_VALIDATOR_FAIL_IF(!okType, "Wrong type to SIMD splat"_s);
 
@@ -1108,8 +1108,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression shift;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(shift, "shift i32"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(vector, "shift vector"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(vector.type()) && !vector.type().isV128(), "Shift vector must be v128"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(shift.type()) && !shift.type().isI32(), "Shift amount must be i32"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(vector.type(), Types::V128), "Shift vector must be v128"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(shift.type(), Types::I32), "Shift amount must be i32"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1129,8 +1129,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression rhs;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(rhs, "rhs"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(lhs, "lhs"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(lhs.type()) && !lhs.type().isV128(), "extmul lhs vector must be v128"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(rhs.type()) && !rhs.type().isV128(), "extmul rhs vector must be v128"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(lhs.type(), Types::V128), "extmul lhs vector must be v128"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(rhs.type(), Types::V128), "extmul rhs vector must be v128"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1168,7 +1168,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (isReachable) {
             WASM_TRY_POP_EXPRESSION_STACK_INTO(val, "val"_s);
-            WASM_VALIDATOR_FAIL_IF(!isBot(val.type()) && !val.type().isV128(), "store vector must be v128"_s);
+            WASM_VALIDATOR_FAIL_IF(!isValidSubtype(val.type(), Types::V128), "store vector must be v128"_s);
         }
 
         uint32_t offset;
@@ -1207,7 +1207,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (isReachable) {
             WASM_TRY_POP_EXPRESSION_STACK_INTO(vector, "vector"_s);
-            WASM_VALIDATOR_FAIL_IF(!isBot(vector.type()) && !vector.type().isV128(), "load_lane input must be a vector"_s);
+            WASM_VALIDATOR_FAIL_IF(!isValidSubtype(vector.type(), Types::V128), "load_lane input must be a vector"_s);
         }
 
         WASM_FAIL_IF_HELPER_FAILS(parseMemOp(offset, pointer));
@@ -1249,7 +1249,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (isReachable) {
             WASM_TRY_POP_EXPRESSION_STACK_INTO(vector, "vector"_s);
-            WASM_VALIDATOR_FAIL_IF(!isBot(vector.type()) && !vector.type().isV128(), "store_lane input must be a vector"_s);
+            WASM_VALIDATOR_FAIL_IF(!isValidSubtype(vector.type(), Types::V128), "store_lane input must be a vector"_s);
         }
 
         WASM_FAIL_IF_HELPER_FAILS(parseMemOp(offset, pointer));
@@ -1315,9 +1315,9 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         WASM_TRY_POP_EXPRESSION_STACK_INTO(b, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(b.type()) && !b.type().isV128(), "shuffle input must be a vector"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(b.type(), Types::V128), "shuffle input must be a vector"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(a, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(!isBot(a.type()) && !a.type().isV128(), "shuffle input must be a vector"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(a.type(), Types::V128), "shuffle input must be a vector"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -2391,7 +2391,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         case ExtGCOpType::I31GetS: {
             TypedExpression ref;
             WASM_TRY_POP_EXPRESSION_STACK_INTO(ref, "i31.get_s");
-            WASM_VALIDATOR_FAIL_IF(!isI31ref(ref.type()), "i31.get_s ref to type ", ref.type(), " expected ", TypeKind::I31ref);
+            WASM_VALIDATOR_FAIL_IF(!isBot(ref.type()) && !isI31ref(ref.type()), "i31.get_s ref to type ", ref.type(), " expected ", TypeKind::I31ref);
 
             ExpressionType result = Context::emptyExpression();
             WASM_TRY_ADD_TO_CONTEXT(m_context.addI31GetS(ref, result));
@@ -2402,7 +2402,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         case ExtGCOpType::I31GetU: {
             TypedExpression ref;
             WASM_TRY_POP_EXPRESSION_STACK_INTO(ref, "i31.get_u");
-            WASM_VALIDATOR_FAIL_IF(!isI31ref(ref.type()), "i31.get_u ref to type ", ref.type(), " expected ", TypeKind::I31ref);
+            WASM_VALIDATOR_FAIL_IF(!isBot(ref.type()) && !isI31ref(ref.type()), "i31.get_u ref to type ", ref.type(), " expected ", TypeKind::I31ref);
 
             ExpressionType result = Context::emptyExpression();
             WASM_TRY_ADD_TO_CONTEXT(m_context.addI31GetU(ref, result));
