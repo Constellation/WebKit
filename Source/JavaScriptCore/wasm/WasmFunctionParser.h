@@ -3642,7 +3642,6 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
         WASM_VALIDATOR_FAIL_IF(!ControlType::isIf(controlEntry.controlData), "else block isn't associated to an if");
         if (m_skipCodeGen) {
-            // Lightweight ControlType - just swap stacks and convert to block
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
             controlEntry.controlData.convertIfToBlock();
         } else if (m_unreachable) {
@@ -3922,7 +3921,6 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         WASM_VALIDATOR_FAIL_IF(!ControlType::isTry(targetData) && !ControlType::isTopLevel(targetData), "delegate target isn't a try or the top level block");
 
         if (m_skipCodeGen) {
-            // Lightweight ControlType - no context call needed
             WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(controlEntry.controlData));
             for (unsigned i = 0; i < controlEntry.controlData.signature().returnCount(); ++i)
                 controlEntry.enclosedExpressionStack.constructAndAppend(controlEntry.controlData.signature().returnType(i), Context::emptyExpression());
@@ -4073,7 +4071,6 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         ControlEntry data = m_controlStack.takeLast();
 
         if (m_skipCodeGen) {
-            // Lightweight ControlType - handle implicit else for if-without-else
             if (ControlType::isIf(data.controlData)) {
                 WASM_FAIL_IF_HELPER_FAILS(checkExpressionStack(data.controlData));
                 m_expressionStack = WTF::move(data.elseBlockStack);
