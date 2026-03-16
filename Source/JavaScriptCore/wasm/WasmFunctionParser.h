@@ -1034,7 +1034,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         WASM_TRY_POP_EXPRESSION_STACK_INTO(pointer, "simd memory op pointer"_s);
-        WASM_VALIDATOR_FAIL_IF(!pointer.type().isI32(), "pointer must be i32"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(pointer.type()) && !pointer.type().isI32(), "pointer must be i32"_s);
 
         return { };
     };
@@ -1067,6 +1067,9 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression scalar;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(scalar, "select condition"_s);
         bool okType;
+        if (isBot(scalar.type()))
+            okType = true;
+        else {
         switch (lane) {
         case SIMDLane::i8x16:
         case SIMDLane::i16x8:
@@ -1084,6 +1087,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             break;
         default:
             RELEASE_ASSERT_NOT_REACHED();
+        }
         }
         WASM_VALIDATOR_FAIL_IF(!okType, "Wrong type to SIMD splat"_s);
 
@@ -1104,8 +1108,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression shift;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(shift, "shift i32"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(vector, "shift vector"_s);
-        WASM_VALIDATOR_FAIL_IF(!vector.type().isV128(), "Shift vector must be v128"_s);
-        WASM_VALIDATOR_FAIL_IF(!shift.type().isI32(), "Shift amount must be i32"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(vector.type()) && !vector.type().isV128(), "Shift vector must be v128"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(shift.type()) && !shift.type().isI32(), "Shift amount must be i32"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1125,8 +1129,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression rhs;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(rhs, "rhs"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(lhs, "lhs"_s);
-        WASM_VALIDATOR_FAIL_IF(!lhs.type().isV128(), "extmul lhs vector must be v128"_s);
-        WASM_VALIDATOR_FAIL_IF(!rhs.type().isV128(), "extmul rhs vector must be v128"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(lhs.type()) && !lhs.type().isV128(), "extmul lhs vector must be v128"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(rhs.type()) && !rhs.type().isV128(), "extmul rhs vector must be v128"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1164,7 +1168,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (isReachable) {
             WASM_TRY_POP_EXPRESSION_STACK_INTO(val, "val"_s);
-            WASM_VALIDATOR_FAIL_IF(!val.type().isV128(), "store vector must be v128"_s);
+            WASM_VALIDATOR_FAIL_IF(!isBot(val.type()) && !val.type().isV128(), "store vector must be v128"_s);
         }
 
         uint32_t offset;
@@ -1203,7 +1207,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (isReachable) {
             WASM_TRY_POP_EXPRESSION_STACK_INTO(vector, "vector"_s);
-            WASM_VALIDATOR_FAIL_IF(!vector.type().isV128(), "load_lane input must be a vector"_s);
+            WASM_VALIDATOR_FAIL_IF(!isBot(vector.type()) && !vector.type().isV128(), "load_lane input must be a vector"_s);
         }
 
         WASM_FAIL_IF_HELPER_FAILS(parseMemOp(offset, pointer));
@@ -1245,7 +1249,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         if (isReachable) {
             WASM_TRY_POP_EXPRESSION_STACK_INTO(vector, "vector"_s);
-            WASM_VALIDATOR_FAIL_IF(!vector.type().isV128(), "store_lane input must be a vector"_s);
+            WASM_VALIDATOR_FAIL_IF(!isBot(vector.type()) && !vector.type().isV128(), "store_lane input must be a vector"_s);
         }
 
         WASM_FAIL_IF_HELPER_FAILS(parseMemOp(offset, pointer));
@@ -1311,9 +1315,9 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         WASM_TRY_POP_EXPRESSION_STACK_INTO(b, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(!b.type().isV128(), "shuffle input must be a vector"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(b.type()) && !b.type().isV128(), "shuffle input must be a vector"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(a, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(!a.type().isV128(), "shuffle input must be a vector"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(a.type()) && !a.type().isV128(), "shuffle input must be a vector"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1332,7 +1336,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
             return { };
 
         WASM_TRY_POP_EXPRESSION_STACK_INTO(v, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(v.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(v.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1353,8 +1357,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         WASM_TRY_POP_EXPRESSION_STACK_INTO(s, "scalar argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(v, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(v.type() != Types::V128, "type mismatch for argument 1"_s);
-        WASM_VALIDATOR_FAIL_IF(s.type() != simdScalarType(lane), "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(v.type(), Types::V128), "type mismatch for argument 1"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(s.type(), simdScalarType(lane)), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1372,7 +1376,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         TypedExpression v;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(v, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(v.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(v.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1405,7 +1409,7 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
 
         TypedExpression v;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(v, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(v.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(v.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1426,9 +1430,9 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         WASM_TRY_POP_EXPRESSION_STACK_INTO(c, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(v2, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(v1, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(v1.type() != Types::V128, "type mismatch for argument 2"_s);
-        WASM_VALIDATOR_FAIL_IF(v2.type() != Types::V128, "type mismatch for argument 1"_s);
-        WASM_VALIDATOR_FAIL_IF(c.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(v1.type(), Types::V128), "type mismatch for argument 2"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(v2.type(), Types::V128), "type mismatch for argument 1"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(c.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1449,8 +1453,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression lhs;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(rhs, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(lhs, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(lhs.type() != Types::V128, "type mismatch for argument 1"_s);
-        WASM_VALIDATOR_FAIL_IF(rhs.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(lhs.type(), Types::V128), "type mismatch for argument 1"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(rhs.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1469,8 +1473,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression lhs;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(rhs, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(lhs, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(lhs.type() != Types::V128, "type mismatch for argument 1"_s);
-        WASM_VALIDATOR_FAIL_IF(rhs.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(lhs.type(), Types::V128), "type mismatch for argument 1"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(rhs.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1507,8 +1511,8 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         TypedExpression b;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(b, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(a, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(a.type() != Types::V128, "type mismatch for argument 1"_s);
-        WASM_VALIDATOR_FAIL_IF(b.type() != Types::V128, "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(a.type(), Types::V128), "type mismatch for argument 1"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(b.type(), Types::V128), "type mismatch for argument 0"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -1528,9 +1532,9 @@ auto FunctionParser<Context>::simd(SIMDLaneOperation op, SIMDLane lane, SIMDSign
         WASM_TRY_POP_EXPRESSION_STACK_INTO(c, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(b, "vector argument"_s);
         WASM_TRY_POP_EXPRESSION_STACK_INTO(a, "vector argument"_s);
-        WASM_VALIDATOR_FAIL_IF(a.type() != Types::V128, "type mismatch for argument 0"_s);
-        WASM_VALIDATOR_FAIL_IF(b.type() != Types::V128, "type mismatch for argument 1"_s);
-        WASM_VALIDATOR_FAIL_IF(c.type() != Types::V128, "type mismatch for argument 2"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(a.type(), Types::V128), "type mismatch for argument 0"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(b.type(), Types::V128), "type mismatch for argument 1"_s);
+        WASM_VALIDATOR_FAIL_IF(!isValidSubtype(c.type(), Types::V128), "type mismatch for argument 2"_s);
 
         if (Context::tierSupportsSIMD()) {
             ExpressionType result;
@@ -2849,7 +2853,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
             TypedExpression ref;
             WASM_TRY_POP_EXPRESSION_STACK_INTO(ref, opName);
-            WASM_VALIDATOR_FAIL_IF(!isRefType(ref.type()), opName, " to type "_s, ref.type(), " expected a reference type"_s);
+            WASM_VALIDATOR_FAIL_IF(!isBot(ref.type()) && !isRefType(ref.type()), opName, " to type "_s, ref.type(), " expected a reference type"_s);
 
             TypeIndex resultTypeIndex = static_cast<TypeIndex>(heapType);
             if (typeIndexIsType(resultTypeIndex)) {
@@ -2962,11 +2966,11 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
         case ExtGCOpType::AnyConvertExtern: {
             TypedExpression reference;
             WASM_TRY_POP_EXPRESSION_STACK_INTO(reference, "any.convert_extern"_s);
-            WASM_VALIDATOR_FAIL_IF(!isExternref(reference.type()), "any.convert_extern reference to type "_s, reference.type(), " expected "_s, TypeKind::Externref);
+            WASM_VALIDATOR_FAIL_IF(!isBot(reference.type()) && !isExternref(reference.type()), "any.convert_extern reference to type "_s, reference.type(), " expected "_s, TypeKind::Externref);
 
             ExpressionType result = Context::emptyExpression();
             WASM_TRY_ADD_TO_CONTEXT(m_context.addAnyConvertExtern(reference, result));
-            m_expressionStack.constructAndAppend(anyrefType(reference.type().isNullable()), result);
+            m_expressionStack.constructAndAppend(isBot(reference.type()) ? Types::Bot : anyrefType(reference.type().isNullable()), result);
             break;
         }
         case ExtGCOpType::ExternConvertAny: {
@@ -2976,7 +2980,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
             ExpressionType result = Context::emptyExpression();
             WASM_TRY_ADD_TO_CONTEXT(m_context.addExternConvertAny(reference, result));
-            m_expressionStack.constructAndAppend(externrefType(reference.type().isNullable()), result);
+            m_expressionStack.constructAndAppend(isBot(reference.type()) ? Types::Bot : externrefType(reference.type().isNullable()), result);
             break;
         }
         default:
@@ -3050,7 +3054,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
     case RefIsNull: {
         TypedExpression value;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(value, "ref.is_null"_s);
-        WASM_VALIDATOR_FAIL_IF(!isRefType(value.type()), "ref.is_null to type "_s, value.type(), " expected a reference type"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(value.type()) && !isRefType(value.type()), "ref.is_null to type "_s, value.type(), " expected a reference type"_s);
         ExpressionType result = Context::emptyExpression();
         WASM_TRY_ADD_TO_CONTEXT(m_context.addRefIsNull(value, result));
         m_expressionStack.constructAndAppend(Types::I32, result);
@@ -3076,12 +3080,15 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
     case RefAsNonNull: {
         TypedExpression ref;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(ref, "ref.as_non_null"_s);
-        WASM_VALIDATOR_FAIL_IF(!isRefType(ref.type()), "ref.as_non_null ref to type ", ref.type(), " expected a reference type");
+        WASM_VALIDATOR_FAIL_IF(!isBot(ref.type()) && !isRefType(ref.type()), "ref.as_non_null ref to type ", ref.type(), " expected a reference type");
 
         ExpressionType result = Context::emptyExpression();
         WASM_TRY_ADD_TO_CONTEXT(m_context.addRefAsNonNull(ref, result));
 
-        m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, result);
+        if (!isBot(ref.type()))
+            m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, result);
+        else
+            m_expressionStack.constructAndAppend(Types::Bot, result);
         return { };
     }
 
@@ -3091,7 +3098,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
         TypedExpression ref;
         WASM_TRY_POP_EXPRESSION_STACK_INTO(ref, "br_on_null"_s);
-        WASM_VALIDATOR_FAIL_IF(!isRefType(ref.type()), "br_on_null ref to type "_s, ref.type(), " expected a reference type"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(ref.type()) && !isRefType(ref.type()), "br_on_null ref to type "_s, ref.type(), " expected a reference type"_s);
 
         ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
 
@@ -3099,7 +3106,10 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
 
         ExpressionType result = Context::emptyExpression();
         WASM_TRY_ADD_TO_CONTEXT(m_context.addBranchNull(data, ref, m_expressionStack, false, result));
-        m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, result);
+        if (!isBot(ref.type()))
+            m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, result);
+        else
+            m_expressionStack.constructAndAppend(Types::Bot, result);
 
         return { };
     }
@@ -3120,7 +3130,7 @@ FOR_EACH_WASM_MEMORY_STORE_OP(CREATE_CASE)
             m_expressionStack.constructAndAppend(Type { TypeKind::Ref, ref.type().index }, ref.value());
         else
             m_expressionStack.constructAndAppend(Types::Bot, ref.value());
-        WASM_VALIDATOR_FAIL_IF(!isRefType(ref.type()), "br_on_non_null ref to type "_s, ref.type(), " expected a reference type"_s);
+        WASM_VALIDATOR_FAIL_IF(!isBot(ref.type()) && !isRefType(ref.type()), "br_on_non_null ref to type "_s, ref.type(), " expected a reference type"_s);
 
         ControlType& data = m_controlStack[m_controlStack.size() - 1 - target].controlData;
         WASM_FAIL_IF_HELPER_FAILS(checkBranchTarget(data, Conditional));
