@@ -3491,9 +3491,6 @@ void testVectorTransposeOdd()
 
 void testVectorReverse()
 {
-    if constexpr (!isARM64())
-        return;
-
     // REV64.4S: reverse pairs of 32-bit elements within 64-bit lanes
     // {v[1], v[0], v[3], v[2]}
     alignas(16) v128_t vectors[2];
@@ -3688,9 +3685,6 @@ void testVectorShrImmediate()
 // Helper: build a 3-child (binary) VectorSwizzle with the given byte pattern, verify result.
 static void testBinarySwizzlePattern(const char*, const uint8_t pattern[16], v128_t inputA, v128_t inputB, v128_t expected)
 {
-    if constexpr (!isARM64())
-        return;
-
     Procedure proc;
     BasicBlock* root = proc.addBlock();
     auto arguments = cCallArgumentValues<void*>(proc, root);
@@ -3719,9 +3713,6 @@ static void testBinarySwizzlePattern(const char*, const uint8_t pattern[16], v12
 // Helper: build a 2-child (unary) VectorSwizzle with the given byte pattern, verify result.
 static void testUnarySwizzlePattern(const char*, const uint8_t pattern[16], v128_t input, v128_t expected)
 {
-    if constexpr (!isARM64())
-        return;
-
     Procedure proc;
     BasicBlock* root = proc.addBlock();
     auto arguments = cCallArgumentValues<void*>(proc, root);
@@ -3749,9 +3740,6 @@ static void testUnarySwizzlePattern(const char*, const uint8_t pattern[16], v128
 // Pattern: VectorSwizzle(v, {0,1,2,3,8,9,10,11, 0,1,2,3,8,9,10,11}) → VectorUnzipEven(v, v)
 void testVectorSwizzleToUnzipEven()
 {
-    if constexpr (!isARM64())
-        return;
-
     alignas(16) v128_t vectors[2];
     Procedure proc;
     BasicBlock* root = proc.addBlock();
@@ -3786,9 +3774,6 @@ void testVectorSwizzleToUnzipEven()
 // Pattern: VectorSwizzle(a, b, {8..15, 24..31}) → VectorUnzipOdd.2D (UZP2)
 void testVectorSwizzleBinaryToUnzipOdd()
 {
-    if constexpr (!isARM64())
-        return;
-
     alignas(16) v128_t vectors[3];
     Procedure proc;
     BasicBlock* root = proc.addBlock();
@@ -3822,9 +3807,6 @@ void testVectorSwizzleBinaryToUnzipOdd()
 // Test VectorExtractPair B3 opcode directly.
 void testVectorExtractPair()
 {
-    if constexpr (!isARM64())
-        return;
-
     // EXT #4: extract 4 bytes from concatenation
     {
         alignas(16) v128_t vectors[3];
@@ -3877,9 +3859,6 @@ void testVectorExtractPair()
 // Test strength reduction of binary shuffle → VectorExtractPair through VectorSwizzle.
 void testVectorSwizzleBinaryToEXT()
 {
-    if constexpr (!isARM64())
-        return;
-
     v128_t a, b;
     for (unsigned i = 0; i < 16; ++i) a.u8x16[i] = i;
     for (unsigned i = 0; i < 16; ++i) b.u8x16[i] = 16 + i;
@@ -3936,9 +3915,6 @@ void testVectorSwizzleBinaryToEXT()
 // Test strength reduction of unary shuffle → VectorExtractPair (S64x2 swap halves).
 void testVectorSwizzleUnaryToEXT()
 {
-    if constexpr (!isARM64())
-        return;
-
     v128_t v;
     for (unsigned i = 0; i < 16; ++i) v.u8x16[i] = i;
 
@@ -4306,9 +4282,6 @@ void testVectorSwizzleUnaryCanonical()
 // and lane is i64x2, they should be folded to VectorDupElement.
 void testVectorCanonicalSameInputFolding()
 {
-    if constexpr (!isARM64())
-        return;
-
     // Helper: build canonical op with same input, verify result equals DUP behavior.
     auto testSameInputOp = [](B3::Opcode op, SIMDLane lane, uint64_t lo, uint64_t hi, uint64_t expectedLo, uint64_t expectedHi) {
         alignas(16) v128_t vectors[2];
@@ -4341,19 +4314,18 @@ void testVectorCanonicalSameInputFolding()
     testSameInputOp(VectorZipLower, SIMDLane::i64x2, lo, hi, lo, lo);
     // ZIP2.2D(v,v) = {hi, hi}
     testSameInputOp(VectorZipHigher, SIMDLane::i64x2, lo, hi, hi, hi);
-    // TRN1.2D(v,v) = {lo, lo}
-    testSameInputOp(VectorTransposeEven, SIMDLane::i64x2, lo, hi, lo, lo);
-    // TRN2.2D(v,v) = {hi, hi}
-    testSameInputOp(VectorTransposeOdd, SIMDLane::i64x2, lo, hi, hi, hi);
+    if constexpr (isARM64()) {
+        // TRN1.2D(v,v) = {lo, lo} — ARM64 only
+        testSameInputOp(VectorTransposeEven, SIMDLane::i64x2, lo, hi, lo, lo);
+        // TRN2.2D(v,v) = {hi, hi}
+        testSameInputOp(VectorTransposeOdd, SIMDLane::i64x2, lo, hi, hi, hi);
+    }
 }
 
 // Test that VectorSwizzle DupElement patterns (unary) are correctly detected.
 // These test the path: VectorSwizzle → (ReduceStrength) → VectorDupElement
 void testVectorSwizzleToDupElement()
 {
-    if constexpr (!isARM64())
-        return;
-
     v128_t v;
     v.u32x4[0] = 0xAA; v.u32x4[1] = 0xBB; v.u32x4[2] = 0xCC; v.u32x4[3] = 0xDD;
 
@@ -4410,9 +4382,6 @@ void testVectorSwizzleToDupElement()
 // into a single shuffle.
 void testVectorSwizzleComposition()
 {
-    if constexpr (!isARM64())
-        return;
-
     // Inner: reverse bytes within 32-bit elements (unary pattern)
     // Outer: take high 64 bits of inner result and low 64 bits of other
     // Composed: should be a single binary shuffle
@@ -4466,9 +4435,6 @@ void testVectorSwizzleComposition()
 
 void testVectorSwizzleUnaryComposition()
 {
-    if constexpr (!isARM64())
-        return;
-
     // Compose two chained unary rotations: EXT4(EXT4(x)) = EXT8(x).
     // inner = VectorSwizzle(input, rotate4Pattern)
     // outer = VectorSwizzle(inner, rotate4Pattern)
@@ -4505,9 +4471,6 @@ void testVectorSwizzleUnaryComposition()
 
 void testVectorSwizzleCompositionMultiUse()
 {
-    if constexpr (!isARM64())
-        return;
-
     // Test that composition works when inner has multiple consumers.
     // inner = VectorSwizzle(src, rev32Pattern)  (used by both outer shuffles)
     // outer1 = VectorSwizzle(other, inner, concatPattern)

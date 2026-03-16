@@ -7814,7 +7814,24 @@ public:
 
     void vectorDupElement(SIMDLane simdLane, TrustedImm32 lane, FPRegisterID src, FPRegisterID dest)
     {
-        UNUSED_PARAM(simdLane); UNUSED_PARAM(lane); UNUSED_PARAM(src); UNUSED_PARAM(dest);
+        RELEASE_ASSERT(supportsAVX());
+        switch (simdLane) {
+        case SIMDLane::i64x2:
+        case SIMDLane::f64x2:
+            if (lane.m_value == 0)
+                m_assembler.vmovddup_rr(src, dest);
+            else
+                m_assembler.vpunpckhqdq_rrr(src, src, dest);
+            break;
+        case SIMDLane::i32x4:
+        case SIMDLane::f32x4: {
+            uint8_t imm = lane.m_value | (lane.m_value << 2) | (lane.m_value << 4) | (lane.m_value << 6);
+            m_assembler.vpshufd_i8rr(imm, src, dest);
+            break;
+        }
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+        }
     }
 
     DEFINE_SIMD_FUNCS(vectorDupElement);
@@ -9491,6 +9508,69 @@ public:
             RELEASE_ASSERT_NOT_REACHED();
         else
             RELEASE_ASSERT_NOT_REACHED();
+    }
+
+    void vectorZipLower(SIMDInfo simdInfo, FPRegisterID n, FPRegisterID m, FPRegisterID dest)
+    {
+        RELEASE_ASSERT(supportsAVX());
+        switch (simdInfo.lane) {
+        case SIMDLane::i8x16: m_assembler.vpunpcklbw_rrr(m, n, dest); break;
+        case SIMDLane::i16x8: m_assembler.vpunpcklwd_rrr(m, n, dest); break;
+        case SIMDLane::i32x4: m_assembler.vpunpckldq_rrr(m, n, dest); break;
+        case SIMDLane::i64x2: m_assembler.vpunpcklqdq_rrr(m, n, dest); break;
+        default: RELEASE_ASSERT_NOT_REACHED();
+        }
+    }
+
+    void vectorZipHigher(SIMDInfo simdInfo, FPRegisterID n, FPRegisterID m, FPRegisterID dest)
+    {
+        RELEASE_ASSERT(supportsAVX());
+        switch (simdInfo.lane) {
+        case SIMDLane::i8x16: m_assembler.vpunpckhbw_rrr(m, n, dest); break;
+        case SIMDLane::i16x8: m_assembler.vpunpckhwd_rrr(m, n, dest); break;
+        case SIMDLane::i32x4: m_assembler.vpunpckhdq_rrr(m, n, dest); break;
+        case SIMDLane::i64x2: m_assembler.vpunpckhqdq_rrr(m, n, dest); break;
+        default: RELEASE_ASSERT_NOT_REACHED();
+        }
+    }
+
+    void vectorUnzipEven(SIMDInfo simdInfo, FPRegisterID n, FPRegisterID m, FPRegisterID dest)
+    {
+        RELEASE_ASSERT(supportsAVX());
+        switch (simdInfo.lane) {
+        case SIMDLane::i64x2: m_assembler.vpunpcklqdq_rrr(m, n, dest); break;
+        case SIMDLane::i32x4: m_assembler.vshufps_i8rrr(0x88, m, n, dest); break;
+        default: RELEASE_ASSERT_NOT_REACHED();
+        }
+    }
+
+    void vectorUnzipOdd(SIMDInfo simdInfo, FPRegisterID n, FPRegisterID m, FPRegisterID dest)
+    {
+        RELEASE_ASSERT(supportsAVX());
+        switch (simdInfo.lane) {
+        case SIMDLane::i64x2: m_assembler.vpunpckhqdq_rrr(m, n, dest); break;
+        case SIMDLane::i32x4: m_assembler.vshufps_i8rrr(0xDD, m, n, dest); break;
+        default: RELEASE_ASSERT_NOT_REACHED();
+        }
+    }
+
+    void vectorExtractPair(SIMDInfo simdInfo, TrustedImm32 firstLane, FPRegisterID n, FPRegisterID m, FPRegisterID dest)
+    {
+        RELEASE_ASSERT(supportsAVX());
+        ASSERT(simdInfo.lane == SIMDLane::i8x16);
+        UNUSED_PARAM(simdInfo);
+        // ARM64 EXT(Vn, Vm, #index) = x86 VPALIGNR(dst, Vm, Vn, #index)
+        m_assembler.vpalignr_i8rrr(firstLane.m_value, n, m, dest);
+    }
+
+    void vectorReverse(SIMDInfo simdInfo, TrustedImm32 groupSize, FPRegisterID input, FPRegisterID dest)
+    {
+        RELEASE_ASSERT(supportsAVX());
+        ASSERT(simdInfo.lane == SIMDLane::i32x4 && groupSize.m_value == 8);
+        UNUSED_PARAM(simdInfo);
+        UNUSED_PARAM(groupSize);
+        // Swap 32-bit pairs within 64-bit halves: REV64.4S
+        m_assembler.vpshufd_i8rr(0xB1, input, dest);
     }
 
     void vectorSwizzle(FPRegisterID a, FPRegisterID b, FPRegisterID dest)

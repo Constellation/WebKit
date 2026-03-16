@@ -4798,7 +4798,6 @@ private:
         }
 
         case B3::VectorDupElement: {
-            ASSERT(isARM64());
             SIMDValue* value = m_value->as<SIMDValue>();
             auto lane = value->simdLane();
             append(GET_SIMD_OPCODE(lane, Air::VectorDupElement), Arg::imm(value->immediate()), tmp(value->child(0)), tmp(value));

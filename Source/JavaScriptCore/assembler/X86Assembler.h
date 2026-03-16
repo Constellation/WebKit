@@ -304,6 +304,7 @@ private:
         OP2_PUNPCKHDQ_VdqWdq            = 0x6A,
         OP2_PACKSSDW_VdqWdq             = 0x6B,
         OP2_PUNPCKLQDQ_VdqWdq           = 0x6C,
+        OP2_PUNPCKHQDQ_VdqWdq           = 0x6D,
         OP2_MOVD_VdEd                   = 0x6E,
         OP2_MOVQ_PqQq                   = 0x6E,
         OP2_MOVDQA_VdqWdq               = 0x6F,
@@ -420,6 +421,7 @@ private:
         OP3_ROUNDSS_VssWssIb    = 0x0A,
         OP3_ROUNDSD_VsdWsdIb    = 0x0B,
         OP3_VPBLENDW_VxHxWxIb   = 0x0E,
+        OP3_PALIGNR_VdqWdqIb    = 0x0F,
         OP3_PEXTRB_MbVdqIb      = 0x14,
         OP3_PEXTRW_MwVdqIb      = 0x15,
         OP3_PEXTRD_EyVdqIb      = 0x16,
@@ -4491,6 +4493,23 @@ public:
         // VEX.128.66.0F.WIG 6C /r VPUNPCKLQDQ xmm1, xmm2, xmm3/m128
         // B    NA    ModRM:reg (w)    VEX.vvvv (r)    ModRM:r/m (r)    NA
         m_formatter.vexNdsLigWigTwoByteOp(PRE_SSE_66, OP2_PUNPCKLQDQ_VdqWdq, (RegisterID)xmm1, (RegisterID)xmm2, (RegisterID)xmm3);
+    }
+
+    void vpunpckhqdq_rrr(XMMRegisterID xmm3, XMMRegisterID xmm2, XMMRegisterID xmm1)
+    {
+        // https://www.felixcloutier.com/x86/punpckhbw:punpckhwd:punpckhdq:punpckhqdq
+        // VEX.128.66.0F.WIG 6D /r VPUNPCKHQDQ xmm1, xmm2, xmm3/m128
+        // B    NA    ModRM:reg (w)    VEX.vvvv (r)    ModRM:r/m (r)    NA
+        m_formatter.vexNdsLigWigTwoByteOp(PRE_SSE_66, OP2_PUNPCKHQDQ_VdqWdq, (RegisterID)xmm1, (RegisterID)xmm2, (RegisterID)xmm3);
+    }
+
+    void vpalignr_i8rrr(uint8_t imm8, XMMRegisterID xmm3, XMMRegisterID xmm2, XMMRegisterID xmm1)
+    {
+        // https://www.felixcloutier.com/x86/palignr
+        // VEX.128.66.0F3A.WIG 0F /r ib VPALIGNR xmm1, xmm2, xmm3/m128, imm8
+        // B    NA    ModRM:reg (w)    VEX.vvvv (r)    ModRM:r/m (r)    Imm8
+        m_formatter.vexNdsLigWigThreeByteOp(PRE_SSE_66, VexImpliedBytes::ThreeBytesOp3A, OP3_PALIGNR_VdqWdqIb, (RegisterID)xmm1, (RegisterID)xmm2, (RegisterID)xmm3);
+        m_formatter.immediate8(imm8);
     }
 
     void vunpcklps_rrr(XMMRegisterID xmm3, XMMRegisterID xmm2, XMMRegisterID xmm1)

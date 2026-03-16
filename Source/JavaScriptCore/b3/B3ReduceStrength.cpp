@@ -135,6 +135,34 @@ static inline std::optional<CanonicalShuffleInfo> canonicalShuffleInfo(Canonical
     }
 }
 
+static bool isCanonicalShuffleSupportedOnCurrentPlatform(B3::Opcode opcode, SIMDLane lane)
+{
+    if constexpr (isARM64())
+        return true;
+    // On x86-64, only certain opcode+lane combinations have efficient single-instruction mappings.
+    switch (opcode) {
+    case VectorZipLower:
+    case VectorZipHigher:
+        return true; // All lanes supported via vpunpckl/h*
+    case VectorUnzipEven:
+    case VectorUnzipOdd:
+        return lane == SIMDLane::i64x2 || lane == SIMDLane::i32x4;
+    case VectorTransposeEven:
+    case VectorTransposeOdd:
+        return false; // No efficient x86-64 instruction
+    default:
+        return false;
+    }
+}
+
+static bool isReverseSupportedOnCurrentPlatform(SIMDLane lane, uint8_t groupSize)
+{
+    if constexpr (isARM64())
+        return true;
+    // On x86-64, only S32x2 reverse (REV64.4S → VPSHUFD 0xB1) is supported.
+    return lane == SIMDLane::i32x4 && groupSize == 8;
+}
+
 // FIXME: This IntRange stuff should be refactored into a general constant propagator. It's weird
 // that it's just sitting here in this file.
 class IntRange {
@@ -3472,17 +3500,19 @@ private:
                     }
                 }
 
+                // DupElement: i64x2 and i32x4 on all platforms
+                if (auto lane = SIMDShuffle::isI64x2DupElement(pattern)) {
+                    replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i64x2, SIMDSignMode::None, lane.value(), inner);
+                    break;
+                }
+
+                if (auto lane = SIMDShuffle::isI32x4DupElement(pattern)) {
+                    replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i32x4, SIMDSignMode::None, lane.value(), inner);
+                    break;
+                }
+
+                // DupElement: i16x8 and i8x16 — ARM64 only
                 if constexpr (isARM64()) {
-                    if (auto lane = SIMDShuffle::isI64x2DupElement(pattern)) {
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i64x2, SIMDSignMode::None, lane.value(), inner);
-                        break;
-                    }
-
-                    if (auto lane = SIMDShuffle::isI32x4DupElement(pattern)) {
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i32x4, SIMDSignMode::None, lane.value(), inner);
-                        break;
-                    }
-
                     if (auto lane = SIMDShuffle::isI16x8DupElement(pattern)) {
                         replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i16x8, SIMDSignMode::None, lane.value(), inner);
                         break;
@@ -3492,41 +3522,43 @@ private:
                         replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, lane.value(), inner);
                         break;
                     }
+                }
 
-                    if (m_pass == ReduceStrengthPass::Final) {
-                        // Check if this unary pattern matches a canonical instruction
-                        // (UZP, ZIP, TRN) when treated as both inputs being the same register.
-                        // Reduce to the dedicated B3 opcode.
-                        {
-                            auto canonical = SIMDShuffle::tryMatchUnaryAsBinaryCanonical(pattern);
-                            if (auto info = canonicalShuffleInfo(canonical)) {
+                if (m_pass == ReduceStrengthPass::Final) {
+                    // Check if this unary pattern matches a canonical instruction
+                    // (UZP, ZIP, TRN) when treated as both inputs being the same register.
+                    // Reduce to the dedicated B3 opcode if supported on the current platform.
+                    {
+                        auto canonical = SIMDShuffle::tryMatchUnaryAsBinaryCanonical(pattern);
+                        if (auto info = canonicalShuffleInfo(canonical)) {
+                            if (isCanonicalShuffleSupportedOnCurrentPlatform(info->opcode, info->lane)) {
                                 auto newOp = info->opcode;
                                 ASSERT(newOp != VectorReverse);
                                 replaceWithNew<SIMDValue>(m_value->origin(), newOp, B3::V128, info->lane, SIMDSignMode::None, inner, inner);
                                 break;
                             }
                         }
+                    }
 
-                        // General unary EXT (byte rotation): {k, k+1, ..., 15, 0, 1, ..., k-1}
-                        // Subsumes S64x2Reverse (which is EXT #8).
-                        if (auto offset = SIMDShuffle::isUnaryEXT(pattern)) {
-                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(*offset), inner, inner);
-                            break;
-                        }
+                    // General unary EXT (byte rotation): {k, k+1, ..., 15, 0, 1, ..., k-1}
+                    // Subsumes S64x2Reverse (which is EXT #8).
+                    if (auto offset = SIMDShuffle::isUnaryEXT(pattern)) {
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(*offset), inner, inner);
+                        break;
+                    }
 
-                        // Also try unary-specific patterns (REV).
-                        {
-                            auto canonical = SIMDShuffle::tryMatchCanonicalUnary(pattern);
-                            if (auto info = canonicalShuffleInfo(canonical)) {
-                                if (info->opcode == VectorReverse) {
-                                    replaceWithNew<SIMDValue>(m_value->origin(), info->opcode, B3::V128, info->lane, SIMDSignMode::None, info->groupSize, inner);
-                                    break;
-                                }
+                    // Also try unary-specific patterns (REV).
+                    {
+                        auto canonical = SIMDShuffle::tryMatchCanonicalUnary(pattern);
+                        if (auto info = canonicalShuffleInfo(canonical)) {
+                            if (info->opcode == VectorReverse && isReverseSupportedOnCurrentPlatform(info->lane, info->groupSize)) {
+                                replaceWithNew<SIMDValue>(m_value->origin(), info->opcode, B3::V128, info->lane, SIMDSignMode::None, info->groupSize, inner);
+                                break;
                             }
                         }
                     }
-                    break;
                 }
+                break;
             }
 
             // Compose shuffle-of-shuffle patterns into a single shuffle.
@@ -3557,27 +3589,27 @@ private:
             //   Result: VectorSwizzle(a, b, {8..15, 16..23})           ; EXT #8
             if (m_value->numChildren() == 3 && m_value->child(2)->hasV128()) {
                 v128_t pattern = m_value->child(2)->asV128();
-                if constexpr (isARM64()) {
-                    if (m_pass == ReduceStrengthPass::Final) {
-                        // Try to match binary canonical patterns (UZP, ZIP, TRN).
-                        {
-                            auto canonical = SIMDShuffle::tryMatchCanonicalBinary(pattern);
-                            if (auto info = canonicalShuffleInfo(canonical)) {
+                if (m_pass == ReduceStrengthPass::Final) {
+                    // Try to match binary canonical patterns (UZP, ZIP, TRN).
+                    {
+                        auto canonical = SIMDShuffle::tryMatchCanonicalBinary(pattern);
+                        if (auto info = canonicalShuffleInfo(canonical)) {
+                            if (isCanonicalShuffleSupportedOnCurrentPlatform(info->opcode, info->lane)) {
                                 auto newOp = info->opcode;
                                 ASSERT(newOp != VectorReverse);
                                 replaceWithNew<SIMDValue>(m_value->origin(), newOp, B3::V128, info->lane, SIMDSignMode::None, m_value->child(0), m_value->child(1));
                                 break;
                             }
                         }
+                    }
 
-                        // Try EXT pattern: contiguous byte extraction from concatenation.
-                        if (auto extInfo = SIMDShuffle::isEXTWithSwap(pattern)) {
-                            if (extInfo->needsSwap)
-                                replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(extInfo->offset), m_value->child(1), m_value->child(0));
-                            else
-                                replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(extInfo->offset), m_value->child(0), m_value->child(1));
-                            break;
-                        }
+                    // Try EXT pattern: contiguous byte extraction from concatenation.
+                    if (auto extInfo = SIMDShuffle::isEXTWithSwap(pattern)) {
+                        if (extInfo->needsSwap)
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(extInfo->offset), m_value->child(1), m_value->child(0));
+                        else
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(extInfo->offset), m_value->child(0), m_value->child(1));
+                        break;
                     }
                 }
 
@@ -3687,7 +3719,6 @@ private:
         }
 
         case VectorUnzipEven: {
-            ASSERT(isARM64());
             // Turn this: VectorUnzipEven(i64x2, i64x2)
             // Into this: VectorDupElement(i64x2, 0)
             if (tryReduceSameInputShuffleToDup(0))
@@ -3696,7 +3727,6 @@ private:
         }
 
         case VectorUnzipOdd: {
-            ASSERT(isARM64());
             // Turn this: VectorUnzipOdd(i64x2, i64x2)
             // Into this: VectorDupElement(i64x2, 1)
             if (tryReduceSameInputShuffleToDup(1))
@@ -3705,7 +3735,6 @@ private:
         }
 
         case VectorZipLower: {
-            ASSERT(isARM64());
             // Turn this: VectorZipLower(i64x2, i64x2)
             // Into this: VectorDupElement(i64x2, 0)
             if (tryReduceSameInputShuffleToDup(0))
@@ -3714,7 +3743,6 @@ private:
         }
 
         case VectorZipHigher: {
-            ASSERT(isARM64());
             // Turn this: VectorZipHigher(i64x2, i64x2)
             // Into this: VectorDupElement(i64x2, 1)
             if (tryReduceSameInputShuffleToDup(1))
@@ -4378,7 +4406,6 @@ private:
 
     bool tryReduceSameInputShuffleToDup(uint8_t dupLane)
     {
-        ASSERT(isARM64());
         SIMDValue* value = m_value->as<SIMDValue>();
 
         if (value->simdInfo().lane != SIMDLane::i64x2)
