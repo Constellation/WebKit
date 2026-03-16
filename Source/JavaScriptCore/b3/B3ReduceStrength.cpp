@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2025-2026 the V8 project authors. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -3447,9 +3448,10 @@ private:
 
         case VectorSwizzle: {
             if (m_value->numChildren() == 2 && m_value->child(1)->hasV128()) {
+                Value* inner = m_value->child(0);
                 v128_t pattern = m_value->child(1)->asV128();
                 if (SIMDShuffle::isIdentity(pattern)) {
-                    replaceWithIdentity(m_value->child(0));
+                    replaceWithIdentity(inner);
                     break;
                 }
 
@@ -3458,24 +3460,36 @@ private:
                     break;
                 }
 
+                if (inner->opcode() == VectorSwizzle && inner->numChildren() == 2) {
+                    if (inner->child(1)->hasV128()) {
+                        v128_t outerPat = m_value->child(1)->asV128();
+                        v128_t innerPat = inner->child(1)->asV128();
+                        v128_t composed = SIMDShuffle::composeUnaryShuffle(outerPat, innerPat);
+                        Value* newPattern = m_proc.addConstant(m_value->origin(), B3::V128, composed);
+                        m_insertionSet.insertValue(m_index, newPattern);
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, inner->child(0), newPattern);
+                        break;
+                    }
+                }
+
                 if constexpr (isARM64()) {
                     if (auto lane = SIMDShuffle::isI64x2DupElement(pattern)) {
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i64x2, SIMDSignMode::None, lane.value(), m_value->child(0));
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i64x2, SIMDSignMode::None, lane.value(), inner);
                         break;
                     }
 
                     if (auto lane = SIMDShuffle::isI32x4DupElement(pattern)) {
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i32x4, SIMDSignMode::None, lane.value(), m_value->child(0));
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i32x4, SIMDSignMode::None, lane.value(), inner);
                         break;
                     }
 
                     if (auto lane = SIMDShuffle::isI16x8DupElement(pattern)) {
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i16x8, SIMDSignMode::None, lane.value(), m_value->child(0));
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i16x8, SIMDSignMode::None, lane.value(), inner);
                         break;
                     }
 
                     if (auto lane = SIMDShuffle::isI8x16DupElement(pattern)) {
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, lane.value(), m_value->child(0));
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorDupElement, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, lane.value(), inner);
                         break;
                     }
 
@@ -3488,7 +3502,7 @@ private:
                             if (auto info = canonicalShuffleInfo(canonical)) {
                                 auto newOp = info->opcode;
                                 ASSERT(newOp != VectorReverse);
-                                replaceWithNew<SIMDValue>(m_value->origin(), newOp, B3::V128, info->lane, SIMDSignMode::None, m_value->child(0), m_value->child(0));
+                                replaceWithNew<SIMDValue>(m_value->origin(), newOp, B3::V128, info->lane, SIMDSignMode::None, inner, inner);
                                 break;
                             }
                         }
@@ -3496,7 +3510,7 @@ private:
                         // General unary EXT (byte rotation): {k, k+1, ..., 15, 0, 1, ..., k-1}
                         // Subsumes S64x2Reverse (which is EXT #8).
                         if (auto offset = SIMDShuffle::isUnaryEXT(pattern)) {
-                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(*offset), m_value->child(0), m_value->child(0));
+                            replaceWithNew<SIMDValue>(m_value->origin(), VectorExtractPair, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, static_cast<uint8_t>(*offset), inner, inner);
                             break;
                         }
 
@@ -3505,7 +3519,7 @@ private:
                             auto canonical = SIMDShuffle::tryMatchCanonicalUnary(pattern);
                             if (auto info = canonicalShuffleInfo(canonical)) {
                                 if (info->opcode == VectorReverse) {
-                                    replaceWithNew<SIMDValue>(m_value->origin(), info->opcode, B3::V128, info->lane, SIMDSignMode::None, info->groupSize, m_value->child(0));
+                                    replaceWithNew<SIMDValue>(m_value->origin(), info->opcode, B3::V128, info->lane, SIMDSignMode::None, info->groupSize, inner);
                                     break;
                                 }
                             }
@@ -3515,9 +3529,35 @@ private:
                 }
             }
 
-            if constexpr (isARM64()) {
-                if (m_value->numChildren() == 3 && m_value->child(2)->hasV128()) {
-                    v128_t pattern = m_value->child(2)->asV128();
+            // Compose shuffle-of-shuffle patterns into a single shuffle.
+            //
+            // We look for a 3-child (binary) VectorSwizzle whose child(0) or child(1) is a
+            // 2-child (unary) VectorSwizzle with a single use. The outer and inner shuffle
+            // patterns are composed into a single pattern, eliminating one shuffle operation.
+            //
+            // Before:
+            //   inner = VectorSwizzle(innerSrc, innerPattern)          ; unary shuffle
+            //   outer = VectorSwizzle(inner, other, outerPattern)      ; binary shuffle using inner's result
+            //   -- or --
+            //   outer = VectorSwizzle(other, inner, outerPattern)      ; binary shuffle with inner on other side
+            //
+            // After composition:
+            //   composed = VectorSwizzle(innerSrc, other, composedPattern)   ; single binary shuffle
+            //   -- or, if all composed indices come from one side --
+            //   composed = VectorSwizzle(src, composedPattern)               ; single unary shuffle
+            //
+            // The composedPattern is computed by chasing each output byte through the outer pattern,
+            // and if it references the inner's output, further chasing through the inner pattern to
+            // find the original source byte.
+            //
+            // Example (from argon2/BLAKE2b):
+            //   inner = VectorSwizzle(b, dupLowPattern)                ; dup low 64-bit element of b
+            //   outer = VectorSwizzle(a, inner, {8..15, 24..31})       ; UZP2.2D: {a[hi64], inner[hi64]}
+            //   Composed: {a[hi64], b[lo64]} — inner[hi64] = dupLow(b)[hi64] = b[lo64]
+            //   Result: VectorSwizzle(a, b, {8..15, 16..23})           ; EXT #8
+            if (m_value->numChildren() == 3 && m_value->child(2)->hasV128()) {
+                v128_t pattern = m_value->child(2)->asV128();
+                if constexpr (isARM64()) {
                     if (m_pass == ReduceStrengthPass::Final) {
                         // Try to match binary canonical patterns (UZP, ZIP, TRN).
                         {
@@ -3539,42 +3579,109 @@ private:
                             break;
                         }
                     }
+                }
 
-                    // If both inputs are the same value, normalize all indices to 0-15 range
-                    // and convert to a 2-child (unary) VectorSwizzle.
-                    // e.g. {0,1,2,3,4,5,6,7, 16,17,18,19,20,21,22,23} with child(0)==child(1)
-                    // becomes {0,1,2,3,4,5,6,7, 0,1,2,3,4,5,6,7} which can then be detected as DUP.
-                    if (m_value->child(0) == m_value->child(1)) {
+                // If both inputs are the same value, normalize all indices to 0-15 range
+                // and convert to a 2-child (unary) VectorSwizzle.
+                // e.g. {0,1,2,3,4,5,6,7, 16,17,18,19,20,21,22,23} with child(0)==child(1)
+                // becomes {0,1,2,3,4,5,6,7, 0,1,2,3,4,5,6,7} which can then be detected as DUP.
+                if (m_value->child(0) == m_value->child(1)) {
+                    v128_t newPattern = pattern;
+                    for (unsigned i = 0; i < 16; ++i) {
+                        if (newPattern.u8x16[i] >= 16 && newPattern.u8x16[i] < 32)
+                            newPattern.u8x16[i] -= 16;
+                    }
+                    Value* newPatternValue = m_proc.addConstant(m_value->origin(), B3::V128, newPattern);
+                    m_insertionSet.insertValue(m_index, newPatternValue);
+                    replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(0), newPatternValue);
+                    break;
+                }
+
+                if (auto child = SIMDShuffle::isOnlyOneSideMask(pattern)) {
+                    switch (child.value()) {
+                    case 0: {
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(0), m_value->child(2));
+                        break;
+                    }
+                    case 1: {
                         v128_t newPattern = pattern;
-                        for (unsigned i = 0; i < 16; ++i) {
-                            if (newPattern.u8x16[i] >= 16 && newPattern.u8x16[i] < 32)
-                                newPattern.u8x16[i] -= 16;
-                        }
+                        for (unsigned i = 0; i < 16; ++i)
+                            newPattern.u8x16[i] = pattern.u8x16[i] - 16;
                         Value* newPatternValue = m_proc.addConstant(m_value->origin(), B3::V128, newPattern);
                         m_insertionSet.insertValue(m_index, newPatternValue);
-                        replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(0), newPatternValue);
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(1), newPatternValue);
                         break;
+                    }
+                    }
+                    break;
+                }
+
+                auto tryFoldVectorSwizzle = [&](unsigned innerIndex, unsigned otherIndex) -> bool {
+                    Value* inner = m_value->child(innerIndex);
+
+                    // The inner must be a unary VectorSwizzle with a constant pattern.
+                    if (inner->opcode() != VectorSwizzle)
+                        return false;
+
+                    if (inner->numChildren() != 2)
+                        return false;
+
+                    if (!inner->child(1)->hasV128())
+                        return false;
+
+                    v128_t innerPattern = inner->child(1)->asV128();
+                    // Compose: for each output byte, chase through outer → inner patterns
+                    // to find the original source byte index.
+                    v128_t newPattern = SIMDShuffle::composeShuffle(pattern, innerPattern, innerIndex == 0);
+
+                    // After composition, the new shuffle reads from innerSrc (the inner's
+                    // original input) and other (the outer's other child).
+                    Value* innerSrc = inner->child(0);
+                    Value* other = m_value->child(otherIndex);
+
+                    // Maintain the convention: child(0) = newChild0, child(1) = newChild1.
+                    // If inner was child(0), innerSrc becomes newChild0 and other stays newChild1.
+                    // If inner was child(1), other stays newChild0 and innerSrc becomes newChild1.
+                    Value* newChild0;
+                    Value* newChild1;
+                    if (innerIndex == 0) {
+                        newChild0 = innerSrc;
+                        newChild1 = other;
+                    } else {
+                        newChild0 = other;
+                        newChild1 = innerSrc;
                     }
 
-                    if (auto child = SIMDShuffle::isOnlyOneSideMask(pattern)) {
-                        switch (child.value()) {
-                        case 0: {
-                            replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(0), m_value->child(2));
-                            break;
-                        }
-                        case 1: {
-                            v128_t newPattern = pattern;
+                    // If all composed indices reference only one side (0..15 or 16..31),
+                    // emit a 2-child unary shuffle instead of a 3-child binary shuffle.
+                    // This enables further optimizations like DUP detection in ReduceStrength.
+                    if (auto side = SIMDShuffle::isOnlyOneSideMask(newPattern)) {
+                        Value* src;
+                        v128_t unaryPattern = newPattern;
+                        if (*side == 0)
+                            src = newChild0;
+                        else {
+                            src = newChild1;
                             for (unsigned i = 0; i < 16; ++i)
-                                newPattern.u8x16[i] = pattern.u8x16[i] - 16;
-                            Value* newPatternValue = m_proc.addConstant(m_value->origin(), B3::V128, newPattern);
-                            m_insertionSet.insertValue(m_index, newPatternValue);
-                            replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, m_value->child(1), newPatternValue);
-                            break;
+                                unaryPattern.u8x16[i] -= 16;
                         }
-                        }
-                        break;
+                        Value* newPat = m_proc.addConstant(m_value->origin(), B3::V128, unaryPattern);
+                        m_insertionSet.insertValue(m_index, newPat);
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, src, newPat);
+                        return true;
                     }
-                }
+
+                    Value* newPat = m_proc.addConstant(m_value->origin(), B3::V128, newPattern);
+                    m_insertionSet.insertValue(m_index, newPat);
+                    replaceWithNew<SIMDValue>(m_value->origin(), VectorSwizzle, B3::V128, SIMDLane::i8x16, SIMDSignMode::None, newChild0, newChild1, newPat);
+                    return true;
+                };
+
+                if (tryFoldVectorSwizzle(0, 1))
+                    break;
+
+                if (tryFoldVectorSwizzle(1, 0))
+                    break;
             }
             break;
         }
