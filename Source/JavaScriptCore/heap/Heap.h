@@ -74,6 +74,7 @@ class FullGCActivityCallback;
 class GCActivityCallback;
 class GCAwareJITStubRoutine;
 class GigacageAlignedMemoryAllocator;
+class StructureAlignedMemoryAllocator;
 class Heap;
 class HeapProfiler;
 class HeapVerifier;
@@ -1073,6 +1074,7 @@ public:
     // AlignedMemoryAllocators
     std::unique_ptr<FastMallocAlignedMemoryAllocator> fastMallocAllocator;
     std::unique_ptr<GigacageAlignedMemoryAllocator> primitiveGigacageAllocator;
+    std::unique_ptr<StructureAlignedMemoryAllocator> structureAllocator;
 
     // Subspaces
     CompleteSubspace primitiveGigacageAuxiliarySpace; // Typed arrays, strings, bitvectors, etc go here.
