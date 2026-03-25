@@ -162,7 +162,7 @@ namespace JSC::B3 {
     macro(StringImpl_length, StringImpl::lengthMemoryOffset(), Mutability::Immutable) \
     macro(Structure_bitField, Structure::bitFieldOffset(), Mutability::Mutable) \
     macro(Structure_classInfo, Structure::classInfoOffset(), Mutability::Immutable) \
-    macro(Structure_globalObject, Structure::globalObjectOffset(), Mutability::Immutable) \
+    macro(Structure_realm, Structure::realmOffset(), Mutability::Immutable) \
     macro(Structure_indexingModeIncludingHistory, Structure::indexingModeIncludingHistoryOffset(), Mutability::Immutable) \
     macro(Structure_inlineCapacity, Structure::inlineCapacityOffset(), Mutability::Immutable) \
     macro(Structure_outOfLineTypeFlags, Structure::outOfLineTypeFlagsOffset(), Mutability::Immutable) \
