@@ -85,13 +85,7 @@ inline Structure* Structure::create(VM& vm, Structure* previous, DeferredStructu
         return result;
     }
     case StructureVariant::WebAssemblyGC: {
-#if ENABLE(WEBASSEMBLY)
-        auto* result = new (NotNull, allocateCell<WebAssemblyGCStructure>(vm)) WebAssemblyGCStructure(vm, jsCast<WebAssemblyGCStructure*>(previous));
-        result->finishCreation(vm, previous, deferred);
-        return result;
-#else
-        return nullptr;
-#endif
+        RELEASE_ASSERT_NOT_REACHED_WITH_MESSAGE("WebAssemblyGCStructure should not do transition");
     }
     default:
         RELEASE_ASSERT_NOT_REACHED();

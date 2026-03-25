@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -77,16 +77,8 @@ WebAssemblyGCStructure::WebAssemblyGCStructure(VM& vm, JSGlobalObject* globalObj
     , m_type(WTF::move(type))
     , m_typeDependencies(WebAssemblyGCStructureTypeDependencies { WTF::move(unexpandedType) })
 {
+    setMayBePrototype(true);
 }
-
-WebAssemblyGCStructure::WebAssemblyGCStructure(VM& vm, WebAssemblyGCStructure* previous)
-    : Structure(vm, StructureVariant::WebAssemblyGC, previous)
-    , m_rtt(previous->m_rtt)
-    , m_type(previous->m_type)
-    , m_typeDependencies(previous->m_typeDependencies)
-{
-}
-
 
 WebAssemblyGCStructure* WebAssemblyGCStructure::create(VM& vm, JSGlobalObject* globalObject, const TypeInfo& typeInfo, const ClassInfo* classInfo, Ref<const Wasm::TypeDefinition>&& unexpandedType, Ref<const Wasm::TypeDefinition>&& type, Ref<const Wasm::RTT>&& rtt)
 {
