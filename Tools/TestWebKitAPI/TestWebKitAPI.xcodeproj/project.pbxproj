@@ -1419,6 +1419,8 @@
 		E352B6082B78D595003A746B /* Decimal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E352B6002B78D594003A746B /* Decimal.cpp */; };
 		E355A63026157174001C1129 /* RobinHoodHashSet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E355A62F26157174001C1129 /* RobinHoodHashSet.cpp */; };
 		E355A6322615718F001C1129 /* RobinHoodHashMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E355A6312615718F001C1129 /* RobinHoodHashMap.cpp */; };
+		9BC8ECC0CDCF380B82E1C7CB /* SwissHashMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5A92649E4631CC70AA62B346 /* SwissHashMap.cpp */; };
+		A83A6CC119230C5076DD27C8 /* SwissHashSet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B1FEE2969E0A900FC6D82699 /* SwissHashSet.cpp */; };
 		E35B908223F60DD0000011FF /* LocalizedDeviceModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = E35B908123F60DD0000011FF /* LocalizedDeviceModel.mm */; };
 		E35FC7B222B82A7300F32F98 /* JSLockTakesWebThreadLock.mm in Sources */ = {isa = PBXBuildFile; fileRef = E35FC7B122B82A6D00F32F98 /* JSLockTakesWebThreadLock.mm */; };
 		E36B87A3276221870059D2F9 /* EmbeddedFixedVector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E36B87A2276221860059D2F9 /* EmbeddedFixedVector.cpp */; };
@@ -4230,6 +4232,8 @@
 		E352B6002B78D594003A746B /* Decimal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Decimal.cpp; sourceTree = "<group>"; };
 		E355A62F26157174001C1129 /* RobinHoodHashSet.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RobinHoodHashSet.cpp; sourceTree = "<group>"; };
 		E355A6312615718F001C1129 /* RobinHoodHashMap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RobinHoodHashMap.cpp; sourceTree = "<group>"; };
+		5A92649E4631CC70AA62B346 /* SwissHashMap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SwissHashMap.cpp; sourceTree = "<group>"; };
+		B1FEE2969E0A900FC6D82699 /* SwissHashSet.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SwissHashSet.cpp; sourceTree = "<group>"; };
 		E35B908123F60DD0000011FF /* LocalizedDeviceModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LocalizedDeviceModel.mm; sourceTree = "<group>"; };
 		E35FC7B122B82A6D00F32F98 /* JSLockTakesWebThreadLock.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = JSLockTakesWebThreadLock.mm; sourceTree = "<group>"; };
 		E36B87A2276221860059D2F9 /* EmbeddedFixedVector.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EmbeddedFixedVector.cpp; sourceTree = "<group>"; };
@@ -6659,6 +6663,8 @@
 				7C74D42D188228F300E5ED57 /* StringView.cpp */,
 				FF8CB4042A88C152004AF498 /* SuperFastHash.cpp */,
 				936E4AE32821BB6D00208654 /* SuspendableWorkQueueTests.cpp */,
+				5A92649E4631CC70AA62B346 /* SwissHashMap.cpp */,
+				B1FEE2969E0A900FC6D82699 /* SwissHashSet.cpp */,
 				5597F8341D9596C80066BC21 /* SynchronizedFixedQueue.cpp */,
 				9329AA281DE3F81E003ABD07 /* TextBreakIterator.cpp */,
 				7B2739F22632AB640040F182 /* ThreadAssertionsTest.cpp */,
@@ -7864,6 +7870,8 @@
 				7C83DF3A1D0A590C00FEBCF3 /* StringView.cpp in Sources */,
 				FF8CB40C2A88C152004AF498 /* SuperFastHash.cpp in Sources */,
 				936E4AE42821BB6D00208654 /* SuspendableWorkQueueTests.cpp in Sources */,
+				9BC8ECC0CDCF380B82E1C7CB /* SwissHashMap.cpp in Sources */,
+				A83A6CC119230C5076DD27C8 /* SwissHashSet.cpp in Sources */,
 				5597F8361D9596C80066BC21 /* SynchronizedFixedQueue.cpp in Sources */,
 				7C83DF401D0A590C00FEBCF3 /* TestsController.cpp in Sources */,
 				9329AA291DE3F81E003ABD07 /* TextBreakIterator.cpp in Sources */,

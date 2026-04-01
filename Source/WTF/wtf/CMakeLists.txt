@@ -292,6 +292,9 @@ set(WTF_PUBLIC_HEADERS
     SHA1.h
     SIMDHelpers.h
     SIMDUTF.h
+    SwissHashMap.h
+    SwissHashSet.h
+    SwissHashTable.h
     SafeStrerror.h
     SaturatedArithmetic.h
     SchedulePair.h
