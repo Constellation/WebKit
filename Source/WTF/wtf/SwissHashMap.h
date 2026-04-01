@@ -33,6 +33,10 @@ namespace WTF {
 template<typename KeyArg, typename MappedArg, typename HashArg = DefaultHash<KeyArg>, typename KeyTraitsArg = HashTraits<KeyArg>, typename MappedTraitsArg = HashTraits<MappedArg>>
 using SwissHashMap = HashMap<KeyArg, MappedArg, HashArg, KeyTraitsArg, MappedTraitsArg, SwissHashTableTraits>;
 
+template<typename KeyArg, typename MappedArg, typename KeyHash = DefaultHash<KeyArg>, typename KeyTraits = HashTraits<KeyArg>, typename MappedTraits = HashTraits<MappedArg>, typename Malloc = HashTableMalloc>
+using UncheckedKeySwissHashMap = HashMap<KeyArg, MappedArg, KeyHash, KeyTraits, MappedTraits, SwissHashTableTraits, ShouldValidateKey::No, Malloc>;
+
 } // namespace WTF
 
 using WTF::SwissHashMap;
+using WTF::UncheckedKeySwissHashMap;

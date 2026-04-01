@@ -33,6 +33,10 @@ namespace WTF {
 template<typename ValueArg, typename HashArg = DefaultHash<ValueArg>, typename TraitsArg = HashTraits<ValueArg>>
 using SwissHashSet = HashSet<ValueArg, HashArg, TraitsArg, SwissHashTableTraits>;
 
+template<typename ValueArg, typename HashArg = DefaultHash<ValueArg>, typename TraitsArg = HashTraits<ValueArg>>
+using UncheckedKeySwissHashSet = HashSet<ValueArg, HashArg, TraitsArg, SwissHashTableTraits, ShouldValidateKey::No>;
+
 } // namespace WTF
 
 using WTF::SwissHashSet;
+using WTF::UncheckedKeySwissHashSet;

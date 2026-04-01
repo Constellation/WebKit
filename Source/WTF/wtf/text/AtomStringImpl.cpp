@@ -78,8 +78,8 @@ static inline Ref<AtomStringImpl> addToStringTable(AtomStringTableLocker&, Strin
     // If the string is newly-translated, then we need to adopt it.
     // The boolean in the pair tells us if that is so.
     if (addResult.isNewEntry)
-        return adoptRef(uncheckedDowncast<AtomStringImpl>(*addResult.iterator->get()));
-    return *uncheckedDowncast<AtomStringImpl>(addResult.iterator->get());
+        return adoptRef(uncheckedDowncast<AtomStringImpl>(**addResult.iterator));
+    return *uncheckedDowncast<AtomStringImpl>(*addResult.iterator);
 }
 
 template<typename T, typename HashTranslator>
@@ -98,7 +98,7 @@ struct UTF16BufferTranslator {
 
     static bool equal(AtomStringTable::StringEntry const& str, const UTF16Buffer& buf)
     {
-        return WTF::equal(str.get(), buf.characters);
+        return WTF::equal(str, buf.characters);
     }
 
     static void translate(AtomStringTable::StringEntry& location, const UTF16Buffer& buf, unsigned hash)
@@ -157,7 +157,7 @@ struct SubstringTranslator8 : SubstringTranslator {
 
     static bool equal(AtomStringTable::StringEntry const& string, const SubstringLocation& buffer)
     {
-        return WTF::equal(string.get(), buffer.baseString->span8().subspan(buffer.start, buffer.length));
+        return WTF::equal(string, buffer.baseString->span8().subspan(buffer.start, buffer.length));
     }
 };
 
@@ -169,7 +169,7 @@ struct SubstringTranslator16 : SubstringTranslator {
 
     static bool equal(AtomStringTable::StringEntry const& string, const SubstringLocation& buffer)
     {
-        return WTF::equal(string.get(), buffer.baseString->span16().subspan(buffer.start, buffer.length));
+        return WTF::equal(string, buffer.baseString->span16().subspan(buffer.start, buffer.length));
     }
 };
 
@@ -203,7 +203,7 @@ struct Latin1BufferTranslator {
 
     static bool equal(AtomStringTable::StringEntry const& str, const Latin1Buffer& buf)
     {
-        return WTF::equal(str.get(), buf.characters);
+        return WTF::equal(str, buf.characters);
     }
 
     static void translate(AtomStringTable::StringEntry& location, const Latin1Buffer& buf, unsigned hash)
@@ -225,7 +225,7 @@ struct BufferFromStaticDataTranslator {
 
     static bool equal(AtomStringTable::StringEntry const& str, const Buffer& buf)
     {
-        return WTF::equal(str.get(), buf.characters);
+        return WTF::equal(str, buf.characters);
     }
 
     static void translate(AtomStringTable::StringEntry& location, const Buffer& buf, unsigned hash)
@@ -330,11 +330,11 @@ Ref<AtomStringImpl> AtomStringImpl::addSlowCase(StringImpl& string)
     auto addResult = stringTable().add(&string);
 
     if (addResult.isNewEntry) {
-        ASSERT(addResult.iterator->get() == &string);
+        ASSERT(*addResult.iterator == &string);
         string.setIsAtom(true);
     }
 
-    return *uncheckedDowncast<AtomStringImpl>(addResult.iterator->get());
+    return *uncheckedDowncast<AtomStringImpl>(*addResult.iterator);
 }
 
 Ref<AtomStringImpl> AtomStringImpl::addSlowCase(Ref<StringImpl>&& string)
@@ -356,12 +356,12 @@ Ref<AtomStringImpl> AtomStringImpl::addSlowCase(Ref<StringImpl>&& string)
     auto addResult = stringTable().add(string.ptr());
 
     if (addResult.isNewEntry) {
-        ASSERT(addResult.iterator->get() == string.ptr());
+        ASSERT(*addResult.iterator == string.ptr());
         string->setIsAtom(true);
         return uncheckedDowncast<AtomStringImpl>(WTF::move(string));
     }
 
-    return *uncheckedDowncast<AtomStringImpl>(addResult.iterator->get());
+    return *uncheckedDowncast<AtomStringImpl>(*addResult.iterator);
 }
 
 Ref<AtomStringImpl> AtomStringImpl::addSlowCase(AtomStringTable& stringTable, StringImpl& string)
@@ -387,11 +387,11 @@ Ref<AtomStringImpl> AtomStringImpl::addSlowCase(AtomStringTable& stringTable, St
     auto addResult = stringTable.table().add(&string);
 
     if (addResult.isNewEntry) {
-        ASSERT(addResult.iterator->get() == &string);
+        ASSERT(*addResult.iterator == &string);
         string.setIsAtom(true);
     }
 
-    return *uncheckedDowncast<AtomStringImpl>(addResult.iterator->get());
+    return *uncheckedDowncast<AtomStringImpl>(*addResult.iterator);
 }
 
 // When removing a string from the table, we know it's already the one in the table, so no need for a string equality check.
@@ -421,7 +421,7 @@ RefPtr<AtomStringImpl> AtomStringImpl::lookUpSlowCase(StringImpl& string)
     auto& atomStringTable = stringTable();
     auto iterator = atomStringTable.find(&string);
     if (iterator != atomStringTable.end())
-        return uncheckedDowncast<AtomStringImpl>(iterator->get());
+        return uncheckedDowncast<AtomStringImpl>(*iterator);
     return nullptr;
 }
 
@@ -443,7 +443,7 @@ RefPtr<AtomStringImpl> AtomStringImpl::lookUp(std::span<const Latin1Character> c
     Latin1Buffer buffer { characters };
     auto iterator = table.find<Latin1BufferTranslator>(buffer);
     if (iterator != table.end())
-        return uncheckedDowncast<AtomStringImpl>(iterator->get());
+        return uncheckedDowncast<AtomStringImpl>(*iterator);
     return nullptr;
 }
 
@@ -455,7 +455,7 @@ RefPtr<AtomStringImpl> AtomStringImpl::lookUp(std::span<const char16_t> characte
     UTF16Buffer buffer { characters };
     auto iterator = table.find<UTF16BufferTranslator>(buffer);
     if (iterator != table.end())
-        return uncheckedDowncast<AtomStringImpl>(iterator->get());
+        return uncheckedDowncast<AtomStringImpl>(*iterator);
     return nullptr;
 }
 
