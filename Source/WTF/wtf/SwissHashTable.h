@@ -364,7 +364,8 @@ public:
 
 private:
     // --- H1/H2 hash splitting ---
-    static constexpr SwissCtrl h2(unsigned hash) { return static_cast<SwissCtrl>(hash >> 25); }
+    // We extract [17, 24] bits since StringImpl only offers 24 bits.
+    static constexpr SwissCtrl h2(unsigned hash) { return static_cast<SwissCtrl>(hash >> 17) & 0x7F; }
 
     // --- Probe sequence ---
     struct ProbeSequence {
