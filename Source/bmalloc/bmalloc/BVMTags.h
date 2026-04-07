@@ -75,11 +75,11 @@
 
 #else // BOS(DARWIN)
 
-#define VM_TAG_FOR_TCMALLOC_MEMORY -1
-#define VM_TAG_FOR_GIGACAGE_MEMORY -1
-#define VM_TAG_FOR_STRUCTUREALLOCATOR_MEMORY -1
-#define VM_TAG_FOR_EXECUTABLEALLOCATOR_MEMORY -1
-#define VM_TAG_FOR_ISOHEAP_MEMORY -1
+#define VM_TAG_FOR_TCMALLOC_MEMORY -3
+#define VM_TAG_FOR_GIGACAGE_MEMORY -4
+#define VM_TAG_FOR_STRUCTUREALLOCATOR_MEMORY -5
+#define VM_TAG_FOR_EXECUTABLEALLOCATOR_MEMORY -6
+#define VM_TAG_FOR_ISOHEAP_MEMORY -7
 
 #endif // BOS(DARWIN)
 
@@ -93,6 +93,29 @@ enum class VMTag {
     JSGigacage = VM_TAG_FOR_GIGACAGE_MEMORY,
     JSStructureHeap = VM_TAG_FOR_STRUCTUREALLOCATOR_MEMORY,
 };
+
+inline const char* vmTagName(VMTag tag)
+{
+    switch (tag) {
+    case VMTag::Malloc: return "WKFastMalloc";
+    case VMTag::IsoHeap: return "WKIsoHeap";
+    case VMTag::JSJITCode: return "JSJITCode";
+    case VMTag::JSGigacage: return "JSGigacage";
+    case VMTag::JSStructureHeap: return "JSStructureHeap";
+    default:
+        return nullptr;
+    }
+}
+
+inline int vmTagFd(VMTag tag)
+{
+    BUNUSED_PARAM(tag);
+#if BOS(DARWIN) || (BPLATFORM(PLAYSTATION) && defined(VM_MAKE_TAG))
+    return static_cast<int>(tag);
+#else
+    return -1;
+#endif
+}
 
 } // namespace bmalloc
 

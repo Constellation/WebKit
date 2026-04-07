@@ -41,6 +41,10 @@
 #include <mach/vm_page_size.h>
 #include <mach/vm_statistics.h>
 #endif
+#if PAS_OS(LINUX)
+#include <sys/mman.h>
+#include <sys/prctl.h>
+#endif
 
 #include "pas_internal_config.h"
 #include "pas_log.h"
@@ -79,9 +83,19 @@ static bool madv_zero_supported = false;
 #else
 #define PAS_VM_TAG -1
 #endif
+#define PAS_VM_TAG_NAME "WKFastMalloc"
 
 #if PAS_OS(LINUX)
 #define PAS_NORESERVE MAP_NORESERVE
+
+#ifndef PR_SET_VMA
+#define PR_SET_VMA 0x53564d41
+#endif
+
+#ifndef PR_SET_VMA_ANON_NAME
+#define PR_SET_VMA_ANON_NAME 0
+#endif
+
 #else
 #define PAS_NORESERVE 0
 #endif
@@ -172,6 +186,10 @@ pas_page_malloc_try_map_pages(size_t size, bool may_contain_small_or_medium)
         return NULL;
     } else
         PAS_RECORD_STAT(page_alloc_counts, size, may_contain_small_or_medium, false);
+
+#if PAS_OS(LINUX)
+    prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, mmap_result, size, PAS_VM_TAG_NAME);
+#endif
 
     return mmap_result;
 #endif
@@ -300,6 +318,7 @@ void pas_page_malloc_zero_fill(void* base, size_t size)
 #else
     size_t page_size;
     void* result_ptr;
+    int result;
 
     page_size = pas_page_malloc_alignment();
     
@@ -318,10 +337,18 @@ void pas_page_malloc_zero_fill(void* base, size_t size)
     }
 #endif /* PAS_USE_MADV_ZERO */
 
+    PAS_UNUSED_PARAM(result_ptr);
+    PAS_UNUSED_PARAM(result);
+
     PAS_PROFILE(ZERO_FILL_PAGE, base, size, flags, tag);
     PAS_MTE_HANDLE(ZERO_FILL_PAGE, base, size, flags, tag);
+#if PAS_OS(LINUX)
+    result = madvise(base, size, MADV_DONTNEED);
+    PAS_ASSERT(result == 0);
+#else
     result_ptr = mmap(base, size, PROT_READ | PROT_WRITE, flags, tag, 0);
     PAS_ASSERT(result_ptr == base, (uintptr_t)result_ptr, (uintptr_t)base);
+#endif
 #endif /* PAS_OS(WINDOWS) */
 }
 
