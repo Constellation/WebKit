@@ -5095,9 +5095,12 @@ class YarrGenerator final : public YarrJITInfo {
 
                 restoreParenContext(currParenContextReg, m_regs.regT2, term->parentheses.subpatternId, term->parentheses.lastSubpatternId, parenthesesFrameLocation);
 
-                // Clear inner Greedy/NonGreedy patterns' stale parenContextHead.
-                // (Same rationale as the FixedCount path — see clearInnerParenContextHeadSlots.)
-                clearInnerParenContextHeadSlots(term->parentheses.disjunction);
+                // Clear Greedy/NonGreedy patterns' stale parenContextHead,
+                // including sibling, ancestor-sibling, and isCopy groups.
+                // Unlike FixedCount (which reuses contexts in place), this
+                // path frees contexts to the free list, so restored pointers
+                // may reference recycled memory. See clearParenContextHeadSlotsInRange.
+                clearParenContextHeadSlotsInRange(m_pattern.m_body, parenthesesFrameLocation + YarrStackSpaceForBackTrackInfoParentheses, m_parenContextSizes.frameSlots());
 
                 m_jit.loadPtr(MacroAssembler::Address(currParenContextReg, ParenContext::nextOffset()), newParenContextReg);
                 freeParenContext(currParenContextReg);
@@ -6660,13 +6663,22 @@ public:
     }
 
     // Emit stores to clear parenContextHead of inner Greedy/NonGreedy
-    // ParenthesesSubpattern terms after restoreParenContext.
+    // ParenthesesSubpattern terms after restoreParenContext in the
+    // FixedCount backtrack path.
     //
-    // restoreParenContext restores all frame slots including inner patterns'
-    // parenContextHead pointers. For Greedy/NonGreedy inner patterns, those
-    // pointers may reference contexts that were freed during a different
-    // backtracking path and subsequently recycled via the free list. Nulling
-    // them prevents use of corrupted context chains.
+    // FixedCount uses "reuse in place" (contexts are marked incomplete,
+    // not freed), so inner groups' restored parenContextHead values point
+    // to contexts that are still allocated and valid. However, in multi-
+    // cycle scenarios where content backtrack succeeds then fails again,
+    // inner NonGreedy/Greedy groups may have freed their own contexts
+    // between the save and restore. Walking only the inner disjunction
+    // is sufficient because all affected groups are children of the
+    // FixedCount group.
+    //
+    // isCopy groups are intentionally skipped: their contexts remain
+    // valid across FixedCount reuse-in-place cycles because the copy
+    // group's data is consumed and updated within a single content
+    // backtrack cycle, and FixedCount never frees outer contexts.
     //
     // FixedCount inner patterns are unaffected: their contexts become
     // unreachable (Begin.forward sets parenContextHead=null) but are never
@@ -6685,6 +6697,46 @@ public:
 
                     clearInnerParenContextHeadSlots(term.parentheses.disjunction);
                 }
+            }
+        }
+    }
+
+    // Emit stores to null out parenContextHead of Greedy/NonGreedy
+    // ParenthesesSubpattern terms whose frame slots fall within the range
+    // restored by restoreParenContext, for the Greedy/NonGreedy backtrack
+    // path.
+    //
+    // Unlike FixedCount (which reuses contexts in place), Greedy/NonGreedy
+    // backtracking frees contexts to the free list. restoreParenContext
+    // restores all frame slots in [minFrameLocation, maxFrameLocation),
+    // which may include parenContextHead pointers for sibling, ancestor-
+    // sibling, and inner groups. Those pointers may reference contexts
+    // that were freed and recycled via the free list during a different
+    // backtracking path. Walk the entire pattern tree and null every
+    // qualifying parenContextHead in the restored range.
+    //
+    // This differs from clearInnerParenContextHeadSlots in two ways:
+    // 1. Walks the entire pattern tree (not just inner disjunction) to
+    //    cover sibling and ancestor-sibling groups.
+    // 2. Does not skip isCopy groups — copy-expanded groups (e.g.,
+    //    (x)+? expanded to (x){1,1}(x)*?) actively use ParenContext
+    //    and their parenContextHead can become stale.
+    void clearParenContextHeadSlotsInRange(PatternDisjunction* disjunction, unsigned minFrameLocation, unsigned maxFrameLocation)
+    {
+        for (auto& alternative : disjunction->m_alternatives) {
+            for (auto& term : alternative->m_terms) {
+                if (term.type != PatternTerm::Type::ParenthesesSubpattern
+                    && term.type != PatternTerm::Type::ParentheticalAssertion)
+                    continue;
+                if (term.type == PatternTerm::Type::ParenthesesSubpattern
+                    && term.quantityType != QuantifierType::FixedCount
+                    && term.quantityMaxCount != 1
+                    && !term.parentheses.isTerminal) {
+                    unsigned headSlot = term.frameLocation + BackTrackInfoParentheses::parenContextHeadIndex();
+                    if (headSlot >= minFrameLocation && headSlot < maxFrameLocation)
+                        storeToFrame(MacroAssembler::TrustedImmPtr(nullptr), headSlot);
+                }
+                clearParenContextHeadSlotsInRange(term.parentheses.disjunction, minFrameLocation, maxFrameLocation);
             }
         }
     }
