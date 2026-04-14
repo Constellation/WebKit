@@ -3451,6 +3451,104 @@ void testVectorDotProductSplatOne()
     }
 }
 
+// Test dot(extendLow(a_i8, signed), extendLow(b_i8, signed)) → extaddPairwise(mulLow(a, b))
+// and  dot(extendHigh(a_i8, signed), extendHigh(b_i8, signed)) → extaddPairwise(mulHigh(a, b))
+void testVectorDotProductExtendI8()
+{
+    // Test ExtendLow + DotProduct fusion
+    {
+        alignas(16) v128_t vectors[3];
+        Procedure proc;
+        BasicBlock* root = proc.addBlock();
+        auto arguments = cCallArgumentValues<void*>(proc, root);
+        Value* address = arguments[0];
+        Value* a = root->appendNew<MemoryValue>(proc, Load, V128, Origin(), address);
+        Value* b = root->appendNew<MemoryValue>(proc, Load, V128, Origin(), address, static_cast<int32_t>(sizeof(v128_t)));
+
+        // extendLow: i8x16 → i16x8 (lower 8 bytes, sign-extended)
+        Value* extA = root->appendNew<SIMDValue>(proc, Origin(), VectorExtendLow, B3::V128, SIMDLane::i16x8, SIMDSignMode::Signed, a);
+        Value* extB = root->appendNew<SIMDValue>(proc, Origin(), VectorExtendLow, B3::V128, SIMDLane::i16x8, SIMDSignMode::Signed, b);
+
+        // dot(extA, extB): i32x4 where result[i] = extA[2i]*extB[2i] + extA[2i+1]*extB[2i+1]
+        Value* result = root->appendNew<SIMDValue>(proc, Origin(), VectorDotProduct, B3::V128, SIMDLane::i32x4, SIMDSignMode::Signed, extA, extB);
+        root->appendNew<MemoryValue>(proc, Store, Origin(), result, address, static_cast<int32_t>(2 * sizeof(v128_t)));
+        root->appendNewControlValue(proc, Return, Origin());
+
+        auto code = compileProc(proc);
+
+        // a_i8 = {2, -3, 4, 5, -1, 7, 10, -10, ...} (lower 8 bytes used)
+        memset(&vectors[0], 0, sizeof(v128_t));
+        vectors[0].u8x16[0] = 2; vectors[0].u8x16[1] = static_cast<uint8_t>(-3);
+        vectors[0].u8x16[2] = 4; vectors[0].u8x16[3] = 5;
+        vectors[0].u8x16[4] = static_cast<uint8_t>(-1); vectors[0].u8x16[5] = 7;
+        vectors[0].u8x16[6] = 10; vectors[0].u8x16[7] = static_cast<uint8_t>(-10);
+
+        // b_i8 = {1, 2, 3, -4, 5, -6, -7, 8, ...} (lower 8 bytes used)
+        memset(&vectors[1], 0, sizeof(v128_t));
+        vectors[1].u8x16[0] = 1; vectors[1].u8x16[1] = 2;
+        vectors[1].u8x16[2] = 3; vectors[1].u8x16[3] = static_cast<uint8_t>(-4);
+        vectors[1].u8x16[4] = 5; vectors[1].u8x16[5] = static_cast<uint8_t>(-6);
+        vectors[1].u8x16[6] = static_cast<uint8_t>(-7); vectors[1].u8x16[7] = 8;
+
+        invoke<void>(*code, vectors);
+
+        // result[0] = 2*1 + (-3)*2 = 2 - 6 = -4
+        // result[1] = 4*3 + 5*(-4) = 12 - 20 = -8
+        // result[2] = (-1)*5 + 7*(-6) = -5 - 42 = -47
+        // result[3] = 10*(-7) + (-10)*8 = -70 - 80 = -150
+        CHECK(vectors[2].u32x4[0] == static_cast<uint32_t>(-4));
+        CHECK(vectors[2].u32x4[1] == static_cast<uint32_t>(-8));
+        CHECK(vectors[2].u32x4[2] == static_cast<uint32_t>(-47));
+        CHECK(vectors[2].u32x4[3] == static_cast<uint32_t>(-150));
+    }
+
+    // Test ExtendHigh + DotProduct fusion
+    {
+        alignas(16) v128_t vectors[3];
+        Procedure proc;
+        BasicBlock* root = proc.addBlock();
+        auto arguments = cCallArgumentValues<void*>(proc, root);
+        Value* address = arguments[0];
+        Value* a = root->appendNew<MemoryValue>(proc, Load, V128, Origin(), address);
+        Value* b = root->appendNew<MemoryValue>(proc, Load, V128, Origin(), address, static_cast<int32_t>(sizeof(v128_t)));
+
+        // extendHigh: i8x16 → i16x8 (upper 8 bytes, sign-extended)
+        Value* extA = root->appendNew<SIMDValue>(proc, Origin(), VectorExtendHigh, B3::V128, SIMDLane::i16x8, SIMDSignMode::Signed, a);
+        Value* extB = root->appendNew<SIMDValue>(proc, Origin(), VectorExtendHigh, B3::V128, SIMDLane::i16x8, SIMDSignMode::Signed, b);
+
+        Value* result = root->appendNew<SIMDValue>(proc, Origin(), VectorDotProduct, B3::V128, SIMDLane::i32x4, SIMDSignMode::Signed, extA, extB);
+        root->appendNew<MemoryValue>(proc, Store, Origin(), result, address, static_cast<int32_t>(2 * sizeof(v128_t)));
+        root->appendNewControlValue(proc, Return, Origin());
+
+        auto code = compileProc(proc);
+
+        // a_i8: upper 8 bytes (indices 8-15) = {3, -5, 2, 1, -4, 6, -8, 9}
+        memset(&vectors[0], 0, sizeof(v128_t));
+        vectors[0].u8x16[8] = 3; vectors[0].u8x16[9] = static_cast<uint8_t>(-5);
+        vectors[0].u8x16[10] = 2; vectors[0].u8x16[11] = 1;
+        vectors[0].u8x16[12] = static_cast<uint8_t>(-4); vectors[0].u8x16[13] = 6;
+        vectors[0].u8x16[14] = static_cast<uint8_t>(-8); vectors[0].u8x16[15] = 9;
+
+        // b_i8: upper 8 bytes (indices 8-15) = {-1, 4, 7, -3, 2, -2, 5, 5}
+        memset(&vectors[1], 0, sizeof(v128_t));
+        vectors[1].u8x16[8] = static_cast<uint8_t>(-1); vectors[1].u8x16[9] = 4;
+        vectors[1].u8x16[10] = 7; vectors[1].u8x16[11] = static_cast<uint8_t>(-3);
+        vectors[1].u8x16[12] = 2; vectors[1].u8x16[13] = static_cast<uint8_t>(-2);
+        vectors[1].u8x16[14] = 5; vectors[1].u8x16[15] = 5;
+
+        invoke<void>(*code, vectors);
+
+        // result[0] = 3*(-1) + (-5)*4 = -3 - 20 = -23
+        // result[1] = 2*7 + 1*(-3) = 14 - 3 = 11
+        // result[2] = (-4)*2 + 6*(-2) = -8 - 12 = -20
+        // result[3] = (-8)*5 + 9*5 = -40 + 45 = 5
+        CHECK(vectors[2].u32x4[0] == static_cast<uint32_t>(-23));
+        CHECK(vectors[2].u32x4[1] == static_cast<uint32_t>(11));
+        CHECK(vectors[2].u32x4[2] == static_cast<uint32_t>(-20));
+        CHECK(vectors[2].u32x4[3] == static_cast<uint32_t>(5));
+    }
+}
+
 // Test EOR3 (3-way XOR) pattern matching: VectorXor(VectorXor(a, b), c) → EOR3(a, b, c)
 void testVectorXor3()
 {

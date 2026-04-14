@@ -1153,6 +1153,7 @@ void run(const TestConfig* config)
         RUN(testVectorMulHigh());
         RUN(testVectorMulLow());
         RUN(testVectorDotProductSplatOne());
+        RUN(testVectorDotProductExtendI8());
         RUN_UNARY(testVectorXorOrAllOnesConstantToVectorAndXor, v128Operands());
         RUN_UNARY(testVectorXorAndAllOnesConstantToVectorOrXor, v128Operands());
         RUN_BINARY(testVectorOrConstants, v128Operands(), v128Operands());

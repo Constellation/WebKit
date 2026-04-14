@@ -3533,6 +3533,48 @@ private:
                 replaceWithNew<SIMDValue>(m_value->origin(), VectorExtaddPairwise, B3::V128, SIMDLane::i16x8, SIMDSignMode::Signed, m_value->child(0));
                 break;
             }
+
+            // Turn this: VectorDotProduct(VectorExtendLow(a_i8, i16x8, signed), VectorExtendLow(b_i8, i16x8, signed))
+            // Into this: VectorExtaddPairwise(VectorMulLow(a_i8, b_i8, i16x8, signed))
+            // ARM64: sxtl+sxtl+smull+smull2+addp (5 insns) → smull(i8)+saddlp (2 insns)
+            //
+            // Turn this: VectorDotProduct(VectorExtendHigh(a_i8, i16x8, signed), VectorExtendHigh(b_i8, i16x8, signed))
+            // Into this: VectorExtaddPairwise(VectorMulHigh(a_i8, b_i8, i16x8, signed))
+            // ARM64: sxtl2+sxtl2+smull+smull2+addp (5 insns) → smull2(i8)+saddlp (2 insns)
+            //
+            // Same for unsigned variants.
+            {
+                auto isI8ToI16Extend = [](Value* v, Opcode expectedOp, SIMDSignMode signMode) -> bool {
+                    if (v->opcode() != expectedOp)
+                        return false;
+                    auto* simd = v->as<SIMDValue>();
+                    return simd && simd->simdLane() == SIMDLane::i16x8
+                        && simd->signMode() == signMode;
+                };
+
+                auto tryFuseExtendDot = [&](Opcode extendOp, Opcode mulOp, SIMDSignMode signMode) -> bool {
+                    if (isI8ToI16Extend(m_value->child(0), extendOp, signMode)
+                        && isI8ToI16Extend(m_value->child(1), extendOp, signMode)) {
+                        Value* mul = m_insertionSet.insert<SIMDValue>(m_index,
+                            m_value->origin(), mulOp, B3::V128,
+                            SIMDLane::i16x8, signMode,
+                            m_value->child(0)->child(0), m_value->child(1)->child(0));
+                        replaceWithNew<SIMDValue>(m_value->origin(), VectorExtaddPairwise, B3::V128,
+                            SIMDLane::i16x8, signMode, mul);
+                        return true;
+                    }
+                    return false;
+                };
+
+                if (tryFuseExtendDot(VectorExtendLow, VectorMulLow, SIMDSignMode::Signed))
+                    break;
+                if (tryFuseExtendDot(VectorExtendHigh, VectorMulHigh, SIMDSignMode::Signed))
+                    break;
+                if (tryFuseExtendDot(VectorExtendLow, VectorMulLow, SIMDSignMode::Unsigned))
+                    break;
+                if (tryFuseExtendDot(VectorExtendHigh, VectorMulHigh, SIMDSignMode::Unsigned))
+                    break;
+            }
             break;
         }
 

@@ -1527,6 +1527,7 @@ void testFCCmpNegatedAndDouble(double, double, double, double);
 void testVectorXorRotateRight64();
 void testVectorXor3();
 void testVectorDotProductSplatOne();
+void testVectorDotProductExtendI8();
 
 // SIMD VectorUnzip/Zip/Transpose/Reverse B3 opcodes
 void testVectorUnzipEven();
