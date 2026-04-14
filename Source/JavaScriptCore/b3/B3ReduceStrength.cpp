@@ -3522,6 +3522,33 @@ private:
             break;
         }
 
+        case VectorShr: {
+            // Turn this: VectorShr(VectorZipLower(x, x), 8) where shr is i16x8 Signed
+            // Into this: VectorExtendLow(x, i16x8, Signed)
+            // And:       VectorShr(VectorZipHigher(x, x), 8) where shr is i16x8 Signed
+            // Into:      VectorExtendHigh(x, i16x8, Signed)
+            //
+            // VectorZip{Lower,Higher}(x, x) interleaves bytes: [x[i],x[i],...]
+            // Interpreted as i16x8 and shifted right by 8 bits, this sign-extends i8→i16.
+            // ARM64: zip1/zip2 + sshr (2 insns) → sxtl/sxtl2 (1 insn)
+            SIMDValue* shr = m_value->as<SIMDValue>();
+            if (shr->simdLane() == SIMDLane::i16x8
+                && shr->signMode() == SIMDSignMode::Signed
+                && m_value->child(1)->hasInt32()
+                && m_value->child(1)->asInt32() == 8) {
+                Value* child0 = m_value->child(0);
+                if ((child0->opcode() == VectorZipLower || child0->opcode() == VectorZipHigher)
+                    && child0->child(0) == child0->child(1)) {
+                    Opcode extendOp = child0->opcode() == VectorZipLower
+                        ? VectorExtendLow : VectorExtendHigh;
+                    replaceWithNew<SIMDValue>(m_value->origin(), extendOp, B3::V128,
+                        SIMDLane::i16x8, SIMDSignMode::Signed, child0->child(0));
+                    break;
+                }
+            }
+            break;
+        }
+
         case VectorDotProduct: {
             handleCommutativity();
 

@@ -4799,6 +4799,31 @@ private:
         case B3::VectorReplaceLane: {
             SIMDValue* value = m_value->as<SIMDValue>();
             auto lane = value->simdLane();
+
+            // V128Load64Zero / V128Load32Zero optimization:
+            // VectorReplaceLane(0, Const128(0), Load<Double|Float>) → just LoadDouble/LoadFloat
+            // On ARM64: ldr d/s from memory zeros upper bits of Q register.
+            // On x86: movsd/movss from memory zeros upper bits of XMM register.
+            if (value->immediate() == 0
+                && value->child(0)->hasV128()
+                && bitEquals(value->child(0)->asV128(), vectorAllZeros())
+                && value->child(1)->opcode() == Load
+                && canBeInternal(value->child(1))
+                && !crossesInterference(value->child(1))
+                && !value->child(1)->as<MemoryValue>()->hasFence()) {
+                Value* load = value->child(1);
+                if (load->type() == B3::Double) {
+                    commitInternal(load);
+                    append(trappingInst(load, Air::MoveDouble, m_value, addr(load), tmp(value)));
+                    return;
+                }
+                if (load->type() == B3::Float) {
+                    commitInternal(load);
+                    append(trappingInst(load, Air::MoveFloat, m_value, addr(load), tmp(value)));
+                    return;
+                }
+            }
+
             auto replacementScalar = tmp(value->child(1));
             Tmp result = tmp(value);
             append(Air::MoveVector, tmp(value->child(0)), result);
