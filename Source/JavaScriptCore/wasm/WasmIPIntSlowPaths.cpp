@@ -282,6 +282,27 @@ static ALWAYS_INLINE Wasm::Context::ScratchBufferEntry* buildEntryBufferForLoopO
 }
 
 
+WASM_IPINT_EXTERN_CPP_DECL(prologue_osr, CallFrame* callFrame)
+{
+    Wasm::IPIntCallee* callee = IPINT_CALLEE(callFrame);
+
+    if (!shouldJIT(callee)) {
+        callee->tierUpCounter().deferIndefinitely();
+        WASM_RETURN_TWO(nullptr, nullptr);
+    }
+
+    if (!Options::useWasmIPIntPrologueOSR())
+        WASM_RETURN_TWO(nullptr, nullptr);
+
+    dataLogLnIf(Options::verboseOSR(), *callee, ": Entered prologue_osr with tierUpCounter = ", callee->tierUpCounter());
+
+    if (RefPtr replacement = jitCompileAndSetHeuristics(*callee, instance, OSRFor::Prologue)) {
+        instance->ensureBaselineData(callee->functionIndex());
+        WASM_RETURN_TWO(replacement->entrypoint().taggedPtr(), nullptr);
+    }
+    WASM_RETURN_TWO(nullptr, nullptr);
+}
+
 WASM_IPINT_EXTERN_CPP_DECL(loop_osr, CallFrame* callFrame, uint8_t* pc, IPIntStackEntry* sp)
 {
     Wasm::IPIntCallee* callee = IPINT_CALLEE(callFrame);

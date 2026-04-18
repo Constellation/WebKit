@@ -525,6 +525,47 @@ end
 end
 
 # OSR
+macro ipintPrologueOSR(increment)
+if JIT
+    loadp UnboxedWasmCalleeStackSlot[cfr], ws0
+    baddis increment, Wasm::IPIntCallee::m_tierUpCounter + Wasm::IPIntTierUpCounter::m_counter[ws0], .continue
+
+    preserveWasmArgumentRegisters()
+
+if not ARMv7
+    ipintReloadMemory()
+    push memoryBase, boundsCheckingSize
+end
+
+    move cfr, a1
+    operationCall(macro() cCall2(_ipint_extern_prologue_osr) end)
+    move r0, ws0
+
+if not ARMv7
+    pop boundsCheckingSize, memoryBase
+end
+
+    restoreWasmArgumentRegisters()
+
+    btpz ws0, .continue
+
+    restoreIPIntRegisters()
+    restoreCallerPCAndCFR()
+
+    if ARM64E
+        leap _g_config, ws1
+        jmp JSCConfigGateMapOffset + (constexpr Gate::wasmOSREntry) * PtrSize[ws1], NativeToJITGatePtrTag # WasmEntryPtrTag
+    else
+        jmp ws0, WasmEntryPtrTag
+    end
+
+.continue:
+    if ARMv7
+        break # FIXME: ipint support.
+    end # ARMv7
+end # JIT
+end
+
 macro ipintLoopOSR(increment)
 if JIT and not ARMv7
     validateOpcodeConfig(ws0)
@@ -1323,8 +1364,16 @@ if WEBASSEMBLY and (ARM64 or ARM64E or X86_64 or ARMv7)
     argumINTFinish()
 
     loadp CodeBlock[cfr], wasmInstance
+    # Entry OSR is required for correctness on functions IPInt cannot interpret
+    # (e.g. SIMD functions when --useWasmIPIntSIMD=false). The slow path switches
+    # to a BBQ replacement when one is available; otherwise it just bumps the
+    # tier-up counter slightly. Cost is intentionally small so this entry
+    # contribution doesn't dominate the V8-style backedge / return charging.
 if ARMv7
+    ipintPrologueOSR(500000) # FIXME: support IPInt.
     break
+else
+    ipintPrologueOSR(5)
 end
     move cfr, a1
     operationCall(macro() cCall2(_ipint_extern_prepare_function_body) end)
