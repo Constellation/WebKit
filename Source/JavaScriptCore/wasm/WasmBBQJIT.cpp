@@ -3520,7 +3520,7 @@ void BBQJIT::emitReturnTierUpCheck()
     addLatePath(origin(), [tierUp, tierUpResume](BBQJIT& generator, CCallHelpers& jit) {
         tierUp.link(&jit);
         jit.move(GPRInfo::callFrameRegister, GPRInfo::nonPreservedNonArgumentGPR0);
-        jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(triggerOMGEntryTierUpThunkGenerator(generator.m_usesSIMD)).code()));
+        jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(triggerOMGTierUpThunkGenerator(generator.m_usesSIMD)).code()));
         jit.jump(tierUpResume);
     });
 #endif

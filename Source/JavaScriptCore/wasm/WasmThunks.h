@@ -49,14 +49,14 @@ MacroAssemblerCodeRef<JITThunkPtrTag> materializeBaselineDataGenerator(const Abs
 MacroAssemblerCodeRef<JITThunkPtrTag> callPolymorphicCalleeGenerator(const AbstractLocker&);
 #endif
 #if ENABLE(WEBASSEMBLY_OMGJIT)
-MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorImpl(const AbstractLocker&, bool isSIMDContext);
-MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorSIMD(const AbstractLocker&);
-MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorNoSIMD(const AbstractLocker&);
-constexpr ThunkGenerator triggerOMGEntryTierUpThunkGenerator(bool isSIMDContext)
+MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGTierUpThunkGeneratorImpl(const AbstractLocker&, bool isSIMDContext);
+MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGTierUpThunkGeneratorSIMD(const AbstractLocker&);
+MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGTierUpThunkGeneratorNoSIMD(const AbstractLocker&);
+constexpr ThunkGenerator triggerOMGTierUpThunkGenerator(bool isSIMDContext)
 {
     if (isSIMDContext)
-        return triggerOMGEntryTierUpThunkGeneratorSIMD;
-    return triggerOMGEntryTierUpThunkGeneratorNoSIMD;
+        return triggerOMGTierUpThunkGeneratorSIMD;
+    return triggerOMGTierUpThunkGeneratorNoSIMD;
 }
 #endif
 

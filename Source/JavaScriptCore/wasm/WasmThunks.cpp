@@ -348,16 +348,24 @@ MacroAssemblerCodeRef<JITThunkPtrTag> catchInWasmThunkGenerator(const AbstractLo
 
 #if ENABLE(WEBASSEMBLY_OMGJIT)
 
-MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorImpl(const AbstractLocker&, bool isSIMDContext)
+MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGTierUpThunkGeneratorImpl(const AbstractLocker&, bool isSIMDContext)
 {
     // We expect that the user has already put their cfr into GPRInfo::nonPreservedNonArgumentGPR0
     CCallHelpers jit;
-    JIT_COMMENT(jit, "triggerOMGEntryTierUpThunkGenerator");
+    JIT_COMMENT(jit, "triggerOMGTierUpThunkGenerator");
 
     jit.emitFunctionPrologue();
 
     const unsigned extraPaddingBytes = 0;
-    auto registersToSpill = RegisterSet::registersToSaveForCCall(isSIMDContext ? RegisterSet::allRegisters() : RegisterSet::allScalarRegisters()).normalizeWidths();
+    // Note: deliberately NOT calling .normalizeWidths() here. normalizeWidths returns a
+    // ScalarRegisterSet, and the implicit conversion ScalarRegisterSet -> RegisterSet
+    // (RegisterSet::RegisterSet(ScalarRegisterSet)) drops m_upperBits. With
+    // m_upperBits cleared, preserveRegistersToStackForCall only emits scalar `stp d, d`
+    // for FPRs and does not preserve the upper 64 bits of v128 values -- breaking any
+    // caller that has live v128 values in argument FPRs across the C call (e.g. this
+    // thunk being invoked from a wasm function-return tier-up check, where v128 results
+    // sit in argumentFPR0..N when the slow path runs).
+    auto registersToSpill = RegisterSet::registersToSaveForCCall(isSIMDContext ? RegisterSet::allRegisters() : RegisterSet::allScalarRegisters());
     unsigned numberOfStackBytesUsedForRegisterPreservation = ScratchRegisterAllocator::preserveRegistersToStackForCall(jit, registersToSpill, extraPaddingBytes);
 
     // We can clobber these argument registers now since we saved them and later we restore them.
@@ -371,17 +379,17 @@ MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorImpl(co
     jit.emitFunctionEpilogue();
     jit.ret();
     LinkBuffer linkBuffer(jit, GLOBAL_THUNK_ID, LinkBuffer::Profile::WasmThunk);
-    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "triggerOMGEntryTierUpThunk"_s, "Trigger OMG entry tier up");
+    return FINALIZE_WASM_CODE(linkBuffer, JITThunkPtrTag, "triggerOMGTierUpThunk"_s, "Trigger OMG tier up (used by both loop and return tier-up checks)");
 }
 
-MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorSIMD(const AbstractLocker& locker)
+MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGTierUpThunkGeneratorSIMD(const AbstractLocker& locker)
 {
-    return triggerOMGEntryTierUpThunkGeneratorImpl(locker, true);
+    return triggerOMGTierUpThunkGeneratorImpl(locker, true);
 }
 
-MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGEntryTierUpThunkGeneratorNoSIMD(const AbstractLocker& locker)
+MacroAssemblerCodeRef<JITThunkPtrTag> triggerOMGTierUpThunkGeneratorNoSIMD(const AbstractLocker& locker)
 {
-    return triggerOMGEntryTierUpThunkGeneratorImpl(locker, false);
+    return triggerOMGTierUpThunkGeneratorImpl(locker, false);
 }
 
 #endif
