@@ -3149,27 +3149,6 @@ PartialResult BBQJIT::addI32Extend8S(Value operand, Value& result)
     return { };
 }
 
-void BBQJIT::emitEntryTierUpCheck()
-{
-    if (!canTierUpToOMG())
-        return;
-
-#if ENABLE(WEBASSEMBLY_OMGJIT)
-    static_assert(GPRInfo::nonPreservedNonArgumentGPR0 == wasmScratchGPR);
-    m_jit.move(TrustedImmPtr(std::bit_cast<uintptr_t>(&m_callee.tierUpCounter().m_counter)), wasmScratchGPR);
-    Jump tierUp = m_jit.branchAdd32(CCallHelpers::PositiveOrZero, TrustedImm32(TierUpCount::functionEntryIncrement()), Address(wasmScratchGPR));
-    MacroAssembler::Label tierUpResume = m_jit.label();
-    addLatePath(origin(), [tierUp, tierUpResume](BBQJIT& generator, CCallHelpers& jit) {
-        tierUp.link(&jit);
-        jit.move(GPRInfo::callFrameRegister, GPRInfo::nonPreservedNonArgumentGPR0);
-        jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(triggerOMGEntryTierUpThunkGenerator(generator.m_usesSIMD)).code()));
-        jit.jump(tierUpResume);
-    });
-#else
-    RELEASE_ASSERT_NOT_REACHED();
-#endif
-}
-
 // Control flow
 [[nodiscard]] ControlData BBQJIT::addTopLevel(BlockSignature&& signature)
 {
@@ -3186,6 +3165,7 @@ void BBQJIT::emitEntryTierUpCheck()
     }
 
     m_pcToCodeOriginMapBuilder.appendItem(m_jit.label(), PCToCodeOriginMapBuilder::defaultCodeOrigin());
+    m_functionStartLabel = m_jit.label();
     m_jit.emitFunctionPrologue();
     emitPushCalleeSaves();
     m_topLevel = ControlData(*this, BlockType::TopLevel, WTF::move(signature), 0);
@@ -3346,8 +3326,6 @@ void BBQJIT::emitEntryTierUpCheck()
 
     for (size_t i = 0; i < m_functionSignature->argumentCount(); i ++)
         m_topLevel.touch(i); // Ensure arguments are flushed to persistent locations when this block ends.
-
-    emitEntryTierUpCheck();
 
     return m_topLevel;
 }
@@ -3524,6 +3502,30 @@ StackMap BBQJIT::makeStackMap(const ControlData& data, Stack& enclosingStack)
     return stackMap;
 }
 
+void BBQJIT::emitReturnTierUpCheck()
+{
+    if (!canTierUpToOMG())
+        return;
+
+#if ENABLE(WEBASSEMBLY_OMGJIT)
+    auto& tierUpCounter = m_callee.tierUpCounter();
+    DataLabelPtr costLabel = m_jit.moveWithPatch(TrustedImmPtr(nullptr), wasmScratchGPR);
+    Jump tierUp = m_jit.branchAdd32(ResultCondition::PositiveOrZero, wasmScratchGPR, CCallHelpers::AbsoluteAddress(&tierUpCounter.m_counter));
+    MacroAssembler::Label tierUpResume = m_jit.label();
+
+    ReturnTierUpCostPatch patch;
+    patch.costLabel = costLabel;
+    m_returnTierUpCostPatches.append(patch);
+
+    addLatePath(origin(), [tierUp, tierUpResume](BBQJIT& generator, CCallHelpers& jit) {
+        tierUp.link(&jit);
+        jit.move(GPRInfo::callFrameRegister, GPRInfo::nonPreservedNonArgumentGPR0);
+        jit.nearCallThunk(CodeLocationLabel<JITThunkPtrTag>(Thunks::singleton().stub(triggerOMGEntryTierUpThunkGenerator(generator.m_usesSIMD)).code()));
+        jit.jump(tierUpResume);
+    });
+#endif
+}
+
 void BBQJIT::emitLoopTierUpCheckAndOSREntryData(const ControlData& data, Stack& enclosingStack, unsigned loopIndex)
 {
     auto& tierUpCounter = m_callee.tierUpCounter();
@@ -3541,15 +3543,23 @@ void BBQJIT::emitLoopTierUpCheckAndOSREntryData(const ControlData& data, Stack& 
 
 #if ENABLE(WEBASSEMBLY_OMGJIT)
     static_assert(GPRInfo::nonPreservedNonArgumentGPR0 == wasmScratchGPR);
-    m_jit.move(TrustedImmPtr(std::bit_cast<uintptr_t>(&tierUpCounter.m_counter)), wasmScratchGPR);
 
     TierUpCount::TriggerReason* forceEntryTrigger = &(tierUpCounter.osrEntryTriggers().last());
     static_assert(!static_cast<uint8_t>(TierUpCount::TriggerReason::DontTrigger), "the JIT code assumes non-zero means 'enter'");
     static_assert(sizeof(TierUpCount::TriggerReason) == 1, "branchTest8 assumes this size");
 
     Jump forceOSREntry = m_jit.branchTest8(ResultCondition::NonZero, CCallHelpers::AbsoluteAddress(forceEntryTrigger));
-    Jump tierUp = m_jit.branchAdd32(ResultCondition::PositiveOrZero, TrustedImm32(TierUpCount::loopIncrement()), CCallHelpers::Address(wasmScratchGPR));
+
+    DataLabelPtr costLabel = m_jit.moveWithPatch(TrustedImmPtr(nullptr), wasmScratchGPR);
+    Jump tierUp = m_jit.branchAdd32(ResultCondition::PositiveOrZero, wasmScratchGPR, CCallHelpers::AbsoluteAddress(&tierUpCounter.m_counter));
     MacroAssembler::Label tierUpResume = m_jit.label();
+
+    LoopTierUpCostPatch patch;
+    patch.costLabel = costLabel;
+    patch.loopStart = data.loopLabel();
+    // patch.loopEnd is set when the matching `end` for this loop is encountered.
+    m_openLoopTierUpPatchIndices.append(m_loopTierUpCostPatches.size());
+    m_loopTierUpCostPatches.append(patch);
 
     OSREntryData* osrEntryDataPtr = &osrEntryData;
 
@@ -3894,6 +3904,8 @@ void BBQJIT::prepareForExceptions()
         }
     }
 
+    emitReturnTierUpCheck();
+
     emitRestoreCalleeSaves();
     m_jit.emitFunctionEpilogue();
     m_jit.ret();
@@ -4070,6 +4082,13 @@ void BBQJIT::prepareForExceptions()
         entryData.flushAndSingleExit(*this, entryData, entry.enclosedExpressionStack, false, true, unreachable);
         entryData.linkJumpsTo(entryData.loopLabel(), &m_jit);
         m_outerLoops.takeLast();
+        if (canTierUpToOMG() && !m_openLoopTierUpPatchIndices.isEmpty()) {
+            // Record loop end for the matching tier-up cost patch. linkJumpsTo above
+            // emitted the backedge jumps, so the current label is just past the
+            // loop body in machine code -- a good proxy for "loop body bytes".
+            size_t patchIndex = m_openLoopTierUpPatchIndices.takeLast();
+            m_loopTierUpCostPatches[patchIndex].loopEnd = m_jit.label();
+        }
         break;
     case BlockType::Try:
     case BlockType::Catch:
@@ -4118,6 +4137,32 @@ void BBQJIT::prepareForExceptions()
             jit.repatchPointer(linkBuffer.locationOf<NoPtrTag>(label), std::bit_cast<void*>(static_cast<uintptr_t>(frameSize)));
     });
 
+    if (!m_loopTierUpCostPatches.isEmpty()) {
+        m_jit.addLinkTask([patches = WTF::move(m_loopTierUpCostPatches)](LinkBuffer& linkBuffer) {
+            for (auto& patch : patches) {
+                if (!patch.loopEnd.isSet())
+                    continue;
+                auto* startAddr = linkBuffer.locationOf<NoPtrTag>(patch.loopStart).template dataLocation<char*>();
+                auto* endAddr = linkBuffer.locationOf<NoPtrTag>(patch.loopEnd).template dataLocation<char*>();
+                uint32_t bodyBytes = endAddr > startAddr ? static_cast<uint32_t>(endAddr - startAddr) : 0;
+                int32_t cost = TierUpCount::costForBackedge(bodyBytes);
+                MacroAssembler::repatchPointer(linkBuffer.locationOf<NoPtrTag>(patch.costLabel), std::bit_cast<void*>(static_cast<uintptr_t>(static_cast<uint32_t>(cost))));
+            }
+        });
+    }
+    if (!m_returnTierUpCostPatches.isEmpty()) {
+        MacroAssembler::Label functionStart = m_functionStartLabel;
+        MacroAssembler::Label functionEnd = m_jit.label();
+        m_jit.addLinkTask([patches = WTF::move(m_returnTierUpCostPatches), functionStart, functionEnd](LinkBuffer& linkBuffer) {
+            auto* startAddr = linkBuffer.locationOf<NoPtrTag>(functionStart).template dataLocation<char*>();
+            auto* endAddr = linkBuffer.locationOf<NoPtrTag>(functionEnd).template dataLocation<char*>();
+            uint32_t functionBytes = endAddr > startAddr ? static_cast<uint32_t>(endAddr - startAddr) : 0;
+            int32_t cost = TierUpCount::costForReturn(functionBytes);
+            void* costPtr = std::bit_cast<void*>(static_cast<uintptr_t>(static_cast<uint32_t>(cost)));
+            for (auto& patch : patches)
+                MacroAssembler::repatchPointer(linkBuffer.locationOf<NoPtrTag>(patch.costLabel), costPtr);
+        });
+    }
     LOG_DEDENT();
     LOG_INSTRUCTION("End");
 

@@ -5063,6 +5063,13 @@ public:
         return Jump(m_assembler.jCC(x86Condition(cond)));
     }
 
+    Jump branchAdd32(ResultCondition cond, RegisterID src, AbsoluteAddress dest)
+    {
+        move(TrustedImmPtr(dest.m_ptr), scratchRegister());
+        add32(src, Address(scratchRegister()));
+        return Jump(m_assembler.jCC(x86Condition(cond)));
+    }
+
     void add64(RegisterID src, RegisterID dest)
     {
         m_assembler.addq_rr(src, dest);

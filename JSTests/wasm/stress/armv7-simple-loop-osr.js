@@ -1,8 +1,8 @@
 //@ skip unless $isOMGPlatform
-//@ requireOptions("--useWasmSIMD=1", "--useOMGJIT=1", "--useOMGInlining=0", "--useConcurrentJIT=0", "--useDollarVM=1", "--thresholdForBBQOptimizeAfterWarmUp=0", "--thresholdForBBQOptimizeSoon=0", "--thresholdForOMGOptimizeAfterWarmUp=50", "--thresholdForOMGOptimizeSoon=50")
+//@ requireOptions("--useWasmSIMD=1", "--useOMGJIT=1", "--useOMGInlining=0", "--useConcurrentJIT=0", "--useDollarVM=1", "--wasmIPIntTieringBudget=0", "--wasmIPIntTieringBudgetSoon=0", "--wasmOMGTieringBudget=50", "--wasmOMGTieringBudgetSoon=50")
 //@ $skipModes << "wasm-no-jit".to_sym
 //@ $skipModes << "wasm-no-wasm-jit".to_sym
-// jsc -m armv7-simple-loop-osr.js --useOMGJIT=1 --useOMGInlining=0 --useConcurrentJIT=0 --useDollarVM=1 --thresholdForBBQOptimizeAfterWarmUp=0 --thresholdForBBQOptimizeSoon=0 --thresholdForOMGOptimizeAfterWarmUp=50 --thresholdForOMGOptimizeSoon=50
+// jsc -m armv7-simple-loop-osr.js --useOMGJIT=1 --useOMGInlining=0 --useConcurrentJIT=0 --useDollarVM=1 --wasmIPIntTieringBudget=0 --wasmIPIntTieringBudgetSoon=0 --wasmOMGTieringBudget=50 --wasmOMGTieringBudgetSoon=50
 import { instantiate } from "../wabt-wrapper.js"
 import * as assert from "../assert.js"
 

@@ -2693,6 +2693,25 @@ public:
         return branchTestFinalize(cond, temp.data());
     }
 
+    Jump branchAdd32(ResultCondition cond, RegisterID src, AbsoluteAddress address)
+    {
+        auto temp = temps<Data, Memory>();
+        loadImmediate(TrustedImmPtr(address.m_ptr), temp.memory());
+        m_assembler.lwInsn(temp.data(), temp.memory(), Imm::I<0>());
+
+        if (cond == Overflow) {
+            auto branch = branchForArithmeticOverflow<32, ArithmeticOperation::Addition>(temp.data(), src, temp.data());
+            loadImmediate(TrustedImmPtr(address.m_ptr), temp.memory());
+            m_assembler.swInsn(temp.memory(), temp.data(), Imm::S<0>());
+            return branch;
+        }
+
+        m_assembler.addwInsn(temp.data(), temp.data(), src);
+        loadImmediate(TrustedImmPtr(address.m_ptr), temp.memory());
+        m_assembler.swInsn(temp.memory(), temp.data(), Imm::S<0>());
+        return branchTestFinalize(cond, temp.data());
+    }
+
     Jump branchAdd32(ResultCondition cond, TrustedImm32 imm, Address address)
     {
         auto temp = temps<Data, Memory>();

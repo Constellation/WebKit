@@ -82,6 +82,11 @@ struct InstructionLengthMetadata {
     uint8_t length; // 1B for length of current instruction
 };
 
+struct LoopMetadata {
+    int32_t backedgeCost; // 4B added to IPInt tier-up counter on each iteration.
+    InstructionLengthMetadata instructionLength;
+};
+
 struct BlockMetadata {
     // Field order is significant, both may be loaded with one 'loadpairi' instruction.
     // Negative deltas are possible for some Wasm instructions and require sign extension to 64b before the addition.

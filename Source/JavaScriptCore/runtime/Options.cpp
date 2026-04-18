@@ -550,10 +550,10 @@ static void scaleJITPolicy()
     scaleOption(Options::thresholdForFTLOptimizeSoon(), 2);
     scaleOption(Options::thresholdForFTLOptimizeAfterWarmUp(), 2);
 
-    scaleOption(Options::thresholdForBBQOptimizeAfterWarmUp(), 0);
-    scaleOption(Options::thresholdForBBQOptimizeSoon(), 0);
-    scaleOption(Options::thresholdForOMGOptimizeAfterWarmUp(), 1);
-    scaleOption(Options::thresholdForOMGOptimizeSoon(), 1);
+    scaleOption(Options::wasmIPIntTieringBudget(), 0);
+    scaleOption(Options::wasmIPIntTieringBudgetSoon(), 0);
+    scaleOption(Options::wasmOMGTieringBudget(), 1);
+    scaleOption(Options::wasmOMGTieringBudgetSoon(), 1);
 }
 
 #if OS(DARWIN)
@@ -824,7 +824,7 @@ void Options::notifyOptionsChanged()
         disableAllWasmJITOptions();
 
     if (!Options::useWasmIPInt())
-        Options::thresholdForBBQOptimizeAfterWarmUp() = 0; // Trigger immediate BBQ tier up.
+        Options::wasmIPIntTieringBudget() = 0; // Trigger immediate BBQ tier up.
 
 #if CPU(ARM_THUMB2)
     // WasmIPInt is not supported on ARM32, so disable wasm if BBQJIT is disabled.

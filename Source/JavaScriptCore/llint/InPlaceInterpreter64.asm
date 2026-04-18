@@ -269,10 +269,11 @@ end)
 ipintOp(_loop, macro()
     # loop
     # We already validateOpcodeConfig in ipintLoopOSR.
-    ipintLoopOSR(1)
-    loadb IPInt::InstructionLengthMetadata::length[MC], t0
+    loadi IPInt::LoopMetadata::backedgeCost[MC], t1
+    ipintLoopOSR(t1)
+    loadb IPInt::LoopMetadata::instructionLength + IPInt::InstructionLengthMetadata::length[MC], t0
     advancePCByReg(t0)
-    advanceMCByReg(constexpr (sizeof(IPInt::InstructionLengthMetadata)))
+    advanceMCByReg(constexpr (sizeof(IPInt::LoopMetadata)))
     nextIPIntInstruction()
 end)
 
@@ -406,7 +407,8 @@ end)
 # This implementation is specially defined out of ipintOp scope to make end implementation tight.
 .ipint_end_ret:
     loadp Wasm::IPIntCallee::m_uINTBytecode + VectorBufferOffset[ws0], MC
-    ipintEpilogueOSR(10)
+    loadi Wasm::IPIntCallee::m_returnTierUpCost[ws0], t1
+    ipintEpilogueOSR(t1)
 if X86_64
     loadp UnboxedWasmCalleeStackSlot[cfr], ws0
 end

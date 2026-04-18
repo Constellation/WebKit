@@ -73,7 +73,7 @@ public:
 
     void optimizeAfterWarmUp()
     {
-        setNewThreshold(Options::thresholdForBBQOptimizeAfterWarmUp());
+        setNewThreshold(Options::wasmIPIntTieringBudget());
         ASSERT(Options::useWasmIPInt() || checkIfOptimizationThresholdReached());
     }
 
@@ -84,7 +84,29 @@ public:
 
     void optimizeSoon()
     {
-        setNewThreshold(Options::thresholdForBBQOptimizeSoon());
+        setNewThreshold(Options::wasmIPIntTieringBudgetSoon());
+    }
+
+    static int32_t costForBackedge(uint32_t bodyBytes)
+    {
+        int64_t cost = static_cast<int64_t>(bodyBytes) * Options::wasmIPIntTieringBudgetFactor() + Options::wasmIPIntTierUpCostForCheck();
+        int32_t cap = std::max<int32_t>(1, Options::wasmIPIntTieringBudget() / std::max<int32_t>(1, Options::wasmIPIntTieringMaxBudgetUseFraction()));
+        if (cost > cap)
+            cost = cap;
+        if (cost < 1)
+            cost = 1;
+        return static_cast<int32_t>(cost);
+    }
+
+    static int32_t costForReturn(uint32_t functionBytes)
+    {
+        int64_t cost = static_cast<int64_t>(functionBytes) * Options::wasmIPIntTieringBudgetFactor() + Options::wasmIPIntTierUpCostForCheck() + Options::wasmIPIntTierUpCostForFunctionEntry();
+        int32_t cap = std::max<int32_t>(1, Options::wasmIPIntTieringBudget() / std::max<int32_t>(1, Options::wasmIPIntTieringMaxBudgetUseFraction()));
+        if (cost > cap)
+            cost = cap;
+        if (cost < 1)
+            cost = 1;
+        return static_cast<int32_t>(cost);
     }
 
     const OSREntryData& osrEntryDataForLoop(IPIntPC offset) const

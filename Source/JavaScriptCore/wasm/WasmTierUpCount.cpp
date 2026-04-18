@@ -37,7 +37,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(TierUpCount);
 
 TierUpCount::TierUpCount()
 {
-    setNewThreshold(Options::thresholdForOMGOptimizeAfterWarmUp());
+    setNewThreshold(Options::wasmOMGTieringBudget());
     m_compilationStatusForOMG.fill(CompilationStatus::NotCompiled);
     m_compilationStatusForOMGForOSREntry.fill(CompilationStatus::NotCompiled);
 }

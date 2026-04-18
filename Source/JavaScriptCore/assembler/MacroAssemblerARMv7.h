@@ -3367,6 +3367,14 @@ public:
         return Jump(makeBranch(cond));
     }
 
+    Jump branchAdd32(ResultCondition cond, RegisterID src, AbsoluteAddress dest)
+    {
+        load32(setupArmAddress(dest), dataTempRegister);
+        m_assembler.add_S(dataTempRegister, dataTempRegister, src);
+        store32(dataTempRegister, dest.m_ptr);
+        return Jump(makeBranch(cond));
+    }
+
     Jump branchAdd32(ResultCondition cond, TrustedImm32 imm, Address dest)
     {
         constexpr bool updateFlags = true;

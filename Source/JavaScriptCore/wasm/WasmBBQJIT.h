@@ -1943,8 +1943,6 @@ public:
 
     [[nodiscard]] PartialResult addRefFunc(FunctionSpaceIndex index, Value& result);
 
-    void emitEntryTierUpCheck();
-
     // Control flow
     [[nodiscard]] ControlData addTopLevel(BlockSignature&&);
 
@@ -1963,6 +1961,7 @@ public:
     StackMap makeStackMap(const ControlData& data, Stack& enclosingStack);
 
     void emitLoopTierUpCheckAndOSREntryData(const ControlData&, Stack& enclosingStack, unsigned loopIndex);
+    void emitReturnTierUpCheck();
 
     [[nodiscard]] PartialResult addLoop(BlockSignature&&, Stack& enclosingStack, ControlType& result, Stack& newStack, uint32_t loopIndex);
 
@@ -2282,6 +2281,23 @@ private:
 
     // FIXME: All uses of this are to restore sp, so we should emit these as a patchable sub instruction rather than move.
     Vector<DataLabelPtr, 1> m_frameSizeLabels;
+
+    // Tier-up cost patches. The cost (machine-code body size) of a
+    // loop or the whole function isn't known when we emit the inline check, so
+    // we move a patchable pointer-sized value into a register and patch it at
+    // link time, when the LinkBuffer has resolved label addresses.
+    struct LoopTierUpCostPatch {
+        DataLabelPtr costLabel;
+        MacroAssembler::Label loopStart;
+        MacroAssembler::Label loopEnd;
+    };
+    Vector<LoopTierUpCostPatch, 4> m_loopTierUpCostPatches;
+    Vector<size_t, 4> m_openLoopTierUpPatchIndices;
+    struct ReturnTierUpCostPatch {
+        DataLabelPtr costLabel;
+    };
+    Vector<ReturnTierUpCostPatch, 4> m_returnTierUpCostPatches;
+    MacroAssembler::Label m_functionStartLabel;
     int m_frameSize { 0 };
     int m_maxCalleeStackSize { 0 };
     int m_localAndCalleeSaveStorage { 0 }; // Stack offset pointing to the local and callee save with the lowest address.

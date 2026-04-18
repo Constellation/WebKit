@@ -5127,6 +5127,14 @@ public:
         return Jump(makeBranch(cond));
     }
 
+    Jump branchAdd32(ResultCondition cond, RegisterID src, AbsoluteAddress address)
+    {
+        load32(address.m_ptr, getCachedDataTempRegisterIDAndInvalidate());
+        m_assembler.add<32, S>(dataTempRegister, dataTempRegister, src);
+        store32(dataTempRegister, address.m_ptr);
+        return Jump(makeBranch(cond));
+    }
+
     Jump branchAdd32(ResultCondition cond, TrustedImm32 imm, Address address)
     {
         load32(address, getCachedDataTempRegisterIDAndInvalidate());

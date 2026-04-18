@@ -560,13 +560,19 @@ bool hasCapacityToUseLargeGigacage();
     \
     v(Bool, useBBQTierUpChecks, true, Normal, "Enables tier up checks for our BBQ code."_s) \
     v(Bool, useWasmOSR, true, Normal, nullptr) \
-    v(Int32, thresholdForBBQOptimizeAfterWarmUp, 150, Normal, "The count before we tier up a function to BBQ."_s) \
-    v(Int32, thresholdForBBQOptimizeSoon, 50, Normal, nullptr) \
-    v(Int32, thresholdForOMGOptimizeAfterWarmUp, 50000, Normal, "The count before we tier up a function to OMG."_s) \
-    v(Int32, thresholdForOMGOptimizeSoon, 500, Normal, nullptr) \
+    v(Int32, wasmIPIntTieringBudget, 300000, Normal, "Initial IPInt tier-up budget (counter starts at -budget). Cost is charged per WASM-bytecode body byte."_s) \
+    v(Int32, wasmIPIntTieringBudgetSoon, 5000, Normal, "IPInt tier-up budget when optimizeSoon is requested."_s) \
+    v(Int32, wasmIPIntTieringBudgetFactor, 1, Normal, "Multiplier on WASM-bytecode bytes for IPInt tier-up cost."_s) \
+    v(Int32, wasmIPIntTierUpCostForCheck, 5, Normal, "Fixed per-check IPInt tier-up cost component."_s) \
+    v(Int32, wasmIPIntTierUpCostForFunctionEntry, 10, Normal, "IPInt return-path additional cost component approximating prologue/frame-setup work."_s) \
+    v(Int32, wasmIPIntTieringMaxBudgetUseFraction, 4, Normal, "IPInt: cap a single check's deduction at budget/fraction."_s) \
+    v(Int32, wasmOMGTieringBudget, 13000000, Normal, "Initial BBQ->OMG tier-up budget. Cost is charged per machine-code body byte (matches V8)."_s) \
+    v(Int32, wasmOMGTieringBudgetSoon, 100000, Normal, "BBQ->OMG tier-up budget when optimizeSoon is requested."_s) \
+    v(Int32, wasmOMGTieringBudgetFactor, 1, Normal, "Multiplier on machine-code bytes for BBQ->OMG tier-up cost."_s) \
+    v(Int32, wasmOMGTierUpCostForCheck, 20, Normal, "Fixed per-check BBQ->OMG tier-up cost component (matches V8 kTierUpCostForCheck)."_s) \
+    v(Int32, wasmOMGTierUpCostForFunctionEntry, 40, Normal, "BBQ->OMG return-path additional cost component (matches V8 kTierUpCostForFunctionEntry)."_s) \
+    v(Int32, wasmOMGTieringMaxBudgetUseFraction, 4, Normal, "BBQ->OMG: cap a single check's deduction at budget/fraction (matches V8)."_s) \
     v(Unsigned, maximumOMGCandidateCost, 100000, Normal, nullptr) \
-    v(Int32, omgTierUpCounterIncrementForLoop, 1, Normal, "The amount the tier up counter is incremented on each loop backedge."_s) \
-    v(Int32, omgTierUpCounterIncrementForEntry, 15, Normal, "The amount the tier up counter is incremented on each function entry."_s) \
     v(Bool, useWasmFastMemory, true, Normal, "If true, we will try to use a 32-bit address space with a signal handler to bounds check wasm memory."_s) \
     v(Bool, logWasmMemory, false, Normal, nullptr) \
     v(Unsigned, wasmFastMemoryRedzonePages, 128, Normal, "Wasm fast memories use 4GiB virtual allocations, plus a redzone (counted as multiple of 64KiB Wasm pages) at the end to catch reg+imm accesses which exceed 32-bit, anything beyond the redzone is explicitly bounds-checked"_s) \
@@ -637,7 +643,6 @@ bool hasCapacityToUseLargeGigacage();
     v(Bool, useRecursiveJSONParse, true, Normal, nullptr) \
     v(Unsigned, thresholdForStringReplaceCache, 0x1000, Normal, nullptr) \
     v(Bool, useWasmIPInt, ipintEnabledByDefault(), Normal, "Use the in-place interpereter for WASM instead of LLInt."_s) \
-    v(Bool, useWasmIPIntPrologueOSR, true, Normal, "Allow IPInt to tier up during function prologues"_s) \
     v(Bool, useWasmIPIntLoopOSR, true, Normal, "Allow IPInt to tier up during loop iterations"_s) \
     v(Bool, useWasmIPIntEpilogueOSR, true, Normal, "Allow IPInt to tier up during function epilogues"_s) \
     v(Bool, useWasmIPIntSIMD, true, Normal, "Allow IPInt to interpret SIMD code"_s) \

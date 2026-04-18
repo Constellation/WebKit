@@ -66,8 +66,27 @@ public:
     TierUpCount();
     ~TierUpCount();
 
-    static int32_t loopIncrement() { return Options::omgTierUpCounterIncrementForLoop(); }
-    static int32_t functionEntryIncrement() { return Options::omgTierUpCounterIncrementForEntry(); }
+    static int32_t costForBackedge(uint32_t bodyBytes)
+    {
+        int64_t cost = static_cast<int64_t>(bodyBytes) * Options::wasmOMGTieringBudgetFactor() + Options::wasmOMGTierUpCostForCheck();
+        int32_t cap = std::max<int32_t>(1, Options::wasmOMGTieringBudget() / std::max<int32_t>(1, Options::wasmOMGTieringMaxBudgetUseFraction()));
+        if (cost > cap)
+            cost = cap;
+        if (cost < 1)
+            cost = 1;
+        return static_cast<int32_t>(cost);
+    }
+
+    static int32_t costForReturn(uint32_t functionBytes)
+    {
+        int64_t cost = static_cast<int64_t>(functionBytes) * Options::wasmOMGTieringBudgetFactor() + Options::wasmOMGTierUpCostForCheck() + Options::wasmOMGTierUpCostForFunctionEntry();
+        int32_t cap = std::max<int32_t>(1, Options::wasmOMGTieringBudget() / std::max<int32_t>(1, Options::wasmOMGTieringMaxBudgetUseFraction()));
+        if (cost > cap)
+            cost = cap;
+        if (cost < 1)
+            cost = 1;
+        return static_cast<int32_t>(cost);
+    }
 
     SegmentedVector<TriggerReason, 16>& osrEntryTriggers() LIFETIME_BOUND { return m_osrEntryTriggers; }
     Vector<uint32_t>& outerLoops() LIFETIME_BOUND { return m_outerLoops; }
@@ -79,7 +98,7 @@ public:
     void optimizeAfterWarmUp(FunctionCodeIndex functionIndex)
     {
         dataLogLnIf(Options::verboseOSR(), "\t[", functionIndex, "] OMG-optimizing after warm-up.");
-        setNewThreshold(Options::thresholdForOMGOptimizeAfterWarmUp());
+        setNewThreshold(Options::wasmOMGTieringBudget());
     }
 
     bool checkIfOptimizationThresholdReached()
@@ -103,7 +122,7 @@ public:
     {
         dataLogLnIf(Options::verboseOSR(), functionIndex, ": OMG-optimizing soon.");
         // FIXME: Need adjustment once we get more information about wasm functions.
-        setNewThreshold(Options::thresholdForOMGOptimizeSoon());
+        setNewThreshold(Options::wasmOMGTieringBudgetSoon());
     }
 
     void setOptimizationThresholdBasedOnCompilationResult(FunctionCodeIndex functionIndex, CompilationResult result)

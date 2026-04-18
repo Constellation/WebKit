@@ -236,27 +236,6 @@ static inline RefPtr<Wasm::JITCallee> jitCompileAndSetHeuristics(Wasm::IPIntCall
     return getReplacement();
 }
 
-WASM_IPINT_EXTERN_CPP_DECL(prologue_osr, CallFrame* callFrame)
-{
-    Wasm::IPIntCallee* callee = IPINT_CALLEE(callFrame);
-
-    if (!shouldJIT(callee)) {
-        callee->tierUpCounter().deferIndefinitely();
-        WASM_RETURN_TWO(nullptr, nullptr);
-    }
-
-    if (!Options::useWasmIPIntPrologueOSR())
-        WASM_RETURN_TWO(nullptr, nullptr);
-
-    dataLogLnIf(Options::verboseOSR(), *callee, ": Entered prologue_osr with tierUpCounter = ", callee->tierUpCounter());
-
-    if (RefPtr replacement = jitCompileAndSetHeuristics(*callee, instance, OSRFor::Prologue)) {
-        instance->ensureBaselineData(callee->functionIndex());
-        WASM_RETURN_TWO(replacement->entrypoint().taggedPtr(), nullptr);
-    }
-    WASM_RETURN_TWO(nullptr, nullptr);
-}
-
 // This needs to be kept in sync with BBQJIT::makeStackMap.
 static ALWAYS_INLINE Wasm::Context::ScratchBufferEntry* buildEntryBufferForLoopOSR(Wasm::IPIntCallee* ipintCallee, Wasm::BBQCallee* bbqCallee, JSWebAssemblyInstance* instance, const Wasm::IPIntTierUpCounter::OSREntryData& osrEntryData, CallFrame* callFrame, IPIntStackEntry* sp)
 {
@@ -308,12 +287,20 @@ WASM_IPINT_EXTERN_CPP_DECL(loop_osr, CallFrame* callFrame, uint8_t* pc, IPIntSta
     Wasm::IPIntCallee* callee = IPINT_CALLEE(callFrame);
     Wasm::IPIntTierUpCounter& tierUpCounter = callee->tierUpCounter();
 
+    dataLogLnIf(Options::verboseOSR(), *callee, ": Entered loop_osr with tierUpCounter = ", callee->tierUpCounter());
+
     if (!Options::useWasmOSR() || !Options::useWasmIPIntLoopOSR() || !shouldJIT(callee)) {
-        ipint_extern_prologue_osr(instance, callFrame);
+        if (!shouldJIT(callee)) {
+            callee->tierUpCounter().deferIndefinitely();
+            WASM_RETURN_TWO(nullptr, nullptr);
+        }
+
+        if (RefPtr replacement = jitCompileAndSetHeuristics(*callee, instance, OSRFor::Prologue)) {
+            instance->ensureBaselineData(callee->functionIndex());
+            WASM_RETURN_TWO(replacement->entrypoint().taggedPtr(), nullptr);
+        }
         WASM_RETURN_TWO(nullptr, nullptr);
     }
-
-    dataLogLnIf(Options::verboseOSR(), *callee, ": Entered loop_osr with tierUpCounter = ", callee->tierUpCounter());
 
     if (!tierUpCounter.checkIfOptimizationThresholdReached()) {
         dataLogLnIf(Options::verboseOSR(), "    JIT threshold should be lifted.");

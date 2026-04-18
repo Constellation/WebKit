@@ -2277,7 +2277,11 @@ void IPIntGenerator::resolveExitTarget(unsigned index, IPIntLocation loc)
     });
     ++m_coalesceDebt;
 
-    IPInt::InstructionLengthMetadata md { static_cast<uint8_t>(getCurrentInstructionLength()) };
+    IPInt::LoopMetadata md {
+        .backedgeCost = 1, // Placeholder, patched at the matching `end`. Must be > 0 so the loop tier-up check still progresses if patching is somehow skipped.
+        .instructionLength = { static_cast<uint8_t>(getCurrentInstructionLength()) },
+    };
+    block.m_pendingOffset = static_cast<int32_t>(m_metadata->m_metadata.size());
     m_metadata->appendMetadata(md);
 
     // Loop OSR
@@ -2781,6 +2785,11 @@ void IPIntGenerator::endTryTable(const ControlType& data)
 
         // Metadata = round up 8 bytes, one for each
         m_metadata->m_bytecode = m_metadata->m_bytecode.first(m_parser->offset());
+
+        uint32_t functionBodyBytes = m_parser->offset() > m_metadata->m_bytecodeOffset
+            ? static_cast<uint32_t>(m_parser->offset() - m_metadata->m_bytecodeOffset)
+            : 0;
+        m_metadata->m_returnTierUpCost = IPIntTierUpCounter::costForReturn(functionBodyBytes);
         return { };
     }
 
@@ -2796,6 +2805,14 @@ void IPIntGenerator::endTryTable(const ControlType& data)
         m_coalesceQueue.append({ static_cast<unsigned>(block.m_index), false });
         --m_coalesceDebt;
     } else if (ControlType::isLoop(block)) {
+        // Patch the loop's LoopMetadata.backedgeCost now that we know the loop body size.
+        if (block.m_pendingOffset >= 0) {
+            uint32_t loopEndOffset = m_parser->currentOpcodeStartingOffset() - m_metadata->m_bytecodeOffset;
+            uint32_t bodyBytes = loopEndOffset > block.m_pc ? loopEndOffset - block.m_pc : 0;
+            int32_t cost = IPIntTierUpCounter::costForBackedge(bodyBytes);
+            auto* md = reinterpret_cast<IPInt::LoopMetadata*>(m_metadata->m_metadata.mutableSpan().data() + block.m_pendingOffset);
+            md->backedgeCost = cost;
+        }
         m_coalesceQueue.append({ static_cast<unsigned>(block.m_index), false });
         --m_coalesceDebt;
     } else if (ControlType::isTryTable(block)) {

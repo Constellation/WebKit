@@ -140,6 +140,7 @@ private:
     unsigned m_topOfReturnStackFPOffset;
 
     uint32_t m_bytecodeOffset { 0 };
+    int32_t m_returnTierUpCost { 0 };
     unsigned m_maxFrameSizeInV128 { 0 };
     unsigned m_numLocals { 0 };
     unsigned m_numAlignedRethrowSlots { 0 };

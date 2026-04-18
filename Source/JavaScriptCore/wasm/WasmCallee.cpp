@@ -268,6 +268,7 @@ IPIntCallee::IPIntCallee(FunctionIPIntMetadataGenerator& generator, FunctionSpac
     , m_uINTBytecode(WTF::move(generator.m_uINTBytecode))
     , m_callTargets(WTF::move(generator.m_callTargets))
     , m_topOfReturnStackFPOffset(generator.m_topOfReturnStackFPOffset)
+    , m_returnTierUpCost(generator.m_returnTierUpCost)
     , m_localSizeToAlloc(roundUpToMultipleOf<2>(generator.m_numLocals))
     , m_numRethrowSlotsToAlloc(generator.m_numAlignedRethrowSlots)
     , m_numLocals(generator.m_numLocals)

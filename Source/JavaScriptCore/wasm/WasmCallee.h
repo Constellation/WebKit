@@ -497,6 +497,8 @@ private:
 
     unsigned m_topOfReturnStackFPOffset;
 
+    int32_t m_returnTierUpCost { 0 };
+
     unsigned m_localSizeToAlloc;
     unsigned m_numRethrowSlotsToAlloc;
     unsigned m_numLocals;
