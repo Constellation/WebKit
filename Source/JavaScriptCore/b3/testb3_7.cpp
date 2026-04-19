@@ -4967,6 +4967,244 @@ void testVectorShrZipToExtendI64()
     }
 }
 
+// Loop peeling tests: verify that B3 loop peeling produces correct results.
+// These tests build B3 IR with explicit Phi/Upsilon loop constructs and
+// check that the compiled code returns the correct result both with and
+// without loop peeling enabled.
+
+void testLoopPeelingSimpleCountedLoop()
+{
+    // for (i = 0; i < 10; i++) sum += i;
+    // Expected: sum = 0+1+2+...+9 = 45
+    Procedure proc;
+    proc.setIsWasm(true);
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* header = proc.addBlock();
+    BasicBlock* body = proc.addBlock();
+    BasicBlock* done = proc.addBlock();
+
+    Value* constZero = root->appendIntConstant(proc, Origin(), Int32, 0);
+    Value* constOne = root->appendIntConstant(proc, Origin(), Int32, 1);
+    Value* constTen = root->appendIntConstant(proc, Origin(), Int32, 10);
+    UpsilonValue* initialI = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    UpsilonValue* initialSum = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    root->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    Value* phiI = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    Value* phiSum = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    initialI->setPhi(phiI);
+    initialSum->setPhi(phiSum);
+    header->appendNewControlValue(proc, Branch, Origin(),
+        header->appendNew<Value>(proc, LessThan, Origin(), phiI, constTen),
+        FrequentedBlock(body), FrequentedBlock(done));
+
+    Value* newSum = body->appendNew<Value>(proc, Add, Origin(), phiSum, phiI);
+    Value* newI = body->appendNew<Value>(proc, Add, Origin(), phiI, constOne);
+    UpsilonValue* loopI = body->appendNew<UpsilonValue>(proc, Origin(), newI);
+    loopI->setPhi(phiI);
+    UpsilonValue* loopSum = body->appendNew<UpsilonValue>(proc, Origin(), newSum);
+    loopSum->setPhi(phiSum);
+    body->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    done->appendNewControlValue(proc, Return, Origin(), phiSum);
+
+    CHECK_EQ(compileAndRun<int32_t>(proc), 45);
+}
+
+void testLoopPeelingZeroIterations()
+{
+    // limit = 0 → loop body never executes → sum = 0
+    Procedure proc;
+    proc.setIsWasm(true);
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* header = proc.addBlock();
+    BasicBlock* body = proc.addBlock();
+    BasicBlock* done = proc.addBlock();
+
+    Value* constZero = root->appendIntConstant(proc, Origin(), Int32, 0);
+    Value* constOne = root->appendIntConstant(proc, Origin(), Int32, 1);
+    UpsilonValue* initialI = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    UpsilonValue* initialSum = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    root->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    Value* phiI = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    Value* phiSum = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    initialI->setPhi(phiI);
+    initialSum->setPhi(phiSum);
+    // i < 0 is always false → skip loop immediately
+    header->appendNewControlValue(proc, Branch, Origin(),
+        header->appendNew<Value>(proc, LessThan, Origin(), phiI, constZero),
+        FrequentedBlock(body), FrequentedBlock(done));
+
+    Value* newSum = body->appendNew<Value>(proc, Add, Origin(), phiSum, phiI);
+    Value* newI = body->appendNew<Value>(proc, Add, Origin(), phiI, constOne);
+    UpsilonValue* loopI = body->appendNew<UpsilonValue>(proc, Origin(), newI);
+    loopI->setPhi(phiI);
+    UpsilonValue* loopSum = body->appendNew<UpsilonValue>(proc, Origin(), newSum);
+    loopSum->setPhi(phiSum);
+    body->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    done->appendNewControlValue(proc, Return, Origin(), phiSum);
+
+    CHECK_EQ(compileAndRun<int32_t>(proc), 0);
+}
+
+void testLoopPeelingOneIteration()
+{
+    // limit = 1 → loop body executes once → sum = 0
+    Procedure proc;
+    proc.setIsWasm(true);
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* header = proc.addBlock();
+    BasicBlock* body = proc.addBlock();
+    BasicBlock* done = proc.addBlock();
+
+    Value* constZero = root->appendIntConstant(proc, Origin(), Int32, 0);
+    Value* constOne = root->appendIntConstant(proc, Origin(), Int32, 1);
+    UpsilonValue* initialI = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    UpsilonValue* initialSum = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    root->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    Value* phiI = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    Value* phiSum = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    initialI->setPhi(phiI);
+    initialSum->setPhi(phiSum);
+    header->appendNewControlValue(proc, Branch, Origin(),
+        header->appendNew<Value>(proc, LessThan, Origin(), phiI, constOne),
+        FrequentedBlock(body), FrequentedBlock(done));
+
+    Value* newSum = body->appendNew<Value>(proc, Add, Origin(), phiSum, phiI);
+    Value* newI = body->appendNew<Value>(proc, Add, Origin(), phiI, constOne);
+    UpsilonValue* loopI = body->appendNew<UpsilonValue>(proc, Origin(), newI);
+    loopI->setPhi(phiI);
+    UpsilonValue* loopSum = body->appendNew<UpsilonValue>(proc, Origin(), newSum);
+    loopSum->setPhi(phiSum);
+    body->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    done->appendNewControlValue(proc, Return, Origin(), phiSum);
+
+    CHECK_EQ(compileAndRun<int32_t>(proc), 0);
+}
+
+void testLoopPeelingNestedLoop()
+{
+    // Nested loops: only the inner loop should be peeled.
+    // outer: for (i = 0; i < 3; i++)
+    //   inner: for (j = 0; j < 4; j++) sum += 1;
+    // Expected: sum = 3 * 4 = 12
+    Procedure proc;
+    proc.setIsWasm(true);
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* outerHeader = proc.addBlock();
+    BasicBlock* innerHeader = proc.addBlock();
+    BasicBlock* innerBody = proc.addBlock();
+    BasicBlock* outerLatch = proc.addBlock();
+    BasicBlock* done = proc.addBlock();
+
+    Value* constZero = root->appendIntConstant(proc, Origin(), Int32, 0);
+    Value* constOne = root->appendIntConstant(proc, Origin(), Int32, 1);
+    Value* constThree = root->appendIntConstant(proc, Origin(), Int32, 3);
+    Value* constFour = root->appendIntConstant(proc, Origin(), Int32, 4);
+
+    UpsilonValue* initialI = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    UpsilonValue* initialSum = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    root->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(outerHeader));
+
+    // Outer header: for (i = 0; i < 3; ...)
+    Value* phiI = outerHeader->appendNew<Value>(proc, Phi, Int32, Origin());
+    Value* phiSum = outerHeader->appendNew<Value>(proc, Phi, Int32, Origin());
+    initialI->setPhi(phiI);
+    initialSum->setPhi(phiSum);
+    outerHeader->appendNewControlValue(proc, Branch, Origin(),
+        outerHeader->appendNew<Value>(proc, LessThan, Origin(), phiI, constThree),
+        FrequentedBlock(innerHeader), FrequentedBlock(done));
+
+    // Inner header: for (j = 0; j < 4; ...)
+    // Upsilons must be inserted before the outer header's terminal.
+    auto* upsilonJ = proc.add<UpsilonValue>(Origin(), constZero);
+    outerHeader->appendNonTerminal(upsilonJ);
+    auto* upsilonInnerSum = proc.add<UpsilonValue>(Origin(), phiSum);
+    outerHeader->appendNonTerminal(upsilonInnerSum);
+
+    Value* phiJ = innerHeader->appendNew<Value>(proc, Phi, Int32, Origin());
+    Value* phiInnerSum = innerHeader->appendNew<Value>(proc, Phi, Int32, Origin());
+    upsilonJ->setPhi(phiJ);
+    upsilonInnerSum->setPhi(phiInnerSum);
+    innerHeader->appendNewControlValue(proc, Branch, Origin(),
+        innerHeader->appendNew<Value>(proc, LessThan, Origin(), phiJ, constFour),
+        FrequentedBlock(innerBody), FrequentedBlock(outerLatch));
+
+    // Inner body
+    Value* newInnerSum = innerBody->appendNew<Value>(proc, Add, Origin(), phiInnerSum, constOne);
+    Value* newJ = innerBody->appendNew<Value>(proc, Add, Origin(), phiJ, constOne);
+    UpsilonValue* loopJ = innerBody->appendNew<UpsilonValue>(proc, Origin(), newJ);
+    loopJ->setPhi(phiJ);
+    UpsilonValue* loopInnerSum = innerBody->appendNew<UpsilonValue>(proc, Origin(), newInnerSum);
+    loopInnerSum->setPhi(phiInnerSum);
+    innerBody->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(innerHeader));
+
+    // Outer latch: i++, sum = inner result
+    Value* newI = outerLatch->appendNew<Value>(proc, Add, Origin(), phiI, constOne);
+    UpsilonValue* loopI = outerLatch->appendNew<UpsilonValue>(proc, Origin(), newI);
+    loopI->setPhi(phiI);
+    UpsilonValue* loopSum = outerLatch->appendNew<UpsilonValue>(proc, Origin(), phiInnerSum);
+    loopSum->setPhi(phiSum);
+    outerLatch->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(outerHeader));
+
+    done->appendNewControlValue(proc, Return, Origin(), phiSum);
+
+    CHECK_EQ(compileAndRun<int32_t>(proc), 12);
+}
+
+void testLoopPeelingMultipleExits()
+{
+    // Loop with early exit from the body.
+    // sum = 0; for (i = 0; i < 100; i++) { if (i == 5) break; sum += i; }
+    // Expected: sum = 0+1+2+3+4 = 10
+    Procedure proc;
+    proc.setIsWasm(true);
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* header = proc.addBlock();
+    BasicBlock* bodyCheck = proc.addBlock();
+    BasicBlock* bodyAccum = proc.addBlock();
+    BasicBlock* done = proc.addBlock();
+
+    Value* constZero = root->appendIntConstant(proc, Origin(), Int32, 0);
+    Value* constOne = root->appendIntConstant(proc, Origin(), Int32, 1);
+    Value* constFive = root->appendIntConstant(proc, Origin(), Int32, 5);
+    Value* constHundred = root->appendIntConstant(proc, Origin(), Int32, 100);
+
+    UpsilonValue* initialI = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    UpsilonValue* initialSum = root->appendNew<UpsilonValue>(proc, Origin(), constZero);
+    root->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    Value* phiI = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    Value* phiSum = header->appendNew<Value>(proc, Phi, Int32, Origin());
+    initialI->setPhi(phiI);
+    initialSum->setPhi(phiSum);
+    header->appendNewControlValue(proc, Branch, Origin(),
+        header->appendNew<Value>(proc, LessThan, Origin(), phiI, constHundred),
+        FrequentedBlock(bodyCheck), FrequentedBlock(done));
+
+    // Body: check for early exit
+    bodyCheck->appendNewControlValue(proc, Branch, Origin(),
+        bodyCheck->appendNew<Value>(proc, Equal, Origin(), phiI, constFive),
+        FrequentedBlock(done), FrequentedBlock(bodyAccum));
+
+    // Accumulate and loop back
+    Value* newSum = bodyAccum->appendNew<Value>(proc, Add, Origin(), phiSum, phiI);
+    Value* newI = bodyAccum->appendNew<Value>(proc, Add, Origin(), phiI, constOne);
+    UpsilonValue* loopI = bodyAccum->appendNew<UpsilonValue>(proc, Origin(), newI);
+    loopI->setPhi(phiI);
+    UpsilonValue* loopSum = bodyAccum->appendNew<UpsilonValue>(proc, Origin(), newSum);
+    loopSum->setPhi(phiSum);
+    bodyAccum->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(header));
+
+    done->appendNewControlValue(proc, Return, Origin(), phiSum);
+
+    CHECK_EQ(compileAndRun<int32_t>(proc), 10);
+}
+
 #endif // ENABLE(B3_JIT)
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END

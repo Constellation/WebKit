@@ -1851,7 +1851,190 @@ void testLoadImmutable()
     CHECK_EQ(invoke<uint64_t>(*code, memory.mutableSpan().data(), memory.mutableSpan().data() + 1), 84U);
 }
 
-// ARM64 conditional compare (ccmp) tests
+void testLoadImmutableDominated()
+{
+    Vector<uint64_t> memory(4);
+
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    auto arguments = cCallArgumentValues<void*, void*>(proc, root);
+
+    BasicBlock* done = proc.addBlock();
+    BasicBlock* thenCase = proc.addBlock();
+    BasicBlock* elseCase = proc.addBlock();
+    auto* value1 = root->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    value1->setReadsMutability(B3::Mutability::Immutable);
+    root->appendNew<MemoryValue>(proc, Store, Origin(), root->appendNew<Const32Value>(proc, Origin(), 0), arguments[1]);
+    root->appendNew<Value>(
+        proc, Branch, Origin(),
+        root->appendNew<Value>(proc, B3::Equal, Origin(), value1, root->appendIntConstant(proc, Origin(), Int64, 42)));
+    root->setSuccessors(thenCase, elseCase);
+
+    thenCase->appendNew<MemoryValue>(proc, Store, Origin(), thenCase->appendNew<Const32Value>(proc, Origin(), 22), arguments[1]);
+    thenCase->appendNew<Value>(proc, Jump, Origin());
+    thenCase->setSuccessors(done);
+
+    elseCase->appendNew<MemoryValue>(proc, Store, Origin(), elseCase->appendNew<Const32Value>(proc, Origin(), 11), arguments[1]);
+    elseCase->appendNew<Value>(proc, Jump, Origin());
+    elseCase->setSuccessors(done);
+
+    auto* value2 = done->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    value2->setReadsMutability(B3::Mutability::Immutable);
+    done->appendNewControlValue(proc, Return, Origin(), done->appendNew<Value>(proc, Add, Origin(), value1, value2));
+    auto code = compileProc(proc);
+
+    memory.fill(42);
+    CHECK_EQ(invoke<uint64_t>(*code, memory.mutableSpan().data(), memory.mutableSpan().data() + 1), 84U);
+    memory.fill(11);
+    CHECK_EQ(invoke<uint64_t>(*code, memory.mutableSpan().data(), memory.mutableSpan().data() + 1), 22U);
+}
+
+void testLoadImmutableNonDominated()
+{
+    Vector<uint64_t> memory(4);
+
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    auto arguments = cCallArgumentValues<void*, void*>(proc, root);
+
+    BasicBlock* done = proc.addBlock();
+    BasicBlock* thenCase = proc.addBlock();
+    BasicBlock* elseCase = proc.addBlock();
+    auto* cond = thenCase->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[1]);
+    root->appendNew<MemoryValue>(proc, Store, Origin(), root->appendNew<Const32Value>(proc, Origin(), 0), arguments[1]);
+    root->appendNew<Value>(
+        proc, Branch, Origin(),
+        root->appendNew<Value>(proc, B3::Equal, Origin(), cond, root->appendIntConstant(proc, Origin(), Int64, 42)));
+    root->setSuccessors(thenCase, elseCase);
+
+    auto* value1 = thenCase->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    value1->setReadsMutability(B3::Mutability::Immutable);
+    thenCase->appendNew<MemoryValue>(proc, Store, Origin(), value1, arguments[1]);
+    thenCase->appendNew<Value>(proc, Jump, Origin());
+    thenCase->setSuccessors(done);
+
+    elseCase->appendNew<MemoryValue>(proc, Store, Origin(), elseCase->appendNew<Const32Value>(proc, Origin(), 11), arguments[1]);
+    elseCase->appendNew<Value>(proc, Jump, Origin());
+    elseCase->setSuccessors(done);
+
+    auto* value2 = done->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    value2->setReadsMutability(B3::Mutability::Immutable);
+    done->appendNewControlValue(proc, Return, Origin(), value2);
+    auto code = compileProc(proc);
+
+    memory.fill(42);
+    CHECK_EQ(invoke<uint64_t>(*code, memory.mutableSpan().data(), memory.mutableSpan().data() + 1), 42U);
+    memory.fill(11);
+    CHECK_EQ(invoke<uint64_t>(*code, memory.mutableSpan().data(), memory.mutableSpan().data() + 1), 11U);
+}
+
+void testLoadImmutableCrossBlockCSE()
+{
+    // Verify that CSE eliminates redundant immutable loads across blocks
+    // even when intervening blocks have overlapping writes.
+    Procedure proc;
+    if (proc.optLevel() < 2)
+        return;
+
+    Vector<uint64_t> memory(4);
+    BasicBlock* root = proc.addBlock();
+    auto arguments = cCallArgumentValues<void*, void*>(proc, root);
+
+    BasicBlock* done = proc.addBlock();
+    BasicBlock* thenCase = proc.addBlock();
+    BasicBlock* elseCase = proc.addBlock();
+
+    // Immutable load in root block
+    auto* value1 = root->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    value1->setReadsMutability(B3::Mutability::Immutable);
+
+    // Store with overlapping heap range (HeapRange::top by default)
+    root->appendNew<MemoryValue>(proc, Store, Origin(), root->appendNew<Const32Value>(proc, Origin(), 0), arguments[1]);
+
+    root->appendNew<Value>(
+        proc, Branch, Origin(),
+        root->appendNew<Value>(proc, B3::Equal, Origin(), value1, root->appendIntConstant(proc, Origin(), Int64, 42)));
+    root->setSuccessors(thenCase, elseCase);
+
+    // Both branches have stores with overlapping heap ranges
+    thenCase->appendNew<MemoryValue>(proc, Store, Origin(), thenCase->appendNew<Const32Value>(proc, Origin(), 22), arguments[1]);
+    thenCase->appendNew<Value>(proc, Jump, Origin());
+    thenCase->setSuccessors(done);
+
+    elseCase->appendNew<MemoryValue>(proc, Store, Origin(), elseCase->appendNew<Const32Value>(proc, Origin(), 11), arguments[1]);
+    elseCase->appendNew<Value>(proc, Jump, Origin());
+    elseCase->setSuccessors(done);
+
+    // Second immutable load in done block - should be CSE'd with value1
+    auto* value2 = done->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    value2->setReadsMutability(B3::Mutability::Immutable);
+    done->appendNewControlValue(proc, Return, Origin(), done->appendNew<Value>(proc, Add, Origin(), value1, value2));
+
+    proc.code().forcePreservationOfB3Origins();
+    auto code = compileProc(proc);
+
+    // Verify CSE eliminated the second load
+    unsigned loadCount = 0;
+    for (Value* value : proc.values()) {
+        if (value->opcode() == Load)
+            loadCount++;
+    }
+    CHECK_EQ(loadCount, 1u);
+
+    // Verify correctness
+    memory.fill(42);
+    CHECK_EQ(invoke<uint64_t>(*code, memory.mutableSpan().data(), memory.mutableSpan().data() + 1), 84U);
+}
+
+void testLoadMutableCrossBlockNoCSE()
+{
+    // Verify that mutable loads are NOT CSE'd across blocks with overlapping writes.
+    Procedure proc;
+    if (proc.optLevel() < 2)
+        return;
+
+    Vector<uint64_t> memory(4);
+    BasicBlock* root = proc.addBlock();
+    auto arguments = cCallArgumentValues<void*, void*>(proc, root);
+
+    BasicBlock* done = proc.addBlock();
+    BasicBlock* thenCase = proc.addBlock();
+    BasicBlock* elseCase = proc.addBlock();
+
+    // Mutable load in root block
+    auto* value1 = root->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+
+    // Store with overlapping heap range
+    root->appendNew<MemoryValue>(proc, Store, Origin(), root->appendNew<Const32Value>(proc, Origin(), 0), arguments[1]);
+
+    root->appendNew<Value>(
+        proc, Branch, Origin(),
+        root->appendNew<Value>(proc, B3::Equal, Origin(), value1, root->appendIntConstant(proc, Origin(), Int64, 42)));
+    root->setSuccessors(thenCase, elseCase);
+
+    thenCase->appendNew<MemoryValue>(proc, Store, Origin(), thenCase->appendNew<Const32Value>(proc, Origin(), 22), arguments[1]);
+    thenCase->appendNew<Value>(proc, Jump, Origin());
+    thenCase->setSuccessors(done);
+
+    elseCase->appendNew<MemoryValue>(proc, Store, Origin(), elseCase->appendNew<Const32Value>(proc, Origin(), 11), arguments[1]);
+    elseCase->appendNew<Value>(proc, Jump, Origin());
+    elseCase->setSuccessors(done);
+
+    // Mutable load - should NOT be CSE'd
+    auto* value2 = done->appendNew<MemoryValue>(proc, Load, Int64, Origin(), arguments[0]);
+    done->appendNewControlValue(proc, Return, Origin(), done->appendNew<Value>(proc, Add, Origin(), value1, value2));
+
+    proc.code().forcePreservationOfB3Origins();
+    auto code = compileProc(proc);
+
+    // Verify the second load is NOT eliminated (mutable loads can be clobbered)
+    unsigned loadCount = 0;
+    for (Value* value : proc.values()) {
+        if (value->opcode() == Load)
+            loadCount++;
+    }
+    CHECK(loadCount >= 2u);
+}
 // These tests verify that BitAnd/BitOr of comparisons are optimized using ccmp instruction
 
 void testCCmpAnd32(int32_t a, int32_t b, int32_t c, int32_t d)

@@ -520,6 +520,8 @@ bool hasCapacityToUseLargeGigacage();
     v(Unsigned, maxB3TailDupBlockSize, 3, Normal, nullptr) \
     v(Unsigned, maxB3TailDupBlockSuccessors, 3, Normal, nullptr) \
     v(Bool, useB3HoistLoopInvariantValues, true, Normal, nullptr) \
+    v(Bool, useB3LoopPeeling, true, Normal, nullptr) \
+    v(Unsigned, maxB3LoopPeelingBodySize, 1000, Normal, nullptr) \
     v(Bool, useB3CanonicalizePrePostIncrements, false, Normal, nullptr) \
     v(Bool, useAirOptimizePairedLoadStore, true, Normal, nullptr) \
     \

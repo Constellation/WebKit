@@ -6515,6 +6515,7 @@ Expected<std::unique_ptr<InternalFunction>, String> parseAndCompileOMG(Compilati
     procedure.setNeedsUsedRegisters(false);
     
     procedure.setOptLevel(Options::wasmOMGOptimizationLevel());
+    procedure.setIsWasm(true);
 
     procedure.code().setForceIRCRegisterAllocation();
 

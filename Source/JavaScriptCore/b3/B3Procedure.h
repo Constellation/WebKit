@@ -305,6 +305,9 @@ public:
         return m_usesSIMD;
     }
 
+    void setIsWasm(bool value) { m_isWasm = value; }
+    bool isWasm() const { return m_isWasm; }
+
     void setIonGraphPasses(Ref<JSON::Array>&&);
     void appendIonGraphPass(ASCIILiteral);
 
@@ -342,6 +345,7 @@ private:
     bool m_needsPCToOriginMap { false };
     bool m_shouldDumpIR { false };
     bool m_usesSIMD { false };
+    bool m_isWasm { false };
 };
     
 } } // namespace JSC::B3

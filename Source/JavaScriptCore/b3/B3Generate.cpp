@@ -37,6 +37,7 @@
 #include "B3FixSSA.h"
 #include "B3FoldPathConstants.h"
 #include "B3HoistLoopInvariantValues.h"
+#include "B3PeelLoops.h"
 #include "B3InferSwitches.h"
 #include "B3LegalizeMemoryOffsets.h"
 #include "B3LowerMacros.h"
@@ -84,6 +85,10 @@ void generateToAir(Procedure& procedure)
     if (procedure.optLevel() >= 2) {
         reduceDoubleToFloat(procedure);
         reduceStrength(procedure, ReduceStrengthPass::Initial);
+        if (Options::useB3LoopPeeling() && procedure.isWasm()) {
+            if (peelLoops(procedure))
+                fixSSA(procedure);
+        }
         if (Options::useB3HoistLoopInvariantValues())
             hoistLoopInvariantValues(procedure);
         if (eliminateCommonSubexpressions(procedure))

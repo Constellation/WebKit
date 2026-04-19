@@ -609,6 +609,7 @@
 		0FEC85241BDACDAC0080FF74 /* B3Origin.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FEC84DA1BDACDAC0080FF74 /* B3Origin.h */; };
 		0FEC85261BDACDAC0080FF74 /* B3PatchpointSpecial.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FEC84DC1BDACDAC0080FF74 /* B3PatchpointSpecial.h */; };
 		0FEC85281BDACDAC0080FF74 /* B3PatchpointValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FEC84DE1BDACDAC0080FF74 /* B3PatchpointValue.h */; };
+		7435BD09B15D4B72B0B4905C /* B3PeelLoops.h in Headers */ = {isa = PBXBuildFile; fileRef = 631CBD674E8A472CB63084B0 /* B3PeelLoops.h */; };
 		0FEC852A1BDACDAC0080FF74 /* B3PhaseScope.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FEC84E01BDACDAC0080FF74 /* B3PhaseScope.h */; };
 		0FEC852C1BDACDAC0080FF74 /* B3Procedure.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FEC84E21BDACDAC0080FF74 /* B3Procedure.h */; };
 		0FEC852D1BDACDAC0080FF74 /* B3ProcedureInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FEC84E31BDACDAC0080FF74 /* B3ProcedureInlines.h */; };
@@ -3666,6 +3667,8 @@
 		0FEC84DC1BDACDAC0080FF74 /* B3PatchpointSpecial.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3PatchpointSpecial.h; path = b3/B3PatchpointSpecial.h; sourceTree = "<group>"; };
 		0FEC84DD1BDACDAC0080FF74 /* B3PatchpointValue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3PatchpointValue.cpp; path = b3/B3PatchpointValue.cpp; sourceTree = "<group>"; };
 		0FEC84DE1BDACDAC0080FF74 /* B3PatchpointValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3PatchpointValue.h; path = b3/B3PatchpointValue.h; sourceTree = "<group>"; };
+		84E13ED97CBF4C57AF526AB3 /* B3PeelLoops.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3PeelLoops.cpp; path = b3/B3PeelLoops.cpp; sourceTree = "<group>"; };
+		631CBD674E8A472CB63084B0 /* B3PeelLoops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3PeelLoops.h; path = b3/B3PeelLoops.h; sourceTree = "<group>"; };
 		0FEC84DF1BDACDAC0080FF74 /* B3PhaseScope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3PhaseScope.cpp; path = b3/B3PhaseScope.cpp; sourceTree = "<group>"; };
 		0FEC84E01BDACDAC0080FF74 /* B3PhaseScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3PhaseScope.h; path = b3/B3PhaseScope.h; sourceTree = "<group>"; };
 		0FEC84E11BDACDAC0080FF74 /* B3Procedure.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3Procedure.cpp; path = b3/B3Procedure.cpp; sourceTree = "<group>"; };
@@ -7002,6 +7005,8 @@
 				0FEC84DD1BDACDAC0080FF74 /* B3PatchpointValue.cpp */,
 				0FEC84DE1BDACDAC0080FF74 /* B3PatchpointValue.h */,
 				799EF7C31C56ED96002B0534 /* B3PCToOriginMap.h */,
+				84E13ED97CBF4C57AF526AB3 /* B3PeelLoops.cpp */,
+				631CBD674E8A472CB63084B0 /* B3PeelLoops.h */,
 				0FEC84DF1BDACDAC0080FF74 /* B3PhaseScope.cpp */,
 				0FEC84E01BDACDAC0080FF74 /* B3PhaseScope.h */,
 				0F37308A1C0BD29100052BFA /* B3PhiChildren.cpp */,
@@ -11080,6 +11085,7 @@
 				0FEC85261BDACDAC0080FF74 /* B3PatchpointSpecial.h in Headers */,
 				0FEC85281BDACDAC0080FF74 /* B3PatchpointValue.h in Headers */,
 				799EF7C41C56ED96002B0534 /* B3PCToOriginMap.h in Headers */,
+				7435BD09B15D4B72B0B4905C /* B3PeelLoops.h in Headers */,
 				0FEC852A1BDACDAC0080FF74 /* B3PhaseScope.h in Headers */,
 				0F37308D1C0BD29100052BFA /* B3PhiChildren.h in Headers */,
 				0FEC852C1BDACDAC0080FF74 /* B3Procedure.h in Headers */,

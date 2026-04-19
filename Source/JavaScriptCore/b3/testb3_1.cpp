@@ -899,6 +899,12 @@ void run(const TestConfig* config)
 
     RUN(testInfiniteLoopDoesntCauseBadHoisting());
 
+    RUN(testLoopPeelingSimpleCountedLoop());
+    RUN(testLoopPeelingZeroIterations());
+    RUN(testLoopPeelingOneIteration());
+    RUN(testLoopPeelingNestedLoop());
+    RUN(testLoopPeelingMultipleExits());
+
     RUN(testFloatMaxMin());
     RUN(testDoubleMaxMin());
 
@@ -919,6 +925,10 @@ void run(const TestConfig* config)
     RUN(testConstFloatMultipleZeroUses());
 
     RUN(testLoadImmutable());
+    RUN(testLoadImmutableDominated());
+    RUN(testLoadImmutableNonDominated());
+    RUN(testLoadImmutableCrossBlockCSE());
+    RUN(testLoadMutableCrossBlockNoCSE());
 
     // ARM64 conditional compare (ccmp) tests
     RUN(testCCmpAnd32(1, 1, 2, 2));  // both true

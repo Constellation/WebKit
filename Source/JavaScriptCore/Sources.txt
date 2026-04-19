@@ -164,6 +164,7 @@ b3/B3Origin.cpp
 b3/B3OriginDump.cpp
 b3/B3PatchpointSpecial.cpp
 b3/B3PatchpointValue.cpp
+b3/B3PeelLoops.cpp
 b3/B3PhaseScope.cpp
 b3/B3PhiChildren.cpp
 b3/B3Procedure.cpp

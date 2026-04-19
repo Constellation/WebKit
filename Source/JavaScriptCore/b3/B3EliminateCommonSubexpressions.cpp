@@ -833,7 +833,6 @@ private:
     void handleMemoryValue(
         Value* ptr, HeapRange range, const Filter& filter, const Replace& replace)
     {
-        // FIXME: Currently we observed some performance regression in this case.
         MemoryMatches matches = findMemoryValue(ptr, range, filter /* , m_value->as<MemoryValue>()->readsMutability() */);
         if (replaceMemoryValue(matches, replace))
             return;

@@ -1481,6 +1481,10 @@ void testMemoryFill();
 void testMemoryFillConstant();
 
 void testLoadImmutable();
+void testLoadImmutableDominated();
+void testLoadImmutableNonDominated();
+void testLoadImmutableCrossBlockCSE();
+void testLoadMutableCrossBlockNoCSE();
 
 // ARM64 conditional compare (ccmp) tests
 void testCCmpAnd32(int32_t, int32_t, int32_t, int32_t);
@@ -1561,5 +1565,10 @@ void testVectorSwizzleToDupElement();
 void testVectorSwizzleComposition();
 void testVectorSwizzleUnaryComposition();
 void testVectorSwizzleCompositionMultiUse();
+void testLoopPeelingSimpleCountedLoop();
+void testLoopPeelingZeroIterations();
+void testLoopPeelingOneIteration();
+void testLoopPeelingNestedLoop();
+void testLoopPeelingMultipleExits();
 
 #endif // ENABLE(B3_JIT)
