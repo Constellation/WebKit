@@ -46,6 +46,7 @@
 #include "B3MoveConstants.h"
 #include "B3OptimizeAssociativeExpressionTrees.h"
 #include "B3Procedure.h"
+#include "B3RangeAnalysis.h"
 #include "B3ReduceDoubleToFloat.h"
 #include "B3ReduceStrength.h"
 #include "B3Validate.h"
@@ -85,12 +86,16 @@ void generateToAir(Procedure& procedure)
     if (procedure.optLevel() >= 2) {
         reduceDoubleToFloat(procedure);
         reduceStrength(procedure, ReduceStrengthPass::Initial);
+#if 0
         if (Options::useB3LoopPeeling() && procedure.isWasm()) {
             if (peelLoops(procedure))
                 fixSSA(procedure);
         }
+#endif
         if (Options::useB3HoistLoopInvariantValues())
             hoistLoopInvariantValues(procedure);
+        if (Options::useB3RangeAnalysis() && procedure.isWasm())
+            rangeAnalysis(procedure);
         if (eliminateCommonSubexpressions(procedure))
             eliminateCommonSubexpressions(procedure);
         eliminateDeadCode(procedure);

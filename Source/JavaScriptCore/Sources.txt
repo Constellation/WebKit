@@ -169,6 +169,7 @@ b3/B3PhaseScope.cpp
 b3/B3PhiChildren.cpp
 b3/B3Procedure.cpp
 b3/B3PureCSE.cpp
+b3/B3RangeAnalysis.cpp
 b3/B3ReduceDoubleToFloat.cpp
 b3/B3ReduceStrength.cpp
 b3/B3SSACalculator.cpp
