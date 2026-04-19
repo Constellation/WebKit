@@ -117,18 +117,18 @@ template<Replacement replacement = Replacement::None, typename SourceCharacterTy
 ConversionResult<char8_t> convert(std::span<const char16_t> source, std::span<char8_t> buffer)
 {
 #if CPU(BIG_ENDIAN)
-    size_t requiredLength = simdutf::utf8_length_from_utf16be(source.data(), source.size());
+    size_t requiredLength = simdutf::utf8_length_from_utf16be(source);
 #else
-    size_t requiredLength = simdutf::utf8_length_from_utf16le(source.data(), source.size());
+    size_t requiredLength = simdutf::utf8_length_from_utf16le(source);
 #endif
 
     if (buffer.size() < requiredLength)
         return convertInternal(source, buffer);
 
 #if CPU(BIG_ENDIAN)
-    auto result = simdutf::convert_utf16be_to_utf8_with_errors(source.data(), source.size(), reinterpret_cast<char*>(buffer.data()));
+    auto result = simdutf::convert_utf16be_to_utf8_with_errors(source, buffer);
 #else
-    auto result = simdutf::convert_utf16le_to_utf8_with_errors(source.data(), source.size(), reinterpret_cast<char*>(buffer.data()));
+    auto result = simdutf::convert_utf16le_to_utf8_with_errors(source, buffer);
 #endif
 
     if (result.error == simdutf::error_code::SUCCESS) {
@@ -141,37 +141,88 @@ ConversionResult<char8_t> convert(std::span<const char16_t> source, std::span<ch
 
 ConversionResult<char16_t> convert(std::span<const char8_t> source, std::span<char16_t> buffer)
 {
+    if (buffer.size() < source.size())
+        return convertInternal(source, buffer);
+
+#if CPU(BIG_ENDIAN)
+    auto result = simdutf::convert_utf8_to_utf16be_with_errors(source, buffer);
+#else
+    auto result = simdutf::convert_utf8_to_utf16le_with_errors(source, buffer);
+#endif
+
+    if (result.error == simdutf::error_code::SUCCESS) {
+        bool isAllASCII = result.count == source.size();
+        return { ConversionResultCode::Success, buffer.first(result.count), isAllASCII };
+    }
+
     return convertInternal(source, buffer);
 }
 
 ConversionResult<char8_t> convert(std::span<const Latin1Character> source, std::span<char8_t> buffer)
 {
-    return convertInternal(source, buffer);
+    size_t requiredLength = simdutf::utf8_length_from_latin1(source);
+
+    if (buffer.size() < requiredLength)
+        return convertInternal(source, buffer);
+
+    size_t written = simdutf::convert_latin1_to_utf8(source, buffer);
+    bool isAllASCII = written == source.size();
+    return { ConversionResultCode::Success, buffer.first(written), isAllASCII };
 }
 
 ConversionResult<char8_t> convertReplacingInvalidSequences(std::span<const char16_t> source, std::span<char8_t> buffer)
 {
-    return convertInternal<Replacement::ReplaceInvalidSequences>(source, buffer);
+#if CPU(BIG_ENDIAN)
+    auto lengthResult = simdutf::utf8_length_from_utf16be_with_replacement(source);
+#else
+    auto lengthResult = simdutf::utf8_length_from_utf16le_with_replacement(source);
+#endif
+
+    if (buffer.size() < lengthResult.count)
+        return convertInternal<Replacement::ReplaceInvalidSequences>(source, buffer);
+
+#if CPU(BIG_ENDIAN)
+    size_t written = simdutf::convert_utf16be_to_utf8_with_replacement(source, buffer);
+#else
+    size_t written = simdutf::convert_utf16le_to_utf8_with_replacement(source, buffer);
+#endif
+
+    bool isAllASCII = written == source.size();
+    return { ConversionResultCode::Success, buffer.first(written), isAllASCII };
 }
 
 ConversionResult<char16_t> convertReplacingInvalidSequences(std::span<const char8_t> source, std::span<char16_t> buffer)
 {
+    if (buffer.size() < source.size())
+        return convertInternal<Replacement::ReplaceInvalidSequences>(source, buffer);
+
+#if CPU(BIG_ENDIAN)
+    auto result = simdutf::convert_utf8_to_utf16be_with_errors(source, buffer);
+#else
+    auto result = simdutf::convert_utf8_to_utf16le_with_errors(source, buffer);
+#endif
+
+    if (result.error == simdutf::error_code::SUCCESS) {
+        bool isAllASCII = result.count == source.size();
+        return { ConversionResultCode::Success, buffer.first(result.count), isAllASCII };
+    }
+
     return convertInternal<Replacement::ReplaceInvalidSequences>(source, buffer);
 }
 
 std::span<const char8_t> checkUTF8WithoutUTF16Length(std::span<const char8_t> source)
 {
-    auto result = simdutf::validate_utf8_with_errors(reinterpret_cast<const char*>(source.data()), source.size());
+    auto result = simdutf::validate_utf8_with_errors(source);
     size_t validLength = result.error == simdutf::error_code::SUCCESS ? source.size() : result.count;
     return source.first(validLength);
 }
 
 CheckedUTF8 checkUTF8(std::span<const char8_t> source)
 {
-    auto result = simdutf::validate_utf8_with_errors(reinterpret_cast<const char*>(source.data()), source.size());
+    auto result = simdutf::validate_utf8_with_errors(source);
     size_t validLength = result.error == simdutf::error_code::SUCCESS ? source.size() : result.count;
     auto validSpan = source.first(validLength);
-    size_t lengthUTF16 = simdutf::utf16_length_from_utf8(reinterpret_cast<const char*>(validSpan.data()), validSpan.size());
+    size_t lengthUTF16 = simdutf::utf16_length_from_utf8(validSpan);
     return { validSpan, lengthUTF16, validLength == lengthUTF16 };
 }
 
