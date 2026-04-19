@@ -86,7 +86,7 @@ void generateToAir(Procedure& procedure)
     if (procedure.optLevel() >= 2) {
         reduceDoubleToFloat(procedure);
         reduceStrength(procedure, ReduceStrengthPass::Initial);
-#if 0
+#if 1
         if (Options::useB3LoopPeeling() && procedure.isWasm()) {
             if (peelLoops(procedure))
                 fixSSA(procedure);

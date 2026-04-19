@@ -34,7 +34,10 @@
 #include "B3PhaseScope.h"
 #include "B3ProcedureInlines.h"
 #include "B3ValueInlines.h"
+#include "B3ValueKey.h"
+#include "B3ValueKeyInlines.h"
 #include "WasmLimits.h"
+#include <wtf/HashMap.h>
 #include <wtf/IndexMap.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/Vector.h>
@@ -276,12 +279,44 @@ private:
         m_refinements[v].append(Refinement { block, refined });
     }
 
+    void recordTruth(ValueKey key, BasicBlock* block, int32_t truth)
+    {
+        if (!key)
+            return;
+        m_knownTruth.add(key, Vector<TruthRecord>()).iterator->value.append(TruthRecord { block, truth });
+    }
+
     void collectRefinementsAt(BasicBlock* successor, Value* cond, bool branchTaken)
     {
         if (successor->numPredecessors() != 1)
             return;
 
-        if (!isComparisonOpcode(cond->opcode()))
+        Opcode condOp = cond->opcode();
+        bool condIsComparison = isComparisonOpcode(condOp);
+
+        // Truth tracking. Branch(c) takes the taken edge iff c != 0.
+        //  - Not-taken edge: c is exactly 0, regardless of opcode.
+        //  - Taken edge with comparison condition: c is exactly 1 (comparisons return 0/1).
+        //  - Taken edge with non-comparison condition: only "non-zero" — not foldable, skip.
+        if (!branchTaken)
+            recordTruth(cond->key(), successor, 0);
+        else if (condIsComparison)
+            recordTruth(cond->key(), successor, 1);
+
+        // For comparisons we additionally record the negated comparison's
+        // truth so that, e.g., a redundant `AboveEqual(i, len)` bounds check
+        // folds to 0 under a `Below(i, len)` loop guard. The negation key is
+        // synthesized structurally; ValueNumberingReducer / CSE has not run
+        // yet at this point, but ValueKey only needs operand identity.
+        if (condIsComparison && cond->numChildren() == 2) {
+            Value* lhs = cond->child(0);
+            Value* rhs = cond->child(1);
+            Opcode negOp = invertComparison(condOp);
+            int32_t condTruth = branchTaken ? 1 : 0;
+            recordTruth(ValueKey(B3::Kind(negOp), Int32, lhs, rhs), successor, 1 - condTruth);
+        }
+
+        if (!condIsComparison)
             return;
 
         Value* lhs = cond->child(0);
@@ -289,7 +324,7 @@ private:
         if (lhs->type() != Int32 || rhs->type() != Int32)
             return;
 
-        Opcode effective = branchTaken ? cond->opcode() : invertComparison(cond->opcode());
+        Opcode effective = branchTaken ? condOp : invertComparison(condOp);
 
         Range lhsIn = lookupBase(lhs);
         Range rhsIn = lookupBase(rhs);
@@ -316,8 +351,6 @@ private:
             if (terminator->opcode() != Branch)
                 continue;
             Value* cond = terminator->child(0);
-            if (cond->numChildren() != 2)
-                continue;
 
             BasicBlock* takenBlock = P->taken().block();
             BasicBlock* notTakenBlock = P->notTaken().block();
@@ -341,6 +374,26 @@ private:
                 r = r.meet(ref.range);
         }
         return r;
+    }
+
+    // Returns the structurally-known truth (0 or 1) of `v` at `useBlock`, if
+    // any single recorded fact dominates the use site. This catches redundant
+    // comparisons that share `v->key()` (or its negation) with a previously
+    // taken/not-taken branch condition — even before CSE has merged them.
+    std::optional<int32_t> knownTruthValueAt(BasicBlock* useBlock, Value* v)
+    {
+        ValueKey key = v->key();
+        if (!key)
+            return std::nullopt;
+        auto it = m_knownTruth.find(key);
+        if (it == m_knownTruth.end())
+            return std::nullopt;
+        Dominators& dominators = m_proc.dominators();
+        for (const TruthRecord& rec : it->value) {
+            if (dominators.dominates(rec.block, useBlock))
+                return rec.truth;
+        }
+        return std::nullopt;
     }
 
     static std::optional<int32_t> evaluateSigned(Opcode op, Range lhs, Range rhs)
@@ -439,25 +492,26 @@ private:
                 if (lhs->type() != Int32 || rhs->type() != Int32)
                     continue;
 
-                Range lr = rangeAt(block, lhs);
-                Range rr = rangeAt(block, rhs);
-
-                std::optional<int32_t> result;
-                switch (op) {
-                case Below:
-                case BelowEqual:
-                case Above:
-                case AboveEqual:
-                    result = evaluateUnsigned(op, lr, rr);
-                    break;
-                default:
-                    result = evaluateSigned(op, lr, rr);
-                    break;
+                std::optional<int32_t> result = knownTruthValueAt(block, v);
+                if (!result) {
+                    Range lr = rangeAt(block, lhs);
+                    Range rr = rangeAt(block, rhs);
+                    switch (op) {
+                    case Below:
+                    case BelowEqual:
+                    case Above:
+                    case AboveEqual:
+                        result = evaluateUnsigned(op, lr, rr);
+                        break;
+                    default:
+                        result = evaluateSigned(op, lr, rr);
+                        break;
+                    }
                 }
                 if (!result)
                     continue;
 
-                dataLogLnIf(B3RangeAnalysisInternal::verbose, "Folding ", *v, " to ", *result, " (lhs=", lr, " rhs=", rr, ")");
+                dataLogLnIf(B3RangeAnalysisInternal::verbose, "Folding ", *v, " to ", *result);
 
                 v->replaceWithIdentity(m_insertionSet.insertIntConstant(i, v, *result));
                 changed = true;
@@ -472,10 +526,16 @@ private:
         Range range;
     };
 
+    struct TruthRecord {
+        BasicBlock* block;
+        int32_t truth; // 0 or 1
+    };
+
     Procedure& m_proc;
     InsertionSet m_insertionSet;
     IndexMap<Value*, Range> m_baseRange;
     IndexMap<Value*, Vector<Refinement>> m_refinements;
+    UncheckedKeyHashMap<ValueKey, Vector<TruthRecord>> m_knownTruth;
 };
 
 } // anonymous namespace
