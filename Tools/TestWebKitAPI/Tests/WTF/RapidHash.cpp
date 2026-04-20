@@ -79,4 +79,123 @@ TEST(WTF, RapidHasher)
     }
 }
 
+// Exercise the long-string branches in rapidhashCore (>16, >48, >96 bytes)
+// across the full range of sizes used by real-world strings, and confirm the
+// 8-bit vs 16-bit Latin1 invariant still holds.
+TEST(WTF, RapidHasher_LongStringInvariant)
+{
+    constexpr size_t maxSize = 512;
+    auto arr1Mut = std::unique_ptr<Latin1Character[]>(new Latin1Character[maxSize]);
+    auto arr2Mut = std::unique_ptr<char16_t[]>(new char16_t[maxSize]);
+    for (size_t i = 0; i < maxSize; ++i) {
+        arr1Mut[i] = static_cast<Latin1Character>(i & 0xFF);
+        arr2Mut[i] = static_cast<char16_t>(i & 0xFF);
+    }
+    const Latin1Character* arr1 = arr1Mut.get();
+    const char16_t* arr2 = arr2Mut.get();
+    for (size_t size = 0; size <= maxSize; ++size) {
+        unsigned left = RapidHash::computeHashAndMaskTop8Bits(std::span { arr1, size });
+        unsigned right = RapidHash::computeHashAndMaskTop8Bits(std::span { arr2, size });
+        ASSERT_EQ(left, right) << "size=" << size;
+    }
+}
+
+// A hash computed at compile time over a char16_t literal must equal both:
+// (a) the hash computed at runtime over the same char16_t buffer, and
+// (b) the hash of the equivalent Latin1 byte sequence (constexpr or runtime).
+// Pre-fix, the constexpr 16-bit path used rapidhashRawBytes16 (len=2N) while
+// runtime used rapidhashCompressed16 (len=N), so this would diverge.
+TEST(WTF, RapidHasher_ConstexprMatchesRuntime)
+{
+    auto check = [](auto& literal8, auto& literal16) {
+        constexpr size_t length = std::extent_v<std::remove_reference_t<decltype(literal8)>> - 1;
+        static_assert(std::extent_v<std::remove_reference_t<decltype(literal16)>> - 1 == length);
+
+        unsigned constexprHash16 = RapidHash::computeHashAndMaskTop8Bits<char16_t>(std::span { literal16, length });
+        unsigned runtimeHash16 = RapidHash::computeHashAndMaskTop8Bits(std::span<const char16_t> { literal16, length });
+        unsigned runtimeHash8 = RapidHash::computeHashAndMaskTop8Bits(std::span { reinterpret_cast<const Latin1Character*>(literal8), length });
+        EXPECT_EQ(constexprHash16, runtimeHash16) << "length=" << length;
+        EXPECT_EQ(constexprHash16, runtimeHash8) << "length=" << length;
+    };
+
+    {
+        static constexpr char literal8[] = "x";
+        static constexpr char16_t literal16[] = u"x";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "ab";
+        static constexpr char16_t literal16[] = u"ab";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "abc";
+        static constexpr char16_t literal16[] = u"abc";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "abcd";
+        static constexpr char16_t literal16[] = u"abcd";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "abcde";
+        static constexpr char16_t literal16[] = u"abcde";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "abcdefg";
+        static constexpr char16_t literal16[] = u"abcdefg";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "abcdefgh";
+        static constexpr char16_t literal16[] = u"abcdefgh";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "0123456789abcdef";
+        static constexpr char16_t literal16[] = u"0123456789abcdef";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "0123456789abcdefg";
+        static constexpr char16_t literal16[] = u"0123456789abcdefg";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "0123456789abcdef0123456789abcdef0123456789abcdef";
+        static constexpr char16_t literal16[] = u"0123456789abcdef0123456789abcdef0123456789abcdef";
+        check(literal8, literal16);
+    }
+    {
+        static constexpr char literal8[] = "0123456789abcdef0123456789abcdef0123456789abcdef!";
+        static constexpr char16_t literal16[] = u"0123456789abcdef0123456789abcdef0123456789abcdef!";
+        check(literal8, literal16);
+    }
+    {
+        // 64 chars
+        static constexpr char literal8[] = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        static constexpr char16_t literal16[] = u"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        check(literal8, literal16);
+    }
+    {
+        // 100 chars
+        static constexpr char literal8[] = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefABCD";
+        static constexpr char16_t literal16[] = u"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefABCD";
+        check(literal8, literal16);
+    }
+}
+
+// Non-Latin1 char16_t hashed at constexpr must match runtime (no 8-bit
+// equivalent; we only assert the constexpr-vs-runtime invariant).
+TEST(WTF, RapidHasher_NonLatin1ConstexprMatchesRuntime)
+{
+    static constexpr char16_t mixed[] = u"a\u00A3\u1234b\u4E2D\u6587\u0041";
+    constexpr size_t length = std::extent_v<decltype(mixed)> - 1;
+    unsigned constexprHash = RapidHash::computeHashAndMaskTop8Bits<char16_t>(std::span { mixed, length });
+    unsigned runtimeHash = RapidHash::computeHashAndMaskTop8Bits(std::span<const char16_t> { mixed, length });
+    EXPECT_EQ(constexprHash, runtimeHash);
+}
+
 } // namespace TestWebKitAPI

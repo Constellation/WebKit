@@ -67,7 +67,7 @@ public:
     template<typename T, typename Converter = DefaultConverter>
     ALWAYS_INLINE static constexpr unsigned computeHashAndMaskTop8Bits(std::span<const T> data)
     {
-        return StringHasher::avoidZero(computeHashImpl<T, Converter>(data) & StringHasher::maskHash);
+        return StringHasher::avoidZero(static_cast<unsigned>(rapidhash<T, Converter>(data)) & StringHasher::maskHash);
     }
 
 private:
@@ -90,7 +90,7 @@ private:
     // Read32Fn: (size_t byteOffset) -> uint64_t  (reads 4 bytes at offset)
     // ReadSmallFn: (size_t byteOffset, size_t k) -> uint64_t  (reads 1-3 bytes)
     template<typename Read64Fn, typename Read32Fn, typename ReadSmallFn>
-    ALWAYS_INLINE static constexpr uint64_t rapidhashCore(size_t len, NOESCAPE const Read64Fn& read64, NOESCAPE const Read32Fn& read32, NOESCAPE const ReadSmallFn& readSmall)
+    ALWAYS_INLINE static constexpr uint64_t rapidhashImpl(size_t len, NOESCAPE const Read64Fn& read64, NOESCAPE const Read32Fn& read32, NOESCAPE const ReadSmallFn& readSmall)
     {
         uint64_t seed = rapidMix(0 ^ secret[0], secret[1]) ^ len;
         uint64_t a, b;
@@ -137,219 +137,100 @@ private:
         return rapidMix(aLo ^ secret[0] ^ len, aHi ^ secret[1]);
     }
 
-    // Hash raw bytes from a typed span. No reinterpret_cast, works in constexpr.
-    template<typename T>
-    ALWAYS_INLINE static constexpr uint64_t rapidhashBytes(std::span<const T> data)
-    {
-        static_assert(sizeof(T) == 1);
-        auto read64 = [&](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            return static_cast<uint64_t>(static_cast<uint8_t>(data[off]))
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 1])) << 8)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 2])) << 16)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 3])) << 24)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 4])) << 32)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 5])) << 40)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 6])) << 48)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 7])) << 56);
-        };
-        auto read32 = [&](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            return static_cast<uint64_t>(static_cast<uint8_t>(data[off]))
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 1])) << 8)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 2])) << 16)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + 3])) << 24);
-        };
-        auto readSmall = [&](size_t off, size_t k) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            return (static_cast<uint64_t>(static_cast<uint8_t>(data[off])) << 56)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(data[off + (k >> 1)])) << 32)
-                | static_cast<uint64_t>(static_cast<uint8_t>(data[off + k - 1]));
-        };
-        return rapidhashCore(data.size(), read64, read32, readSmall);
-    }
-
-    // Runtime-only: hash raw bytes using unaligned loads.
-    ALWAYS_INLINE static uint64_t rapidhashRawBytes(const uint8_t* p, size_t len)
-    {
-        auto read64 = [p](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-#if CPU(BIG_ENDIAN)
-            uint64_t v = unalignedLoad<uint64_t>(p + off);
-            return ((v >> 56) & 0xff) | ((v >> 40) & 0xff00) | ((v >> 24) & 0xff0000) | ((v >> 8) & 0xff000000)
-                | ((v << 8) & 0xff00000000) | ((v << 24) & 0xff0000000000) | ((v << 40) & 0xff000000000000) | ((v << 56) & 0xff00000000000000);
-#else
-            return unalignedLoad<uint64_t>(p + off);
-#endif
-        };
-        auto read32 = [p](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-#if CPU(BIG_ENDIAN)
-            uint32_t v = unalignedLoad<uint32_t>(p + off);
-            return static_cast<uint64_t>(((v >> 24) & 0xff) | ((v >> 8) & 0xff00) | ((v << 8) & 0xff0000) | ((v << 24) & 0xff000000));
-#else
-            return static_cast<uint64_t>(unalignedLoad<uint32_t>(p + off));
-#endif
-        };
-        auto readSmall = [p](size_t off, size_t k) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            return (static_cast<uint64_t>(p[off]) << 56)
-                | (static_cast<uint64_t>(p[off + (k >> 1)]) << 32)
-                | static_cast<uint64_t>(p[off + k - 1]);
-        };
-        return rapidhashCore(len, read64, read32, readSmall);
-    }
-
-    // Runtime-only: hash Latin1-only UTF-16 data by compressing to 8-bit.
-    ALWAYS_INLINE static uint64_t rapidhashCompressed16(const char16_t* p, size_t charCount)
-    {
-        // Each read at byte offset maps to char offset (1 output byte per char).
-        auto read64 = [p](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            const char16_t* cp = p + off;
-#if CPU(ARM64)
-            uint16x8_t x;
-            memcpy(&x, cp, sizeof(x));
-            return vget_lane_u64(vreinterpret_u64_u8(vmovn_u16(x)), 0);
-#elif CPU(X86_64)
-            __m128i x = _mm_loadu_si128(reinterpret_cast<const __m128i*>(cp));
-            return _mm_cvtsi128_si64(_mm_packus_epi16(x, x));
-#else
-            return static_cast<uint64_t>(static_cast<uint8_t>(cp[0]))
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[1])) << 8)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[2])) << 16)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[3])) << 24)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[4])) << 32)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[5])) << 40)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[6])) << 48)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[7])) << 56);
-#endif
-        };
-        auto read32 = [p](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            const char16_t* cp = p + off;
-#if CPU(ARM64)
-            uint16x4_t x;
-            memcpy(&x, cp, sizeof(x));
-            uint16x8_t xWide = vcombine_u16(x, x);
-            return vget_lane_u32(vreinterpret_u32_u8(vmovn_u16(xWide)), 0);
-#elif CPU(X86_64)
-            __m128i x = _mm_loadu_si64(reinterpret_cast<const __m128i*>(cp));
-            return _mm_cvtsi128_si64(_mm_packus_epi16(x, x));
-#else
-            return static_cast<uint64_t>(static_cast<uint8_t>(cp[0]))
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[1])) << 8)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[2])) << 16)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(cp[3])) << 24);
-#endif
-        };
-        auto readSmall = [p](size_t off, size_t k) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            return (static_cast<uint64_t>(static_cast<uint8_t>(p[off])) << 56)
-                | (static_cast<uint64_t>(static_cast<uint8_t>(p[off + (k >> 1)])) << 32)
-                | static_cast<uint64_t>(static_cast<uint8_t>(p[off + k - 1]));
-        };
-        return rapidhashCore(charCount, read64, read32, readSmall);
-    }
-
-    // Converter path: hash in 16-bit virtual space.
-    // Each character (after conversion) produces 2 virtual bytes (LE).
+    // Hash one byte per input character. The byte produced for each character is
+    // (Converter::convert(c) & 0xFF) | (Converter::convert(c) >> 8). For Latin1
+    // characters with DefaultConverter this is just the byte; for char16_t with
+    // DefaultConverter this is the OR-fold (low | high). The same byte stream
+    // (and same length N) is produced for the same content regardless of input
+    // width, so hash("ABC" Latin1) == hash(u"ABC"), and the same converter on
+    // 8-bit and 16-bit inputs produces matching hashes.
+    //
+    // Fast paths (runtime only) for DefaultConverter:
+    //   - Latin1: unalignedLoad — bytes match output bytes directly.
+    //   - char16_t: SIMD OR-fold (NEON / SSE2).
+    // All other cases (custom Converter, or constexpr evaluation) use a scalar
+    // per-char fold loop, identical bytes guaranteed.
     template<typename T, typename Converter>
-    ALWAYS_INLINE static constexpr uint64_t rapidhashConverted(std::span<const T> data)
+    ALWAYS_INLINE static constexpr uint64_t rapidhash(std::span<const T> data)
     {
-        size_t len = data.size() * 2; // virtual byte count
-        // Byte offset to character index: charIdx = byteOff / 2
-        auto read64 = [&](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            size_t ci = off / 2;
-            return static_cast<uint64_t>(Converter::convert(data[ci]))
-                | (static_cast<uint64_t>(Converter::convert(data[ci + 1])) << 16)
-                | (static_cast<uint64_t>(Converter::convert(data[ci + 2])) << 32)
-                | (static_cast<uint64_t>(Converter::convert(data[ci + 3])) << 48);
-        };
-        auto read32 = [&](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            size_t ci = off / 2;
-            return static_cast<uint64_t>(Converter::convert(data[ci]))
-                | (static_cast<uint64_t>(Converter::convert(data[ci + 1])) << 16);
-        };
-        auto readSmall = [&](size_t off, size_t) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            // Only called for len=2 (1 char): virtual bytes = [lo, hi]
-            char16_t c = Converter::convert(data[off / 2]);
-            uint8_t lo = static_cast<uint8_t>(c);
-            uint8_t hi = static_cast<uint8_t>(c >> 8);
-            return (static_cast<uint64_t>(lo) << 56)
-                | (static_cast<uint64_t>(hi) << 32)
-                | static_cast<uint64_t>(hi);
-        };
-        return rapidhashCore(len, read64, read32, readSmall);
-    }
+        const T* p = data.data();
 
-    static bool isLatin1Only(const char16_t* chars, unsigned len)
-    {
-        for (unsigned i = 0; i < len; ++i) {
-            if (chars[i] > 0xFF)
-                return false;
-        }
-        return true;
-    }
-
-    template<typename T, typename Converter = DefaultConverter>
-    static constexpr unsigned computeHashImpl(std::span<const T> characters)
-    {
-        uint64_t raw;
-
-        if constexpr (!std::is_same_v<Converter, DefaultConverter>) {
-            // Converter path (e.g., case-insensitive): hash in 16-bit virtual space.
-            raw = rapidhashConverted<T, Converter>(characters);
-        } else if constexpr (sizeof(T) == 1) {
-            if (std::is_constant_evaluated()) {
-                // Constexpr: index-based reads from typed span, no reinterpret_cast.
-                raw = rapidhashBytes(characters);
+        auto foldByte = [&](size_t idx) ALWAYS_INLINE_LAMBDA -> uint8_t {
+            if constexpr (std::is_same_v<Converter, DefaultConverter>) {
+                if constexpr (sizeof(T) == 1)
+                    return static_cast<uint8_t>(data[idx]);
+                else
+                    return static_cast<uint8_t>((data[idx] & 0xFF) | (data[idx] >> 8));
             } else {
-                // Runtime: unaligned loads for speed.
-                raw = rapidhashRawBytes(reinterpret_cast<const uint8_t*>(characters.data()), characters.size());
+                auto conv = Converter::convert(data[idx]);
+                return static_cast<uint8_t>((conv & 0xFF) | (conv >> 8));
             }
-        } else {
-            // 16-bit input.
-            if (!std::is_constant_evaluated() && isLatin1Only(reinterpret_cast<const char16_t*>(characters.data()), characters.size())) {
-                // Latin1-only UTF-16: compress to 8-bit for consistent hash with Latin1 strings.
-                raw = rapidhashCompressed16(reinterpret_cast<const char16_t*>(characters.data()), characters.size());
-            } else {
-                // Non-Latin1 UTF-16 (or constexpr): hash raw bytes at double length.
-                raw = rapidhashRawBytes16(characters);
-            }
-        }
+        };
 
-        return static_cast<unsigned>(raw);
-    }
-
-    // Hash 16-bit data as raw bytes (constexpr-friendly).
-    template<typename T>
-    ALWAYS_INLINE static constexpr uint64_t rapidhashRawBytes16(std::span<const T> data)
-    {
-        static_assert(sizeof(T) == 2);
-        size_t len = data.size() * 2;
         auto read64 = [&](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            size_t ci = off / 2;
-            // Read 4 char16_t as 8 LE bytes.
-            return static_cast<uint64_t>(data[ci] & 0xFF)
-                | (static_cast<uint64_t>(data[ci] >> 8) << 8)
-                | (static_cast<uint64_t>(data[ci + 1] & 0xFF) << 16)
-                | (static_cast<uint64_t>(data[ci + 1] >> 8) << 24)
-                | (static_cast<uint64_t>(data[ci + 2] & 0xFF) << 32)
-                | (static_cast<uint64_t>(data[ci + 2] >> 8) << 40)
-                | (static_cast<uint64_t>(data[ci + 3] & 0xFF) << 48)
-                | (static_cast<uint64_t>(data[ci + 3] >> 8) << 56);
+#if CPU(LITTLE_ENDIAN)
+            if (!std::is_constant_evaluated()) {
+                if constexpr (std::is_same_v<Converter, DefaultConverter>) {
+                    if constexpr (sizeof(T) == 1)
+                        return unalignedLoad<uint64_t>(p + off);
+                    else if constexpr (sizeof(T) == 2) {
+#if CPU(ARM64)
+                        uint16x8_t x;
+                        memcpy(&x, p + off, sizeof(x));
+                        uint16x8_t folded = vorrq_u16(x, vshrq_n_u16(x, 8));
+                        return vget_lane_u64(vreinterpret_u64_u8(vmovn_u16(folded)), 0);
+#elif CPU(X86_64)
+                        __m128i x = _mm_loadu_si128(reinterpret_cast<const __m128i*>(p + off));
+                        __m128i folded = _mm_or_si128(x, _mm_srli_epi16(x, 8));
+                        return _mm_cvtsi128_si64(_mm_packus_epi16(folded, _mm_setzero_si128()));
+#endif
+                    }
+                }
+            }
+#endif
+            uint64_t result = 0;
+            for (size_t i = 0; i < 8; ++i)
+                result |= static_cast<uint64_t>(foldByte(off + i)) << (i * 8);
+            return result;
         };
+
         auto read32 = [&](size_t off) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            size_t ci = off / 2;
-            return static_cast<uint64_t>(data[ci] & 0xFF)
-                | (static_cast<uint64_t>(data[ci] >> 8) << 8)
-                | (static_cast<uint64_t>(data[ci + 1] & 0xFF) << 16)
-                | (static_cast<uint64_t>(data[ci + 1] >> 8) << 24);
+#if CPU(LITTLE_ENDIAN)
+            if (!std::is_constant_evaluated()) {
+                if constexpr (std::is_same_v<Converter, DefaultConverter>) {
+                    if constexpr (sizeof(T) == 1)
+                        return static_cast<uint64_t>(unalignedLoad<uint32_t>(p + off));
+                    else if constexpr (sizeof(T) == 2) {
+#if CPU(ARM64)
+                        uint16x4_t x;
+                        memcpy(&x, p + off, sizeof(x));
+                        uint16x8_t xWide = vcombine_u16(x, x);
+                        uint16x8_t folded = vorrq_u16(xWide, vshrq_n_u16(xWide, 8));
+                        return vget_lane_u32(vreinterpret_u32_u8(vmovn_u16(folded)), 0);
+#elif CPU(X86_64)
+                        __m128i x = _mm_loadu_si64(reinterpret_cast<const __m128i*>(p + off));
+                        __m128i folded = _mm_or_si128(x, _mm_srli_epi16(x, 8));
+                        return _mm_cvtsi128_si64(_mm_packus_epi16(folded, _mm_setzero_si128()));
+#endif
+                    }
+                }
+            }
+#endif
+            uint64_t result = 0;
+            for (size_t i = 0; i < 4; ++i)
+                result |= static_cast<uint64_t>(foldByte(off + i)) << (i * 8);
+            return result;
         };
+
         auto readSmall = [&](size_t off, size_t k) ALWAYS_INLINE_LAMBDA -> uint64_t {
-            // Extract raw bytes from char16_t data.
-            auto getByte = [&](size_t byteIdx) -> uint64_t {
-                size_t ci = (off + byteIdx) / 2;
-                return ((off + byteIdx) & 1) ? static_cast<uint64_t>(data[ci] >> 8) : static_cast<uint64_t>(data[ci] & 0xFF);
-            };
-            return (getByte(0) << 56)
-                | (getByte(k >> 1) << 32)
-                | getByte(k - 1);
+            return (static_cast<uint64_t>(foldByte(off)) << 56)
+                | (static_cast<uint64_t>(foldByte(off + (k >> 1))) << 32)
+                | static_cast<uint64_t>(foldByte(off + k - 1));
         };
-        return rapidhashCore(len, read64, read32, readSmall);
+
+        return rapidhashImpl(data.size(), read64, read32, readSmall);
     }
+
 };
 
 } // namespace WTF
