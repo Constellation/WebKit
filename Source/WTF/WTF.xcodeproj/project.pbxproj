@@ -976,7 +976,7 @@
 		FEEA4DF9216D7BE400AC0602 /* StackPointer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FEEA4DF8216D7BE400AC0602 /* StackPointer.cpp */; };
 		FF3997412DB044E600A58E88 /* StatisticsManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF3997402DB044E600A58E88 /* StatisticsManager.cpp */; };
 		FF3997422DB044E600A58E88 /* StatisticsManager.h in Headers */ = {isa = PBXBuildFile; fileRef = FF39973F2DB044E600A58E88 /* StatisticsManager.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		FF41AC672A79C9BA00AC0FA5 /* WYHash.h in Headers */ = {isa = PBXBuildFile; fileRef = FF41AC662A79C9B900AC0FA5 /* WYHash.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		FF41AC672A79C9BA00AC0FA5 /* RapidHash.h in Headers */ = {isa = PBXBuildFile; fileRef = FF41AC662A79C9B900AC0FA5 /* RapidHash.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FF895F11282AB96400E7BAE8 /* CompactRefPtr.h in Headers */ = {isa = PBXBuildFile; fileRef = FF895F10282AB96400E7BAE8 /* CompactRefPtr.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FF8CB4012A88C0D3004AF498 /* SuperFastHash.h in Headers */ = {isa = PBXBuildFile; fileRef = FF8CB4002A88C0D3004AF498 /* SuperFastHash.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FF8CB4032A88C125004AF498 /* StringHasherInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = FF8CB4022A88C125004AF498 /* StringHasherInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2097,7 +2097,7 @@
 		FF0A436588954F3CB07DBECA /* StdList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StdList.h; sourceTree = "<group>"; };
 		FF39973F2DB044E600A58E88 /* StatisticsManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StatisticsManager.h; sourceTree = "<group>"; };
 		FF3997402DB044E600A58E88 /* StatisticsManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StatisticsManager.cpp; sourceTree = "<group>"; };
-		FF41AC662A79C9B900AC0FA5 /* WYHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WYHash.h; sourceTree = "<group>"; };
+		FF41AC662A79C9B900AC0FA5 /* RapidHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RapidHash.h; sourceTree = "<group>"; };
 		FF895F10282AB96400E7BAE8 /* CompactRefPtr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompactRefPtr.h; sourceTree = "<group>"; };
 		FF8CB4002A88C0D3004AF498 /* SuperFastHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SuperFastHash.h; sourceTree = "<group>"; };
 		FF8CB4022A88C125004AF498 /* StringHasherInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringHasherInlines.h; sourceTree = "<group>"; };
@@ -2941,6 +2941,7 @@
 				DD4901ED27B474D900D7E50D /* NullTextBreakIterator.h */,
 				14E785E71DFB330100209BD1 /* OrdinalNumber.h */,
 				46B0FB5C2D24BFBA0012184C /* ParsingUtilities.h */,
+				FF41AC662A79C9B900AC0FA5 /* RapidHash.h */,
 				0F95B63620CB5EFD00479635 /* StringBuffer.cpp */,
 				A8A47323151A825B004123FF /* StringBuffer.h */,
 				A8A47324151A825B004123FF /* StringBuilder.cpp */,
@@ -2977,7 +2978,6 @@
 				FEF295BF20B49DCB00CF283A /* UTF8ConversionError.h */,
 				A8A4732D151A825B004123FF /* WTFString.cpp */,
 				A8A4732E151A825B004123FF /* WTFString.h */,
-				FF41AC662A79C9B900AC0FA5 /* WYHash.h */,
 			);
 			path = text;
 			sourceTree = "<group>";
@@ -3815,6 +3815,7 @@
 				DD3DC92027A4BF8E007E5B61 /* Range.h in Headers */,
 				D6135B2E2EE4BCE0002B5F19 /* RangeAdaptors.h in Headers */,
 				DD3DC8EB27A4BF8E007E5B61 /* RangeSet.h in Headers */,
+				FF41AC672A79C9BA00AC0FA5 /* RapidHash.h in Headers */,
 				FE7ACFEF285DC2F9007FC8E9 /* RawHex.h in Headers */,
 				DD3DC8DC27A4BF8E007E5B61 /* RawPointer.h in Headers */,
 				DD3DC99027A4BF8E007E5B61 /* RawPtrTraits.h in Headers */,
@@ -4032,7 +4033,6 @@
 				DD3DC97D27A4BF8E007E5B61 /* WTFSemaphore.h in Headers */,
 				DDF307C227C086DF006A526F /* WTFString.h in Headers */,
 				FFE39CB02B1D7472004972B0 /* wuint.h in Headers */,
-				FF41AC672A79C9BA00AC0FA5 /* WYHash.h in Headers */,
 				44235FF72D76449300F4A6CB /* XPCExtras.h in Headers */,
 				46BD41CA2EC723B2002ED70B /* XPCObjectPtr.h in Headers */,
 				DDF306EA27C08654006A526F /* XPCSPI.h in Headers */,

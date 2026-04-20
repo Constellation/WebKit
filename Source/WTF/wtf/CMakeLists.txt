@@ -490,7 +490,7 @@ set(WTF_PUBLIC_HEADERS
     text/StringHasher.h
     text/StringHasherInlines.h
     text/SuperFastHash.h
-    text/WYHash.h
+    text/RapidHash.h
     text/StringImpl.h
     text/StringParsingBuffer.h
     text/StringSearch.h

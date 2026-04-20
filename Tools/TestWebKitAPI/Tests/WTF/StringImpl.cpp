@@ -709,7 +709,7 @@ static void doStaticStringImplTests(StaticStringImplTestSet testSet, String& hel
     // We're relying on an ASSERT in setHash() to detect that the hash hasn't
     // already been set. If the hash has already been set, the hash() method
     // will not call setHash().
-    ASSERT_EQ(hello.hash(), 10404096U);
+    ASSERT_EQ(hello.hash(), 14060208U);
 }
 
 TEST(WTF, StaticStringImpl)

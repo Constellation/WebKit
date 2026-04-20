@@ -1273,7 +1273,7 @@
 				WTF/WorkerPool.cpp,
 				WTF/WorkQueue.cpp,
 				WTF/WTFString.cpp,
-				WTF/WYHash.cpp,
+				WTF/RapidHash.cpp,
 			);
 			target = 7C83DE951D0A590C00FEBCF3 /* TestWTFLibrary */;
 		};

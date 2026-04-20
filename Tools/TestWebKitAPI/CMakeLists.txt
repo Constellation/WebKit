@@ -120,7 +120,7 @@ set(TestWTF_SOURCES
     Tests/WTF/StringConcatenate.cpp
     Tests/WTF/StringHasher.cpp
     Tests/WTF/SuperFastHash.cpp
-    Tests/WTF/WYHash.cpp
+    Tests/WTF/RapidHash.cpp
     Tests/WTF/StringImpl.cpp
     Tests/WTF/StringParsingBuffer.cpp
     Tests/WTF/StringSearch.cpp
