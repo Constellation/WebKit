@@ -47,127 +47,70 @@ namespace JSC { namespace Wasm {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(TypeInformation);
 
-String TypeDefinition::toString() const
+// ============================================================================
+// ParsedDef helpers.
+// ============================================================================
+
+bool ParsedDef::hasRecursiveReference() const
 {
-    return WTF::toString(*this);
+    return WTF::switchOn(*m_v,
+        [](const Ref<const RTT>& rtt) { return rtt->hasRecursiveReference(); },
+        [](const Ref<Subtype>& s) { return s->hasRecursiveReference(); },
+        [](const Ref<RecursionGroup>&) -> bool { return false; },
+        [](const Ref<Projection>&) -> bool { return false; });
 }
 
-void TypeDefinition::dump(PrintStream& out) const
+TypeIndex ParsedDef::index() const
 {
-    switch (m_kind) {
-    case FunctionSignature::kind:
-        return as<FunctionSignature>()->dump(out);
-    case StructType::kind:
-        return as<StructType>()->dump(out);
-    case ArrayType::kind:
-        return as<ArrayType>()->dump(out);
-    case RecursionGroup::kind:
-        return as<RecursionGroup>()->dump(out);
-    case Projection::kind:
-        return as<Projection>()->dump(out);
-    case Subtype::kind:
-        return as<Subtype>()->dump(out);
-    }
-    RELEASE_ASSERT_NOT_REACHED();
-    return;
+    return WTF::switchOn(*m_v,
+        [](const Ref<const RTT>& rtt) -> TypeIndex { return std::bit_cast<TypeIndex>(rtt.ptr()); },
+        [](const Ref<Subtype>& s) -> TypeIndex { return tagAsSubtypeRef(s.ptr()); },
+        [](const Ref<RecursionGroup>& rg) -> TypeIndex { return std::bit_cast<TypeIndex>(rg.ptr()); },
+        [](const Ref<Projection>& p) -> TypeIndex { return TypeInformation::placeholderRefIndex(p.get()); });
 }
 
-String FunctionSignature::toString() const
+Ref<const RTT> ParsedDef::canonicalRTT() const
 {
-    return WTF::toString(*this);
+    return WTF::switchOn(*m_v,
+        [](const Ref<const RTT>& rtt) -> Ref<const RTT> { return rtt; },
+        [](const Ref<Subtype>& s) -> Ref<const RTT> { ASSERT(s->rtt()); return Ref<const RTT> { *s->rtt() }; },
+        [](const Ref<RecursionGroup>&) -> Ref<const RTT> {
+            // Recursion groups do not have a single canonical RTT -- they
+            // hold multiple members. Callers resolve each member via
+            // RecursionGroup::types() instead of calling canonicalRTT().
+            RELEASE_ASSERT_NOT_REACHED();
+        },
+        [](const Ref<Projection>& p) -> Ref<const RTT> { ASSERT(p->rtt()); return Ref<const RTT> { *p->rtt() }; });
 }
 
-void FunctionSignature::dump(PrintStream& out) const
-{
-    {
-        out.print("("_s);
-        CommaPrinter comma;
-        for (FunctionArgCount arg = 0; arg < argumentCount(); ++arg)
-            out.print(comma, makeString(argumentType(arg).kind));
-        out.print(")"_s);
-    }
+// ============================================================================
+// Recovers a Projection*, RecursionGroup*, or RTT* from a TypeIndex per the
+// tag-bit conventions defined in WasmTypeDefinition.h.
+// ============================================================================
 
-    {
-        CommaPrinter comma;
-        out.print(" -> ["_s);
-        for (FunctionArgCount ret = 0; ret < returnCount(); ++ret)
-            out.print(comma, makeString(returnType(ret).kind));
-        out.print("]"_s);
-    }
-}
+inline const Projection* projectionFromTaggedIndex(TypeIndex idx) { return untagProjectionRef(idx); }
+inline const Subtype* subtypeFromTaggedIndex(TypeIndex idx) { return untagSubtypeRef(idx); }
 
-FunctionSignature::FunctionSignature(FunctionArgCount argumentCount, FunctionArgCount returnCount)
-    : TypeDefinition(kind)
-    , m_argCount(argumentCount)
-    , m_retCount(returnCount)
-{ }
-
-FunctionSignature::~FunctionSignature() = default;
-
-String StructType::toString() const
-{
-    return WTF::toString(*this);
-}
-
-void StructType::dump(PrintStream& out) const
-{
-    out.print("("_s);
-    CommaPrinter comma;
-    for (StructFieldCount fieldIndex = 0; fieldIndex < fieldCount(); ++fieldIndex)
-        out.print(comma, field(fieldIndex).mutability ? "immutable "_s : "mutable "_s, makeString(field(fieldIndex).type));
-    out.print(")"_s);
-}
-
-StructType::StructType(std::span<const FieldType> fieldTypes)
-    : TypeDefinition(kind)
-    , m_fieldCount(fieldTypes.size())
-{
-    unsigned currentFieldOffset = 0;
-    auto fields = mutableFields();
-    for (unsigned fieldIndex = 0; fieldIndex < fieldTypes.size(); ++fieldIndex) {
-        const auto& fieldType = fieldTypes[fieldIndex];
-        m_hasRefFieldTypes |= isRefType(fieldType.type);
-        m_hasRecursiveReference |= isRefWithRecursiveReference(fieldType.type);
-        new (&fields[fieldIndex]) FieldType(fieldType);
-        const auto& fieldStorageType = fields[fieldIndex].type;
-        currentFieldOffset = WTF::roundUpToMultipleOf(typeAlignmentInBytes(fieldStorageType), currentFieldOffset);
-        fieldOffsetFromInstancePayload(fieldIndex) = currentFieldOffset;
-        currentFieldOffset += typeSizeInBytes(fieldStorageType);
-    }
-
-    m_instancePayloadSize = WTF::roundUpToMultipleOf<sizeof(uint64_t)>(currentFieldOffset);
-}
-
-ArrayType::ArrayType(const FieldType& elementType)
-    : TypeDefinition(kind)
-    , m_hasRecursiveReference(isRefWithRecursiveReference(elementType.type))
-    , m_elementType(elementType)
-{
-}
-
-String ArrayType::toString() const
-{
-    return WTF::toString(*this);
-}
-
-void ArrayType::dump(PrintStream& out) const
-{
-    out.print("("_s);
-    CommaPrinter comma;
-    out.print(comma, elementType().mutability ? "immutable "_s : "mutable "_s, makeString(elementType().type));
-    out.print(")"_s);
-}
+// ============================================================================
+// RecursionGroup, Projection, Subtype implementations.
+// ============================================================================
 
 RecursionGroup::RecursionGroup(std::span<const TypeIndex> types)
-    : TypeDefinition(kind)
-    , m_typeCount(types.size())
+    : m_typeCount(types.size())
 {
     for (unsigned i = 0; i < types.size(); ++i) {
-        TypeInformation::get(types[i]).ref();
-        mutableTypes()[i] = types[i];
+        TypeIndex t = types[i];
+        // Each member is either a tagged Subtype* or a bare RTT*.
+        // For Subtype, we ref() the Subtype directly. For RTT, the canonical
+        // RTT is owned elsewhere (m_canonicalRecursionGroups); we don't need
+        // to ref it here -- the RecursionGroup is parser-internal and the
+        // RTT outlives it via the canonical recgroup table.
+        if (t & kSubtypeTagBit)
+            subtypeFromTaggedIndex(t)->ref();
+        // RTT pointers: no ref needed (canonical RTTs are kept by m_canonicalRecursionGroups).
+        mutableTypes()[i] = t;
     }
 }
-
 
 String RecursionGroup::toString() const
 {
@@ -180,22 +123,33 @@ void RecursionGroup::dump(PrintStream& out) const
     CommaPrinter comma;
     for (RecursionGroupCount typeIndex = 0; typeIndex < typeCount(); ++typeIndex) {
         out.print(comma);
-        TypeInformation::get(type(typeIndex)).dump(out);
+        TypeIndex t = type(typeIndex);
+        if (t & kSubtypeTagBit)
+            subtypeFromTaggedIndex(t)->dump(out);
+        else
+            std::bit_cast<const RTT*>(t)->dump(out);
     }
     out.print(")"_s);
 }
 
+bool RecursionGroup::cleanup()
+{
+    for (auto& t : types()) {
+        if (t & kSubtypeTagBit)
+            subtypeFromTaggedIndex(t)->deref();
+    }
+    return true;
+}
+
 Projection::Projection(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
-    : TypeDefinition(kind)
-    , m_recursionGroup(recursionGroup)
+    : m_recursionGroup(recursionGroup)
     , m_projectionIndex(projectionIndex)
 {
     // An invalid index may show up here for placeholder references, in which
     // case we should avoid trying to resolve the type index.
-    if (recursionGroup != TypeDefinition::invalidIndex)
-        TypeInformation::get(recursionGroup).ref();
+    if (recursionGroup != Subtype::invalidIndex)
+        std::bit_cast<const RecursionGroup*>(recursionGroup)->ref();
 }
-
 
 String Projection::toString() const
 {
@@ -209,22 +163,33 @@ void Projection::dump(PrintStream& out) const
     if (isPlaceholder())
         out.print("<current-rec-group>"_s);
     else
-        TypeInformation::get(recursionGroup()).dump(out);
+        std::bit_cast<const RecursionGroup*>(recursionGroup())->dump(out);
     out.print("."_s, projectionIndex());
     out.print(")"_s);
 }
 
-Subtype::Subtype(std::span<const TypeIndex> superTypes, TypeIndex underlyingType, bool isFinal)
-    : TypeDefinition(kind)
-    , m_final(isFinal)
-    , m_underlyingType(underlyingType)
+bool Projection::cleanup()
+{
+    if (recursionGroup() != Subtype::invalidIndex) {
+        std::bit_cast<const RecursionGroup*>(recursionGroup())->deref();
+        return true;
+    }
+    return false;
+}
+
+Subtype::Subtype(std::span<const TypeIndex> superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
+    : m_final(isFinal)
+    , m_underlyingRTT(WTF::move(underlyingRTT))
     , m_supertypeCount(superTypes.size())
 {
     for (SupertypeCount i = 0; i < superTypes.size(); i++) {
         mutableSuperTypes()[i] = superTypes[i];
-        TypeInformation::get(superTypes[i]).ref();
+        // supertypeIndex for canonicalized parents is an RTT pointer (kept
+        // alive transitively by m_canonicalRecursionGroups). The placeholder/
+        // canonical Projection form is a Projection we should ref directly.
+        if (TypeInformation::isPlaceholderRef(superTypes[i]))
+            projectionFromTaggedIndex(superTypes[i])->ref();
     }
-    TypeInformation::get(underlyingType).ref();
 }
 
 String Subtype::toString() const
@@ -237,11 +202,33 @@ void Subtype::dump(PrintStream& out) const
     out.print("("_s);
     CommaPrinter comma;
     if (supertypeCount() > 0) {
-        TypeInformation::get(firstSuperType()).dump(out);
+        TypeIndex parent = firstSuperType();
+        if (TypeInformation::isPlaceholderRef(parent))
+            projectionFromTaggedIndex(parent)->dump(out);
+        else if (auto* rtt = std::bit_cast<const RTT*>(parent))
+            rtt->dump(out);
         out.print(comma);
     }
-    TypeInformation::get(underlyingType()).dump(out);
+    underlyingRTT().dump(out);
     out.print(")"_s);
+}
+
+bool Subtype::cleanup()
+{
+    for (auto& type : superTypes()) {
+        if (TypeInformation::isPlaceholderRef(type))
+            projectionFromTaggedIndex(type)->deref();
+    }
+    return true;
+}
+
+bool Subtype::hasRecursiveReference() const
+{
+    if (m_supertypeCount > 0) {
+        const bool hasRecGroupSupertype = TypeInformation::isPlaceholderRef(firstSuperType());
+        return hasRecGroupSupertype || m_underlyingRTT->hasRecursiveReference();
+    }
+    return m_underlyingRTT->hasRecursiveReference();
 }
 
 void StorageType::dump(PrintStream& out) const
@@ -254,75 +241,9 @@ void StorageType::dump(PrintStream& out) const
     }
 }
 
-bool TypeDefinition::cleanup()
-{
-    // Only compound type definitions need to be cleaned up, not, e.g., function types.
-    if (is<Subtype>())
-        return as<Subtype>()->cleanup();
-    if (is<Projection>())
-        return as<Projection>()->cleanup();
-    if (is<RecursionGroup>())
-        return as<RecursionGroup>()->cleanup();
-    return false;
-}
-
-bool Subtype::cleanup()
-{
-    for (auto& type : superTypes())
-        TypeInformation::get(type).deref();
-    TypeInformation::get(m_underlyingType).deref();
-    return true;
-}
-
-bool Projection::cleanup()
-{
-    if (recursionGroup() != TypeDefinition::invalidIndex) {
-        TypeInformation::get(recursionGroup()).deref();
-        return true;
-    }
-    return false;
-}
-
-bool RecursionGroup::cleanup()
-{
-    for (auto& type : types())
-        TypeInformation::get(type).deref();
-    return true;
-}
-
-static unsigned NODELETE computeSignatureHash(size_t returnCount, const Type* returnTypes, size_t argumentCount, const Type* argumentTypes)
-{
-    unsigned accumulator = 0xa1bcedd8u;
-    for (uint32_t i = 0; i < argumentCount; ++i) {
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<uint8_t>::hash(static_cast<uint8_t>(argumentTypes[i].kind)));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<unsigned>::hash(argumentTypes[i].index));
-    }
-    for (uint32_t i = 0; i < returnCount; ++i) {
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<uint8_t>::hash(static_cast<uint8_t>(returnTypes[i].kind)));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<unsigned>::hash(returnTypes[i].index));
-    }
-    return accumulator;
-}
-
-static unsigned computeStructTypeHash(std::span<const FieldType> fields)
-{
-    unsigned accumulator = 0x15d2546;
-    for (auto& field : fields) {
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<int8_t>::hash(static_cast<int8_t>(field.type.typeCode())));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<uint8_t>::hash(static_cast<uint8_t>(field.type.index())));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<uint8_t>::hash(static_cast<uint8_t>(field.mutability)));
-    }
-    return accumulator;
-}
-
-static unsigned computeArrayTypeHash(FieldType elementType)
-{
-    unsigned accumulator = 0x7835ab;
-    accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<int8_t>::hash(static_cast<int8_t>(elementType.type.typeCode())));
-    accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(elementType.type.index()));
-    accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<uint8_t>::hash(static_cast<uint8_t>(elementType.mutability)));
-    return accumulator;
-}
+// ============================================================================
+// Hash functions used by the parser-internal canonicalization sets.
+// ============================================================================
 
 static unsigned NODELETE computeRecursionGroupHash(std::span<const TypeIndex> types)
 {
@@ -340,81 +261,42 @@ static unsigned NODELETE computeProjectionHash(TypeIndex recursionGroup, Project
     return accumulator;
 }
 
-static unsigned NODELETE computeSubtypeHash(std::span<const TypeIndex> superTypes, TypeIndex underlyingType, bool isFinal)
+static unsigned NODELETE computeSubtypeHash(std::span<const TypeIndex> superTypes, TypeIndex underlyingRTT, bool isFinal)
 {
     unsigned accumulator = 0x3efa01b9;
     for (auto& type : superTypes)
         accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(type));
-    accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(underlyingType));
+    accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(underlyingRTT));
     accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<bool>::hash(isFinal));
     return accumulator;
 }
 
-unsigned TypeDefinition::hash() const
+unsigned SubtypeHash::hash(const SubtypeHash& key)
 {
-    switch (m_kind) {
-    case FunctionSignature::kind: {
-        const FunctionSignature* signature = as<FunctionSignature>();
-        return computeSignatureHash(signature->returnCount(), signature->storage(0), signature->argumentCount(), signature->storage(signature->returnCount()));
-    }
-    case StructType::kind: {
-        const StructType* structType = as<StructType>();
-        return computeStructTypeHash(structType->fields());
-    }
-    case ArrayType::kind: {
-        const ArrayType* arrayType = as<ArrayType>();
-        return computeArrayTypeHash(arrayType->elementType());
-    }
-    case RecursionGroup::kind: {
-        const RecursionGroup* recursionGroup = as<RecursionGroup>();
-        return computeRecursionGroupHash(recursionGroup->types());
-    }
-    case Projection::kind: {
-        const Projection* projection = as<Projection>();
-        return computeProjectionHash(projection->recursionGroup(), projection->projectionIndex());
-    }
-    case Subtype::kind: {
-        const Subtype* subtype = as<Subtype>();
-        return computeSubtypeHash(subtype->superTypes(), subtype->underlyingType(), subtype->isFinal());
-    }
-    }
-    RELEASE_ASSERT_NOT_REACHED();
-    return 0;
+    if (!key.key)
+        return 0;
+    return computeSubtypeHash(key.key->superTypes(), std::bit_cast<TypeIndex>(&key.key->underlyingRTT()), key.key->isFinal());
 }
 
-RefPtr<FunctionSignature> FunctionSignature::tryCreate(FunctionArgCount returnCount, FunctionArgCount argumentCount)
+unsigned RecursionGroupHash::hash(const RecursionGroupHash& key)
 {
-    // We use WTF_MAKE_TZONE_ALLOCATED for this class.
-    auto result = tryFastMalloc(allocationSize(returnCount, argumentCount));
-    void* memory = nullptr;
-    if (!result.getValue(memory))
-        return nullptr;
-    return adoptRef(*new (NotNull, memory) FunctionSignature(argumentCount, returnCount));
+    if (!key.key)
+        return 0;
+    return computeRecursionGroupHash(key.key->types());
 }
 
-RefPtr<StructType> StructType::tryCreate(std::span<const FieldType> fields)
+unsigned ProjectionHash::hash(const ProjectionHash& key)
 {
-    // We use WTF_MAKE_TZONE_ALLOCATED for this class.
-    auto result = tryFastMalloc(allocationSize(fields.size()));
-    void* memory = nullptr;
-    if (!result.getValue(memory))
-        return nullptr;
-    return adoptRef(*new (NotNull, memory) StructType(fields));
+    if (!key.key)
+        return 0;
+    return computeProjectionHash(key.key->recursionGroup(), key.key->projectionIndex());
 }
 
-RefPtr<ArrayType> ArrayType::tryCreate(const FieldType& elementType)
-{
-    // We use WTF_MAKE_TZONE_ALLOCATED for this class.
-    auto result = tryFastMalloc(allocationSize());
-    void* memory = nullptr;
-    if (!result.getValue(memory))
-        return nullptr;
-    return adoptRef(*new (NotNull, memory) ArrayType(elementType));
-}
+// ============================================================================
+// Factories for Subtype/RecursionGroup/Projection.
+// ============================================================================
 
-RefPtr<RecursionGroup> RecursionGroup::tryCreate(std::span<const TypeIndex> types)
-{
-    // We use WTF_MAKE_TZONE_ALLOCATED for this class.
+RefPtr<RecursionGroup> RecursionGroup::tryCreate(std::span<const TypeIndex> types){
     auto result = tryFastMalloc(allocationSize(types.size()));
     void* memory = nullptr;
     if (!result.getValue(memory))
@@ -424,7 +306,6 @@ RefPtr<RecursionGroup> RecursionGroup::tryCreate(std::span<const TypeIndex> type
 
 RefPtr<Projection> Projection::tryCreate(TypeIndex recursionGroup, ProjectionIndex index)
 {
-    // We use WTF_MAKE_TZONE_ALLOCATED for this class.
     auto result = tryFastMalloc(allocationSize());
     void* memory = nullptr;
     if (!result.getValue(memory))
@@ -432,181 +313,13 @@ RefPtr<Projection> Projection::tryCreate(TypeIndex recursionGroup, ProjectionInd
     return adoptRef(*new (NotNull, memory) Projection(recursionGroup, index));
 }
 
-RefPtr<Subtype> Subtype::tryCreate(std::span<const TypeIndex> superTypes, TypeIndex underlyingType, bool isFinal)
+RefPtr<Subtype> Subtype::tryCreate(std::span<const TypeIndex> superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
 {
-    // We use WTF_MAKE_TZONE_ALLOCATED for this class.
     auto result = tryFastMalloc(allocationSize(superTypes.size()));
     void* memory = nullptr;
     if (!result.getValue(memory))
         return nullptr;
-    return adoptRef(*new (NotNull, memory) Subtype(superTypes, underlyingType, isFinal));
-}
-
-// Recursive types are stored "tied" in the sense that the spec refers to here:
-//
-//   https://github.com/WebAssembly/gc/blob/main/proposals/gc/MVP.md#equivalence
-//
-// That is, the recursive "back edges" are stored as a special type index. These
-// need to be substituted back out to a Projection eventually so that the type
-// can be further expanded if necessary. The substitute and replacePlaceholders
-// functions below are used to implement this substitution.
-Type TypeDefinition::substitute(Type type, TypeIndex projectee)
-{
-    if (isRefWithTypeIndex(type)) {
-        auto& candidate = TypeInformation::get(type.index);
-        if (candidate.is<Projection>()) {
-            const Projection* projection = candidate.as<Projection>();
-            if (projection->isPlaceholder()) {
-                auto newProjection = TypeInformation::typeDefinitionForProjection(projectee, projection->projectionIndex());
-                TypeKind kind = type.isNullable() ? TypeKind::RefNull : TypeKind::Ref;
-                // Calling module must have already taken ownership of all projections.
-                RELEASE_ASSERT(newProjection->refCount() > 2); // TypeInformation registry + RefPtr + owning module(s)
-                return Type { kind, newProjection->index() };
-            }
-        }
-    }
-
-    return type;
-}
-
-// Perform a substitution as above but for a Subtype's parent type.
-static TypeIndex substituteParent(TypeIndex parent, TypeIndex projectee)
-{
-    auto& candidate = TypeInformation::get(parent);
-    if (candidate.is<Projection>()) {
-        const Projection* projection = candidate.as<Projection>();
-        if (projection->isPlaceholder()) {
-            auto newProjection = TypeInformation::typeDefinitionForProjection(projectee, projection->projectionIndex());
-            // Caller module must have already taken ownership of all its projections.
-            RELEASE_ASSERT(newProjection->refCount() > 2); // tbl + RefPtr + owning module(s)
-            return newProjection->index();
-        }
-    }
-
-    return parent;
-}
-
-// This operation is a helper for expand() that calls substitute() in order
-// to replace placeholder recursive references in structural types.
-Ref<const TypeDefinition> TypeDefinition::replacePlaceholders(TypeIndex projectee) const
-{
-    if (is<FunctionSignature>()) {
-        const FunctionSignature* func = as<FunctionSignature>();
-        Vector<Type, 16> newArguments(func->argumentCount(), [&](size_t i) {
-            return substitute(func->argumentType(i), projectee);
-        });
-        Vector<Type, 16> newReturns(func->returnCount(), [&](size_t i) {
-            return substitute(func->returnType(i), projectee);
-        });
-
-        auto def = TypeInformation::typeDefinitionForFunction(newReturns, newArguments);
-        return def.releaseNonNull();
-    }
-
-    if (is<StructType>()) {
-        const StructType* structType = as<StructType>();
-        Vector<FieldType> newFields(structType->fieldCount(), [&](size_t i) {
-            FieldType field = structType->field(i);
-            StorageType substituted = field.type.is<PackedType>() ? field.type : StorageType(substitute(field.type.as<Type>(), projectee));
-            return FieldType { substituted, field.mutability };
-        });
-
-        auto def = TypeInformation::typeDefinitionForStruct(newFields);
-        return def.releaseNonNull();
-    }
-
-    if (is<ArrayType>()) {
-        const ArrayType* arrayType = as<ArrayType>();
-        FieldType field = arrayType->elementType();
-        StorageType substituted = field.type.is<PackedType>() ? field.type : StorageType(substitute(field.type.as<Type>(), projectee));
-        auto def = TypeInformation::typeDefinitionForArray(FieldType { substituted, field.mutability });
-        return def.releaseNonNull();
-    }
-
-    if (is<Subtype>()) {
-        const Subtype* subtype = as<Subtype>();
-        Ref newUnderlyingType = TypeInformation::get(subtype->underlyingType()).replacePlaceholders(projectee);
-        Vector<TypeIndex> supertypes(subtype->supertypeCount(), [&](size_t i) {
-            return substituteParent(subtype->superType(i), projectee);
-        });
-        // Subtype takes ownership of newUnderlyingType.
-        auto def = TypeInformation::typeDefinitionForSubtype(supertypes, newUnderlyingType->index(), subtype->isFinal());
-        return def.releaseNonNull();
-    }
-
-    return Ref { *this };
-}
-
-// This function corresponds to the unroll metafunction from the spec:
-//
-//  https://github.com/WebAssembly/gc/blob/main/proposals/gc/MVP.md#auxiliary-definitions
-//
-// It unrolls a potentially recursive type to a Subtype or structural type.
-const TypeDefinition& TypeDefinition::unrollSlow() const
-{
-    ASSERT(is<Projection>());
-    const Projection& projection = *as<Projection>();
-    const TypeDefinition& projectee = TypeInformation::get(projection.recursionGroup());
-
-    const RecursionGroup& recursionGroup = *projectee.as<RecursionGroup>();
-    const TypeDefinition& underlyingType = TypeInformation::get(recursionGroup.type(projection.projectionIndex()));
-
-    if (underlyingType.hasRecursiveReference()) {
-        if (std::optional<TypeIndex> cachedUnrolling = TypeInformation::tryGetCachedUnrolling(index()))
-            return TypeInformation::get(*cachedUnrolling);
-
-        Ref unrolled = underlyingType.replacePlaceholders(projectee.index());
-        TypeInformation::addCachedUnrolling(index(), unrolled);
-        RELEASE_ASSERT(unrolled->refCount() > 2); // TypeInformation registry + Ref + owner (unrolling cache).
-        return unrolled.unsafeGet(); // TypeInformation unrolling cache now owns, with lifetime tied to 'this'.
-    }
-    RELEASE_ASSERT(underlyingType.refCount() > 1); // TypeInformation registry + owner(s).
-    return underlyingType;
-}
-
-// This function corresponds to the expand metafunction from the spec:
-//
-//  https://github.com/WebAssembly/gc/blob/main/proposals/gc/MVP.md#auxiliary-definitions
-//
-// It expands a potentially recursive context type and returns the concrete structural
-// type definition that it corresponds to. It should be called whenever the concrete
-// type is needed during validation or other phases.
-const TypeDefinition& TypeDefinition::expand() const
-{
-    const TypeDefinition& unrolled = unroll();
-    if (unrolled.is<Subtype>())
-        return TypeInformation::get(unrolled.as<Subtype>()->underlyingType());
-
-    return unrolled;
-}
-
-// Determine if, for a structural type or subtype, the type contains any references to recursion group members.
-bool TypeDefinition::hasRecursiveReference() const
-{
-    if (is<FunctionSignature>())
-        return as<FunctionSignature>()->hasRecursiveReference();
-    if (is<StructType>())
-        return as<StructType>()->hasRecursiveReference();
-    if (is<ArrayType>())
-        return as<ArrayType>()->hasRecursiveReference();
-
-    ASSERT(is<Subtype>());
-    if (as<Subtype>()->supertypeCount() > 0) {
-        const TypeDefinition& supertype = TypeInformation::get(as<Subtype>()->firstSuperType());
-        const bool hasRecGroupSupertype = supertype.is<Projection>() && supertype.as<Projection>()->isPlaceholder();
-        return hasRecGroupSupertype || TypeInformation::get(as<Subtype>()->underlyingType()).hasRecursiveReference();
-    }
-
-    return TypeInformation::get(as<Subtype>()->underlyingType()).hasRecursiveReference();
-}
-
-bool TypeDefinition::isFinalType() const
-{
-    const auto& unrolled = unroll();
-    if (unrolled.is<Subtype>())
-        return unrolled.as<Subtype>()->isFinal();
-
-    return true;
+    return adoptRef(*new (NotNull, memory) Subtype(superTypes, WTF::move(underlyingRTT), isFinal));
 }
 
 RTT::RTT(RTTKind kind, bool isFinalType, StructFieldCount fieldCount)
@@ -652,6 +365,62 @@ RefPtr<RTT> RTT::tryCreate(RTTKind kind, const RTT& supertype, bool isFinalType,
     return adoptRef(new (NotNull, memory) RTT(kind, supertype, isFinalType, fieldCount));
 }
 
+RefPtr<RTT> RTT::tryCreateFunction(bool isFinalType, RTTFunctionPayload&& payload)
+{
+    auto rtt = tryCreate(RTTKind::Function, isFinalType, 0);
+    if (!rtt)
+        return nullptr;
+    rtt->setPayload(WTF::move(payload));
+    return rtt;
+}
+
+RefPtr<RTT> RTT::tryCreateFunction(const RTT& supertype, bool isFinalType, RTTFunctionPayload&& payload)
+{
+    auto rtt = tryCreate(RTTKind::Function, supertype, isFinalType, 0);
+    if (!rtt)
+        return nullptr;
+    rtt->setPayload(WTF::move(payload));
+    return rtt;
+}
+
+RefPtr<RTT> RTT::tryCreateStruct(bool isFinalType, RTTStructPayload&& payload)
+{
+    StructFieldCount fieldCount = payload.fieldCount();
+    auto rtt = tryCreate(RTTKind::Struct, isFinalType, fieldCount);
+    if (!rtt)
+        return nullptr;
+    rtt->setPayload(WTF::move(payload));
+    return rtt;
+}
+
+RefPtr<RTT> RTT::tryCreateStruct(const RTT& supertype, bool isFinalType, RTTStructPayload&& payload)
+{
+    StructFieldCount fieldCount = payload.fieldCount();
+    auto rtt = tryCreate(RTTKind::Struct, supertype, isFinalType, fieldCount);
+    if (!rtt)
+        return nullptr;
+    rtt->setPayload(WTF::move(payload));
+    return rtt;
+}
+
+RefPtr<RTT> RTT::tryCreateArray(bool isFinalType, RTTArrayPayload&& payload)
+{
+    auto rtt = tryCreate(RTTKind::Array, isFinalType, 0);
+    if (!rtt)
+        return nullptr;
+    rtt->setPayload(WTF::move(payload));
+    return rtt;
+}
+
+RefPtr<RTT> RTT::tryCreateArray(const RTT& supertype, bool isFinalType, RTTArrayPayload&& payload)
+{
+    auto rtt = tryCreate(RTTKind::Array, supertype, isFinalType, 0);
+    if (!rtt)
+        return nullptr;
+    rtt->setPayload(WTF::move(payload));
+    return rtt;
+}
+
 bool RTT::isSubRTT(const RTT& parent) const
 {
     if (this == &parent)
@@ -668,436 +437,744 @@ bool RTT::isStrictSubRTT(const RTT& parent) const
     return &parent == displayEntry(parent.displaySizeExcludingThis());
 }
 
-const FunctionSignature& TypeInformation::signatureForJSException()
+String RTT::toString() const
+{
+    return WTF::toString(*this);
+}
+
+RTT::~RTT() = default;
+
+void RTT::rewriteInternalRefs(TypeSectionState* state, const Vector<Ref<const RTT>>& groupMembers, TypeIndex recursionGroupIndex)
+{
+    // Collect Refs to RTTs that this RTT's payload now references (after
+    // rewrite). These anchor the referenced RTTs' lifetimes against UAF.
+    // Cycles within the recgroup are accepted (they leak; see RTT comment).
+    Vector<Ref<const RTT>> newReferencedRTTs;
+
+    auto rewrite = [&](Type t) -> Type {
+        if (!isRefWithTypeIndex(t))
+            return t;
+        if (t.index == Subtype::invalidIndex)
+            return t;
+        // Internal recgroup refs are tagged Projection pointers (placeholder
+        // tag bit set) produced by replacePlaceholders/substitute. Untagged
+        // indices are bare RTT* (already canonical) and don't need rewriting.
+        if (!TypeInformation::isPlaceholderRef(t.index))
+            return t;
+        const Projection* projection = projectionFromTaggedIndex(t.index);
+        if (projection->recursionGroup() == recursionGroupIndex) {
+            ProjectionIndex pi = projection->projectionIndex();
+            ASSERT(pi < groupMembers.size());
+            const RTT* canonical = groupMembers[pi].ptr();
+            newReferencedRTTs.append(Ref<const RTT> { *canonical });
+            return Type { t.kind, std::bit_cast<TypeIndex>(canonical) };
+        }
+        // Cross-group projection: the projection must have been registered
+        // when its own recursion group was canonicalized (parser processes
+        // recgroups in declaration order). If state is provided, ensure
+        // registration lazily; if not (standalone RTT canonicalization), the
+        // projection's rtt() must already be set.
+        if (state && !projection->rtt())
+            state->registerCanonicalRTT(*projection);
+        const RTT* projectedRTT = projection->rtt();
+        ASSERT(projectedRTT);
+        newReferencedRTTs.append(Ref<const RTT> { *projectedRTT });
+        return Type { t.kind, std::bit_cast<TypeIndex>(projectedRTT) };
+    };
+
+    switch (m_kind) {
+    case RTTKind::Function: {
+        auto& payload = std::get<RTTFunctionPayload>(m_payload);
+        payload.rewriteSignature(rewrite);
+        for (auto& r : newReferencedRTTs)
+            payload.addReferencedRTT(WTF::move(r));
+        break;
+    }
+    case RTTKind::Struct: {
+        auto& payload = std::get<RTTStructPayload>(m_payload);
+        payload.rewriteFields(rewrite);
+        for (auto& r : newReferencedRTTs)
+            payload.addReferencedRTT(WTF::move(r));
+        break;
+    }
+    case RTTKind::Array: {
+        auto& payload = std::get<RTTArrayPayload>(m_payload);
+        payload.rewriteElementType(rewrite);
+        for (auto& r : newReferencedRTTs)
+            payload.addReferencedRTT(WTF::move(r));
+        break;
+    }
+    }
+}
+
+void RTT::clearReferencedRTTs()
+{
+    switch (m_kind) {
+    case RTTKind::Function:
+        std::get<RTTFunctionPayload>(m_payload).clearReferencedRTTs();
+        break;
+    case RTTKind::Struct:
+        std::get<RTTStructPayload>(m_payload).clearReferencedRTTs();
+        break;
+    case RTTKind::Array:
+        std::get<RTTArrayPayload>(m_payload).clearReferencedRTTs();
+        break;
+    }
+}
+
+void RTT::dump(PrintStream& out) const
+{
+    switch (kind()) {
+    case RTTKind::Function: {
+        out.print("("_s);
+        {
+            CommaPrinter comma;
+            for (FunctionArgCount arg = 0; arg < argumentCount(); ++arg)
+                out.print(comma, makeString(argumentType(arg).kind));
+        }
+        out.print(")"_s);
+        out.print(" -> ["_s);
+        {
+            CommaPrinter comma;
+            for (FunctionArgCount ret = 0; ret < returnCount(); ++ret)
+                out.print(comma, makeString(returnType(ret).kind));
+        }
+        out.print("]"_s);
+        return;
+    }
+    case RTTKind::Struct: {
+        out.print("("_s);
+        CommaPrinter comma;
+        for (StructFieldCount fieldIndex = 0; fieldIndex < fieldCount(); ++fieldIndex)
+            out.print(comma, field(fieldIndex).mutability ? "immutable "_s : "mutable "_s, makeString(field(fieldIndex).type));
+        out.print(")"_s);
+        return;
+    }
+    case RTTKind::Array: {
+        out.print("("_s);
+        out.print(elementType().mutability ? "immutable "_s : "mutable "_s, makeString(elementType().type));
+        out.print(")"_s);
+        return;
+    }
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+const RTT& TypeInformation::signatureForJSException()
 {
     return *singleton().m_Void_Externref;
 }
 
-struct FunctionParameterTypes {
-    const Vector<Type, 16>& returnTypes;
-    const Vector<Type, 16>& argumentTypes;
-
-    static unsigned NODELETE hash(const FunctionParameterTypes& params)
-    {
-        return computeSignatureHash(params.returnTypes.size(), params.returnTypes.span().data(), params.argumentTypes.size(), params.argumentTypes.span().data());
-    }
-
-    static bool NODELETE equal(const TypeHash& sig, const FunctionParameterTypes& params)
-    {
-        if (!sig.key->is<FunctionSignature>())
-            return false;
-
-        const FunctionSignature* signature = sig.key->as<FunctionSignature>();
-        if (signature->argumentCount() != params.argumentTypes.size())
-            return false;
-        if (signature->returnCount() != params.returnTypes.size())
-            return false;
-
-        for (unsigned i = 0; i < signature->argumentCount(); ++i) {
-            if (signature->argumentType(i) != params.argumentTypes[i])
-                return false;
-        }
-
-        for (unsigned i = 0; i < signature->returnCount(); ++i) {
-            if (signature->returnType(i) != params.returnTypes[i])
-                return false;
-        }
-        return true;
-    }
-
-    // The translate method (here and in structs below) is used as a part of the
-    // HashTranslator interface in order to construct a hash set entry when the entry
-    // is not already in the set. See HashSet.h for details.
-    static void translate(TypeHash& entry, const FunctionParameterTypes& params, unsigned)
-    {
-        auto signature = FunctionSignature::tryCreate(params.returnTypes.size(), params.argumentTypes.size());
-        RELEASE_ASSERT(signature);
-        bool hasRecursiveReference = false;
-        bool argumentsOrResultsIncludeI64 = false;
-        bool argumentsOrResultsIncludeV128 = false;
-        bool argumentsOrResultsIncludeExnref = false;
-
-        for (unsigned i = 0; i < params.returnTypes.size(); ++i) {
-            signature->getReturnType(i) = params.returnTypes[i];
-            hasRecursiveReference |= isRefWithRecursiveReference(params.returnTypes[i]);
-            argumentsOrResultsIncludeI64 |= params.returnTypes[i].isI64();
-            argumentsOrResultsIncludeV128 |= params.returnTypes[i].isV128();
-            argumentsOrResultsIncludeExnref |= isExnref(params.returnTypes[i]);
-        }
-
-        for (unsigned i = 0; i < params.argumentTypes.size(); ++i) {
-            signature->getArgumentType(i) = params.argumentTypes[i];
-            hasRecursiveReference |= isRefWithRecursiveReference(params.argumentTypes[i]);
-            argumentsOrResultsIncludeI64 |= params.argumentTypes[i].isI64();
-            argumentsOrResultsIncludeV128 |= params.argumentTypes[i].isV128();
-            argumentsOrResultsIncludeExnref |= isExnref(params.argumentTypes[i]);
-        }
-
-        signature->setHasRecursiveReference(hasRecursiveReference);
-        signature->setArgumentsOrResultsIncludeI64(argumentsOrResultsIncludeI64);
-        signature->setArgumentsOrResultsIncludeV128(argumentsOrResultsIncludeV128);
-        signature->setArgumentsOrResultsIncludeExnref(argumentsOrResultsIncludeExnref);
-
-        entry.key = WTF::move(signature);
-    }
-};
-
-struct StructParameterTypes {
-    const Vector<FieldType>& fields;
-
-    static unsigned hash(const StructParameterTypes& params)
-    {
-        return computeStructTypeHash(params.fields.span());
-    }
-
-    static bool equal(const TypeHash& sig, const StructParameterTypes& params)
-    {
-        if (!sig.key->is<StructType>())
-            return false;
-
-        auto structType = sig.key->as<StructType>();
-        auto fields = structType->fields();
-
-        if (fields.size() != params.fields.size())
-            return false;
-
-        for (size_t i = 0; i < fields.size(); ++i) {
-            if (fields[i] != params.fields[i])
-                return false;
-        }
-
-        return true;
-    }
-
-    static void translate(TypeHash& entry, const StructParameterTypes& params, unsigned)
-    {
-        auto signature = StructType::tryCreate(params.fields.span());
-        RELEASE_ASSERT(signature);
-        entry.key = WTF::move(signature);
-    }
-};
-
-struct ArrayParameterTypes {
-    FieldType elementType;
-
-    static unsigned hash(const ArrayParameterTypes& params)
-    {
-        return computeArrayTypeHash(params.elementType);
-    }
-
-    static bool equal(const TypeHash& sig, const ArrayParameterTypes& params)
-    {
-        if (!sig.key->is<ArrayType>())
-            return false;
-
-        const ArrayType* arrayType = sig.key->as<ArrayType>();
-
-        if (arrayType->elementType() != params.elementType)
-            return false;
-
-        return true;
-    }
-
-    static void translate(TypeHash& entry, const ArrayParameterTypes& params, unsigned)
-    {
-        auto signature = ArrayType::tryCreate(params.elementType);
-        RELEASE_ASSERT(signature);
-        entry.key = WTF::move(signature);
-    }
-};
-
-struct RecursionGroupParameterTypes {
-    const Vector<TypeIndex>& types;
-
-    static unsigned NODELETE hash(const RecursionGroupParameterTypes& params)
-    {
-        return computeRecursionGroupHash(params.types.span());
-    }
-
-    static bool NODELETE equal(const TypeHash& sig, const RecursionGroupParameterTypes& params)
-    {
-        if (!sig.key->is<RecursionGroup>())
-            return false;
-
-        const RecursionGroup* recursionGroup = sig.key->as<RecursionGroup>();
-        if (recursionGroup->typeCount() != params.types.size())
-            return false;
-
-        for (unsigned i = 0; i < recursionGroup->typeCount(); ++i) {
-            if (recursionGroup->type(i) != params.types[i])
-                return false;
-        }
-
-        return true;
-    }
-
-    static void translate(TypeHash& entry, const RecursionGroupParameterTypes& params, unsigned)
-    {
-        auto signature = RecursionGroup::tryCreate(params.types.span());
-        RELEASE_ASSERT(signature);
-        entry.key = WTF::move(signature);
-    }
-};
-
-struct ProjectionParameterTypes {
-    const TypeIndex recursionGroup;
-    const ProjectionIndex projectionIndex;
-
-    static unsigned NODELETE hash(const ProjectionParameterTypes& params)
-    {
-        return computeProjectionHash(params.recursionGroup, params.projectionIndex);
-    }
-
-    static bool NODELETE equal(const TypeHash& sig, const ProjectionParameterTypes& params)
-    {
-        if (!sig.key->is<Projection>())
-            return false;
-
-        const Projection* projection = sig.key->as<Projection>();
-        if (projection->recursionGroup() != params.recursionGroup || projection->projectionIndex() != params.projectionIndex)
-            return false;
-
-        return true;
-    }
-
-    static void translate(TypeHash& entry, const ProjectionParameterTypes& params, unsigned)
-    {
-        auto projection = Projection::tryCreate(params.recursionGroup, params.projectionIndex);
-        RELEASE_ASSERT(projection);
-        entry.key = WTF::move(projection);
-    }
-};
-
-struct SubtypeParameterTypes {
-    const Vector<TypeIndex>& superTypes;
-    TypeIndex underlyingType;
-    bool isFinal;
-
-    static unsigned NODELETE hash(const SubtypeParameterTypes& params)
-    {
-        return computeSubtypeHash(params.superTypes.span(), params.underlyingType, params.isFinal);
-    }
-
-    static bool NODELETE equal(const TypeHash& sig, const SubtypeParameterTypes& params)
-    {
-        if (!sig.key->is<Subtype>())
-            return false;
-
-        const Subtype* subtype = sig.key->as<Subtype>();
-        if (subtype->supertypeCount() != params.superTypes.size())
-            return false;
-
-        for (SupertypeCount i = 0; i < params.superTypes.size(); i++) {
-            if (subtype->superType(i) != params.superTypes[i])
-                return false;
-        }
-
-        if (subtype->underlyingType() != params.underlyingType)
-            return false;
-
-        if (subtype->isFinal() != params.isFinal)
-            return false;
-
-        return true;
-    }
-
-    static void translate(TypeHash& entry, const SubtypeParameterTypes& params, unsigned)
-    {
-        auto signature = Subtype::tryCreate(params.superTypes.span(), params.underlyingType, params.isFinal);
-        RELEASE_ASSERT(signature);
-        entry.key = WTF::move(signature);
-    }
-};
-
 TypeInformation::TypeInformation()
 {
-#define MAKE_THUNK_SIGNATURE(type, enc, str, val, ...) \
-    do { \
-        if (TypeKind::type != TypeKind::Void) { \
-            auto sig = FunctionSignature::tryCreate(1, 0);                                 \
-            RELEASE_ASSERT(sig);                                                           \
-            sig->ref();                                                                    \
-            sig->getReturnType(0) = Types::type;                                           \
-            if (Types::type.isI64())                                                       \
-                sig->setArgumentsOrResultsIncludeI64(true);                                \
-            if (Types::type.isV128())                                                      \
-                sig->setArgumentsOrResultsIncludeV128(true);                               \
-            if (isExnref(Types::type))                                                     \
-                sig->setArgumentsOrResultsIncludeExnref(true);                             \
-            thunkTypes[linearizeType(TypeKind::type)] = sig.get();                         \
-            m_typeSet.add(TypeHash { sig.releaseNonNull() });                              \
-        }                                                                                  \
-    } while (false);
+    // m_Void_Externref must be canonicalized so the JS-side WebAssembly.JSTag
+    // (whose RTT is m_Void_Externref) matches a wasm module's imported
+    // `(tag (param externref))` whose RTT comes from the canonical recgroup
+    // table.
+    m_Void_Externref = canonicalizeStandaloneRTTImpl(typeDefinitionForFunction({ }, { externrefType() }));
+}
 
-    FOR_EACH_WASM_TYPE(MAKE_THUNK_SIGNATURE);
+// Returns a Ref to an external (already-canonical) RTT referenced by this Type,
+// or nullptr if the Type is not such a ref. Used to anchor RTT lifetimes from
+// payloads that point at other RTTs (cycles allowed; see RTT comment).
+RefPtr<const RTT> TypeInformation::extractExternalRTT(Type type)
+{
+    if (!isRefWithTypeIndex(type))
+        return nullptr;
+    if (type.index == Subtype::invalidIndex)
+        return nullptr;
+    // Placeholder Projection refs are intra-recgroup; they get rewritten to
+    // canonical RTT pointers later (rewriteInternalRefs), at which point we
+    // anchor them. Skip here.
+    if (TypeInformation::isPlaceholderRef(type.index))
+        return nullptr;
+    return std::bit_cast<const RTT*>(type.index);
+}
 
-    // Make Void again because we don't use the one that has void in it.
+
+namespace {
+
+// Returns either { internal: true, projectionIndex } if the ref points to a
+// member of the post-rewrite recursion group, otherwise { internal: false,
+// externalRTT }. Both branches assume Type::index encodes a canonical RTT
+// pointer (RTT::rewriteInternalRefs is called before this so internal refs
+// are also RTT pointers, not Projection pointers). The IntraLookup callable
+// signals intra-group membership; it returns std::optional<size_t> where a
+// present value is the relative projection index within the current
+// canonical group, and nullopt means the ref is external.
+struct EncodedRef {
+    bool internal { false };
+    union {
+        ProjectionIndex projectionIndex;
+        const RTT* externalRTT;
+    };
+};
+
+template<typename IntraLookup>
+inline EncodedRef encodeRef(Type type, IntraLookup&& intra)
+{
+    EncodedRef out;
+    if (!isRefWithTypeIndex(type)) {
+        out.internal = false;
+        out.externalRTT = nullptr;
+        return out;
+    }
+    const RTT* rtt = std::bit_cast<const RTT*>(type.index);
+    if (auto idx = intra(rtt)) {
+        out.internal = true;
+        out.projectionIndex = static_cast<ProjectionIndex>(*idx);
+        return out;
+    }
+    out.internal = false;
+    out.externalRTT = rtt;
+    return out;
+}
+
+template<typename IntraLookup>
+inline unsigned hashType(Type type, IntraLookup&& intra)
+{
+    unsigned h = WTF::IntHash<uint8_t>::hash(static_cast<uint8_t>(type.kind));
+    if (isRefWithTypeIndex(type)) {
+        EncodedRef r = encodeRef(type, intra);
+        if (r.internal)
+            h = WTF::pairIntHash(h, r.projectionIndex | 0x80000000u);
+        else
+            h = WTF::pairIntHash(h, WTF::PtrHash<const RTT*>::hash(r.externalRTT));
+    } else if (type.index)
+        h = WTF::pairIntHash(h, static_cast<unsigned>(type.index));
+    return h;
+}
+
+template<typename IntraLookupA, typename IntraLookupB>
+inline bool equalTypes(Type a, IntraLookupA&& aIntra, Type b, IntraLookupB&& bIntra)
+{
+    if (a.kind != b.kind)
+        return false;
+    if (isRefWithTypeIndex(a)) {
+        if (!isRefWithTypeIndex(b))
+            return false;
+        EncodedRef ra = encodeRef(a, aIntra);
+        EncodedRef rb = encodeRef(b, bIntra);
+        if (ra.internal != rb.internal)
+            return false;
+        if (ra.internal)
+            return ra.projectionIndex == rb.projectionIndex;
+        return ra.externalRTT == rb.externalRTT;
+    }
+    return a.index == b.index;
+}
+
+template<typename IntraLookup>
+inline unsigned hashFieldType(FieldType field, IntraLookup&& intra)
+{
+    unsigned h = static_cast<unsigned>(field.mutability);
+    if (field.type.is<PackedType>())
+        h = WTF::pairIntHash(h, 0x40000000u | static_cast<unsigned>(field.type.as<PackedType>()));
+    else
+        h = WTF::pairIntHash(h, hashType(field.type.as<Type>(), intra));
+    return h;
+}
+
+template<typename IntraLookupA, typename IntraLookupB>
+inline bool equalFieldTypes(FieldType a, IntraLookupA&& aIntra, FieldType b, IntraLookupB&& bIntra)
+{
+    if (a.mutability != b.mutability)
+        return false;
+    if (a.type.is<PackedType>() != b.type.is<PackedType>())
+        return false;
+    if (a.type.is<PackedType>())
+        return a.type.as<PackedType>() == b.type.as<PackedType>();
+    return equalTypes(a.type.as<Type>(), aIntra, b.type.as<Type>(), bIntra);
+}
+
+template<typename IntraLookup>
+unsigned hashRTTForRecGroup(const RTT& rtt, IntraLookup&& intra)
+{
+    unsigned h = static_cast<unsigned>(rtt.kind());
+    h = WTF::pairIntHash(h, rtt.isFinalType() ? 1 : 0);
+    h = WTF::pairIntHash(h, rtt.displaySizeExcludingThis());
+    if (rtt.displaySizeExcludingThis()) {
+        const RTT* superRTT = rtt.displayEntry(rtt.displaySizeExcludingThis() - 1);
+        if (auto idx = intra(superRTT))
+            h = WTF::pairIntHash(h, static_cast<unsigned>(*idx) | 0x80000000u);
+        else
+            h = WTF::pairIntHash(h, WTF::PtrHash<const RTT*>::hash(superRTT));
+    }
+    switch (rtt.kind()) {
+    case RTTKind::Function: {
+        const auto& payload = rtt.functionPayload();
+        h = WTF::pairIntHash(h, payload.argumentCount());
+        h = WTF::pairIntHash(h, payload.returnCount());
+        for (FunctionArgCount i = 0; i < payload.argumentCount(); ++i)
+            h = WTF::pairIntHash(h, hashType(payload.argumentType(i), intra));
+        for (FunctionArgCount i = 0; i < payload.returnCount(); ++i)
+            h = WTF::pairIntHash(h, hashType(payload.returnType(i), intra));
+        break;
+    }
+    case RTTKind::Struct: {
+        const auto& payload = rtt.structPayload();
+        h = WTF::pairIntHash(h, payload.fieldCount());
+        for (StructFieldCount i = 0; i < payload.fieldCount(); ++i)
+            h = WTF::pairIntHash(h, hashFieldType(payload.field(i), intra));
+        break;
+    }
+    case RTTKind::Array:
+        h = WTF::pairIntHash(h, hashFieldType(rtt.arrayPayload().elementType(), intra));
+        break;
+    }
+    return h;
+}
+
+template<typename IntraLookupA, typename IntraLookupB>
+bool equalRTTsForRecGroup(const RTT& a, IntraLookupA&& aIntra, const RTT& b, IntraLookupB&& bIntra)
+{
+    // Cheap rejects first: kind / is_final / display depth / per-kind arity.
+    if (a.kind() != b.kind())
+        return false;
+    if (a.isFinalType() != b.isFinalType())
+        return false;
+    if (a.displaySizeExcludingThis() != b.displaySizeExcludingThis())
+        return false;
+    switch (a.kind()) {
+    case RTTKind::Function: {
+        const auto& pa = a.functionPayload();
+        const auto& pb = b.functionPayload();
+        if (pa.argumentCount() != pb.argumentCount() || pa.returnCount() != pb.returnCount())
+            return false;
+        if (pa.argumentsOrResultsIncludeI64() != pb.argumentsOrResultsIncludeI64())
+            return false;
+        if (pa.argumentsOrResultsIncludeV128() != pb.argumentsOrResultsIncludeV128())
+            return false;
+        if (pa.argumentsOrResultsIncludeExnref() != pb.argumentsOrResultsIncludeExnref())
+            return false;
+        break;
+    }
+    case RTTKind::Struct:
+        if (a.structPayload().fieldCount() != b.structPayload().fieldCount())
+            return false;
+        break;
+    case RTTKind::Array:
+        break;
+    }
+
+    if (a.displaySizeExcludingThis()) {
+        const RTT* aSuper = a.displayEntry(a.displaySizeExcludingThis() - 1);
+        const RTT* bSuper = b.displayEntry(b.displaySizeExcludingThis() - 1);
+        auto aIdx = aIntra(aSuper);
+        auto bIdx = bIntra(bSuper);
+        bool aInternal = aIdx.has_value();
+        bool bInternal = bIdx.has_value();
+        if (aInternal != bInternal)
+            return false;
+        if (aInternal) {
+            if (*aIdx != *bIdx)
+                return false;
+        } else if (aSuper != bSuper)
+            return false;
+    }
+    switch (a.kind()) {
+    case RTTKind::Function: {
+        const auto& pa = a.functionPayload();
+        const auto& pb = b.functionPayload();
+        for (FunctionArgCount i = 0; i < pa.argumentCount(); ++i) {
+            if (!equalTypes(pa.argumentType(i), aIntra, pb.argumentType(i), bIntra))
+                return false;
+        }
+        for (FunctionArgCount i = 0; i < pa.returnCount(); ++i) {
+            if (!equalTypes(pa.returnType(i), aIntra, pb.returnType(i), bIntra))
+                return false;
+        }
+        return true;
+    }
+    case RTTKind::Struct: {
+        const auto& pa = a.structPayload();
+        const auto& pb = b.structPayload();
+        for (StructFieldCount i = 0; i < pa.fieldCount(); ++i) {
+            if (!equalFieldTypes(pa.field(i), aIntra, pb.field(i), bIntra))
+                return false;
+        }
+        return true;
+    }
+    case RTTKind::Array:
+        return equalFieldTypes(a.arrayPayload().elementType(), aIntra, b.arrayPayload().elementType(), bIntra);
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+    return false;
+}
+
+// Multi-member recgroup lookup: constant-time check against the candidate
+// entry's groupId. Each canonical RTT carries its m_canonicalGroupId and
+// m_canonicalIndexInGroup, set once during canonicalization. Mirrors V8's
+// RecursionGroupRange::Contains arithmetic.
+struct GroupIdLookup {
+    uint32_t groupId;
+    std::optional<size_t> operator()(const RTT* rtt) const
     {
-        auto sig = FunctionSignature::tryCreate(0, 0);
-        sig->ref();
-        thunkTypes[linearizeType(TypeKind::Void)] = sig->as<FunctionSignature>();
-        m_typeSet.add(TypeHash { sig.releaseNonNull() });
-    }
-    m_I64_Void = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { Wasm::Types::I64 }, { } }).iterator->key->as<FunctionSignature>();
-    m_Void_I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Void_I32I32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Void_I32I32I32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Void_I32I32I32I32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_I32_I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { Wasm::Types::I32 }, { Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_I32_RefI32I32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { Wasm::Types::I32 }, { anyrefType(), Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Ref_RefI32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { anyrefType() }, { anyrefType(), Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Arrayref_I32I32I32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { arrayrefType(false) }, { Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Anyref_Externref = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { anyrefType() }, { externrefType() } }).iterator->key->as<FunctionSignature>();
-    m_Void_Externref = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { externrefType() } }).iterator->key->as<FunctionSignature>();
-    m_Void_I32AnyrefI32I32AnyrefI32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { Wasm::Types::I32, anyrefType(), Wasm::Types::I32, Wasm::Types::I32, anyrefType(), Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-    m_Void_I32AnyrefI32I32I32I32 = m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { { }, { Wasm::Types::I32, anyrefType(), Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32, Wasm::Types::I32 } }).iterator->key->as<FunctionSignature>();
-}
-
-RefPtr<FunctionSignature> TypeInformation::typeDefinitionForFunction(const Vector<Type, 16>& results, const Vector<Type, 16>& args)
-{
-    if constexpr (ASSERT_ENABLED) {
-        ASSERT(!results.contains(Wasm::Types::Void));
-        ASSERT(!args.contains(Wasm::Types::Void));
-    }
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    auto addResult = info.m_typeSet.template add<FunctionParameterTypes>(FunctionParameterTypes { results, args });
-    return addResult.iterator->key->as<FunctionSignature>();
-}
-
-RefPtr<StructType> TypeInformation::typeDefinitionForStruct(const Vector<FieldType>& fields)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    auto addResult = info.m_typeSet.template add<StructParameterTypes>(StructParameterTypes { fields });
-    return addResult.iterator->key->as<StructType>();
-}
-
-RefPtr<ArrayType> TypeInformation::typeDefinitionForArray(FieldType elementType)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    auto addResult = info.m_typeSet.template add<ArrayParameterTypes>(ArrayParameterTypes { elementType });
-    return addResult.iterator->key->as<ArrayType>();
-}
-
-RefPtr<RecursionGroup> TypeInformation::typeDefinitionForRecursionGroup(const Vector<TypeIndex>& types)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    auto addResult = info.m_typeSet.template add<RecursionGroupParameterTypes>(RecursionGroupParameterTypes { types });
-    return addResult.iterator->key->as<RecursionGroup>();
-}
-
-RefPtr<Projection> TypeInformation::typeDefinitionForProjection(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    auto addResult = info.m_typeSet.template add<ProjectionParameterTypes>(ProjectionParameterTypes { recursionGroup, projectionIndex });
-    return addResult.iterator->key->as<Projection>();
-}
-
-RefPtr<Subtype> TypeInformation::typeDefinitionForSubtype(const Vector<TypeIndex>& superTypes, TypeIndex underlyingType, bool isFinal)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    auto addResult = info.m_typeSet.template add<SubtypeParameterTypes>(SubtypeParameterTypes { superTypes, underlyingType, isFinal });
-    return addResult.iterator->key->as<Subtype>();
-}
-
-RefPtr<Projection> TypeInformation::getPlaceholderProjection(ProjectionIndex projectionIndex)
-{
-    TypeInformation& info = singleton();
-    auto projection = typeDefinitionForProjection(Projection::PlaceholderGroup, projectionIndex);
-
-    {
-        Locker locker { info.m_lock };
-        info.m_placeholders.add(projection);
-    }
-
-    return projection;
-}
-
-void TypeInformation::addCachedUnrolling(TypeIndex type, const TypeDefinition& unrolled)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    info.m_unrollingCache.add(type, RefPtr { &unrolled });
-}
-
-std::optional<TypeIndex> TypeInformation::tryGetCachedUnrolling(TypeIndex type)
-{
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    const auto iterator = info.m_unrollingCache.find(type);
-    if (iterator == info.m_unrollingCache.end())
+        if (rtt->canonicalGroupId() == groupId)
+            return rtt->canonicalIndexInGroup();
         return std::nullopt;
-    return std::optional<TypeIndex>(iterator->value->index());
-}
+    }
+};
 
-void TypeInformation::registerCanonicalRTTForType(TypeIndex type)
-{
-    Ref def = get(type);
-    if (def->m_rtt)
-        return;
-
+// Singleton lookup: only matches the entry's own RTT at projection index 0.
+struct SingletonSelfRef {
+    const RTT* self;
+    std::optional<size_t> operator()(const RTT* rtt) const
     {
-        Locker locker { def->m_rttLock };
-        if (def->m_rtt)
-            return;
-        auto rtt = TypeInformation::createCanonicalRTTForType(locker, def);
-        WTF::storeStoreFence(); // Make double-checked locking work.
-        def->m_rtt = WTF::move(rtt);
+        if (rtt == self)
+            return size_t { 0 };
+        return std::nullopt;
     }
+};
+
+// Non-recursive payload lookup: never treat any ref as intra-group. Used by
+// the translator paths that probe m_canonicalSingletonGroups with a
+// structural key for types that have no recursive refs; every Type::index in
+// the payload is either external (canonical RTT*) or a non-ref, so there are
+// no self-refs to detect and the singleton pointer-equality check never
+// fires on this side of the probe either.
+struct NoIntraGroup {
+    std::optional<size_t> operator()(const RTT*) const { return std::nullopt; }
+};
+
+// Returns the canonical RTT referenced by a non-recursive Type ref, or
+// nullptr if the type isn't such a ref. Duplicates TypeInformation::
+// extractExternalRTT so the anonymous-namespace translators can use it
+// without leaking the helper out of TypeInformation.
+inline RefPtr<const RTT> externalRTTOf(Type type)
+{
+    if (!isRefWithTypeIndex(type))
+        return nullptr;
+    if (type.index == Subtype::invalidIndex)
+        return nullptr;
+    if (TypeInformation::isPlaceholderRef(type.index))
+        return nullptr;
+    return std::bit_cast<const RTT*>(type.index);
 }
 
-Ref<RTT> TypeInformation::createCanonicalRTTForType(const AbstractLocker&, const TypeDefinition& def)
+} // anonymous namespace
+
+Ref<const RTT> TypeInformation::typeDefinitionForFunction(const Vector<Type, 16>& results, const Vector<Type, 16>& args)
 {
-    const TypeDefinition& signature = def.unroll();
-    const TypeDefinition& expanded = signature.expand();
-    bool isFinalType = signature.isFinalType();
-    RTTKind kind;
-    StructFieldCount fieldCount = 0;
-    if (expanded.is<FunctionSignature>())
-        kind = RTTKind::Function;
-    else if (expanded.is<ArrayType>())
-        kind = RTTKind::Array;
-    else {
-        kind = RTTKind::Struct;
-        fieldCount = expanded.as<StructType>()->fieldCount();
+    ASSERT(!results.contains(Wasm::Types::Void));
+    ASSERT(!args.contains(Wasm::Types::Void));
+
+    // Build the RTT payload directly from the parser-supplied types.
+    bool hasRecursiveReference = false;
+    bool argumentsOrResultsIncludeI64 = false;
+    bool argumentsOrResultsIncludeV128 = false;
+    bool argumentsOrResultsIncludeExnref = false;
+
+    Vector<Type, 16> signatureBuffer(results.size() + args.size());
+    for (unsigned i = 0; i < results.size(); ++i) {
+        signatureBuffer[i] = results[i];
+        hasRecursiveReference |= isRefWithRecursiveReference(results[i]);
+        argumentsOrResultsIncludeI64 |= results[i].isI64();
+        argumentsOrResultsIncludeV128 |= results[i].isV128();
+        argumentsOrResultsIncludeExnref |= isExnref(results[i]);
+    }
+    for (unsigned i = 0; i < args.size(); ++i) {
+        signatureBuffer[results.size() + i] = args[i];
+        hasRecursiveReference |= isRefWithRecursiveReference(args[i]);
+        argumentsOrResultsIncludeI64 |= args[i].isI64();
+        argumentsOrResultsIncludeV128 |= args[i].isV128();
+        argumentsOrResultsIncludeExnref |= isExnref(args[i]);
     }
 
-    if (signature.is<Subtype>() && signature.as<Subtype>()->supertypeCount() > 0) {
-        Ref superTypeDef = TypeInformation::get(signature.as<Subtype>()->firstSuperType());
-        auto superRTT = superTypeDef->m_rtt;
-        ASSERT(superRTT);
-        auto protector = RTT::tryCreate(kind, *superRTT, isFinalType, fieldCount);
-        RELEASE_ASSERT(protector);
-        return protector.releaseNonNull();
+    RTTFunctionPayload payload {
+        static_cast<FunctionArgCount>(args.size()),
+        static_cast<FunctionArgCount>(results.size()),
+        signatureBuffer.span(),
+        argumentsOrResultsIncludeI64,
+        argumentsOrResultsIncludeV128,
+        argumentsOrResultsIncludeExnref,
+        hasRecursiveReference
+    };
+    // Anchor external RTT refs in the payload's referenced-RTTs vector to
+    // prevent UAF when external owners drop their refs.
+    for (Type t : signatureBuffer) {
+        if (auto rtt = extractExternalRTT(t))
+            payload.addReferencedRTT(rtt.releaseNonNull());
     }
+    auto rtt = RTT::tryCreateFunction(/*isFinalType=*/true, WTF::move(payload));
+    RELEASE_ASSERT(rtt);
+    return rtt.releaseNonNull();
+}
 
-    auto protector = RTT::tryCreate(kind, isFinalType, fieldCount);
-    RELEASE_ASSERT(protector);
-    return protector.releaseNonNull();
+Ref<const RTT> TypeInformation::rttForFunction(const Vector<Type, 16>& returnTypes, const Vector<Type, 16>& argumentTypes)
+{
+    // Canonicalize so RTT identity matches signatures minted later by parseType.
+    // Used by JS API entry points (e.g., WebAssembly.Tag, WebAssembly.Function)
+    // where two structurally-identical signatures must compare equal.
+    return canonicalizeStandaloneRTT(typeDefinitionForFunction(returnTypes, argumentTypes));
+}
+
+Ref<const RTT> TypeInformation::typeDefinitionForStruct(const Vector<FieldType>& fields)
+{
+    bool hasRefFieldTypes = false;
+    bool hasRecursiveReference = false;
+    unsigned currentFieldOffset = 0;
+    auto entries = FixedVector<StructFieldEntry>::createWithSizeFromGenerator(fields.size(), [&](size_t i) -> StructFieldEntry {
+        const FieldType& fieldType = fields[i];
+        hasRefFieldTypes |= isRefType(fieldType.type);
+        hasRecursiveReference |= isRefWithRecursiveReference(fieldType.type);
+        currentFieldOffset = WTF::roundUpToMultipleOf(typeAlignmentInBytes(fieldType.type), currentFieldOffset);
+        unsigned offset = currentFieldOffset;
+        currentFieldOffset += typeSizeInBytes(fieldType.type);
+        return StructFieldEntry { fieldType, offset };
+    });
+    size_t instancePayloadSize = WTF::roundUpToMultipleOf<sizeof(uint64_t)>(currentFieldOffset);
+    RTTStructPayload payload {
+        WTF::move(entries),
+        instancePayloadSize,
+        hasRefFieldTypes,
+        hasRecursiveReference,
+    };
+    // Anchor external RTT refs from field types in the payload's
+    // referenced-RTTs vector to prevent UAF.
+    for (const auto& fieldType : fields) {
+        if (fieldType.type.is<Type>()) {
+            if (auto rtt = extractExternalRTT(fieldType.type.as<Type>()))
+                payload.addReferencedRTT(rtt.releaseNonNull());
+        }
+    }
+    auto rtt = RTT::tryCreateStruct(/*isFinalType=*/true, WTF::move(payload));
+    RELEASE_ASSERT(rtt);
+    return rtt.releaseNonNull();
+}
+
+Ref<const RTT> TypeInformation::typeDefinitionForArray(FieldType elementType)
+{
+    // Build the canonical Array RTT directly.
+    RTTArrayPayload payload {
+        elementType,
+        isRefWithRecursiveReference(elementType.type)
+    };
+    // Anchor external RTT ref from element type, if any.
+    if (elementType.type.is<Type>()) {
+        if (auto rtt = extractExternalRTT(elementType.type.as<Type>()))
+            payload.addReferencedRTT(rtt.releaseNonNull());
+    }
+    auto rtt = RTT::tryCreateArray(/*isFinalType=*/true, WTF::move(payload));
+    RELEASE_ASSERT(rtt);
+    return rtt.releaseNonNull();
+}
+
+// Encode a placeholder Projection's TypeIndex with the low bit set so that
+// parser-time consumers (isRefWithRecursiveReference) can detect placeholder
+// refs without dereferencing. RTT / Projection pointers are at least 4-byte
+// aligned, so the low bit is otherwise unused.
+static constexpr TypeIndex placeholderTagBit = 1;
+
+TypeIndex TypeInformation::placeholderRefIndex(const Projection& projection)
+{
+    return std::bit_cast<TypeIndex>(&projection) | placeholderTagBit;
+}
+
+bool TypeInformation::isPlaceholderRef(TypeIndex typeIndex)
+{
+    return (typeIndex & placeholderTagBit) != 0;
+}
+
+bool TypeInformation::isRefWithRecursiveReference(Type type)
+{
+    // External (canonical) Type::index values are RTT pointers; they never
+    // name a placeholder. Parser-internal placeholder Projections are wrapped
+    // in TypeIndex via placeholderRefIndex().
+    return isRefWithTypeIndex(type) && isPlaceholderRef(type.index);
+}
+
+bool TypeInformation::isRefWithRecursiveReference(StorageType storageType)
+{
+    if (storageType.is<PackedType>())
+        return false;
+    return isRefWithRecursiveReference(storageType.as<Type>());
 }
 
 Ref<const RTT> TypeInformation::getCanonicalRTT(TypeIndex type)
 {
-    Ref def = get(type);
-    auto result = def->m_rtt;
-    RELEASE_ASSERT(result);
-    return result.releaseNonNull();
+    // External TypeIndex form: a direct RTT pointer. No lookup needed.
+    return *std::bit_cast<const RTT*>(type);
 }
 
-bool TypeInformation::isReferenceValueAssignable(JSValue refValue, bool allowNull, TypeIndex typeIndex, const RTT* rtt)
+// =====================================================================
+// Isorecursive recursion-group canonicalization.
+//
+// Two recursion groups parsed from different modules should produce the SAME
+// canonical RTT instances when their structures are equal. The hard case is
+// recursive recgroups: each module's parser builds Projection objects to
+// express intra-group references, but those Projections live at distinct
+// addresses per module. So the per-member RTT payloads contain *different*
+// Projection pointers across modules even when the recgroup is structurally
+// identical.
+//
+// We canonicalize at the recgroup level using relative-index encoding for
+// intra-group references in the structural payload (mirroring V8's
+// CanonicalHashing/CanonicalEquality).
+//
+// A Type ref inside a member's payload is "internal" iff
+// TypeInformation::get(type.index) is a Projection whose recursionGroup ==
+// the candidate's recursionGroupIndex. In that case the ref is hashed/
+// compared by the relative projection index. Otherwise the ref is "external"
+// and is hashed/compared by the canonical RTT pointer obtained from
+// TypeInformation::get(type.index).rtt(). This way, modules that have
+// already canonicalized their external dependencies (true once we walk
+// recgroups in their declared order) produce the same key.
+// =====================================================================
+unsigned CanonicalRecursionGroupEntryHash::hash(const CanonicalRecursionGroupEntry& entry)
+{
+    GroupIdLookup lookup { entry.groupId };
+    unsigned h = entry.rtts.size();
+    for (const auto& rtt : entry.rtts)
+        h = WTF::pairIntHash(h, hashRTTForRecGroup(rtt, lookup));
+    return h;
+}
+
+bool CanonicalRecursionGroupEntryHash::equal(const CanonicalRecursionGroupEntry& a, const CanonicalRecursionGroupEntry& b)
+{
+    if (a.rtts.size() != b.rtts.size())
+        return false;
+    GroupIdLookup aLookup { a.groupId };
+    GroupIdLookup bLookup { b.groupId };
+    for (size_t i = 0; i < a.rtts.size(); ++i) {
+        if (!equalRTTsForRecGroup(a.rtts[i], aLookup, b.rtts[i], bLookup))
+            return false;
+    }
+    return true;
+}
+
+bool CanonicalRecursionGroupEntry::operator==(const CanonicalRecursionGroupEntry& other) const
+{
+    return CanonicalRecursionGroupEntryHash::equal(*this, other);
+}
+
+unsigned CanonicalSingletonEntryHash::hash(const CanonicalSingletonEntry& entry)
+{
+    ASSERT(entry.rtt);
+    return hashRTTForRecGroup(*entry.rtt, SingletonSelfRef { entry.rtt.get() });
+}
+
+bool CanonicalSingletonEntryHash::equal(const CanonicalSingletonEntry& a, const CanonicalSingletonEntry& b)
+{
+    // Null-safe for the HashTable's isEmptyValue probe (which compares any
+    // candidate against a default-constructed empty entry whose rtt is null).
+    if (!a.rtt || !b.rtt)
+        return a.rtt == b.rtt;
+    return equalRTTsForRecGroup(*a.rtt, SingletonSelfRef { a.rtt.get() }, *b.rtt, SingletonSelfRef { b.rtt.get() });
+}
+
+bool CanonicalSingletonEntry::operator==(const CanonicalSingletonEntry& other) const
+{
+    return CanonicalSingletonEntryHash::equal(*this, other);
+}
+
+Vector<Ref<const RTT>> TypeInformation::canonicalizeRecursionGroup(TypeSectionState* state, TypeIndex recursionGroupIndex, Vector<Ref<const RTT>>&& candidateRTTs)
+{
+    TypeInformation& info = singleton();
+    return info.canonicalizeRecursionGroupImpl(state, recursionGroupIndex, WTF::move(candidateRTTs));
+}
+
+Ref<const RTT> TypeInformation::canonicalizeSingleton(TypeSectionState* state, TypeIndex recursionGroupIndex, Ref<const RTT>&& candidate)
+{
+    TypeInformation& info = singleton();
+    return info.canonicalizeSingletonImpl(state, recursionGroupIndex, WTF::move(candidate));
+}
+
+Vector<Ref<const RTT>> TypeInformation::canonicalizeRecursionGroupImpl(TypeSectionState* state, TypeIndex recursionGroupIndex, Vector<Ref<const RTT>>&& candidateRTTs)
+{
+    ASSERT(candidateRTTs.size() >= 2);
+
+    Locker locker { m_lock };
+
+    // Rewrite internal Projection refs to canonical RTT pointers
+    // (self-references among the candidate RTTs themselves). Non-recursive
+    // RTTs have no placeholder-tagged refs in their payloads, so skip the
+    // rewrite walk entirely for them.
+    for (auto& rtt : candidateRTTs) {
+        if (rtt->hasRecursiveReference())
+            const_cast<RTT&>(rtt.get()).rewriteInternalRefs(state, candidateRTTs, recursionGroupIndex);
+    }
+
+    // Assign a tentative groupId and per-member indices to each candidate
+    // RTT so hash/equal can O(1)-detect intra-group refs via
+    // rtt->canonicalGroupId() == entry.groupId (no Vector scan, no HashMap).
+    // If the candidate turns out to match an existing canonical entry, the
+    // candidate RTTs are dropped (fresh allocations with no outside owners);
+    // their tentative ids never leak out.
+    uint32_t candidateGroupId = m_nextCanonicalGroupId++;
+    for (uint32_t i = 0; i < candidateRTTs.size(); ++i)
+        candidateRTTs[i]->setCanonicalGroup(candidateGroupId, i);
+
+    // Retain external refs to the candidate RTTs across the HashSet::add
+    // below. If the candidate turns out to be a duplicate, the moved-in
+    // entry is destroyed, dropping its owning Vector. The candidates would
+    // otherwise keep each other alive through the intra-group
+    // m_referencedRTTs cycles created by rewriteInternalRefs -- we break
+    // those cycles explicitly here. Inline capacity keeps this off the
+    // heap for the common small-recgroup case.
+    Vector<Ref<const RTT>, 8> retainer(candidateRTTs.size(), [&](size_t i) {
+        return candidateRTTs[i].copyRef();
+    });
+
+    CanonicalRecursionGroupEntry candidate { recursionGroupIndex, candidateGroupId, WTF::move(candidateRTTs) };
+    auto addResult = m_canonicalRecursionGroups.add(WTF::move(candidate));
+
+    if (!addResult.isNewEntry) {
+        // Duplicate: break the intra-group cycles so the candidate RTTs
+        // (now referenced only by retainer) can actually be freed when
+        // retainer goes out of scope.
+        for (auto& rtt : retainer)
+            const_cast<RTT&>(rtt.get()).clearReferencedRTTs();
+    }
+    // After add, addResult.iterator->rtts is either the existing canonical RTTs
+    // or the just-inserted candidate's RTTs (both work).
+    return addResult.iterator->rtts;
+}
+
+Ref<const RTT> TypeInformation::canonicalizeSingletonImpl(TypeSectionState* state, TypeIndex recursionGroupIndex, Ref<const RTT>&& candidate)
+{
+    // Rewrite intra-group placeholder refs to the candidate RTT* so the
+    // singleton hash/equal can detect self-refs via pointer identity.
+    // Non-recursive payloads have nothing to rewrite; skip the walk.
+    bool hasRecursiveReference = candidate->hasRecursiveReference();
+    if (hasRecursiveReference) {
+        // rewriteInternalRefs consults the Vector<Ref<const RTT>>& to map
+        // projection indices to RTT pointers. A singleton's only valid
+        // projection index is 0, pointing at the candidate itself.
+        Vector<Ref<const RTT>> groupMembers;
+        groupMembers.append(candidate.copyRef());
+        const_cast<RTT&>(candidate.get()).rewriteInternalRefs(state, groupMembers, recursionGroupIndex);
+    }
+
+    Locker locker { m_lock };
+    // Retain an external ref across HashSet::add so we can break the
+    // self-cycle that rewriteInternalRefs added to m_referencedRTTs if the
+    // candidate is discarded as a duplicate. Only needed when the candidate
+    // actually went through rewriteInternalRefs (recursive case); non-
+    // recursive singletons have no self-refs to break.
+    Ref<const RTT> retainer = candidate.copyRef();
+    CanonicalSingletonEntry entry { WTF::move(candidate) };
+    auto addResult = m_canonicalSingletonGroups.add(WTF::move(entry));
+    if (!addResult.isNewEntry && hasRecursiveReference)
+        const_cast<RTT&>(retainer.get()).clearReferencedRTTs();
+    return Ref<const RTT> { *addResult.iterator->rtt };
+}
+
+Ref<const RTT> TypeInformation::canonicalizeStandaloneRTT(Ref<const RTT>&& candidate)
+{
+    return singleton().canonicalizeStandaloneRTTImpl(WTF::move(candidate));
+}
+
+Ref<const RTT> TypeInformation::canonicalizeStandaloneRTTImpl(Ref<const RTT>&& candidate)
+{
+    // Standalone RTTs (built-in signatures) have no recursive references
+    // and no TypeSectionState. They are always singletons. recursionGroupIndex
+    // is irrelevant since there are no placeholder refs to rewrite.
+    ASSERT(!candidate->hasRecursiveReference());
+    return canonicalizeSingletonImpl(nullptr, 0, WTF::move(candidate));
+}
+
+bool TypeInformation::isReferenceValueAssignable(JSValue refValue, bool allowNull, TypeIndex typeIndex)
 {
     if (refValue.isNull())
         return allowNull;
@@ -1132,12 +1209,7 @@ bool TypeInformation::isReferenceValueAssignable(JSValue refValue, bool allowNul
         return false;
     }
 
-    RefPtr<const RTT> signatureRTT;
-    if (!rtt) {
-        signatureRTT = TypeInformation::getCanonicalRTT(typeIndex);
-        rtt = signatureRTT.get();
-    }
-
+    RefPtr rtt = TypeInformation::getCanonicalRTT(typeIndex);
     switch (rtt->kind()) {
     case RTTKind::Function: {
         WebAssemblyFunctionBase* funcRef = dynamicDowncast<WebAssemblyFunctionBase>(refValue);
@@ -1160,23 +1232,11 @@ bool TypeInformation::isReferenceValueAssignable(JSValue refValue, bool allowNul
 
 void TypeInformation::tryCleanup()
 {
-    TypeInformation& info = singleton();
-    Locker locker { info.m_lock };
-
-    bool changed;
-    do {
-        changed = false;
-        info.m_typeSet.removeIf([&] (auto& hash) {
-            const auto& signature = hash.key;
-            if (signature->refCount() == 1) {
-                TypeIndex index = signature->unownedIndex();
-                info.m_unrollingCache.remove(index);
-                changed |= signature->cleanup();
-                return true;
-            }
-            return false;
-        });
-    } while (changed);
+    // The canonical recursion-group table is never reclaimed; canonical RTTs
+    // are the stable identity for wasm types and are shared across modules /
+    // VMs. Parser-internal scaffolding (Subtype / Projection / RecursionGroup)
+    // is owned per-parse by TypeSectionState and freed when parseType exits,
+    // so there is nothing to do here.
 }
 
 bool NODELETE Type::definitelyIsCellOrNull() const
@@ -1213,11 +1273,9 @@ bool Type::definitelyIsWasmGCObjectOrNull() const
         }
     }
 
-    const TypeDefinition& def = TypeInformation::get(index).expand();
-    if (def.is<Wasm::StructType>())
-        return true;
-    if (def.is<Wasm::ArrayType>())
-        return true;
+    if (RefPtr rtt = TypeInformation::tryGetRTT(index))
+        return rtt->kind() == RTTKind::Struct || rtt->kind() == RTTKind::Array;
+
     return false;
 }
 

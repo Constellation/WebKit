@@ -42,7 +42,8 @@ Tag& Tag::jsExceptionTag()
     static std::once_flag onceKey;
     static LazyNeverDestroyed<Ref<Tag>> result;
     std::call_once(onceKey, [] {
-        result.construct(Tag::create(TypeInformation::signatureForJSException()));
+        const auto& rtt = TypeInformation::signatureForJSException();
+        result.construct(Tag::create(Ref<const RTT> { rtt }));
     });
     return result.get();
 }

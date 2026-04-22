@@ -30,6 +30,7 @@
 
 #if ENABLE(WEBASSEMBLY)
 
+#include <JavaScriptCore/WasmFormat.h>
 #include <JavaScriptCore/WasmTypeDefinition.h>
 
 namespace JSC { namespace Wasm {
@@ -45,51 +46,97 @@ inline TypeInformation& TypeInformation::singleton()
     return *theOne;
 }
 
-inline TypeIndex TypeDefinition::index() const
+inline RefPtr<const RTT> TypeInformation::tryGetRTT(TypeIndex typeIndex)
 {
-    ASSERT(refCount() > 1); // TypeInformation::m_typeSet + caller
-    return std::bit_cast<TypeIndex>(this);
-}
-
-inline const TypeDefinition& TypeInformation::get(TypeIndex index)
-{
-    ASSERT(index != TypeDefinition::invalidIndex);
-    auto def = std::bit_cast<const TypeDefinition*>(index);
-    ASSERT(def->refCount() > 1); // TypeInformation::m_typeSet + caller
-    return *def;
-}
-
-inline const FunctionSignature& TypeInformation::getFunctionSignature(TypeIndex index)
-{
-    const TypeDefinition& signature = get(index).expand();
-    ASSERT(signature.is<FunctionSignature>());
-    return *signature.as<FunctionSignature>();
-}
-
-inline std::optional<const FunctionSignature*> TypeInformation::tryGetFunctionSignature(TypeIndex index)
-{
-    const TypeDefinition& signature = get(index).expand();
-    if (signature.is<FunctionSignature>())
-        return signature.as<FunctionSignature>();
-    return std::nullopt;
-}
-
-// TODO: merge with TypeDefinition::index().
-inline TypeIndex TypeInformation::get(const TypeDefinition& type)
-{
-    if (ASSERT_ENABLED) {
-        TypeInformation& info = singleton();
-        Locker locker { info.m_lock };
-        ASSERT_UNUSED(info, info.m_typeSet.contains(TypeHash { const_cast<TypeDefinition&>(type) }));
-    }
-    return type.index();
-}
-
-inline RefPtr<const TypeDefinition> TypeInformation::getRef(TypeIndex typeIndex)
-{
-    if (typeIndexIsType(typeIndex) || typeIndex == TypeDefinition::invalidIndex)
+    if (typeIndexIsType(typeIndex) || typeIndex == Subtype::invalidIndex)
         return nullptr;
-    return TypeInformation::get(typeIndex);
+    if (typeIndex & kProjectionTagBit)
+        return untagProjectionRef(typeIndex)->rtt();
+    return std::bit_cast<const RTT*>(typeIndex);
+}
+
+// Provider-based typeDefinitionForStruct. Builds the RTTStructPayload's
+// FixedVectors directly from the provider, skipping the intermediate
+// Vector<FieldType> the Vector-based overload would require. Accumulates
+// flags (hasRefFieldTypes, hasRecursiveReference) and field offsets in
+// place.
+template<typename FieldProvider>
+Ref<const RTT> TypeInformation::typeDefinitionForStructFromProvider(StructFieldCount fieldCount, FieldProvider&& provider)
+{
+    bool hasRefFieldTypes = false;
+    bool hasRecursiveReference = false;
+    unsigned currentOffset = 0;
+
+    auto entries = FixedVector<StructFieldEntry>::createWithSizeFromGenerator(fieldCount, [&](size_t i) -> StructFieldEntry {
+        FieldType f = provider(i);
+        hasRefFieldTypes |= isRefType(f.type);
+        hasRecursiveReference |= isRefWithRecursiveReference(f.type);
+        currentOffset = WTF::roundUpToMultipleOf(typeAlignmentInBytes(f.type), currentOffset);
+        unsigned offset = currentOffset;
+        currentOffset += typeSizeInBytes(f.type);
+        return StructFieldEntry { f, offset };
+    });
+    size_t instancePayloadSize = WTF::roundUpToMultipleOf<sizeof(uint64_t)>(currentOffset);
+
+    RTTStructPayload payload {
+        WTF::move(entries),
+        instancePayloadSize,
+        hasRefFieldTypes,
+        hasRecursiveReference,
+    };
+    for (StructFieldCount i = 0; i < payload.fieldCount(); ++i) {
+        const FieldType& f = payload.field(i);
+        if (f.type.is<Type>()) {
+            if (auto rtt = extractExternalRTT(f.type.as<Type>()))
+                payload.addReferencedRTT(rtt.releaseNonNull());
+        }
+    }
+    auto rtt = RTT::tryCreateStruct(/*isFinalType=*/true, WTF::move(payload));
+    RELEASE_ASSERT(rtt);
+    return rtt.releaseNonNull();
+}
+
+// Provider-based typeDefinitionForFunction. Signature layout: returns first,
+// then arguments. Builds the FixedVector<Type> in place from two providers.
+template<typename ReturnProvider, typename ArgProvider>
+Ref<const RTT> TypeInformation::typeDefinitionForFunctionFromProviders(FunctionArgCount retCount, ReturnProvider&& returnsProvider, FunctionArgCount argCount, ArgProvider&& argsProvider)
+{
+    bool hasRecursiveReference = false;
+    bool argumentsOrResultsIncludeI64 = false;
+    bool argumentsOrResultsIncludeV128 = false;
+    bool argumentsOrResultsIncludeExnref = false;
+
+    auto signature = FixedVector<Type>::createWithSizeFromGenerator(static_cast<size_t>(retCount) + static_cast<size_t>(argCount), [&](size_t i) -> Type {
+        Type t = (i < retCount) ? returnsProvider(i) : argsProvider(i - retCount);
+        hasRecursiveReference |= isRefWithRecursiveReference(t);
+        argumentsOrResultsIncludeI64 |= t.isI64();
+        argumentsOrResultsIncludeV128 |= t.isV128();
+        argumentsOrResultsIncludeExnref |= isExnref(t);
+        return t;
+    });
+
+    RTTFunctionPayload payload {
+        argCount,
+        retCount,
+        WTF::move(signature),
+        argumentsOrResultsIncludeI64,
+        argumentsOrResultsIncludeV128,
+        argumentsOrResultsIncludeExnref,
+        hasRecursiveReference,
+    };
+    // Anchor external RTT refs in the payload's referenced-RTTs vector to
+    // prevent UAF when external owners drop their refs.
+    for (FunctionArgCount i = 0; i < retCount; ++i) {
+        if (auto rtt = extractExternalRTT(payload.returnType(i)))
+            payload.addReferencedRTT(rtt.releaseNonNull());
+    }
+    for (FunctionArgCount i = 0; i < argCount; ++i) {
+        if (auto rtt = extractExternalRTT(payload.argumentType(i)))
+            payload.addReferencedRTT(rtt.releaseNonNull());
+    }
+    auto rtt = RTT::tryCreateFunction(/*isFinalType=*/true, WTF::move(payload));
+    RELEASE_ASSERT(rtt);
+    return rtt.releaseNonNull();
 }
 
 } } // namespace JSC::Wasm

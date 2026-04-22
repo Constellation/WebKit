@@ -37,6 +37,7 @@
 #include "WasmOps.h"
 #include "WasmSections.h"
 #include "WasmTypeDefinitionInlines.h"
+#include "WasmTypeSectionState.h"
 #include "Width.h"
 #include <type_traits>
 #include <wtf/Expected.h>
@@ -132,6 +133,10 @@ protected:
     const TypeInformation& m_typeInformation;
     // Used to track whether we are in a recursion group and the group's type indices, if any.
     RecursionGroupInformation m_recursionGroupInformation;
+    // Parser-local state for Subtype / Projection / RecursionGroup objects;
+    // set by SectionParser::parseType for the duration of the type section,
+    // null otherwise.
+    TypeSectionState* m_typeSectionState { nullptr };
 };
 
 template<typename SuccessType> class Parser : public ParserBase {
@@ -347,12 +352,12 @@ ALWAYS_INLINE bool ParserBase::parseValueType(const ModuleInformation& info, Typ
             if (m_recursionGroupInformation.inRecursionGroup && static_cast<uint32_t>(heapType) >= m_recursionGroupInformation.start) {
                 ASSERT(static_cast<uint32_t>(heapType) >= info.typeCount() && static_cast<uint32_t>(heapType) < m_recursionGroupInformation.end);
                 ProjectionIndex groupIndex = static_cast<ProjectionIndex>(heapType - m_recursionGroupInformation.start);
-                RefPtr<TypeDefinition> def = TypeInformation::getPlaceholderProjection(groupIndex);
-                RELEASE_ASSERT(def->refCount() > 2); // tbl + RefPtr + owner
-                typeIndex = def->index(); // Owned by TypeInformation placeholder projections singleton.
+                ASSERT(m_typeSectionState);
+                RefPtr<Projection> def = m_typeSectionState->createPlaceholderProjection(groupIndex);
+                typeIndex = TypeInformation::placeholderRefIndex(*def); // Tagged so isRefWithRecursiveReference can detect.
             } else {
                 ASSERT(static_cast<uint32_t>(heapType) < info.typeCount());
-                SUPPRESS_UNCOUNTED_ARG typeIndex = TypeInformation::get(info.typeSignature(ModuleInformation::typeSignatureIndexFromHeapType(heapType)));
+                typeIndex = info.rtt(ModuleInformation::typeSignatureIndexFromHeapType(heapType)).asTypeIndex();
             }
         }
     }

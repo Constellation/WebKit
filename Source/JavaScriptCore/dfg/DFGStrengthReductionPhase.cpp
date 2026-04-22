@@ -1640,7 +1640,7 @@ private:
                 auto* wasmFunction = dynamicDowncast<WebAssemblyFunction>(function);
                 if (!wasmFunction)
                     break;
-                const auto& signature = Wasm::TypeInformation::getFunctionSignature(wasmFunction->typeIndex());
+                const auto& signature = *wasmFunction->rtt();
                 if (signature.argumentsOrResultsIncludeV128() || signature.argumentsOrResultsIncludeExnref())
                     break;
 

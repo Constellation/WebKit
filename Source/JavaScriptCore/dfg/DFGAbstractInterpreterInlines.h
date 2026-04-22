@@ -5646,7 +5646,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         clobberWorld();
 
         WebAssemblyFunction* wasmFunction = node->castOperand<WebAssemblyFunction*>();
-        const auto& signature = Wasm::TypeInformation::getFunctionSignature(wasmFunction->typeIndex());
+        const auto& signature = *wasmFunction->rtt();
         if (signature.returnsVoid()) {
             setConstant(node, jsUndefined());
             break;

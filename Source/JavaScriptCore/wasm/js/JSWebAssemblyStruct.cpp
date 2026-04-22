@@ -49,8 +49,9 @@ JSWebAssemblyStruct::JSWebAssemblyStruct(VM& vm, WebAssemblyGCStructure* structu
 
 JSWebAssemblyStruct* JSWebAssemblyStruct::tryCreate(VM& vm, WebAssemblyGCStructure* structure)
 {
-    SUPPRESS_UNCOUNTED_LOCAL auto* structType = structure->typeDefinition().as<Wasm::StructType>();
-    unsigned payloadSize = structType->instancePayloadSize();
+    const Wasm::RTT& structRTT = structure->rtt();
+    ASSERT(structRTT.kind() == Wasm::RTTKind::Struct);
+    unsigned payloadSize = structRTT.instancePayloadSize();
     auto* cell = tryAllocateCell<JSWebAssemblyStruct>(vm, JSWebAssemblyStruct::allocationSize(payloadSize));
     if (!cell) [[unlikely]]
         return nullptr;
