@@ -1166,11 +1166,29 @@ bool TypeInformation::isReferenceValueAssignable(JSValue refValue, bool allowNul
 
 void TypeInformation::tryCleanup()
 {
-    // The canonical recursion-group table is never reclaimed; canonical RTTs
-    // are the stable identity for wasm types and are shared across modules /
-    // VMs. Parser-internal scaffolding (Subtype / Projection / RecursionGroup)
-    // is owned per-parse by TypeSectionState and freed when parseType exits,
-    // so there is nothing to do here.
+    auto& info = singleton();
+    Locker locker { info.m_lock };
+
+    // Singleton table: a CanonicalSingletonEntry holds one Ref via its RefPtr.
+    // For a non-recursive singleton with no outside owner, refcount == 1 and
+    // we can drop the entry safely. For a recursive singleton the entry's
+    // m_referencedRTTs holds a self-Ref, so refcount >= 2 even with no
+    // outside owner -- skip those (cycle-collection is the multi-member
+    // recursion-group problem in disguise).
+    //
+    // A single removeIf pass is intentional. Removing one entry may release
+    // its m_referencedRTTs anchors and make a sibling singleton newly
+    // collectible; that sibling will be picked up by the next tryCleanup.
+    info.m_canonicalSingletonGroups.removeIf([](const CanonicalSingletonEntry& entry) {
+        return entry.rtt && entry.rtt->hasOneRef();
+    });
+
+    // Multi-member m_canonicalRecursionGroups: skipped. Members anchor each
+    // other through m_referencedRTTs (rewriteInternalRefs builds the cycles
+    // intentionally), so per-member hasOneRef() never fires. A correct
+    // collector would have to detect that the entire group's external
+    // refcount is zero and drop all members atomically; not worth the
+    // complexity until profiling justifies it.
 }
 
 bool NODELETE Type::definitelyIsCellOrNull() const
