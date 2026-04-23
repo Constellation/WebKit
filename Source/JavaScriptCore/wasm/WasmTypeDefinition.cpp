@@ -55,32 +55,32 @@ bool ParsedDef::hasRecursiveReference() const
 {
     return WTF::switchOn(*m_v,
         [](const Ref<const RTT>& rtt) { return rtt->hasRecursiveReference(); },
-        [](const Ref<Subtype>& s) { return s->hasRecursiveReference(); },
-        [](const Ref<RecursionGroup>&) -> bool { return false; },
-        [](const Ref<Projection>&) -> bool { return false; });
+        [](const Subtype* s) { return s->hasRecursiveReference(); },
+        [](const RecursionGroup*) -> bool { return false; },
+        [](const Projection*) -> bool { return false; });
 }
 
 TypeIndex ParsedDef::index() const
 {
     return WTF::switchOn(*m_v,
         [](const Ref<const RTT>& rtt) -> TypeIndex { return std::bit_cast<TypeIndex>(rtt.ptr()); },
-        [](const Ref<Subtype>& s) -> TypeIndex { return tagAsSubtypeRef(s.ptr()); },
-        [](const Ref<RecursionGroup>& rg) -> TypeIndex { return std::bit_cast<TypeIndex>(rg.ptr()); },
-        [](const Ref<Projection>& p) -> TypeIndex { return TypeInformation::placeholderRefIndex(p.get()); });
+        [](const Subtype* s) -> TypeIndex { return tagAsSubtypeRef(s); },
+        [](const RecursionGroup* rg) -> TypeIndex { return std::bit_cast<TypeIndex>(rg); },
+        [](const Projection* p) -> TypeIndex { return TypeInformation::placeholderRefIndex(*p); });
 }
 
 Ref<const RTT> ParsedDef::canonicalRTT() const
 {
     return WTF::switchOn(*m_v,
         [](const Ref<const RTT>& rtt) -> Ref<const RTT> { return rtt; },
-        [](const Ref<Subtype>& s) -> Ref<const RTT> { ASSERT(s->rtt()); return Ref<const RTT> { *s->rtt() }; },
-        [](const Ref<RecursionGroup>&) -> Ref<const RTT> {
+        [](const Subtype* s) -> Ref<const RTT> { ASSERT(s->rtt()); return Ref<const RTT> { *s->rtt() }; },
+        [](const RecursionGroup*) -> Ref<const RTT> {
             // Recursion groups do not have a single canonical RTT -- they
             // hold multiple members. Callers resolve each member via
             // RecursionGroup::types() instead of calling canonicalRTT().
             RELEASE_ASSERT_NOT_REACHED();
         },
-        [](const Ref<Projection>& p) -> Ref<const RTT> { ASSERT(p->rtt()); return Ref<const RTT> { *p->rtt() }; });
+        [](const Projection* p) -> Ref<const RTT> { ASSERT(p->rtt()); return Ref<const RTT> { *p->rtt() }; });
 }
 
 // ============================================================================
@@ -94,23 +94,6 @@ inline const Subtype* subtypeFromTaggedIndex(TypeIndex idx) { return untagSubtyp
 // ============================================================================
 // RecursionGroup, Projection, Subtype implementations.
 // ============================================================================
-
-RecursionGroup::RecursionGroup(std::span<const TypeIndex> types)
-    : m_typeCount(types.size())
-{
-    for (unsigned i = 0; i < types.size(); ++i) {
-        TypeIndex t = types[i];
-        // Each member is either a tagged Subtype* or a bare RTT*.
-        // For Subtype, we ref() the Subtype directly. For RTT, the canonical
-        // RTT is owned elsewhere (m_canonicalRecursionGroups); we don't need
-        // to ref it here -- the RecursionGroup is parser-internal and the
-        // RTT outlives it via the canonical recgroup table.
-        if (t & subtypeTagBit)
-            subtypeFromTaggedIndex(t)->ref();
-        // RTT pointers: no ref needed (canonical RTTs are kept by m_canonicalRecursionGroups).
-        mutableTypes()[i] = t;
-    }
-}
 
 String RecursionGroup::toString() const
 {
@@ -132,25 +115,6 @@ void RecursionGroup::dump(PrintStream& out) const
     out.print(")"_s);
 }
 
-bool RecursionGroup::cleanup()
-{
-    for (auto& t : types()) {
-        if (t & subtypeTagBit)
-            subtypeFromTaggedIndex(t)->deref();
-    }
-    return true;
-}
-
-Projection::Projection(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
-    : m_recursionGroup(recursionGroup)
-    , m_projectionIndex(projectionIndex)
-{
-    // An invalid index may show up here for placeholder references, in which
-    // case we should avoid trying to resolve the type index.
-    if (recursionGroup != Subtype::invalidIndex)
-        std::bit_cast<const RecursionGroup*>(recursionGroup)->ref();
-}
-
 String Projection::toString() const
 {
     return WTF::toString(*this);
@@ -166,30 +130,6 @@ void Projection::dump(PrintStream& out) const
         std::bit_cast<const RecursionGroup*>(recursionGroup())->dump(out);
     out.print("."_s, projectionIndex());
     out.print(")"_s);
-}
-
-bool Projection::cleanup()
-{
-    if (recursionGroup() != Subtype::invalidIndex) {
-        std::bit_cast<const RecursionGroup*>(recursionGroup())->deref();
-        return true;
-    }
-    return false;
-}
-
-Subtype::Subtype(std::span<const TypeIndex> superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
-    : m_final(isFinal)
-    , m_underlyingRTT(WTF::move(underlyingRTT))
-    , m_supertypeCount(superTypes.size())
-{
-    for (SupertypeCount i = 0; i < superTypes.size(); i++) {
-        mutableSuperTypes()[i] = superTypes[i];
-        // supertypeIndex for canonicalized parents is an RTT pointer (kept
-        // alive transitively by m_canonicalRecursionGroups). The placeholder/
-        // canonical Projection form is a Projection we should ref directly.
-        if (TypeInformation::isPlaceholderRef(superTypes[i]))
-            projectionFromTaggedIndex(superTypes[i])->ref();
-    }
 }
 
 String Subtype::toString() const
@@ -213,18 +153,9 @@ void Subtype::dump(PrintStream& out) const
     out.print(")"_s);
 }
 
-bool Subtype::cleanup()
-{
-    for (auto& type : superTypes()) {
-        if (TypeInformation::isPlaceholderRef(type))
-            projectionFromTaggedIndex(type)->deref();
-    }
-    return true;
-}
-
 bool Subtype::hasRecursiveReference() const
 {
-    if (m_supertypeCount > 0) {
+    if (supertypeCount() > 0) {
         const bool hasRecGroupSupertype = TypeInformation::isPlaceholderRef(firstSuperType());
         return hasRecGroupSupertype || m_underlyingRTT->hasRecursiveReference();
     }
@@ -245,7 +176,7 @@ void StorageType::dump(PrintStream& out) const
 // Hash functions used by the parser-internal canonicalization sets.
 // ============================================================================
 
-static unsigned NODELETE computeRecursionGroupHash(std::span<const TypeIndex> types)
+unsigned computeRecursionGroupHash(std::span<const TypeIndex> types)
 {
     unsigned accumulator = 0x9cfb89bb;
     for (auto& type : types)
@@ -253,7 +184,7 @@ static unsigned NODELETE computeRecursionGroupHash(std::span<const TypeIndex> ty
     return accumulator;
 }
 
-static unsigned NODELETE computeProjectionHash(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
+unsigned computeProjectionHash(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
 {
     unsigned accumulator = 0xbeae6d4e;
     accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(recursionGroup));
@@ -261,7 +192,7 @@ static unsigned NODELETE computeProjectionHash(TypeIndex recursionGroup, Project
     return accumulator;
 }
 
-static unsigned NODELETE computeSubtypeHash(std::span<const TypeIndex> superTypes, TypeIndex underlyingRTT, bool isFinal)
+unsigned computeSubtypeHash(std::span<const TypeIndex> superTypes, TypeIndex underlyingRTT, bool isFinal)
 {
     unsigned accumulator = 0x3efa01b9;
     for (auto& type : superTypes)
@@ -271,55 +202,58 @@ static unsigned NODELETE computeSubtypeHash(std::span<const TypeIndex> superType
     return accumulator;
 }
 
-unsigned SubtypeHash::hash(const SubtypeHash& key)
+unsigned SubtypeHash::hash(const Subtype* s)
 {
-    if (!key.key)
+    if (!s)
         return 0;
-    return computeSubtypeHash(key.key->superTypes(), std::bit_cast<TypeIndex>(&key.key->underlyingRTT()), key.key->isFinal());
+    return computeSubtypeHash(s->superTypes(), std::bit_cast<TypeIndex>(&s->underlyingRTT()), s->isFinal());
 }
 
-unsigned RecursionGroupHash::hash(const RecursionGroupHash& key)
+bool SubtypeHash::equal(const Subtype* a, const Subtype* b)
 {
-    if (!key.key)
+    if (!a || !b)
+        return a == b;
+    if (a->supertypeCount() != b->supertypeCount())
+        return false;
+    for (SupertypeCount i = 0; i < a->supertypeCount(); ++i) {
+        if (a->superType(i) != b->superType(i))
+            return false;
+    }
+    return &a->underlyingRTT() == &b->underlyingRTT() && a->isFinal() == b->isFinal();
+}
+
+unsigned RecursionGroupHash::hash(const RecursionGroup* g)
+{
+    if (!g)
         return 0;
-    return computeRecursionGroupHash(key.key->types());
+    return computeRecursionGroupHash(g->types());
 }
 
-unsigned ProjectionHash::hash(const ProjectionHash& key)
+bool RecursionGroupHash::equal(const RecursionGroup* a, const RecursionGroup* b)
 {
-    if (!key.key)
+    if (!a || !b)
+        return a == b;
+    if (a->typeCount() != b->typeCount())
+        return false;
+    for (RecursionGroupCount i = 0; i < a->typeCount(); ++i) {
+        if (a->type(i) != b->type(i))
+            return false;
+    }
+    return true;
+}
+
+unsigned ProjectionHash::hash(const Projection* p)
+{
+    if (!p)
         return 0;
-    return computeProjectionHash(key.key->recursionGroup(), key.key->projectionIndex());
+    return computeProjectionHash(p->recursionGroup(), p->projectionIndex());
 }
 
-// ============================================================================
-// Factories for Subtype/RecursionGroup/Projection.
-// ============================================================================
-
-RefPtr<RecursionGroup> RecursionGroup::tryCreate(std::span<const TypeIndex> types){
-    auto result = tryFastMalloc(allocationSize(types.size()));
-    void* memory = nullptr;
-    if (!result.getValue(memory))
-        return nullptr;
-    return adoptRef(*new (NotNull, memory) RecursionGroup(types));
-}
-
-RefPtr<Projection> Projection::tryCreate(TypeIndex recursionGroup, ProjectionIndex index)
+bool ProjectionHash::equal(const Projection* a, const Projection* b)
 {
-    auto result = tryFastMalloc(allocationSize());
-    void* memory = nullptr;
-    if (!result.getValue(memory))
-        return nullptr;
-    return adoptRef(*new (NotNull, memory) Projection(recursionGroup, index));
-}
-
-RefPtr<Subtype> Subtype::tryCreate(std::span<const TypeIndex> superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
-{
-    auto result = tryFastMalloc(allocationSize(superTypes.size()));
-    void* memory = nullptr;
-    if (!result.getValue(memory))
-        return nullptr;
-    return adoptRef(*new (NotNull, memory) Subtype(superTypes, WTF::move(underlyingRTT), isFinal));
+    if (!a || !b)
+        return a == b;
+    return a->recursionGroup() == b->recursionGroup() && a->projectionIndex() == b->projectionIndex();
 }
 
 RTT::RTT(RTTKind kind, bool isFinalType, StructFieldCount fieldCount)

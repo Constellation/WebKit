@@ -112,13 +112,13 @@ auto SectionParser::parseType() -> PartialResult
             if (signature.hasRecursiveReference()) {
                 // The original signature (Subtype or concrete RTT). We keep a
                 // reference so we can call checkSubtypeValidity on it below.
-                RefPtr<Subtype> originalSubtype = signature.isSubtype() ? RefPtr<Subtype> { signature.subtypeRef().ptr() } : nullptr;
+                const Subtype* originalSubtype = signature.isSubtype() ? signature.asSubtype() : nullptr;
 
                 Vector<TypeIndex> types;
                 bool result = types.tryAppend(signature.index());
                 WASM_PARSER_FAIL_IF(!result, "can't allocate enough memory for Type section's "_s, i, "th signature"_s);
-                RefPtr<RecursionGroup> group = m_typeSection.createRecursionGroup(types);
-                RefPtr<Projection> projection = m_typeSection.createProjection(group->index(), 0);
+                const RecursionGroup* group = m_typeSection.createRecursionGroup(WTF::move(types));
+                const Projection* projection = m_typeSection.createProjection(group->index(), 0);
                 m_typeSection.registerCanonicalRTT(*projection);
                 // Singleton fast path: bypass the multi-member recgroup table.
                 // Use the GROUP index so placeholder refs in the payload (whose
@@ -132,15 +132,15 @@ auto SectionParser::parseType() -> PartialResult
                 }
             } else {
                 if (signature.isSubtype())
-                    m_typeSection.registerCanonicalRTT(signature.asSubtype());
+                    m_typeSection.registerCanonicalRTT(*signature.asSubtype());
                 // Singleton fast path: non-recursive 1-member candidate.
                 Ref<const RTT> canonical = TypeInformation::canonicalizeSingleton(&m_typeSection, signature.index(), signature.canonicalRTT());
                 if (signature.isSubtype())
-                    signature.asSubtype().setRTT(canonical.copyRef());
+                    signature.asSubtype()->setRTT(canonical.copyRef());
                 m_info->m_rtts.append(canonical.copyRef());
                 if (signature.isSubtype()) {
                     WASM_PARSER_FAIL_IF(m_info->m_rtts.last()->displaySizeExcludingThis() > maxSubtypeDepth, "subtype depth for Type section's "_s, i, "th signature exceeded the limits of "_s, maxSubtypeDepth);
-                    WASM_FAIL_IF_HELPER_FAILS(checkSubtypeValidity(signature.asSubtype(), canonical.get()));
+                    WASM_FAIL_IF_HELPER_FAILS(checkSubtypeValidity(*signature.asSubtype(), canonical.get()));
                 }
             }
         }
@@ -1047,8 +1047,8 @@ auto SectionParser::parseRecursionGroup(uint32_t position, ParsedDef& recursionG
         signatures.append(WTF::move(signature));
     }
     // Recursion group takes ownership of signatures via types.
-    recursionGroup = ParsedDef { m_typeSection.createRecursionGroup(types).releaseNonNull() };
-    Ref<RecursionGroup> recursionGroupRef = recursionGroup.recursionGroupRef();
+    const RecursionGroup* recursionGroupRef = m_typeSection.createRecursionGroup(WTF::move(types));
+    recursionGroup = ParsedDef { recursionGroupRef };
 
     // Type definitions are normalized such that non-recursive, singleton recursion groups
     // are stored as the underlying concrete type without a projection. Otherwise we will
@@ -1056,27 +1056,27 @@ auto SectionParser::parseRecursionGroup(uint32_t position, ParsedDef& recursionG
     WASM_PARSER_FAIL_IF(!m_info->m_rtts.tryGrowCapacityBy(typeCount), "can't allocate enough memory for recursion group's "_s, typeCount, " RTT"_s, typeCount > 1 ? "s"_s : ""_s);
     if (typeCount == 1 && !signatures[0].hasRecursiveReference()) {
         if (signatures[0].isSubtype())
-            m_typeSection.registerCanonicalRTT(signatures[0].asSubtype());
+            m_typeSection.registerCanonicalRTT(*signatures[0].asSubtype());
         // Singleton fast path for explicit (rec (<single non-recursive type>)).
         Ref<const RTT> canonical = TypeInformation::canonicalizeSingleton(&m_typeSection, signatures[0].index(), signatures[0].canonicalRTT());
         if (signatures[0].isSubtype())
-            signatures[0].asSubtype().setRTT(canonical.copyRef());
+            signatures[0].asSubtype()->setRTT(canonical.copyRef());
         m_info->m_rtts.append(canonical.copyRef());
         if (signatures[0].isSubtype())
-            WASM_FAIL_IF_HELPER_FAILS(checkSubtypeValidity(signatures[0].asSubtype(), canonical.get()));
+            WASM_FAIL_IF_HELPER_FAILS(checkSubtypeValidity(*signatures[0].asSubtype(), canonical.get()));
     } else {
-        Vector<Ref<Projection>> projections;
+        Vector<const Projection*> projections;
         // Take ownership of all projections before unrolling since they can refer to each other.
         // These sequential projections (groupIndex, 0..N-1) are unique by construction, so skip hash dedup.
         for (uint32_t i = 0; i < typeCount; ++i) {
-            RefPtr<Projection> projection = m_typeSection.createProjectionDirect(recursionGroupRef->index(), i);
+            const Projection* projection = m_typeSection.createProjectionDirect(recursionGroupRef->index(), i);
             WASM_PARSER_FAIL_IF(!projection, "can't allocate enough memory for recursion group's "_s, i, "th projection"_s);
-            projections.append(projection.releaseNonNull());
+            projections.append(projection);
         }
         Vector<Ref<const RTT>> candidateRTTs;
         candidateRTTs.reserveInitialCapacity(typeCount);
         for (uint32_t i = 0; i < typeCount; ++i) {
-            m_typeSection.registerCanonicalRTT(projections[i].get());
+            m_typeSection.registerCanonicalRTT(*projections[i]);
             candidateRTTs.append(Ref<const RTT> { *projections[i]->rtt() });
         }
         Vector<Ref<const RTT>> canonicalRTTs = TypeInformation::canonicalizeRecursionGroup(&m_typeSection, recursionGroupRef->index(), WTF::move(candidateRTTs));
@@ -1187,7 +1187,7 @@ auto SectionParser::parseSubtype(uint32_t position, ParsedDef& subtype, Vector<T
             supertypeIndex = m_info->rtt(TypeSignatureIndex(typeIndex)).asTypeIndex();
         else {
             // If a parent type is in the same recursion group, the index needs to refer to the projection instead.
-            RefPtr<Projection> projection = m_typeSection.createPlaceholderProjection(typeIndex - m_info->typeCount());
+            const Projection* projection = m_typeSection.createPlaceholderProjection(typeIndex - m_info->typeCount());
             supertypeIndex = TypeInformation::placeholderRefIndex(*projection); // Tagged placeholder.
         }
     }
@@ -1222,10 +1222,10 @@ auto SectionParser::parseSubtype(uint32_t position, ParsedDef& subtype, Vector<T
 
     // Subtype takes ownership of underlyingType's RTT.
     Ref<const RTT> underlyingRTT = underlyingType.rttRef();
+    Vector<TypeIndex> superTypes;
     if (supertypeCount > 0)
-        subtype = ParsedDef { m_typeSection.createSubtype({ supertypeIndex }, WTF::move(underlyingRTT), isFinal).releaseNonNull() };
-    else
-        subtype = ParsedDef { m_typeSection.createSubtype({ }, WTF::move(underlyingRTT), isFinal).releaseNonNull() };
+        superTypes.append(supertypeIndex);
+    subtype = ParsedDef { m_typeSection.createSubtype(WTF::move(superTypes), WTF::move(underlyingRTT), isFinal) };
 
     return { };
 }

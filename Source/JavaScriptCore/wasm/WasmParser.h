@@ -353,7 +353,7 @@ ALWAYS_INLINE bool ParserBase::parseValueType(const ModuleInformation& info, Typ
                 ASSERT(static_cast<uint32_t>(heapType) >= info.typeCount() && static_cast<uint32_t>(heapType) < m_recursionGroupInformation.end);
                 ProjectionIndex groupIndex = static_cast<ProjectionIndex>(heapType - m_recursionGroupInformation.start);
                 ASSERT(m_typeSectionState);
-                RefPtr<Projection> def = m_typeSectionState->createPlaceholderProjection(groupIndex);
+                const Projection* def = m_typeSectionState->createPlaceholderProjection(groupIndex);
                 typeIndex = TypeInformation::placeholderRefIndex(*def); // Tagged so isRefWithRecursiveReference can detect.
             } else {
                 ASSERT(static_cast<uint32_t>(heapType) < info.typeCount());

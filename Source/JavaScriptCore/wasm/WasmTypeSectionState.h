@@ -32,6 +32,7 @@
 #include <JavaScriptCore/WasmTypeDefinition.h>
 #include <wtf/HashSet.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/SegmentedVector.h>
 
 namespace JSC { namespace Wasm {
 
@@ -39,17 +40,13 @@ namespace JSC { namespace Wasm {
 // objects for one wasm type section. Lives on SectionParser for the duration
 // of parseType(); destroyed afterwards along with every object it owns.
 //
-// This replaces the former TypeInformation::m_subtypes / m_projections /
-// m_recursionGroups / m_placeholders global tables. Those tables only ever
-// deduplicated parser-internal scaffolding; the authoritative canonical
-// identity lives in TypeInformation::m_canonicalRecursionGroups (RTT-level).
-// Making these objects parser-local removes the global contention on
-// TypeInformation::m_lock during parse.
+// Objects are stored by value in SegmentedVector<> so pointers remain stable
+// (they are bit-cast to TypeIndex via tagAsSubtypeRef / tagAsProjectionRef and
+// carried through tagged encodings). Dedup sets hold raw pointers with a
+// structural hash/equal that dereferences the pointee.
 //
-// Pointer identity is preserved: Subtype / Projection / RecursionGroup
-// pointers are bit-cast into TypeIndex and carried through tagged encodings.
-// The Ref-based dedup sets keep each object alive for the state's lifetime;
-// pointers remain stable until the state is destroyed.
+// None of the three types is refcounted: TypeSectionState is the sole owner,
+// and its lifetime strictly encloses every pointer to its contents.
 class TypeSectionState {
     WTF_MAKE_NONCOPYABLE(TypeSectionState);
     WTF_MAKE_NONMOVABLE(TypeSectionState);
@@ -60,13 +57,17 @@ public:
     // Create + dedup within this section. Pointer identity is stable for the
     // state's lifetime; callers may keep raw pointers as long as the state
     // outlives them.
-    RefPtr<Subtype> createSubtype(const Vector<TypeIndex>& superTypes, Ref<const RTT> underlyingRTT, bool isFinal);
-    RefPtr<Projection> createProjection(TypeIndex recursionGroup, ProjectionIndex);
-    RefPtr<Projection> createProjectionDirect(TypeIndex recursionGroup, ProjectionIndex);
+    //
+    // createSubtype / createRecursionGroup take Vector<TypeIndex>&& so the
+    // caller's locally-built Vector is moved into the new object on a cache
+    // miss (or dropped on a hit) -- no copy either way.
+    const Subtype* createSubtype(Vector<TypeIndex>&& superTypes, Ref<const RTT> underlyingRTT, bool isFinal);
+    const Projection* createProjection(TypeIndex recursionGroup, ProjectionIndex);
+    const Projection* createProjectionDirect(TypeIndex recursionGroup, ProjectionIndex);
     void reserveForRecursionGroup(uint32_t typeCount);
 
-    RefPtr<RecursionGroup> createRecursionGroup(const Vector<TypeIndex>& types);
-    RefPtr<Projection> createPlaceholderProjection(ProjectionIndex);
+    const RecursionGroup* createRecursionGroup(Vector<TypeIndex>&& types);
+    const Projection* createPlaceholderProjection(ProjectionIndex);
 
     // Intra-rec-group reference substitution. Placeholder Projections in
     // `type` / `parent` (tagged with the placeholder bit) get rewritten to
@@ -75,8 +76,7 @@ public:
     TypeIndex substituteParent(TypeIndex parent, TypeIndex projectee);
 
     // Lazily build the candidate canonical RTT for a parser-local Subtype or
-    // Projection and cache it via setRTT. Replaces the former
-    // TypeInformation::registerCanonicalRTTForSubtype/Projection path.
+    // Projection and cache it via setRTT.
     void registerCanonicalRTT(const Subtype&);
     void registerCanonicalRTT(const Projection&);
 
@@ -84,10 +84,14 @@ private:
     Ref<const RTT> createCanonicalRTT(const Subtype&);
     Ref<const RTT> createCanonicalRTT(const Projection&);
 
-    UncheckedKeyHashSet<SubtypeHash> m_subtypes;
-    UncheckedKeyHashSet<ProjectionHash> m_projections;
-    UncheckedKeyHashSet<RecursionGroupHash> m_recursionGroups;
-    UncheckedKeyHashSet<RefPtr<Projection>> m_placeholders;
+    SegmentedVector<Subtype, 64> m_subtypeStorage;
+    SegmentedVector<Projection, 64> m_projectionStorage;
+    SegmentedVector<RecursionGroup, 4> m_recursionGroupStorage;
+
+    UncheckedKeyHashSet<const Subtype*, SubtypeHash> m_subtypeDedup;
+    UncheckedKeyHashSet<const Projection*, ProjectionHash> m_projectionDedup;
+    UncheckedKeyHashSet<const RecursionGroup*, RecursionGroupHash> m_recursionGroupDedup;
+    UncheckedKeyHashSet<const Projection*> m_placeholders;
 };
 
 } } // namespace JSC::Wasm

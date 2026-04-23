@@ -372,8 +372,7 @@ inline const Projection* untagProjectionRef(TypeIndex idx) { return std::bit_cas
 inline TypeIndex tagAsSubtypeRef(const Subtype* s) { return std::bit_cast<TypeIndex>(s) | subtypeTagBit; }
 inline const Subtype* untagSubtypeRef(TypeIndex idx) { return std::bit_cast<const Subtype*>(idx & ~subtypeTagBit); }
 
-class Subtype final : public RefCounted<Subtype> {
-    WTF_DEPRECATED_MAKE_FAST_COMPACT_ALLOCATED(Subtype);
+class Subtype final {
     WTF_MAKE_NONCOPYABLE(Subtype);
     WTF_MAKE_NONMOVABLE(Subtype);
 public:
@@ -384,19 +383,20 @@ public:
     // TypeIndex terms.
     static constexpr TypeIndex invalidIndex = 0;
 
-    static size_t allocationSize(Checked<SupertypeCount> count) { return sizeof(Subtype) + count * sizeof(TypeIndex); }
-
-    static RefPtr<Subtype> tryCreate(std::span<const TypeIndex>, Ref<const RTT> underlyingRTT, bool isFinal);
-
-    bool cleanup();
+    Subtype(Vector<TypeIndex>&& superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
+        : m_underlyingRTT(WTF::move(underlyingRTT))
+        , m_superTypes(WTF::move(superTypes))
+        , m_final(isFinal)
+    {
+    }
 
     TypeIndex index() const { return std::bit_cast<TypeIndex>(this); }
-    SupertypeCount supertypeCount() const { return m_supertypeCount; }
+    SupertypeCount supertypeCount() const { return m_superTypes.size(); }
     bool isFinal() const { return m_final; }
-    TypeIndex firstSuperType() const { return superTypes()[0]; }
-    TypeIndex superType(SupertypeCount i) const { return superTypes()[i]; }
+    TypeIndex firstSuperType() const { return m_superTypes[0]; }
+    TypeIndex superType(SupertypeCount i) const { return m_superTypes[i]; }
     const RTT& underlyingRTT() const LIFETIME_BOUND { return m_underlyingRTT; }
-    std::span<const TypeIndex> superTypes() const { return { payload(), m_supertypeCount }; }
+    std::span<const TypeIndex> superTypes() const LIFETIME_BOUND { return m_superTypes.span(); }
     const RTT* rtt() const { return m_rtt.get(); }
     bool hasRecursiveReference() const;
     bool isFinalType() const { return m_final; }
@@ -410,50 +410,45 @@ public:
     }
 
 private:
-    friend class TypeInformation;
-    Subtype(std::span<const TypeIndex>, Ref<const RTT> underlyingRTT, bool isFinal);
-
-    std::span<TypeIndex> mutableSuperTypes() { return { payload(), m_supertypeCount }; }
-    TypeIndex* payload() const { return std::bit_cast<TypeIndex*>(this + 1); }
-
     mutable RefPtr<const RTT> m_rtt;
-    bool m_final;
     Ref<const RTT> m_underlyingRTT;
-    SupertypeCount m_supertypeCount;
+    Vector<TypeIndex> m_superTypes;
+    bool m_final;
 };
 
 // Parser-internal sum type for "the result of parsing one type entry".
 // The variant alternatives correspond to what the parser can produce:
 //
 //   - Ref<const RTT>: Function/Struct/Array kinds (already canonical).
-//   - Ref<Subtype>: explicit (sub ...) declaration.
-//   - Ref<RecursionGroup>: (rec ...) declaration.
-//   - Ref<Projection>: shorthand-recursive types are wrapped in a singleton
+//   - const Subtype*: explicit (sub ...) declaration.
+//   - const RecursionGroup*: (rec ...) declaration.
+//   - const Projection*: shorthand-recursive types are wrapped in a singleton
 //     RecursionGroup + Projection pair during parsing.
+//
+// Subtype/RecursionGroup/Projection are parser-local -- owned by
+// TypeSectionState, which outlives every ParsedDef -- so raw pointers are
+// safe. RTTs are still refcounted and shared across modules, hence Ref.
 class ParsedDef {
 public:
-    using Variant = WTF::Variant<Ref<const RTT>, Ref<Subtype>, Ref<RecursionGroup>, Ref<Projection>>;
+    using Variant = WTF::Variant<Ref<const RTT>, const Subtype*, const RecursionGroup*, const Projection*>;
 
     ParsedDef() = default;
     ParsedDef(Ref<const RTT>&& v) : m_v(Variant { WTF::move(v) }) { }
-    ParsedDef(Ref<Subtype>&& v) : m_v(Variant { WTF::move(v) }) { }
-    ParsedDef(Ref<RecursionGroup>&& v) : m_v(Variant { WTF::move(v) }) { }
-    ParsedDef(Ref<Projection>&& v) : m_v(Variant { WTF::move(v) }) { }
+    ParsedDef(const Subtype* v) : m_v(Variant { v }) { }
+    ParsedDef(const RecursionGroup* v) : m_v(Variant { v }) { }
+    ParsedDef(const Projection* v) : m_v(Variant { v }) { }
 
     bool isRTT() const { return m_v && std::holds_alternative<Ref<const RTT>>(*m_v); }
-    bool isSubtype() const { return m_v && std::holds_alternative<Ref<Subtype>>(*m_v); }
-    bool isRecursionGroup() const { return m_v && std::holds_alternative<Ref<RecursionGroup>>(*m_v); }
-    bool isProjection() const { return m_v && std::holds_alternative<Ref<Projection>>(*m_v); }
+    bool isSubtype() const { return m_v && std::holds_alternative<const Subtype*>(*m_v); }
+    bool isRecursionGroup() const { return m_v && std::holds_alternative<const RecursionGroup*>(*m_v); }
+    bool isProjection() const { return m_v && std::holds_alternative<const Projection*>(*m_v); }
 
     const RTT& asRTT() const { return std::get<Ref<const RTT>>(*m_v).get(); }
-    const Subtype& asSubtype() const { return std::get<Ref<Subtype>>(*m_v).get(); }
-    const RecursionGroup& asRecursionGroup() const { return std::get<Ref<RecursionGroup>>(*m_v).get(); }
-    const Projection& asProjection() const { return std::get<Ref<Projection>>(*m_v).get(); }
+    const Subtype* asSubtype() const { return std::get<const Subtype*>(*m_v); }
+    const RecursionGroup* asRecursionGroup() const { return std::get<const RecursionGroup*>(*m_v); }
+    const Projection* asProjection() const { return std::get<const Projection*>(*m_v); }
 
     Ref<const RTT> rttRef() const { return std::get<Ref<const RTT>>(*m_v); }
-    Ref<Subtype> subtypeRef() const { return std::get<Ref<Subtype>>(*m_v); }
-    Ref<RecursionGroup> recursionGroupRef() const { return std::get<Ref<RecursionGroup>>(*m_v); }
-    Ref<Projection> projectionRef() const { return std::get<Ref<Projection>>(*m_v); }
 
     bool hasRecursiveReference() const;
     // Encoded TypeIndex (with the subtypeTagBit / projectionTagBit
@@ -469,53 +464,44 @@ private:
     std::optional<Variant> m_v;
 };
 
-class RecursionGroup final : public RefCounted<RecursionGroup> {
-    WTF_DEPRECATED_MAKE_FAST_COMPACT_ALLOCATED(RecursionGroup);
+class RecursionGroup final {
     WTF_MAKE_NONCOPYABLE(RecursionGroup);
     WTF_MAKE_NONMOVABLE(RecursionGroup);
 public:
-    static size_t allocationSize(Checked<RecursionGroupCount> typeCount) { return sizeof(RecursionGroup) + typeCount * sizeof(TypeIndex); }
-
     // Members in `types` are TypeIndex values: either bare RTT* (untagged)
     // for concrete-kind members, or tagged Subtype* (subtypeTagBit) for
     // Subtype members. The caller is responsible for setting the tag.
-    static RefPtr<RecursionGroup> tryCreate(std::span<const TypeIndex>);
-
-    bool cleanup();
+    explicit RecursionGroup(Vector<TypeIndex>&& types)
+        : m_types(WTF::move(types))
+    {
+    }
 
     TypeIndex index() const { return std::bit_cast<TypeIndex>(this); }
-    RecursionGroupCount typeCount() const { return m_typeCount; }
-    TypeIndex type(RecursionGroupCount i) const { return types()[i]; }
-    std::span<const TypeIndex> types() const { return { payload(), m_typeCount }; }
+    RecursionGroupCount typeCount() const { return m_types.size(); }
+    TypeIndex type(RecursionGroupCount i) const { return m_types[i]; }
+    std::span<const TypeIndex> types() const LIFETIME_BOUND { return m_types.span(); }
 
     String toString() const;
     void dump(WTF::PrintStream& out) const;
 
 private:
-    friend class TypeInformation;
-    explicit RecursionGroup(std::span<const TypeIndex>);
-
-    std::span<TypeIndex> mutableTypes() { return { payload(), m_typeCount }; }
-    TypeIndex* payload() const { return std::bit_cast<TypeIndex*>(this + 1); }
-
-    RecursionGroupCount m_typeCount;
+    Vector<TypeIndex> m_types;
 };
 
 // A projection into a recursion group. m_recursionGroup is null for
 // placeholders (intra-rec-group refs created at parse time before the actual
 // group exists); after substitution it points to the real RecursionGroup.
-class Projection final : public RefCounted<Projection> {
-    WTF_DEPRECATED_MAKE_FAST_COMPACT_ALLOCATED(Projection);
+class Projection final {
     WTF_MAKE_NONCOPYABLE(Projection);
     WTF_MAKE_NONMOVABLE(Projection);
 public:
-    static size_t allocationSize() { return sizeof(Projection); }
-
     // recursionGroup TypeIndex: pass 0 for placeholders, otherwise pass the
     // RecursionGroup*'s index (untagged).
-    static RefPtr<Projection> tryCreate(TypeIndex recursionGroup, ProjectionIndex index);
-
-    bool cleanup();
+    Projection(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
+        : m_recursionGroup(recursionGroup)
+        , m_projectionIndex(projectionIndex)
+    {
+    }
 
     TypeIndex index() const { return std::bit_cast<TypeIndex>(this); }
     TypeIndex recursionGroup() const { return m_recursionGroup; }
@@ -534,9 +520,6 @@ public:
     }
 
 private:
-    friend class TypeInformation;
-    Projection(TypeIndex recursionGroup, ProjectionIndex index);
-
     mutable RefPtr<const RTT> m_rtt;
     TypeIndex m_recursionGroup;
     ProjectionIndex m_projectionIndex;
@@ -1081,44 +1064,35 @@ inline void Type::dump(PrintStream& out) const
     }
 }
 
-// Hash key for canonicalizing Subtype objects in TypeInformation::m_subtypes.
+// Hash key for canonicalizing Subtype objects in TypeSectionState's dedup set.
+// The stored key is a raw Subtype* owned by TypeSectionState; structural
+// hashing/equality dereferences the pointer to inspect superTypes + underlying
+// RTT + isFinal.
 struct SubtypeHash {
-    RefPtr<Subtype> key { nullptr };
-    SubtypeHash() = default;
-    explicit SubtypeHash(Ref<Subtype>&& key) : key(WTF::move(key)) { }
-    explicit SubtypeHash(WTF::HashTableDeletedValueType) : key(WTF::HashTableDeletedValue) { }
-    bool operator==(const SubtypeHash& rhs) const { return key == rhs.key; }
-    static bool equal(const SubtypeHash& lhs, const SubtypeHash& rhs) { return lhs.key == rhs.key; }
-    static unsigned hash(const SubtypeHash&);
+    static unsigned hash(const Subtype*);
+    static bool equal(const Subtype*, const Subtype*);
     static constexpr bool safeToCompareToEmptyOrDeleted = false;
-    bool isHashTableDeletedValue() const { return key.isHashTableDeletedValue(); }
 };
 
 // Hash key for canonicalizing RecursionGroup objects.
 struct RecursionGroupHash {
-    RefPtr<RecursionGroup> key { nullptr };
-    RecursionGroupHash() = default;
-    explicit RecursionGroupHash(Ref<RecursionGroup>&& key) : key(WTF::move(key)) { }
-    explicit RecursionGroupHash(WTF::HashTableDeletedValueType) : key(WTF::HashTableDeletedValue) { }
-    bool operator==(const RecursionGroupHash& rhs) const { return key == rhs.key; }
-    static bool equal(const RecursionGroupHash& lhs, const RecursionGroupHash& rhs) { return lhs.key == rhs.key; }
-    static unsigned hash(const RecursionGroupHash&);
+    static unsigned hash(const RecursionGroup*);
+    static bool equal(const RecursionGroup*, const RecursionGroup*);
     static constexpr bool safeToCompareToEmptyOrDeleted = false;
-    bool isHashTableDeletedValue() const { return key.isHashTableDeletedValue(); }
 };
 
 // Hash key for canonicalizing Projection objects.
 struct ProjectionHash {
-    RefPtr<Projection> key { nullptr };
-    ProjectionHash() = default;
-    explicit ProjectionHash(Ref<Projection>&& key) : key(WTF::move(key)) { }
-    explicit ProjectionHash(WTF::HashTableDeletedValueType) : key(WTF::HashTableDeletedValue) { }
-    bool operator==(const ProjectionHash& rhs) const { return key == rhs.key; }
-    static bool equal(const ProjectionHash& lhs, const ProjectionHash& rhs) { return lhs.key == rhs.key; }
-    static unsigned hash(const ProjectionHash&);
+    static unsigned hash(const Projection*);
+    static bool equal(const Projection*, const Projection*);
     static constexpr bool safeToCompareToEmptyOrDeleted = false;
-    bool isHashTableDeletedValue() const { return key.isHashTableDeletedValue(); }
 };
+
+// Shared structural hashers used by both the *Hash structs above and the
+// lookup-by-parameters translators in TypeSectionState.
+unsigned computeRecursionGroupHash(std::span<const TypeIndex> types);
+unsigned computeProjectionHash(TypeIndex recursionGroup, ProjectionIndex);
+unsigned computeSubtypeHash(std::span<const TypeIndex> superTypes, TypeIndex underlyingRTT, bool isFinal);
 
 // Isorecursive canonical recursion-group entry. groupId is a globally-unique
 // id assigned during canonicalization; each member RTT carries the same
@@ -1179,22 +1153,10 @@ struct CanonicalSingletonEntryHash {
 namespace WTF {
 
 template<typename T> struct DefaultHash;
-template<> struct DefaultHash<JSC::Wasm::SubtypeHash> : JSC::Wasm::SubtypeHash { };
-template<> struct DefaultHash<JSC::Wasm::RecursionGroupHash> : JSC::Wasm::RecursionGroupHash { };
-template<> struct DefaultHash<JSC::Wasm::ProjectionHash> : JSC::Wasm::ProjectionHash { };
 template<> struct DefaultHash<JSC::Wasm::CanonicalRecursionGroupEntry> : JSC::Wasm::CanonicalRecursionGroupEntryHash { };
 template<> struct DefaultHash<JSC::Wasm::CanonicalSingletonEntry> : JSC::Wasm::CanonicalSingletonEntryHash { };
 
 template<typename T> struct HashTraits;
-template<> struct HashTraits<JSC::Wasm::SubtypeHash> : SimpleClassHashTraits<JSC::Wasm::SubtypeHash> {
-    static constexpr bool emptyValueIsZero = true;
-};
-template<> struct HashTraits<JSC::Wasm::RecursionGroupHash> : SimpleClassHashTraits<JSC::Wasm::RecursionGroupHash> {
-    static constexpr bool emptyValueIsZero = true;
-};
-template<> struct HashTraits<JSC::Wasm::ProjectionHash> : SimpleClassHashTraits<JSC::Wasm::ProjectionHash> {
-    static constexpr bool emptyValueIsZero = true;
-};
 template<> struct HashTraits<JSC::Wasm::CanonicalRecursionGroupEntry> : SimpleClassHashTraits<JSC::Wasm::CanonicalRecursionGroupEntry> {
     static constexpr bool emptyValueIsZero = false;
 };

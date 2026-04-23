@@ -2574,7 +2574,7 @@ void IPIntGenerator::convertTryToCatch(ControlType& tryBlock, CatchKind catchKin
 {
     // IPInt reads throw arguments directly from the operand stack, but BBQ copies
     // them to a separate callee stack area. Track the size BBQ will need.
-    const auto& signature = *m_info.expandedTypeSignature(m_info.typeSignatureIndexFromExceptionIndexSpace(exceptionIndex)).as<FunctionSignature>();
+    const auto& signature = m_info.rtt(m_info.typeSignatureIndexFromExceptionIndexSpace(exceptionIndex));
     unsigned offset = 0;
     for (unsigned i = 0; i < signature.argumentCount(); ++i)
         offset += signature.argumentType(i).kind == TypeKind::V128 ? 2 : 1;

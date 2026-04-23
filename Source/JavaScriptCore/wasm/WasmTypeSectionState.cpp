@@ -40,106 +40,79 @@ namespace {
 inline const Projection* projectionFromTaggedIndex(TypeIndex idx) { return untagProjectionRef(idx); }
 inline const Subtype* subtypeFromTaggedIndex(TypeIndex idx) { return untagSubtypeRef(idx); }
 
-struct RecursionGroupParameterTypes {
+// Lookup-by-parameters translators for the three dedup sets. Each translator
+// hashes/equals a param struct against the stored (const T*) entry; on cache
+// miss the `ensure` functor moves the caller's Vector / Ref into the
+// SegmentedVector-owned object.
+
+struct RecursionGroupLookupKey {
     const Vector<TypeIndex>& types;
+};
 
-    static unsigned NODELETE hash(const RecursionGroupParameterTypes& params)
+struct RecursionGroupLookupTranslator {
+    static unsigned hash(const RecursionGroupLookupKey& params)
     {
-        unsigned accumulator = 0x9cfb89bb;
-        for (auto& type : params.types)
-            accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(type));
-        return accumulator;
+        return computeRecursionGroupHash(params.types.span());
     }
-
-    static bool NODELETE equal(const RecursionGroupHash& sig, const RecursionGroupParameterTypes& params)
+    static bool equal(const RecursionGroup* g, const RecursionGroupLookupKey& params)
     {
-        if (!sig.key)
+        if (!g)
             return false;
-        const RecursionGroup* recursionGroup = sig.key.get();
-        if (recursionGroup->typeCount() != params.types.size())
+        if (g->typeCount() != params.types.size())
             return false;
-        for (unsigned i = 0; i < recursionGroup->typeCount(); ++i) {
-            if (recursionGroup->type(i) != params.types[i])
+        for (RecursionGroupCount i = 0; i < g->typeCount(); ++i) {
+            if (g->type(i) != params.types[i])
                 return false;
         }
         return true;
     }
-
-    static void translate(RecursionGroupHash& entry, const RecursionGroupParameterTypes& params, unsigned)
-    {
-        auto signature = RecursionGroup::tryCreate(params.types.span());
-        RELEASE_ASSERT(signature);
-        entry.key = WTF::move(signature);
-    }
 };
 
-struct ProjectionParameterTypes {
-    const TypeIndex recursionGroup;
-    const ProjectionIndex projectionIndex;
+struct ProjectionLookupKey {
+    TypeIndex recursionGroup;
+    ProjectionIndex projectionIndex;
+};
 
-    static unsigned NODELETE hash(const ProjectionParameterTypes& params)
+struct ProjectionLookupTranslator {
+    static unsigned hash(const ProjectionLookupKey& params)
     {
-        unsigned accumulator = 0xbeae6d4e;
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(params.recursionGroup));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<ProjectionIndex>::hash(params.projectionIndex));
-        return accumulator;
+        return computeProjectionHash(params.recursionGroup, params.projectionIndex);
     }
-
-    static bool NODELETE equal(const ProjectionHash& sig, const ProjectionParameterTypes& params)
+    static bool equal(const Projection* p, const ProjectionLookupKey& params)
     {
-        if (!sig.key)
+        if (!p)
             return false;
-        const Projection* projection = sig.key.get();
-        return projection->recursionGroup() == params.recursionGroup
-            && projection->projectionIndex() == params.projectionIndex;
-    }
-
-    static void translate(ProjectionHash& entry, const ProjectionParameterTypes& params, unsigned)
-    {
-        auto projection = Projection::tryCreate(params.recursionGroup, params.projectionIndex);
-        RELEASE_ASSERT(projection);
-        entry.key = WTF::move(projection);
+        return p->recursionGroup() == params.recursionGroup
+            && p->projectionIndex() == params.projectionIndex;
     }
 };
 
-struct SubtypeParameterTypes {
+struct SubtypeLookupKey {
     const Vector<TypeIndex>& superTypes;
-    Ref<const RTT> underlyingRTT;
+    const RTT* underlyingRTT;
     bool isFinal;
+};
 
-    static unsigned NODELETE hash(const SubtypeParameterTypes& params)
+struct SubtypeLookupTranslator {
+    static unsigned hash(const SubtypeLookupKey& params)
     {
-        unsigned accumulator = 0x3efa01b9;
-        for (auto& type : params.superTypes)
-            accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(type));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<TypeIndex>::hash(std::bit_cast<TypeIndex>(params.underlyingRTT.ptr())));
-        accumulator = WTF::pairIntHash(accumulator, WTF::IntHash<bool>::hash(params.isFinal));
-        return accumulator;
+        return computeSubtypeHash(params.superTypes.span(), std::bit_cast<TypeIndex>(params.underlyingRTT), params.isFinal);
     }
-
-    static bool NODELETE equal(const SubtypeHash& sig, const SubtypeParameterTypes& params)
+    static bool equal(const Subtype* s, const SubtypeLookupKey& params)
     {
-        if (!sig.key)
+        if (!s)
             return false;
-        const Subtype* subtype = sig.key.get();
-        if (subtype->supertypeCount() != params.superTypes.size())
+        if (s->supertypeCount() != params.superTypes.size())
             return false;
-        for (SupertypeCount i = 0; i < params.superTypes.size(); i++) {
-            if (subtype->superType(i) != params.superTypes[i])
+        for (SupertypeCount i = 0; i < params.superTypes.size(); ++i) {
+            if (s->superType(i) != params.superTypes[i])
                 return false;
         }
-        if (&subtype->underlyingRTT() != params.underlyingRTT.ptr())
+        if (&s->underlyingRTT() != params.underlyingRTT)
             return false;
-        if (subtype->isFinal() != params.isFinal)
+        if (s->isFinal() != params.isFinal)
             return false;
         return true;
-    }
-
-    static void translate(SubtypeHash& entry, const SubtypeParameterTypes& params, unsigned)
-    {
-        auto signature = Subtype::tryCreate(params.superTypes.span(), params.underlyingRTT.copyRef(), params.isFinal);
-        RELEASE_ASSERT(signature);
-        entry.key = WTF::move(signature);
     }
 };
 
@@ -147,40 +120,53 @@ struct SubtypeParameterTypes {
 
 void TypeSectionState::reserveForRecursionGroup(uint32_t typeCount)
 {
-    m_projections.reserveInitialCapacity(typeCount);
-    m_subtypes.reserveInitialCapacity(typeCount);
+    m_projectionDedup.reserveInitialCapacity(typeCount);
+    m_subtypeDedup.reserveInitialCapacity(typeCount);
 }
 
-RefPtr<RecursionGroup> TypeSectionState::createRecursionGroup(const Vector<TypeIndex>& types)
+const RecursionGroup* TypeSectionState::createRecursionGroup(Vector<TypeIndex>&& types)
 {
-    auto addResult = m_recursionGroups.template add<RecursionGroupParameterTypes>(RecursionGroupParameterTypes { types });
-    return addResult.iterator->key;
+    auto result = m_recursionGroupDedup.ensure<RecursionGroupLookupTranslator>(
+        RecursionGroupLookupKey { types },
+        [&] -> const RecursionGroup* {
+            return &m_recursionGroupStorage.alloc(WTF::move(types));
+        });
+    return *result.iterator;
 }
 
-RefPtr<Projection> TypeSectionState::createProjection(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
+const Projection* TypeSectionState::createProjection(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
 {
-    auto addResult = m_projections.template add<ProjectionParameterTypes>(ProjectionParameterTypes { recursionGroup, projectionIndex });
-    return addResult.iterator->key;
+    auto result = m_projectionDedup.ensure<ProjectionLookupTranslator>(
+        ProjectionLookupKey { recursionGroup, projectionIndex },
+        [&] -> const Projection* {
+            return &m_projectionStorage.alloc(recursionGroup, projectionIndex);
+        });
+    return *result.iterator;
 }
 
-RefPtr<Projection> TypeSectionState::createProjectionDirect(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
+const Projection* TypeSectionState::createProjectionDirect(TypeIndex recursionGroup, ProjectionIndex projectionIndex)
 {
-    auto projection = Projection::tryCreate(recursionGroup, projectionIndex);
-    RELEASE_ASSERT(projection);
-    auto addResult = m_projections.add(ProjectionHash { Ref<Projection> { *projection } });
+    // Sequential projections (groupIndex, 0..N-1) are unique by construction;
+    // skip the lookup-by-params path.
+    Projection& projection = m_projectionStorage.alloc(recursionGroup, projectionIndex);
+    auto addResult = m_projectionDedup.add(&projection);
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
-    return projection;
+    return &projection;
 }
 
-RefPtr<Subtype> TypeSectionState::createSubtype(const Vector<TypeIndex>& superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
+const Subtype* TypeSectionState::createSubtype(Vector<TypeIndex>&& superTypes, Ref<const RTT> underlyingRTT, bool isFinal)
 {
-    auto addResult = m_subtypes.template add<SubtypeParameterTypes>(SubtypeParameterTypes { superTypes, WTF::move(underlyingRTT), isFinal });
-    return addResult.iterator->key;
+    auto result = m_subtypeDedup.ensure<SubtypeLookupTranslator>(
+        SubtypeLookupKey { superTypes, underlyingRTT.ptr(), isFinal },
+        [&] -> const Subtype* {
+            return &m_subtypeStorage.alloc(WTF::move(superTypes), WTF::move(underlyingRTT), isFinal);
+        });
+    return *result.iterator;
 }
 
-RefPtr<Projection> TypeSectionState::createPlaceholderProjection(ProjectionIndex projectionIndex)
+const Projection* TypeSectionState::createPlaceholderProjection(ProjectionIndex projectionIndex)
 {
-    auto projection = createProjection(Projection::PlaceholderGroup, projectionIndex);
+    auto* projection = createProjection(Projection::PlaceholderGroup, projectionIndex);
     m_placeholders.add(projection);
     return projection;
 }
@@ -190,7 +176,7 @@ ALWAYS_INLINE Type TypeSectionState::substitute(Type type, TypeIndex projectee)
     if (isRefWithTypeIndex(type) && TypeInformation::isPlaceholderRef(type.index)) {
         const Projection* projection = projectionFromTaggedIndex(type.index);
         if (projection->isPlaceholder()) {
-            auto newProjection = createProjection(projectee, projection->projectionIndex());
+            auto* newProjection = createProjection(projectee, projection->projectionIndex());
             TypeKind kind = type.isNullable() ? TypeKind::RefNull : TypeKind::Ref;
             RELEASE_ASSERT(newProjection);
             return Type { kind, TypeInformation::placeholderRefIndex(*newProjection) };
@@ -204,7 +190,7 @@ ALWAYS_INLINE TypeIndex TypeSectionState::substituteParent(TypeIndex parent, Typ
     if (TypeInformation::isPlaceholderRef(parent)) {
         const Projection* projection = projectionFromTaggedIndex(parent);
         if (projection->isPlaceholder()) {
-            auto newProjection = createProjection(projectee, projection->projectionIndex());
+            auto* newProjection = createProjection(projectee, projection->projectionIndex());
             RELEASE_ASSERT(newProjection);
             return TypeInformation::placeholderRefIndex(*newProjection);
         }
@@ -333,7 +319,7 @@ Ref<const RTT> TypeSectionState::createCanonicalRTT(const Projection& projection
                 return substituteParent(subtype->superType(i), projectee);
             });
             Ref<const RTT> newUnderlyingRTT = rebuildWithSubstitution(subtype->underlyingRTT());
-            auto unrolled = createSubtype(supertypes, WTF::move(newUnderlyingRTT), subtype->isFinal());
+            auto* unrolled = createSubtype(WTF::move(supertypes), WTF::move(newUnderlyingRTT), subtype->isFinal());
             RELEASE_ASSERT(unrolled);
             return createCanonicalRTT(*unrolled);
         }
