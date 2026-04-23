@@ -326,7 +326,7 @@ Ref<const RTT> TypeSectionState::createCanonicalRTT(const Projection& projection
         RELEASE_ASSERT_NOT_REACHED();
     };
 
-    if (memberIndex & kSubtypeTagBit) {
+    if (memberIndex & subtypeTagBit) {
         const Subtype* subtype = subtypeFromTaggedIndex(memberIndex);
         if (subtype->hasRecursiveReference()) {
             Vector<TypeIndex> supertypes(subtype->supertypeCount(), [&](size_t i) {

@@ -1088,7 +1088,7 @@ auto SectionParser::parseRecursionGroup(uint32_t position, ParsedDef& recursionG
         for (uint32_t i = 0; i < typeCount; ++i) {
             // The projected member is either a Subtype (tagged) or a concrete RTT (untagged).
             TypeIndex memberIdx = recursionGroupRef->type(i);
-            if (memberIdx & kSubtypeTagBit) {
+            if (memberIdx & subtypeTagBit) {
                 const Subtype* subtype = untagSubtypeRef(memberIdx);
                 WASM_FAIL_IF_HELPER_FAILS(checkSubtypeValidity(*subtype, canonicalRTTs[i].get()));
             }

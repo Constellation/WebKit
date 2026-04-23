@@ -50,7 +50,7 @@ inline RefPtr<const RTT> TypeInformation::tryGetRTT(TypeIndex typeIndex)
 {
     if (typeIndexIsType(typeIndex) || typeIndex == Subtype::invalidIndex)
         return nullptr;
-    if (typeIndex & kProjectionTagBit)
+    if (typeIndex & projectionTagBit)
         return untagProjectionRef(typeIndex)->rtt();
     return std::bit_cast<const RTT*>(typeIndex);
 }

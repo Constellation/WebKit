@@ -354,23 +354,23 @@ class Subtype;
 // TypeIndex (uintptr_t) is overloaded to carry one of:
 //   - Abstract heap type (small negative number representing a TypeKind).
 //   - Bare RTT pointer (untagged, low bits all zero).
-//   - Bare Subtype pointer (tag bit kSubtypeTagBit set, used in
+//   - Bare Subtype pointer (tag bit subtypeTagBit set, used in
 //     RecursionGroup::types() to discriminate Subtype members from concrete
 //     RTT members).
-//   - Bare Projection pointer (tag bit kProjectionTagBit set, used in
+//   - Bare Projection pointer (tag bit projectionTagBit set, used in
 //     Subtype::superTypes() for intra-rec-group supertype refs and in
 //     Type::index for placeholder ref types in canonical RTT payloads).
 //
 // The two tag bits are independent — context determines which one is in
 // effect.
-static constexpr TypeIndex kProjectionTagBit = 1; // bit 0
-static constexpr TypeIndex kSubtypeTagBit = 2;    // bit 1
+static constexpr TypeIndex projectionTagBit = 1; // bit 0
+static constexpr TypeIndex subtypeTagBit = 2;    // bit 1
 
-inline TypeIndex tagAsProjectionRef(const Projection* p) { return std::bit_cast<TypeIndex>(p) | kProjectionTagBit; }
-inline const Projection* untagProjectionRef(TypeIndex idx) { return std::bit_cast<const Projection*>(idx & ~kProjectionTagBit); }
+inline TypeIndex tagAsProjectionRef(const Projection* p) { return std::bit_cast<TypeIndex>(p) | projectionTagBit; }
+inline const Projection* untagProjectionRef(TypeIndex idx) { return std::bit_cast<const Projection*>(idx & ~projectionTagBit); }
 
-inline TypeIndex tagAsSubtypeRef(const Subtype* s) { return std::bit_cast<TypeIndex>(s) | kSubtypeTagBit; }
-inline const Subtype* untagSubtypeRef(TypeIndex idx) { return std::bit_cast<const Subtype*>(idx & ~kSubtypeTagBit); }
+inline TypeIndex tagAsSubtypeRef(const Subtype* s) { return std::bit_cast<TypeIndex>(s) | subtypeTagBit; }
+inline const Subtype* untagSubtypeRef(TypeIndex idx) { return std::bit_cast<const Subtype*>(idx & ~subtypeTagBit); }
 
 class Subtype final : public RefCounted<Subtype> {
     WTF_DEPRECATED_MAKE_FAST_COMPACT_ALLOCATED(Subtype);
@@ -456,7 +456,7 @@ public:
     Ref<Projection> projectionRef() const { return std::get<Ref<Projection>>(*m_v); }
 
     bool hasRecursiveReference() const;
-    // Encoded TypeIndex (with the kSubtypeTagBit / kProjectionTagBit
+    // Encoded TypeIndex (with the subtypeTagBit / projectionTagBit
     // conventions) suitable for use as a recursion group's typeIndex or as
     // the "index" of this parsed type in canonicalization keys.
     TypeIndex index() const;
@@ -477,7 +477,7 @@ public:
     static size_t allocationSize(Checked<RecursionGroupCount> typeCount) { return sizeof(RecursionGroup) + typeCount * sizeof(TypeIndex); }
 
     // Members in `types` are TypeIndex values: either bare RTT* (untagged)
-    // for concrete-kind members, or tagged Subtype* (kSubtypeTagBit) for
+    // for concrete-kind members, or tagged Subtype* (subtypeTagBit) for
     // Subtype members. The caller is responsible for setting the tag.
     static RefPtr<RecursionGroup> tryCreate(std::span<const TypeIndex>);
 
@@ -1066,7 +1066,7 @@ inline void Type::dump(PrintStream& out) const
         if (typeIndexIsType(index)) {
             // If the index is negative, it represents a TypeKind.
             kindToPrint = static_cast<TypeKind>(index);
-        } else if (index & kProjectionTagBit) {
+        } else if (index & projectionTagBit) {
             out.print(*untagProjectionRef(index));
             return;
         } else {

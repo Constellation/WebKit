@@ -105,7 +105,7 @@ RecursionGroup::RecursionGroup(std::span<const TypeIndex> types)
         // RTT is owned elsewhere (m_canonicalRecursionGroups); we don't need
         // to ref it here -- the RecursionGroup is parser-internal and the
         // RTT outlives it via the canonical recgroup table.
-        if (t & kSubtypeTagBit)
+        if (t & subtypeTagBit)
             subtypeFromTaggedIndex(t)->ref();
         // RTT pointers: no ref needed (canonical RTTs are kept by m_canonicalRecursionGroups).
         mutableTypes()[i] = t;
@@ -124,7 +124,7 @@ void RecursionGroup::dump(PrintStream& out) const
     for (RecursionGroupCount typeIndex = 0; typeIndex < typeCount(); ++typeIndex) {
         out.print(comma);
         TypeIndex t = type(typeIndex);
-        if (t & kSubtypeTagBit)
+        if (t & subtypeTagBit)
             subtypeFromTaggedIndex(t)->dump(out);
         else
             std::bit_cast<const RTT*>(t)->dump(out);
@@ -135,7 +135,7 @@ void RecursionGroup::dump(PrintStream& out) const
 bool RecursionGroup::cleanup()
 {
     for (auto& t : types()) {
-        if (t & kSubtypeTagBit)
+        if (t & subtypeTagBit)
             subtypeFromTaggedIndex(t)->deref();
     }
     return true;
