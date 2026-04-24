@@ -65,6 +65,7 @@
 #include "FTLThunks.h"
 #include "FTLWeightedTarget.h"
 #include "HasOwnPropertyCache.h"
+#include "IntlObject.h"
 #include "JITAddGenerator.h"
 #include "JITBitAndGenerator.h"
 #include "JITBitOrGenerator.h"
@@ -11637,7 +11638,136 @@ IGNORE_CLANG_WARNINGS_END
     void compileStringLocaleCompare()
     {
         auto* globalObject = m_graph.globalObjectFor(m_origin.semantic);
-        setInt32(vmCall(Int32, operationStringLocaleCompare, weakPointer(globalObject), lowString(m_node->child1()), lowString(m_node->child2())));
+        LValue leftJSString = lowString(m_node->child1());
+        LValue rightJSString = lowString(m_node->child2());
+
+        LBasicBlock checkLeftRope = m_out.newBlock();
+        LBasicBlock checkRightRope = m_out.newBlock();
+        LBasicBlock bothResolved = m_out.newBlock();
+        LBasicBlock notSameImpl = m_out.newBlock();
+        LBasicBlock leftIs8Bit = m_out.newBlock();
+        LBasicBlock rightIs8Bit = m_out.newBlock();
+        LBasicBlock loopSetup = m_out.newBlock();
+        LBasicBlock loop = m_out.newBlock();
+        LBasicBlock checkRightWeight = m_out.newBlock();
+        LBasicBlock compareWeights = m_out.newBlock();
+        LBasicBlock weightsDiffer = m_out.newBlock();
+        LBasicBlock weightsEqual = m_out.newBlock();
+        LBasicBlock loopDone = m_out.newBlock();
+        LBasicBlock lengthsDiffer = m_out.newBlock();
+        LBasicBlock checkNextCharWeight = m_out.newBlock();
+        LBasicBlock slowCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+
+        // Guard: check JSGlobalObject.m_canDoASCIIUCADUCETLocaleCompare
+        m_out.branch(
+            m_out.load8ZeroExt32(weakPointer(globalObject), m_heaps.JSGlobalObject_canDoASCIIUCADUCETLocaleCompare),
+            usually(checkLeftRope), rarely(slowCase));
+
+        // Check left is not rope
+        LBasicBlock lastNext = m_out.appendTo(checkLeftRope, checkRightRope);
+        m_out.branch(isRopeString(leftJSString, m_node->child1()), rarely(slowCase), usually(checkRightRope));
+
+        // Check right is not rope
+        m_out.appendTo(checkRightRope, bothResolved);
+        m_out.branch(isRopeString(rightJSString, m_node->child2()), rarely(slowCase), usually(bothResolved));
+
+        // Load StringImpl pointers
+        m_out.appendTo(bothResolved, notSameImpl);
+        LValue leftImpl = m_out.loadPtr(leftJSString, m_heaps.JSString_value);
+        LValue rightImpl = m_out.loadPtr(rightJSString, m_heaps.JSString_value);
+
+        // Same StringImpl pointer → return 0
+        ValueFromBlock sameImplResult = m_out.anchor(m_out.int32Zero);
+        m_out.branch(m_out.equal(leftImpl, rightImpl), unsure(continuation), unsure(notSameImpl));
+
+        // Check both are 8-bit
+        m_out.appendTo(notSameImpl, leftIs8Bit);
+        m_out.branch(
+            m_out.testIsZero32(m_out.load32(leftImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIs8Bit())),
+            unsure(slowCase), unsure(leftIs8Bit));
+
+        m_out.appendTo(leftIs8Bit, rightIs8Bit);
+        m_out.branch(
+            m_out.testIsZero32(m_out.load32(rightImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIs8Bit())),
+            unsure(slowCase), unsure(rightIs8Bit));
+
+        // Load lengths and data pointers
+        m_out.appendTo(rightIs8Bit, loopSetup);
+        LValue leftLength = m_out.load32(leftImpl, m_heaps.StringImpl_length);
+        LValue rightLength = m_out.load32(rightImpl, m_heaps.StringImpl_length);
+        LValue leftData = m_out.loadPtr(leftImpl, m_heaps.StringImpl_data);
+        LValue rightData = m_out.loadPtr(rightImpl, m_heaps.StringImpl_data);
+        LValue commonLength = m_out.select(m_out.below(leftLength, rightLength), leftLength, rightLength);
+        m_out.jump(loopSetup);
+
+        // Loop setup
+        m_out.appendTo(loopSetup, loop);
+        ValueFromBlock indexAtStart = m_out.anchor(m_out.int32Zero);
+        m_out.branch(m_out.isZero32(commonLength), unsure(loopDone), unsure(loop));
+
+        // Main comparison loop
+        m_out.appendTo(loop, checkRightWeight);
+        LValue index = m_out.phi(Int32, indexAtStart);
+
+        LValue leftByte = m_out.load8ZeroExt32(m_out.baseIndex(m_heaps.characters8, leftData, m_out.zeroExtPtr(index)));
+        LValue rightByte = m_out.load8ZeroExt32(m_out.baseIndex(m_heaps.characters8, rightData, m_out.zeroExtPtr(index)));
+
+        // Look up DUCET level-1 weights
+        LValue tableBase = m_out.constIntPtr(ducetLevel1Weights);
+        LValue leftWeight = m_out.load8ZeroExt32(TypedPointer(m_heaps.absolute.atAnyAddress(), m_out.add(tableBase, m_out.zeroExtPtr(leftByte))));
+        LValue rightWeight = m_out.load8ZeroExt32(TypedPointer(m_heaps.absolute.atAnyAddress(), m_out.add(tableBase, m_out.zeroExtPtr(rightByte))));
+
+        // If left weight is 0, bail to slow path
+        m_out.branch(m_out.isZero32(leftWeight), rarely(slowCase), usually(checkRightWeight));
+
+        // If right weight is 0, bail to slow path
+        m_out.appendTo(checkRightWeight, compareWeights);
+        m_out.branch(m_out.isZero32(rightWeight), rarely(slowCase), usually(compareWeights));
+
+        // Compare weights
+        m_out.appendTo(compareWeights, weightsDiffer);
+        m_out.branch(m_out.notEqual(leftWeight, rightWeight), unsure(weightsDiffer), unsure(weightsEqual));
+
+        // Weights differ: return 1 or -1
+        m_out.appendTo(weightsDiffer, weightsEqual);
+        LValue differResult = m_out.select(m_out.above(leftWeight, rightWeight), m_out.int32One, m_out.constInt32(-1));
+        ValueFromBlock differResultPhi = m_out.anchor(differResult);
+        m_out.jump(continuation);
+
+        // Weights equal: advance index
+        m_out.appendTo(weightsEqual, loopDone);
+        LValue nextIndex = m_out.add(index, m_out.int32One);
+        ValueFromBlock indexForNext = m_out.anchor(nextIndex);
+        m_out.addIncomingToPhi(index, indexForNext);
+        m_out.branch(m_out.below(nextIndex, commonLength), unsure(loop), unsure(loopDone));
+
+        // Loop done: all common characters matched at level 1
+        m_out.appendTo(loopDone, lengthsDiffer);
+        m_out.branch(m_out.equal(leftLength, rightLength), unsure(slowCase), unsure(lengthsDiffer));
+
+        // Different lengths: check the next char in the longer string is valid DUCET
+        m_out.appendTo(lengthsDiffer, checkNextCharWeight);
+        LValue isLeftLonger = m_out.above(leftLength, rightLength);
+        LValue longerData = m_out.select(isLeftLonger, leftData, rightData);
+        LValue shorterLength = m_out.select(isLeftLonger, rightLength, leftLength);
+        LValue nextChar = m_out.load8ZeroExt32(m_out.baseIndex(m_heaps.characters8, longerData, m_out.zeroExtPtr(shorterLength)));
+        LValue nextCharWeight = m_out.load8ZeroExt32(TypedPointer(m_heaps.absolute.atAnyAddress(), m_out.add(tableBase, m_out.zeroExtPtr(nextChar))));
+        m_out.branch(m_out.isZero32(nextCharWeight), rarely(slowCase), usually(checkNextCharWeight));
+
+        m_out.appendTo(checkNextCharWeight, slowCase);
+        LValue lengthResult = m_out.select(isLeftLonger, m_out.int32One, m_out.constInt32(-1));
+        ValueFromBlock lengthResultPhi = m_out.anchor(lengthResult);
+        m_out.jump(continuation);
+
+        // Slow case: fall back to C++ operation
+        m_out.appendTo(slowCase, continuation);
+        ValueFromBlock slowResult = m_out.anchor(vmCall(Int32, operationStringLocaleCompare, weakPointer(globalObject), leftJSString, rightJSString));
+        m_out.jump(continuation);
+
+        // Merge results
+        m_out.appendTo(continuation, lastNext);
+        setInt32(m_out.phi(Int32, sameImplResult, differResultPhi, lengthResultPhi, slowResult));
     }
 
     void compileStringIndexOf()

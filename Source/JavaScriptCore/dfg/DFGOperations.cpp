@@ -51,6 +51,7 @@
 #include "Interpreter.h"
 #include "InterpreterInlines.h"
 #include "IntlCollator.h"
+#include "IntlObjectInlines.h"
 #include "JITCode.h"
 #include "JITWorklist.h"
 #include "JSArrayBufferConstructor.h"
@@ -3348,6 +3349,12 @@ JSC_DEFINE_JIT_OPERATION(operationStringLocaleCompare, UCPUStrictInt32, (JSGloba
 
     auto that = argument->view(globalObject);
     OPERATION_RETURN_IF_EXCEPTION(scope, 0);
+
+    if (globalObject->canDoASCIIUCADUCETLocaleCompare() && string->is8Bit() && that->is8Bit()) {
+        auto result = compareASCIIWithUCADUCET(string->span8(), that->span8());
+        if (result)
+            OPERATION_RETURN(scope, toUCPUStrictInt32(*result));
+    }
 
     auto* collator = globalObject->defaultCollator();
 

@@ -1696,6 +1696,7 @@ capitalName ## Constructor* lowerName ## Constructor = featureFlag ? capitalName
             collator->initializeCollator(globalObject, jsUndefined(), jsUndefined());
             RETURN_IF_EXCEPTION(scope, void());
             init.set(collator);
+            globalObject->m_canDoASCIIUCADUCETLocaleCompare = collator->canDoASCIIUCADUCETComparison();
         });
 
     m_defaultDateTimeFormat.initLater(
