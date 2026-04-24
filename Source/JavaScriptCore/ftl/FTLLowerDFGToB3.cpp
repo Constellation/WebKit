@@ -11644,7 +11644,7 @@ IGNORE_CLANG_WARNINGS_END
         LBasicBlock checkLeftRope = m_out.newBlock();
         LBasicBlock checkRightRope = m_out.newBlock();
         LBasicBlock bothResolved = m_out.newBlock();
-        LBasicBlock notSameImpl = m_out.newBlock();
+        LBasicBlock checkDUCET = m_out.newBlock();
         LBasicBlock leftIs8Bit = m_out.newBlock();
         LBasicBlock rightIs8Bit = m_out.newBlock();
         LBasicBlock loopSetup = m_out.newBlock();
@@ -11659,10 +11659,9 @@ IGNORE_CLANG_WARNINGS_END
         LBasicBlock slowCase = m_out.newBlock();
         LBasicBlock continuation = m_out.newBlock();
 
-        // Guard: check JSGlobalObject.m_canDoASCIIUCADUCETLocaleCompare
-        m_out.branch(
-            m_out.load8ZeroExt32(weakPointer(globalObject), m_heaps.JSGlobalObject_canDoASCIIUCADUCETLocaleCompare),
-            usually(checkLeftRope), rarely(slowCase));
+        // Pointer-equal JSStrings → return 0 (no locale check needed)
+        ValueFromBlock sameStringResult = m_out.anchor(m_out.int32Zero);
+        m_out.branch(m_out.equal(leftJSString, rightJSString), unsure(continuation), unsure(checkLeftRope));
 
         // Check left is not rope
         LBasicBlock lastNext = m_out.appendTo(checkLeftRope, checkRightRope);
@@ -11672,37 +11671,37 @@ IGNORE_CLANG_WARNINGS_END
         m_out.appendTo(checkRightRope, bothResolved);
         m_out.branch(isRopeString(rightJSString, m_node->child2()), rarely(slowCase), usually(bothResolved));
 
-        // Load StringImpl pointers
-        m_out.appendTo(bothResolved, notSameImpl);
+        // Load StringImpl pointers; pointer-equal → return 0
+        m_out.appendTo(bothResolved, checkDUCET);
         LValue leftImpl = m_out.loadPtr(leftJSString, m_heaps.JSString_value);
         LValue rightImpl = m_out.loadPtr(rightJSString, m_heaps.JSString_value);
-
-        // Same StringImpl pointer → return 0
         ValueFromBlock sameImplResult = m_out.anchor(m_out.int32Zero);
-        m_out.branch(m_out.equal(leftImpl, rightImpl), unsure(continuation), unsure(notSameImpl));
+        m_out.branch(m_out.equal(leftImpl, rightImpl), unsure(continuation), unsure(checkDUCET));
+
+        // Guard: check JSGlobalObject.m_canDoASCIIUCADUCETLocaleCompare
+        m_out.appendTo(checkDUCET, leftIs8Bit);
+        m_out.branch(
+            m_out.load8ZeroExt32(weakPointer(globalObject), m_heaps.JSGlobalObject_canDoASCIIUCADUCETLocaleCompare),
+            usually(leftIs8Bit), rarely(slowCase));
 
         // Check both are 8-bit
-        m_out.appendTo(notSameImpl, leftIs8Bit);
-        m_out.branch(
-            m_out.testIsZero32(m_out.load32(leftImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIs8Bit())),
-            unsure(slowCase), unsure(leftIs8Bit));
-
         m_out.appendTo(leftIs8Bit, rightIs8Bit);
         m_out.branch(
-            m_out.testIsZero32(m_out.load32(rightImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIs8Bit())),
+            m_out.testIsZero32(m_out.load32(leftImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIs8Bit())),
             unsure(slowCase), unsure(rightIs8Bit));
 
-        // Load lengths and data pointers
         m_out.appendTo(rightIs8Bit, loopSetup);
+        m_out.branch(
+            m_out.testIsZero32(m_out.load32(rightImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIs8Bit())),
+            unsure(slowCase), unsure(loopSetup));
+
+        // Load lengths and data pointers
+        m_out.appendTo(loopSetup, loop);
         LValue leftLength = m_out.load32(leftImpl, m_heaps.StringImpl_length);
         LValue rightLength = m_out.load32(rightImpl, m_heaps.StringImpl_length);
         LValue leftData = m_out.loadPtr(leftImpl, m_heaps.StringImpl_data);
         LValue rightData = m_out.loadPtr(rightImpl, m_heaps.StringImpl_data);
         LValue commonLength = m_out.select(m_out.below(leftLength, rightLength), leftLength, rightLength);
-        m_out.jump(loopSetup);
-
-        // Loop setup
-        m_out.appendTo(loopSetup, loop);
         ValueFromBlock indexAtStart = m_out.anchor(m_out.int32Zero);
         m_out.branch(m_out.isZero32(commonLength), unsure(loopDone), unsure(loop));
 
@@ -11767,7 +11766,7 @@ IGNORE_CLANG_WARNINGS_END
 
         // Merge results
         m_out.appendTo(continuation, lastNext);
-        setInt32(m_out.phi(Int32, sameImplResult, differResultPhi, lengthResultPhi, slowResult));
+        setInt32(m_out.phi(Int32, sameStringResult, sameImplResult, differResultPhi, lengthResultPhi, slowResult));
     }
 
     void compileStringIndexOf()
