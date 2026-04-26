@@ -2153,11 +2153,7 @@ JSArray* constructArrayPair(JSGlobalObject* globalObject, JSValue first, JSValue
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     ObjectInitializationScope initializationScope(vm);
 
-    IndexingType indexingType = ArrayWithUndecided;
-    indexingType = leastUpperBoundOfIndexingTypeAndValue(indexingType, first);
-    indexingType = leastUpperBoundOfIndexingTypeAndValue(indexingType, second);
-
-    Structure* structure = globalObject->arrayStructureForIndexingTypeDuringAllocation(indexingType);
+    Structure* structure = globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous);
 
     JSArray* array = JSArray::tryCreateUninitializedRestricted(initializationScope, structure, 2);
     if (!array) [[unlikely]] {

@@ -5759,6 +5759,10 @@ private:
                         case BooleanUse:
                             knownUseKind = KnownBooleanUse;
                             break;
+                        case MapIteratorObjectUse:
+                        case SetIteratorObjectUse:
+                            knownUseKind = KnownCellUse;
+                            break;
                         default:
                             // This can only arise if we have a Check node, and in that case, we can
                             // just remove the original check.

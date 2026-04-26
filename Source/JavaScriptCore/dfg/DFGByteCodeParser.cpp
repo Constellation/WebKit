@@ -9277,6 +9277,130 @@ void ByteCodeParser::parseBlock(unsigned limit)
 
             m_currentIndex = startIndex;
 
+            if (seenModes & IterationMode::FastMap && globalObject->mapIteratorProtocolWatchpointSet().isStillValid()) {
+                auto& mapIteratorProtocolWatchpointSet = globalObject->mapIteratorProtocolWatchpointSet();
+                m_graph.watchpoints().addLazily(mapIteratorProtocolWatchpointSet);
+
+                ASSERT_WITH_MESSAGE(globalObject->mapProtoEntriesFunctionConcurrently(), "The only way we could have seen FastMap is if we saw this function in the LLInt/Baseline so the iterator function should be allocated.");
+                FrozenValue* frozenMapEntriesFunction = m_graph.freeze(globalObject->mapProtoEntriesFunctionConcurrently());
+                numberOfRemainingModes--;
+
+                if (genericBlock) {
+                    ASSERT(generatedCase);
+                    m_currentBlock = genericBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                    genericBlock = nullptr;
+                }
+
+                if (!numberOfRemainingModes) {
+                    addToGraph(CheckIsConstant, OpInfo(frozenMapEntriesFunction), symbolIterator);
+                    addToGraph(Check, Edge(get(bytecode.m_iterable), MapObjectUse));
+                } else {
+                    BasicBlock* fastMapBlock = allocateUntargetableBlock();
+                    genericBlock = allocateUntargetableBlock();
+
+                    Node* isKnownIterFunction = addToGraph(CompareEqPtr, OpInfo(frozenMapEntriesFunction), symbolIterator);
+                    Node* isMap = addToGraph(IsCellWithType, OpInfo(JSMapType), get(bytecode.m_iterable));
+
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(fastMapBlock);
+                    branchData->notTaken = BranchTarget(genericBlock);
+
+                    Node* andResult = addToGraph(ArithBitAnd, isMap, isKnownIterFunction);
+
+                    m_exitOK = true;
+                    addToGraph(ExitOK);
+
+                    addToGraph(Branch, OpInfo(branchData), andResult);
+                    flushForTerminal();
+
+                    m_currentBlock = fastMapBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                }
+
+                Node* kindNode = jsConstant(jsNumber(static_cast<uint32_t>(IterationKind::Entries)));
+                Node* next = jsConstant(JSValue());
+                Node* iterator = addToGraph(NewInternalFieldObject, OpInfo(m_graph.registerStructure(globalObject->mapIteratorStructure())));
+                addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSMapIterator::Field::IteratedObject)), iterator, get(bytecode.m_iterable));
+                addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSMapIterator::Field::Kind)), iterator, kindNode);
+                set(bytecode.m_iterator, iterator);
+
+                set(bytecode.m_next, next);
+
+                m_currentIndex = nextOpcodeIndex();
+                m_exitOK = true;
+                processSetLocalQueue();
+
+                addToGraph(Jump, OpInfo(continuation));
+                generatedCase = true;
+            }
+
+            m_currentIndex = startIndex;
+
+            if (seenModes & IterationMode::FastSet && globalObject->setIteratorProtocolWatchpointSet().isStillValid()) {
+                auto& setIteratorProtocolWatchpointSet = globalObject->setIteratorProtocolWatchpointSet();
+                m_graph.watchpoints().addLazily(setIteratorProtocolWatchpointSet);
+
+                ASSERT_WITH_MESSAGE(globalObject->setProtoValuesFunctionConcurrently(), "The only way we could have seen FastSet is if we saw this function in the LLInt/Baseline so the iterator function should be allocated.");
+                FrozenValue* frozenSetValuesFunction = m_graph.freeze(globalObject->setProtoValuesFunctionConcurrently());
+                numberOfRemainingModes--;
+
+                if (genericBlock) {
+                    ASSERT(generatedCase);
+                    m_currentBlock = genericBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                    genericBlock = nullptr;
+                }
+
+                if (!numberOfRemainingModes) {
+                    addToGraph(CheckIsConstant, OpInfo(frozenSetValuesFunction), symbolIterator);
+                    addToGraph(Check, Edge(get(bytecode.m_iterable), SetObjectUse));
+                } else {
+                    BasicBlock* fastSetBlock = allocateUntargetableBlock();
+                    genericBlock = allocateUntargetableBlock();
+
+                    Node* isKnownIterFunction = addToGraph(CompareEqPtr, OpInfo(frozenSetValuesFunction), symbolIterator);
+                    Node* isSet = addToGraph(IsCellWithType, OpInfo(JSSetType), get(bytecode.m_iterable));
+
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(fastSetBlock);
+                    branchData->notTaken = BranchTarget(genericBlock);
+
+                    Node* andResult = addToGraph(ArithBitAnd, isSet, isKnownIterFunction);
+
+                    m_exitOK = true;
+                    addToGraph(ExitOK);
+
+                    addToGraph(Branch, OpInfo(branchData), andResult);
+                    flushForTerminal();
+
+                    m_currentBlock = fastSetBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                }
+
+                Node* kindNode = jsConstant(jsNumber(static_cast<uint32_t>(IterationKind::Values)));
+                Node* next = jsConstant(JSValue());
+                Node* iterator = addToGraph(NewInternalFieldObject, OpInfo(m_graph.registerStructure(globalObject->setIteratorStructure())));
+                addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSSetIterator::Field::IteratedObject)), iterator, get(bytecode.m_iterable));
+                addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSSetIterator::Field::Kind)), iterator, kindNode);
+                set(bytecode.m_iterator, iterator);
+
+                set(bytecode.m_next, next);
+
+                m_currentIndex = nextOpcodeIndex();
+                m_exitOK = true;
+                processSetLocalQueue();
+
+                addToGraph(Jump, OpInfo(continuation));
+                generatedCase = true;
+            }
+
+            m_currentIndex = startIndex;
+
             if (seenModes & IterationMode::Generic) {
                 ASSERT(numberOfRemainingModes);
                 if (genericBlock) {
@@ -9476,6 +9600,190 @@ void ByteCodeParser::parseBlock(unsigned limit)
                     addToGraph(PutInternalField, OpInfo(static_cast<uint32_t>(JSArrayIterator::Field::Index)), get(bytecode.m_iterator), doneIndex);
 
                     // Do our set locals. We don't want to run this again so we have to move the exit origin forward.
+                    m_currentIndex = nextOpcodeIndex();
+                    m_exitOK = true;
+                    processSetLocalQueue();
+
+                    addToGraph(Jump, OpInfo(continuation));
+                }
+
+                m_currentIndex = startIndex;
+                generatedCase = true;
+            }
+
+            if (seenModes & IterationMode::FastMap && globalObject->mapIteratorProtocolWatchpointSet().isStillValid()) {
+                auto& mapIteratorProtocolWatchpointSet = globalObject->mapIteratorProtocolWatchpointSet();
+                m_graph.watchpoints().addLazily(mapIteratorProtocolWatchpointSet);
+                numberOfRemainingModes--;
+
+                if (genericBlock) {
+                    ASSERT(generatedCase);
+                    m_currentBlock = genericBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                    genericBlock = nullptr;
+                }
+
+                if (numberOfRemainingModes != 0) {
+                    Node* hasNext = addToGraph(IsEmpty, get(bytecode.m_next));
+                    genericBlock = allocateUntargetableBlock();
+                    BasicBlock* fastMapBlock = allocateUntargetableBlock();
+
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(fastMapBlock);
+                    branchData->notTaken = BranchTarget(genericBlock);
+                    addToGraph(Branch, OpInfo(branchData), hasNext);
+
+                    m_currentBlock = fastMapBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                } else
+                    addToGraph(CheckIsConstant, OpInfo(m_graph.freeze(JSValue())), get(bytecode.m_next));
+
+                Node* iterator = get(bytecode.m_iterator);
+                addToGraph(CheckStructure, OpInfo(m_graph.addStructureSet(globalObject->mapIteratorStructure())), iterator);
+
+                auto prediction = getPredictionWithoutOSRExit(BytecodeIndex(m_currentIndex.offset(), OpIteratorNext::getValue));
+
+                BasicBlock* isDoneBlock = allocateUntargetableBlock();
+                BasicBlock* doLoadBlock = allocateUntargetableBlock();
+
+                {
+                    Node* doneNode = addToGraph(MapIteratorNext, Edge(iterator, MapIteratorObjectUse));
+
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(isDoneBlock);
+                    branchData->notTaken = BranchTarget(doLoadBlock);
+                    addToGraph(Branch, OpInfo(branchData), doneNode);
+                }
+
+                {
+                    m_currentBlock = doLoadBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+
+                    m_exitOK = true;
+                    addToGraph(ExitOK);
+
+                    Node* key = addToGraph(MapIteratorKey, OpInfo(0), OpInfo(prediction), Edge(get(bytecode.m_iterator), MapIteratorObjectUse));
+                    Node* value = addToGraph(MapIteratorValue, OpInfo(0), OpInfo(prediction), Edge(get(bytecode.m_iterator), MapIteratorObjectUse));
+                    Node* falseNode = jsConstant(jsBoolean(false));
+
+                    addVarArgChild(key);
+                    addVarArgChild(value);
+                    Node* pair = addToGraph(Node::VarArg, NewArray, OpInfo(ArrayWithContiguous), OpInfo(prediction));
+                    set(bytecode.m_value, pair);
+                    set(bytecode.m_done, falseNode);
+
+                    m_currentIndex = nextOpcodeIndex();
+                    m_exitOK = true;
+                    processSetLocalQueue();
+
+                    addToGraph(Jump, OpInfo(continuation));
+                }
+
+                m_currentIndex = startIndex;
+
+                {
+                    m_currentBlock = isDoneBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                    Node* trueNode = jsConstant(jsBoolean(true));
+                    Node* bottomNode = jsConstant(m_graph.bottomValueMatchingSpeculation(prediction));
+
+                    set(bytecode.m_value, bottomNode);
+                    set(bytecode.m_done, trueNode);
+
+                    m_currentIndex = nextOpcodeIndex();
+                    m_exitOK = true;
+                    processSetLocalQueue();
+
+                    addToGraph(Jump, OpInfo(continuation));
+                }
+
+                m_currentIndex = startIndex;
+                generatedCase = true;
+            }
+
+            if (seenModes & IterationMode::FastSet && globalObject->setIteratorProtocolWatchpointSet().isStillValid()) {
+                auto& setIteratorProtocolWatchpointSet = globalObject->setIteratorProtocolWatchpointSet();
+                m_graph.watchpoints().addLazily(setIteratorProtocolWatchpointSet);
+                numberOfRemainingModes--;
+
+                if (genericBlock) {
+                    ASSERT(generatedCase);
+                    m_currentBlock = genericBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                    genericBlock = nullptr;
+                }
+
+                if (numberOfRemainingModes != 0) {
+                    Node* hasNext = addToGraph(IsEmpty, get(bytecode.m_next));
+                    genericBlock = allocateUntargetableBlock();
+                    BasicBlock* fastSetBlock = allocateUntargetableBlock();
+
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(fastSetBlock);
+                    branchData->notTaken = BranchTarget(genericBlock);
+                    addToGraph(Branch, OpInfo(branchData), hasNext);
+
+                    m_currentBlock = fastSetBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                } else
+                    addToGraph(CheckIsConstant, OpInfo(m_graph.freeze(JSValue())), get(bytecode.m_next));
+
+                Node* iterator = get(bytecode.m_iterator);
+                addToGraph(CheckStructure, OpInfo(m_graph.addStructureSet(globalObject->setIteratorStructure())), iterator);
+
+                auto prediction = getPredictionWithoutOSRExit(BytecodeIndex(m_currentIndex.offset(), OpIteratorNext::getValue));
+
+                BasicBlock* isDoneBlock = allocateUntargetableBlock();
+                BasicBlock* doLoadBlock = allocateUntargetableBlock();
+
+                {
+                    Node* doneNode = addToGraph(MapIteratorNext, Edge(iterator, SetIteratorObjectUse));
+
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(isDoneBlock);
+                    branchData->notTaken = BranchTarget(doLoadBlock);
+                    addToGraph(Branch, OpInfo(branchData), doneNode);
+                }
+
+                {
+                    m_currentBlock = doLoadBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+
+                    m_exitOK = true;
+                    addToGraph(ExitOK);
+
+                    Node* value = addToGraph(MapIteratorKey, OpInfo(0), OpInfo(prediction), Edge(get(bytecode.m_iterator), SetIteratorObjectUse));
+                    Node* falseNode = jsConstant(jsBoolean(false));
+
+                    set(bytecode.m_value, value);
+                    set(bytecode.m_done, falseNode);
+
+                    m_currentIndex = nextOpcodeIndex();
+                    m_exitOK = true;
+                    processSetLocalQueue();
+
+                    addToGraph(Jump, OpInfo(continuation));
+                }
+
+                m_currentIndex = startIndex;
+
+                {
+                    m_currentBlock = isDoneBlock;
+                    clearCaches();
+                    keepUsesOfCurrentInstructionAlive(currentInstruction, m_currentIndex.checkpoint());
+                    Node* trueNode = jsConstant(jsBoolean(true));
+                    Node* bottomNode = jsConstant(m_graph.bottomValueMatchingSpeculation(prediction));
+
+                    set(bytecode.m_value, bottomNode);
+                    set(bytecode.m_done, trueNode);
+
                     m_currentIndex = nextOpcodeIndex();
                     m_exitOK = true;
                     processSetLocalQueue();
