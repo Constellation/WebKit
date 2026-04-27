@@ -112,7 +112,7 @@ void ArrayPrototype::finishCreation(VM& vm, JSGlobalObject* globalObject)
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().shiftPublicName(), arrayProtoFuncShift, static_cast<unsigned>(PropertyAttribute::DontEnum), 0, ImplementationVisibility::Public);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().shiftPrivateName(), arrayProtoFuncShift, PropertyAttribute::DontEnum | PropertyAttribute::DontDelete | PropertyAttribute::ReadOnly, 0, ImplementationVisibility::Public);
     JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->slice, arrayProtoFuncSlice, static_cast<unsigned>(PropertyAttribute::DontEnum), 2, ImplementationVisibility::Public, ArraySliceIntrinsic);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->sort, arrayProtoFuncSort, static_cast<unsigned>(PropertyAttribute::DontEnum), 1, ImplementationVisibility::Public);
+    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->sort, arrayProtoFuncSort, static_cast<unsigned>(PropertyAttribute::DontEnum), 1, ImplementationVisibility::Public, ArraySortIntrinsic);
     JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION("splice"_s, arrayProtoFuncSplice, static_cast<unsigned>(PropertyAttribute::DontEnum), 2, ImplementationVisibility::Public, ArraySpliceIntrinsic);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("unshift"_s, arrayProtoFuncUnShift, static_cast<unsigned>(PropertyAttribute::DontEnum), 1, ImplementationVisibility::Public);
     JSC_BUILTIN_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().everyPublicName(), arrayPrototypeEveryCodeGenerator, static_cast<unsigned>(PropertyAttribute::DontEnum));

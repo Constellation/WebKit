@@ -2880,7 +2880,422 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             return CallOptimizationResult::DidNothing;
 
         }
-            
+
+        case ArraySortIntrinsic: {
+            // Inline Array.prototype.sort(comparator) when:
+            //   - receiver is an original-structure JSArray with Undecided / Int32 / Contiguous
+            //     indexing,
+            //   - comparator is any callable value (we speculate CellUse at the call site, and a
+            //     non-callable cell would throw TypeError from the emitted Call just like the
+            //     spec's Call of comparator requires).
+            //
+            // Strategy (mirrors V8's Turbofan reducer in spirit, adapted to JSC DFG primitives):
+            //
+            //   * For ArrayWithUndecided, length is statically 0 — just return the receiver.
+            //   * For Int32 / Contiguous, emit a runtime dispatch on length:
+            //         length > kMaxInlineSortLength (16) → fallback DirectCall to the generic
+            //             sort (arrayProtoFuncSort). Avoids re-deopt loops on hot sort sites with
+            //             large arrays.
+            //         length <= kMaxInlineSortLength → inline insertion sort over a newly
+            //             allocated scratch JSArray. Copy-in from receiver, sort the scratch,
+            //             copy-back to receiver.
+            //
+            // OSR / frame reconstruction:
+            //   Every node emitted inherits the outer op_call's CodeOrigin as its forExit. A
+            //   failed speculation (structure guard, non-cell comparator, cmp not number, etc.)
+            //   OSR-exits to before the sort call; baseline re-runs arrayProtoFuncSort from
+            //   scratch. Because the receiver is only mutated by the copy-back phase (which
+            //   runs to completion once reached, with no speculative reads on comparator), a
+            //   restart is always correct even if the OSR exit fires mid copy-back — sort is
+            //   idempotent on intermediate states. This is the JSC analogue of V8's
+            //   ArraySortNoopEagerDeoptContinuation.
+            //
+            //   The comparator call is a plain DFG Call node (no inlined callframe). We do NOT
+            //   pin the comparator to a constant identity; a user passing a fresh closure on
+            //   every invocation (the common `sort((a,b)=>a-b)` pattern) still hits this path.
+            //   If comparator throws, the exception propagates through the normal JS unwinder.
+            if (argumentCountIncludingThis < 2)
+                return CallOptimizationResult::DidNothing;
+
+            if (m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadIndexingType)
+                || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadConstantCache)
+                || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadCache)
+                || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadType)
+                || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, OutOfBounds))
+                return CallOptimizationResult::DidNothing;
+
+            ArrayMode arrayMode = getArrayMode(Array::Read);
+            if (!arrayMode.isJSArray())
+                return CallOptimizationResult::DidNothing;
+            if (!arrayMode.isJSArrayWithOriginalStructure())
+                return CallOptimizationResult::DidNothing;
+            if (arrayMode.doesConversion())
+                return CallOptimizationResult::DidNothing;
+
+            IndexingType indexingType;
+            switch (arrayMode.type()) {
+            case Array::Undecided:
+                indexingType = ArrayWithUndecided;
+                break;
+            case Array::Int32:
+                indexingType = ArrayWithInt32;
+                break;
+            case Array::Contiguous:
+                indexingType = ArrayWithContiguous;
+                break;
+            default:
+                return CallOptimizationResult::DidNothing;
+            }
+
+            Node* comparatorNode = get(virtualRegisterForArgumentIncludingThis(1, registerOffset));
+
+            JSGlobalObject* globalObject = m_graph.globalObjectFor(currentNodeOrigin().semantic);
+            if (globalObject->arraySpeciesWatchpointSet().state() != IsWatched
+                || !globalObject->havingABadTimeWatchpointSet().isStillValid()
+                || globalObject->arrayPrototypeChainIsSaneWatchpointSet().state() != IsWatched)
+                return CallOptimizationResult::DidNothing;
+
+            m_graph.watchpoints().addLazily(globalObject->arraySpeciesWatchpointSet());
+            m_graph.watchpoints().addLazily(globalObject->havingABadTimeWatchpointSet());
+            m_graph.watchpoints().addLazily(globalObject->arrayPrototypeChainIsSaneWatchpointSet());
+
+            // Pass `true` so endSpecialCase skips its default emitArgumentPhantoms. Those
+            // reference the outer callee / args as raw Node*; once we split the sort call into
+            // multiple blocks those cross-block edges break CPS validation. We keep values
+            // alive manually via tmps below, and route them through phi merges.
+            insertChecks(/* boundFunctionInlining */ true);
+
+            Node* array = get(virtualRegisterForArgumentIncludingThis(0, registerOffset));
+
+            addToGraph(CheckStructure, OpInfo(m_graph.addStructureSet(globalObject->originalArrayStructureForIndexingType(indexingType))), array);
+            addToGraph(CheckArray, OpInfo(arrayMode.asWord()), array);
+
+            // Speculate comparator is a cell. undefined / null / primitives fall through to
+            // the generic sort via OSR exit, which correctly handles the spec's "undefined
+            // comparator → default compare" and "non-callable → TypeError" branches. A
+            // callable cell reaches the Call node below; a non-callable cell throws TypeError
+            // from the Call, which also matches the spec.
+            addToGraph(Check, Edge(comparatorNode, CellUse));
+
+            if (indexingType == ArrayWithUndecided) {
+                addToGraph(Phantom, comparatorNode);
+                setResult(array);
+                return CallOptimizationResult::Inlined;
+            }
+
+            // --- Runtime length dispatch -------------------------------------------------
+            // We deliberately do NOT emit GetArrayLength in the entry block — instead each
+            // successor block re-emits it. This keeps FixupPhase's Int32 speculation Checks
+            // local to the block where the GetArrayLength lives, avoiding a CPS validation
+            // failure from cross-block ordering of the inserted Check vs. its producer.
+
+            // Allocate fresh tmps for cross-block flow. We do NOT stash `length`; instead each
+            // successor block re-emits GetArrayLength so FixupPhase's speculation Checks land
+            // adjacent to their producer.
+            unsigned tmpBase = m_numTmps;
+            ensureTmps(tmpBase + 6);
+            Operand tmpI = Operand::tmp(tmpBase + 0);
+            Operand tmpJ = Operand::tmp(tmpBase + 1);
+            Operand tmpPivot = Operand::tmp(tmpBase + 2);
+            Operand tmpArray = Operand::tmp(tmpBase + 3);
+            Operand tmpCallee = Operand::tmp(tmpBase + 4);
+            Operand tmpComparator = Operand::tmp(tmpBase + 5);
+
+            // Stash cross-block values into tmps BEFORE the Branch so successor blocks see
+            // them via phi merges. Explicitly flush each tmp after the set: Flush changes
+            // variablesAtTail from SetLocal to Flush, which prevents getLocalOrTmp's
+            // same-block short-circuit from returning the raw producer node. Without this,
+            // CPS rethreading / block merging produces cross-block edges that violate the
+            // CPS validator's invariant (Check nodes end up scheduled before their producers).
+            set(tmpArray, array, ImmediateNakedSet);
+            flush(tmpArray);
+            set(tmpCallee, callee, ImmediateNakedSet);
+            flush(tmpCallee);
+            set(tmpComparator, comparatorNode, ImmediateNakedSet);
+            flush(tmpComparator);
+            m_exitOK = true;
+            addToGraph(ExitOK);
+
+            BasicBlock* dispatcherBlock = allocateUntargetableBlock();
+            BasicBlock* fastBlock = allocateUntargetableBlock();
+            BasicBlock* slowBlock = allocateUntargetableBlock();
+            BasicBlock* continuation = allocateUntargetableBlock();
+
+            // Close the entry block with a Jump to the dispatcher. Putting the length
+            // compare in its own block avoids entangling the entry block's value-flow with
+            // FixupPhase's Check insertion for the Int32Use edge on length.
+            addToGraph(Jump, OpInfo(dispatcherBlock));
+            flushForTerminal();
+
+            {
+                m_currentBlock = dispatcherBlock;
+                clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
+
+                constexpr int32_t kMaxInlineSortLength = 16;
+                Node* capPlusOne = jsConstant(jsNumber(kMaxInlineSortLength + 1));
+                // Re-emit GetArrayLength locally in this block.
+                Node* dispatcherButterfly = addToGraph(GetButterfly, get(tmpArray));
+                Node* dispatcherLength = addToGraph(GetArrayLength, OpInfo(arrayMode.asWord()), Edge(get(tmpArray)), Edge(dispatcherButterfly, KnownStorageUse));
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* isSmall = addToGraph(CompareBelow, Edge(dispatcherLength, Int32Use), Edge(capPlusOne, Int32Use));
+
+                {
+                    BranchData* branchData = m_graph.m_branchData.add();
+                    branchData->taken = BranchTarget(fastBlock);
+                    branchData->notTaken = BranchTarget(slowBlock);
+                    addToGraph(Branch, OpInfo(branchData), isSmall);
+                    flushForTerminal();
+                }
+            }
+
+            // --- Slow path: fallback DirectCall to the generic sort ---------------------
+            {
+                m_currentBlock = slowBlock;
+                clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
+
+                auto* sortExecutable = variant.executable();
+                Node* slowResult = addCallWithoutSettingResult(Call, OpInfo(), get(tmpCallee), argumentCountIncludingThis, registerOffset, OpInfo(prediction));
+                if (sortExecutable)
+                    slowResult->convertToDirectCall(m_graph.freeze(sortExecutable));
+                // ExitOK between the Call producer and the SetLocal consumer; without it,
+                // FixupPhase's indexForChecks anchors Checks before the Call itself.
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                // resultOperand is invalid for op_call_ignore_result — skip the assignment.
+                if (resultOperand.isValid())
+                    set(resultOperand, slowResult, ImmediateNakedSet);
+                addToGraph(Jump, OpInfo(continuation));
+            }
+
+            // --- Fast path: in-place insertion sort on the receiver ---------------------
+            //
+            // We sort directly in the receiver's butterfly — no scratch allocation. On OSR
+            // exit mid-sort, baseline re-runs sort; because sort is idempotent on any
+            // intermediate state, the final result is the same.
+            m_currentBlock = fastBlock;
+            clearCaches();
+            m_exitOK = true;
+            addToGraph(ExitOK);
+
+            // Set up a fresh comparator call frame adjacent to the caller's locals (mirrors
+            // BoundFunctionCallIntrinsic's stack layout near line 4537).
+            constexpr int comparatorArgcIncludingThis = 3;
+            unsigned numberOfParameters = comparatorArgcIncludingThis;
+            numberOfParameters++;
+
+            int newRegisterOffset = virtualRegisterForLocal(m_inlineStackTop->m_profiledBlock->numCalleeLocals() - 1).offset();
+            newRegisterOffset -= numberOfParameters;
+            newRegisterOffset -= CallFrame::headerSizeInRegisters;
+            newRegisterOffset = -WTF::roundUpToMultipleOf(stackAlignmentRegisters(), -newRegisterOffset);
+
+            ensureLocals(m_inlineStackTop->remapOperand(VirtualRegister(newRegisterOffset)).toLocal());
+            unsigned parameterSlots = Graph::parameterSlotsForArgCount(comparatorArgcIncludingThis);
+            if (parameterSlots > m_parameterSlots)
+                m_parameterSlots = parameterSlots;
+
+            // JSConstants are block-local in CPS form — emit fresh inside each block.
+
+            // In-place insertion sort on the receiver:
+            //   for (i = 1; i < length; i++) {
+            //     pivot = receiver[i];
+            //     for (j = i - 1; j >= 0 && cmp(pivot, receiver[j]) < 0; j--)
+            //       receiver[j + 1] = receiver[j];
+            //     receiver[j + 1] = pivot;
+            //   }
+            //
+            // Sort is idempotent, so an OSR exit mid-sort that restarts sort in baseline
+            // produces the same final order regardless of the partial state.
+            BasicBlock* outerHeader = allocateUntargetableBlock();
+            BasicBlock* outerBody = allocateUntargetableBlock();
+            BasicBlock* innerHeader = allocateUntargetableBlock();
+            BasicBlock* innerCmpBlock = allocateUntargetableBlock();
+            BasicBlock* innerShift = allocateUntargetableBlock();
+            BasicBlock* innerExit = allocateUntargetableBlock();
+            BasicBlock* fastDone = allocateUntargetableBlock();
+
+            set(tmpI, jsConstant(jsNumber(1)), ImmediateNakedSet);
+            m_exitOK = true;
+            addToGraph(ExitOK);
+            addToGraph(Jump, OpInfo(outerHeader));
+
+            m_currentBlock = outerHeader;
+            clearCaches();
+            {
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* i = get(tmpI);
+                Node* arr = get(tmpArray);
+                Node* bfly = addToGraph(GetButterfly, arr);
+                Node* lengthL = addToGraph(GetArrayLength, OpInfo(arrayMode.asWord()), Edge(arr), Edge(bfly, KnownStorageUse));
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* atEnd = addToGraph(CompareGreaterEq, Edge(i, Int32Use), Edge(lengthL, Int32Use));
+                BranchData* bd = m_graph.m_branchData.add();
+                bd->taken = BranchTarget(fastDone);
+                bd->notTaken = BranchTarget(outerBody);
+                addToGraph(Branch, OpInfo(bd), atEnd);
+                flushForTerminal();
+            }
+
+            m_currentBlock = outerBody;
+            clearCaches();
+            {
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* i = get(tmpI);
+                Node* arr = get(tmpArray);
+                addVarArgChild(arr);
+                addVarArgChild(i);
+                addVarArgChild(nullptr);
+                Node* pivot = addToGraph(Node::VarArg, GetByVal, OpInfo(arrayMode.asWord()), OpInfo(SpecBytecodeTop));
+                // ExitOK HERE (after the producer, before any MovHint/SetLocal that references
+                // it). FixupPhase's indexForChecks walks backward to find an exitOK position to
+                // anchor speculation Checks; without this marker between the producer and the
+                // SetLocal, the Check gets placed before the producer, violating CPS validation.
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                set(tmpPivot, pivot, ImmediateNakedSet);
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* jInit = addToGraph(ArithSub, Edge(i, Int32Use), Edge(jsConstant(jsNumber(1)), Int32Use));
+                set(tmpJ, jInit, ImmediateNakedSet);
+                addToGraph(Jump, OpInfo(innerHeader));
+            }
+
+            m_currentBlock = innerHeader;
+            clearCaches();
+            {
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* j = get(tmpJ);
+                Node* jNegative = addToGraph(CompareLess, Edge(j, Int32Use), Edge(jsConstant(jsNumber(0)), Int32Use));
+                BranchData* bd = m_graph.m_branchData.add();
+                bd->taken = BranchTarget(innerExit);
+                bd->notTaken = BranchTarget(innerCmpBlock);
+                addToGraph(Branch, OpInfo(bd), jNegative);
+                flushForTerminal();
+            }
+
+            m_currentBlock = innerCmpBlock;
+            clearCaches();
+            {
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* j = get(tmpJ);
+                Node* pivot = get(tmpPivot);
+                Node* arr = get(tmpArray);
+
+                addVarArgChild(arr);
+                addVarArgChild(j);
+                addVarArgChild(nullptr);
+                Node* cur = addToGraph(Node::VarArg, GetByVal, OpInfo(arrayMode.asWord()), OpInfo(SpecBytecodeTop));
+
+                // ExitOK between GetByVal producer and the SetLocals that consume it, so
+                // FixupPhase's indexForChecks finds an anchor AFTER the producer.
+                m_exitOK = true;
+                addToGraph(ExitOK);
+
+                set(virtualRegisterForArgumentIncludingThis(0, newRegisterOffset), jsConstant(jsUndefined()), ImmediateNakedSet);
+                set(virtualRegisterForArgumentIncludingThis(1, newRegisterOffset), pivot, ImmediateNakedSet);
+                set(virtualRegisterForArgumentIncludingThis(2, newRegisterOffset), cur, ImmediateNakedSet);
+                m_exitOK = true;
+                addToGraph(ExitOK);
+
+                Node* cmpResult = addCallWithoutSettingResult(Call, OpInfo(), get(tmpComparator), comparatorArgcIncludingThis, newRegisterOffset, OpInfo(SpecBytecodeTop));
+
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                // cmp < 0 means pivot is smaller — shift receiver[j] right and continue.
+                Node* cmpIsNeg = addToGraph(CompareLess, Edge(cmpResult), Edge(jsConstant(jsNumber(0))));
+
+                BranchData* bd = m_graph.m_branchData.add();
+                bd->taken = BranchTarget(innerShift);
+                bd->notTaken = BranchTarget(innerExit);
+                addToGraph(Branch, OpInfo(bd), cmpIsNeg);
+                flushForTerminal();
+            }
+
+            m_currentBlock = innerShift;
+            clearCaches();
+            {
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* j = get(tmpJ);
+                Node* arr = get(tmpArray);
+
+                addVarArgChild(arr);
+                addVarArgChild(j);
+                addVarArgChild(nullptr);
+                Node* cur = addToGraph(Node::VarArg, GetByVal, OpInfo(arrayMode.asWord()), OpInfo(SpecBytecodeTop));
+
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* jPlusOne = addToGraph(ArithAdd, Edge(j, Int32Use), Edge(jsConstant(jsNumber(1)), Int32Use));
+
+                addVarArgChild(arr);
+                addVarArgChild(jPlusOne);
+                addVarArgChild(cur);
+                addVarArgChild(nullptr);
+                addToGraph(Node::VarArg, PutByVal, OpInfo(arrayMode.asWord()), OpInfo(ECMAMode::sloppy().value()));
+
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* jMinusOne = addToGraph(ArithAdd, Edge(j, Int32Use), Edge(jsConstant(jsNumber(-1)), Int32Use));
+                set(tmpJ, jMinusOne, ImmediateNakedSet);
+                addToGraph(Jump, OpInfo(innerHeader));
+            }
+
+            m_currentBlock = innerExit;
+            clearCaches();
+            {
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* j = get(tmpJ);
+                Node* arr = get(tmpArray);
+                Node* insertionPoint = addToGraph(ArithAdd, Edge(j, Int32Use), Edge(jsConstant(jsNumber(1)), Int32Use));
+                Node* pivot = get(tmpPivot);
+
+                addVarArgChild(arr);
+                addVarArgChild(insertionPoint);
+                addVarArgChild(pivot);
+                addVarArgChild(nullptr);
+                addToGraph(Node::VarArg, PutByVal, OpInfo(arrayMode.asWord()), OpInfo(ECMAMode::sloppy().value()));
+
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                Node* i = get(tmpI);
+                Node* nextI = addToGraph(ArithAdd, Edge(i, Int32Use), Edge(jsConstant(jsNumber(1)), Int32Use));
+                set(tmpI, nextI, ImmediateNakedSet);
+                addToGraph(Jump, OpInfo(outerHeader));
+            }
+
+            m_currentBlock = fastDone;
+            clearCaches();
+            m_exitOK = true;
+            addToGraph(ExitOK);
+            if (resultOperand.isValid())
+                set(resultOperand, get(tmpArray), ImmediateNakedSet);
+            addToGraph(Jump, OpInfo(continuation));
+
+            // --- Continuation -----------------------------------------------------------
+            m_currentBlock = continuation;
+            clearCaches();
+            m_exitOK = true;
+            addToGraph(ExitOK);
+
+            addToGraph(Phantom, get(tmpComparator));
+            // For op_call_ignore_result, resultOperand is invalid; setResult's isValid()
+            // guard handles that (and this whole path's set(resultOperand, ...) above is
+            // similarly guarded). Pass a placeholder value — setResult will no-op on it.
+            setResult(resultOperand.isValid() ? get(resultOperand) : get(tmpArray));
+            return CallOptimizationResult::Inlined;
+        }
+
         case ArrayPopIntrinsic: {
             ArrayMode arrayMode = getArrayMode(Array::Write);
             if (!arrayMode.isJSArray())
