@@ -3030,6 +3030,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = dispatcherBlock;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3056,6 +3058,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = slowBlock;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3081,6 +3085,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             // intermediate state, the final result is the same.
             m_currentBlock = fastBlock;
             clearCaches();
+            m_exitOK = true;
+            addToGraph(ExitOK);
             keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
             m_exitOK = true;
             addToGraph(ExitOK);
@@ -3129,6 +3135,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = outerHeader;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3149,6 +3157,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = outerBody;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3175,6 +3185,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = innerHeader;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3190,6 +3202,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = innerCmpBlock;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3230,6 +3244,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = innerShift;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3261,6 +3277,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = innerExit;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3286,6 +3304,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = fastDone;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
@@ -3298,6 +3318,8 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = continuation;
                 clearCaches();
+                m_exitOK = true;
+                addToGraph(ExitOK);
                 keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
