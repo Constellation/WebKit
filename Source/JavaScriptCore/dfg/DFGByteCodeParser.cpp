@@ -3030,6 +3030,7 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = dispatcherBlock;
                 clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
 
@@ -3055,6 +3056,7 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             {
                 m_currentBlock = slowBlock;
                 clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
 
@@ -3079,6 +3081,7 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             // intermediate state, the final result is the same.
             m_currentBlock = fastBlock;
             clearCaches();
+            keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
             m_exitOK = true;
             addToGraph(ExitOK);
 
@@ -3123,9 +3126,10 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             addToGraph(ExitOK);
             addToGraph(Jump, OpInfo(outerHeader));
 
-            m_currentBlock = outerHeader;
-            clearCaches();
             {
+                m_currentBlock = outerHeader;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
                 Node* i = get(tmpI);
@@ -3142,9 +3146,10 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 flushForTerminal();
             }
 
-            m_currentBlock = outerBody;
-            clearCaches();
             {
+                m_currentBlock = outerBody;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
                 Node* i = get(tmpI);
@@ -3167,9 +3172,10 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 addToGraph(Jump, OpInfo(innerHeader));
             }
 
-            m_currentBlock = innerHeader;
-            clearCaches();
             {
+                m_currentBlock = innerHeader;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
                 Node* j = get(tmpJ);
@@ -3181,9 +3187,10 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 flushForTerminal();
             }
 
-            m_currentBlock = innerCmpBlock;
-            clearCaches();
             {
+                m_currentBlock = innerCmpBlock;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
                 Node* j = get(tmpJ);
@@ -3220,9 +3227,10 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 flushForTerminal();
             }
 
-            m_currentBlock = innerShift;
-            clearCaches();
             {
+                m_currentBlock = innerShift;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
                 Node* j = get(tmpJ);
@@ -3250,9 +3258,10 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 addToGraph(Jump, OpInfo(innerHeader));
             }
 
-            m_currentBlock = innerExit;
-            clearCaches();
             {
+                m_currentBlock = innerExit;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
                 m_exitOK = true;
                 addToGraph(ExitOK);
                 Node* j = get(tmpJ);
@@ -3274,25 +3283,31 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 addToGraph(Jump, OpInfo(outerHeader));
             }
 
-            m_currentBlock = fastDone;
-            clearCaches();
-            m_exitOK = true;
-            addToGraph(ExitOK);
-            if (resultOperand.isValid())
-                set(resultOperand, get(tmpArray), ImmediateNakedSet);
-            addToGraph(Jump, OpInfo(continuation));
+            {
+                m_currentBlock = fastDone;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
+                m_exitOK = true;
+                addToGraph(ExitOK);
+                if (resultOperand.isValid())
+                    set(resultOperand, get(tmpArray), ImmediateNakedSet);
+                addToGraph(Jump, OpInfo(continuation));
+            }
 
             // --- Continuation -----------------------------------------------------------
-            m_currentBlock = continuation;
-            clearCaches();
-            m_exitOK = true;
-            addToGraph(ExitOK);
+            {
+                m_currentBlock = continuation;
+                clearCaches();
+                keepUsesOfCurrentInstructionAlive(m_currentInstruction, m_currentIndex.checkpoint());
+                m_exitOK = true;
+                addToGraph(ExitOK);
 
-            addToGraph(Phantom, get(tmpComparator));
-            // For op_call_ignore_result, resultOperand is invalid; setResult's isValid()
-            // guard handles that (and this whole path's set(resultOperand, ...) above is
-            // similarly guarded). Pass a placeholder value — setResult will no-op on it.
-            setResult(resultOperand.isValid() ? get(resultOperand) : get(tmpArray));
+                addToGraph(Phantom, get(tmpComparator));
+                // For op_call_ignore_result, resultOperand is invalid; setResult's isValid()
+                // guard handles that (and this whole path's set(resultOperand, ...) above is
+                // similarly guarded). Pass a placeholder value — setResult will no-op on it.
+                setResult(resultOperand.isValid() ? get(resultOperand) : get(tmpArray));
+            }
             return CallOptimizationResult::Inlined;
         }
 
