@@ -278,6 +278,21 @@ void Node::convertToNewArrayWithButterfly(Graph&, Node* butterfly)
     ASSERT_UNUSED(indexingType, indexingType == this->indexingType());
 }
 
+void Node::convertToNewArrayWithButterflyFromVarArgs(Graph&, Node* sizeConstant, Node* butterfly)
+{
+    ASSERT(op() == NewArray);
+    ASSERT(sizeConstant->isInt32Constant());
+    ASSERT(sizeConstant->asInt32() >= 0);
+    ASSERT(static_cast<unsigned>(sizeConstant->asInt32()) < MIN_ARRAY_STORAGE_CONSTRUCTION_LENGTH);
+    IndexingType indexingType = this->indexingType();
+    setOpAndDefaultFlags(NewArrayWithButterfly);
+    children = AdjacencyList(AdjacencyList::Fixed,
+        Edge(sizeConstant, KnownInt32Use),
+        Edge(butterfly, KnownStorageUse));
+    m_opInfo = indexingType;
+    m_opInfo2 = OpInfoWrapper();
+}
+
 void Node::convertToNewArrayWithSizeAndStructure(Graph& graph, RegisteredStructure structure)
 {
     ASSERT(op() == Construct);

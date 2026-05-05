@@ -1147,6 +1147,66 @@ private:
                 break;
             }
 
+            // Decompose NewArray into NewButterflyWithSize + NewArrayWithButterfly + per-element
+            // PutByVal so DFGObjectAllocationSinkingPhase can sink it. The decomposition is
+            // OSR-exit-free (modulo OOM in allocation): every PutByVal value edge is reused
+            // verbatim from the original NewArray (so its UseKind speculation has already been
+            // paid by the child's defining node), every index is a fresh in-bounds Int32 constant,
+            // base is the just-allocated array of statically-known IndexingType, and the ArrayMode
+            // is constructed with InBoundsSaneChain so no bounds or prototype-chain checks remain.
+            case NewArray: {
+                if (!m_graph.isWatchingHavingABadTimeWatchpoint(node))
+                    break;
+                if (!m_graph.isWatchingArrayPrototypeChainIsSaneWatchpoint(node))
+                    break;
+
+                IndexingType indexingType = node->indexingType();
+                if (hasAnyArrayStorage(indexingType) || hasUndecided(indexingType))
+                    break;
+                if (!hasInt32(indexingType) && !hasDouble(indexingType) && !hasContiguous(indexingType))
+                    break;
+
+                unsigned length = node->numChildren();
+                if (length >= MIN_ARRAY_STORAGE_CONSTRUCTION_LENGTH)
+                    break;
+
+                m_interpreter.execute(indexInBlock); // Push CFA over this node after we get the state before.
+                alreadyHandled = true;
+
+                NodeOrigin origin = node->origin;
+                unsigned firstChild = node->firstChild();
+
+                // Snapshot value edges before mutating the node.
+                Vector<Edge, 8> valueEdges(length);
+                for (unsigned i = 0; i < length; ++i)
+                    valueEdges[i] = m_graph.m_varArgChildren[firstChild + i];
+
+                Node* sizeConstant = m_insertionSet.insertConstant(indexInBlock, origin, jsNumber(static_cast<int32_t>(length)));
+                Node* butterfly = m_insertionSet.insertNode(indexInBlock, SpecNone, NewButterflyWithSize, origin, OpInfo(indexingType), Edge(sizeConstant, KnownInt32Use));
+                node->convertToNewArrayWithButterflyFromVarArgs(m_graph, sizeConstant, butterfly);
+
+                Array::Type arrayType = hasInt32(indexingType) ? Array::Int32
+                    : hasDouble(indexingType) ? Array::Double
+                    : Array::Contiguous;
+                ArrayMode arrayMode = ArrayMode(arrayType, Array::Array, Array::AsIs, Array::Write).withSpeculation(Array::InBoundsSaneChain);
+
+                for (unsigned i = 0; i < length; ++i) {
+                    Node* indexConstant = m_insertionSet.insertConstant(indexInBlock + 1, origin, jsNumber(static_cast<int32_t>(i)));
+                    unsigned putFirstChild = m_graph.m_varArgChildren.size();
+                    m_graph.m_varArgChildren.append(Edge(node, KnownCellUse));            // base
+                    m_graph.m_varArgChildren.append(Edge(indexConstant, KnownInt32Use));  // index
+                    m_graph.m_varArgChildren.append(valueEdges[i]);                       // value (UseKind already set by FixupPhase)
+                    m_graph.m_varArgChildren.append(Edge(butterfly, KnownStorageUse));    // storage
+                    m_graph.m_varArgChildren.append(Edge());                              // length, unused for arrays
+                    m_insertionSet.insertNode(indexInBlock + 1, SpecNone, Node::VarArg, PutByVal, origin,
+                        OpInfo(arrayMode.asWord()), OpInfo(ECMAMode::strict()),
+                        putFirstChild, m_graph.m_varArgChildren.size() - putFirstChild);
+                }
+
+                changed = true;
+                break;
+            }
+
             case ResolveRope: {
                 if (!m_state.forNode(node->child1()).isType(SpecStringResolved))
                     break;

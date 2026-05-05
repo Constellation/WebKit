@@ -915,6 +915,7 @@ public:
     void NODELETE convertToNewArrayBuffer(FrozenValue* immutableButterfly);
     void NODELETE convertToNewArrayWithSize();
     void NODELETE convertToNewArrayWithButterfly(Graph&, Node* butterfly);
+    void NODELETE convertToNewArrayWithButterflyFromVarArgs(Graph&, Node* sizeConstant, Node* butterfly);
     void NODELETE convertToNewArrayWithSizeAndStructure(Graph&, RegisteredStructure);
 
     void NODELETE convertToNewBoundFunction(FrozenValue*);
