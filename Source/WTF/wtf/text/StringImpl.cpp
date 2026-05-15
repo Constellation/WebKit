@@ -1630,9 +1630,9 @@ CString StringImpl::utf8(ConversionMode mode) const
 NEVER_INLINE unsigned StringImpl::hashSlowCase() const
 {
     if (is8Bit())
-        setHash(StringHasher::computeHashAndMaskTop8Bits(span8()));
+        setHash(std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span8())));
     else
-        setHash(StringHasher::computeHashAndMaskTop8Bits(span16()));
+        setHash(std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span16())));
     return existingHash();
 }
 
@@ -1640,11 +1640,22 @@ unsigned StringImpl::concurrentHash() const
 {
     unsigned hash;
     if (is8Bit())
-        hash = StringHasher::computeHashAndMaskTop8Bits(span8());
+        hash = std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span8()));
     else
-        hash = StringHasher::computeHashAndMaskTop8Bits(span16());
+        hash = std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span16()));
     ASSERT(((hash << s_flagCount) >> s_flagCount) == hash);
     return hash;
+}
+
+std::tuple<unsigned, bool> StringImpl::ensureHashAndOneByteContent() const
+{
+    if (is8Bit())
+        return { hash(), true };
+    if (hasHash())
+        return { existingHash(), charactersAreAllLatin1(span16()) };
+    auto [h, oneByteContent] = StringHasher::computeHashAndMaskTop8Bits(span16());
+    setHash(h);
+    return { h, oneByteContent };
 }
 
 SUPPRESS_NODELETE bool equalIgnoringNullity(std::span<const char16_t> a, StringImpl* b)

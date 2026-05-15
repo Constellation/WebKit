@@ -512,8 +512,8 @@ inline std::span<const char16_t> StringView::span16() const LIFETIME_BOUND
 inline unsigned StringView::hash() const
 {
     if (is8Bit())
-        return StringHasher::computeHashAndMaskTop8Bits(span8());
-    return StringHasher::computeHashAndMaskTop8Bits(span16());
+        return std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span8()));
+    return std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span16()));
 }
 
 template<> ALWAYS_INLINE std::span<const Latin1Character> StringView::span<Latin1Character>() const LIFETIME_BOUND

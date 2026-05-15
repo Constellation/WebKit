@@ -102,7 +102,7 @@ private:
         if (!m_containsOnlyASCII) {
             m_containsOnlyASCII = charactersAreAllASCII(m_contiguousBuffer->span());
             if (*m_containsOnlyASCII)
-                m_scriptHash = StringHasher::computeHashAndMaskTop8Bits(m_contiguousBuffer->span());
+                m_scriptHash = std::get<0>(StringHasher::computeHashAndMaskTop8Bits(m_contiguousBuffer->span()));
         }
         if (*m_containsOnlyASCII)
             return byteCast<Latin1Character>(m_contiguousBuffer->span());

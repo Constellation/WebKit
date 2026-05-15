@@ -109,6 +109,26 @@ struct UTF16BufferTranslator {
     }
 };
 
+struct OneByteContent16BufferTranslator {
+    static unsigned NODELETE hash(const UTF16Buffer& buf)
+    {
+        return buf.hash;
+    }
+
+    static bool equal(AtomStringTable::StringEntry const& str, const UTF16Buffer& buf)
+    {
+        return WTF::equal(str.get(), buf.characters);
+    }
+
+    static void translate(AtomStringTable::StringEntry& location, const UTF16Buffer& buf, unsigned hash)
+    {
+        Ref stringImpl = StringImpl::create8BitUnconditionally(buf.characters);
+        stringImpl->setHash(hash);
+        stringImpl->setIsAtom(true);
+        location = &stringImpl.leakRef();
+    }
+};
+
 RefPtr<AtomStringImpl> AtomStringImpl::add(std::span<const char16_t> characters)
 {
     if (!characters.data())
@@ -151,7 +171,7 @@ struct SubstringTranslator {
 struct SubstringTranslator8 : SubstringTranslator {
     static unsigned hash(const SubstringLocation& buffer)
     {
-        return StringHasher::computeHashAndMaskTop8Bits(buffer.baseString->span8().subspan(buffer.start, buffer.length));
+        return std::get<0>(StringHasher::computeHashAndMaskTop8Bits(buffer.baseString->span8().subspan(buffer.start, buffer.length)));
     }
 
     static bool equal(AtomStringTable::StringEntry const& string, const SubstringLocation& buffer)
@@ -163,7 +183,7 @@ struct SubstringTranslator8 : SubstringTranslator {
 struct SubstringTranslator16 : SubstringTranslator {
     static unsigned hash(const SubstringLocation& buffer)
     {
-        return StringHasher::computeHashAndMaskTop8Bits(buffer.baseString->span16().subspan(buffer.start, buffer.length));
+        return std::get<0>(StringHasher::computeHashAndMaskTop8Bits(buffer.baseString->span16().subspan(buffer.start, buffer.length)));
     }
 
     static bool equal(AtomStringTable::StringEntry const& string, const SubstringLocation& buffer)
@@ -370,6 +390,15 @@ Ref<AtomStringImpl> AtomStringImpl::addSlowCase(StringImpl& string)
 
     ASSERT_WITH_MESSAGE(!string.isAtom(), "AtomStringImpl should not hit the slow case if the string is already an atom.");
 
+    // Canonicalize 16-bit strings with Latin-1 content to an 8-bit atom entry.
+    if (!string.is8Bit()) {
+        auto [hash, oneByteContent] = string.ensureHashAndOneByteContent();
+        if (oneByteContent) {
+            UTF16Buffer buffer { string.span16(), hash };
+            return addToStringTable<UTF16Buffer, OneByteContent16BufferTranslator>(buffer);
+        }
+    }
+
     AtomStringTableLocker locker;
     auto addResult = stringTable().add(&string);
 
@@ -395,6 +424,14 @@ Ref<AtomStringImpl> AtomStringImpl::addSlowCase(Ref<StringImpl>&& string)
         return addSymbol(WTF::move(string));
 
     ASSERT_WITH_MESSAGE(!string->isAtom(), "AtomStringImpl should not hit the slow case if the string is already an atom.");
+
+    if (!string->is8Bit()) {
+        auto [hash, oneByteContent] = string->ensureHashAndOneByteContent();
+        if (oneByteContent) {
+            UTF16Buffer buffer { string->span16(), hash };
+            return addToStringTable<UTF16Buffer, OneByteContent16BufferTranslator>(buffer);
+        }
+    }
 
     AtomStringTableLocker locker;
     auto addResult = stringTable().add(string.ptr());
@@ -426,6 +463,15 @@ Ref<AtomStringImpl> AtomStringImpl::addSlowCase(AtomStringTable& stringTable, St
     }
 
     ASSERT_WITH_MESSAGE(!string.isAtom(), "AtomStringImpl should not hit the slow case if the string is already an atom.");
+
+    if (!string.is8Bit()) {
+        auto [hash, oneByteContent] = string.ensureHashAndOneByteContent();
+        if (oneByteContent) {
+            AtomStringTableLocker locker;
+            UTF16Buffer buffer { string.span16(), hash };
+            return addToStringTable<UTF16Buffer, OneByteContent16BufferTranslator>(locker, stringTable.table(), buffer);
+        }
+    }
 
     AtomStringTableLocker locker;
     auto addResult = stringTable.table().add(&string);

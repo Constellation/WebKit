@@ -27,6 +27,7 @@
 
 #include <numbers>
 #include <wtf/text/AtomString.h>
+#include <wtf/text/StringImpl.h>
 
 namespace TestWebKitAPI {
 
@@ -121,6 +122,51 @@ TEST(WTF, AtomStringNumberDouble)
     EXPECT_STREQ("110000000000000000000", testAtomStringNumber(1.1e20));
     EXPECT_STREQ("1.1e+21", testAtomStringNumber(1.1e21));
     EXPECT_STREQ("1.1e+30", testAtomStringNumber(1.1e30));
+}
+
+TEST(WTF, AtomStringCanonicalize16BitLatin1ToOneByte)
+{
+    static constexpr char16_t chars[] = u"property_name_atom";
+    constexpr size_t length = std::extent_v<decltype(chars)> - 1;
+
+    Ref<StringImpl> sixteenBitLatin1 = StringImpl::create(std::span { chars, length });
+    ASSERT_FALSE(sixteenBitLatin1->is8Bit());
+
+    AtomString atom(sixteenBitLatin1.get());
+    EXPECT_TRUE(atom.impl());
+    EXPECT_TRUE(atom.impl()->is8Bit()) << "16-bit-Latin1 StringImpl must canonicalize to 8-bit atom";
+    EXPECT_FALSE(sixteenBitLatin1->isAtom()) << "Original 16-bit StringImpl must not be marked atom";
+    EXPECT_NE(atom.impl(), sixteenBitLatin1.ptr()) << "Atom must be a fresh StringImpl, not the 16-bit source";
+    EXPECT_EQ(atom.length(), length);
+}
+
+TEST(WTF, AtomStringCrossEncodingDedup)
+{
+    static constexpr char16_t chars16[] = u"cross_encoding_dedup";
+    constexpr size_t length = std::extent_v<decltype(chars16)> - 1;
+
+    AtomString atomFrom8Bit("cross_encoding_dedup"_s);
+    EXPECT_TRUE(atomFrom8Bit.impl()->is8Bit());
+
+    Ref<StringImpl> sixteenBitLatin1 = StringImpl::create(std::span { chars16, length });
+    ASSERT_FALSE(sixteenBitLatin1->is8Bit());
+    AtomString atomFrom16Bit(sixteenBitLatin1.get());
+
+    EXPECT_EQ(atomFrom8Bit.impl(), atomFrom16Bit.impl()) << "8-bit and 16-bit-Latin1 inputs must dedup to the same atom";
+    EXPECT_TRUE(atomFrom16Bit.impl()->is8Bit());
+}
+
+TEST(WTF, AtomString16BitNonLatin1Preserved)
+{
+    static constexpr char16_t chars[] = u"café中"; // "café中"
+    constexpr size_t length = std::extent_v<decltype(chars)> - 1;
+
+    Ref<StringImpl> sixteenBit = StringImpl::create(std::span { chars, length });
+    ASSERT_FALSE(sixteenBit->is8Bit());
+
+    AtomString atom(sixteenBit.get());
+    EXPECT_FALSE(atom.impl()->is8Bit()) << "16-bit with non-Latin1 content must stay 16-bit";
+    EXPECT_EQ(atom.length(), length);
 }
 
 } // namespace TestWebKitAPI

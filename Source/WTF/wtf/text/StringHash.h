@@ -121,7 +121,7 @@ namespace WTF {
         template<typename CharacterType>
         static unsigned hash(std::span<const CharacterType> characters)
         {
-            return StringHasher::computeHashAndMaskTop8Bits<CharacterType, FoldCase>(characters);
+            return std::get<0>(StringHasher::computeHashAndMaskTop8Bits<CharacterType, FoldCase>(characters));
         }
 
         static unsigned hash(const StringImpl& string)
@@ -261,7 +261,7 @@ namespace WTF {
     struct HashTranslatorASCIILiteral {
         static unsigned hash(ASCIILiteral literal)
         {
-            return StringHasher::computeHashAndMaskTop8Bits(literal.span8());
+            return std::get<0>(StringHasher::computeHashAndMaskTop8Bits(literal.span8()));
         }
 
         static bool equal(const String& a, ASCIILiteral b)

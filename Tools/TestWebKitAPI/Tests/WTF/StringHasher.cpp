@@ -56,8 +56,8 @@ TEST(WTF, StringHasher)
     for (size_t size = 0; size <= max8Bit; size++) {
         std::unique_ptr<const Latin1Character[]> arr1 = generateLatin1Array(size);
         std::unique_ptr<const char16_t[]> arr2 = generateUTF16Array(size);
-        unsigned left = StringHasher::computeHashAndMaskTop8Bits(std::span { arr1.get(), size });
-        unsigned right = StringHasher::computeHashAndMaskTop8Bits(std::span { arr2.get(), size });
+        unsigned left = std::get<0>(StringHasher::computeHashAndMaskTop8Bits(std::span { arr1.get(), size }));
+        unsigned right = std::get<0>(StringHasher::computeHashAndMaskTop8Bits(std::span { arr2.get(), size }));
         ASSERT_EQ(left, right);
     }
 }
@@ -74,19 +74,19 @@ TEST(WTF, StringHasher_SuperFastHash_VS_RapidHash)
             return index & 0x7f;
         });
         sum += SuperFastHash::computeHashAndMaskTop8Bits(vector.span());
-        sum += RapidHash::computeHashAndMaskTop8Bits(vector.span());
-        sum += StringHasher::computeHashAndMaskTop8Bits(vector.span());
+        sum += std::get<0>(RapidHash::computeHashAndMaskTop8Bits(vector.span()));
+        sum += std::get<0>(StringHasher::computeHashAndMaskTop8Bits(vector.span()));
         auto start = MonotonicTime::now();
         for (unsigned i = 0; i < 1e5; ++i)
             sum += SuperFastHash::computeHashAndMaskTop8Bits(vector.span());
         dataLogLn("SFH ", size, " -> ", MonotonicTime::now() - start);
         start = MonotonicTime::now();
         for (unsigned i = 0; i < 1e5; ++i)
-            sum += RapidHash::computeHashAndMaskTop8Bits(vector.span());
+            sum += std::get<0>(RapidHash::computeHashAndMaskTop8Bits(vector.span()));
         dataLogLn("RPH ", size, " -> ", MonotonicTime::now() - start);
         start = MonotonicTime::now();
         for (unsigned i = 0; i < 1e5; ++i)
-            sum += StringHasher::computeHashAndMaskTop8Bits(vector.span());
+            sum += std::get<0>(StringHasher::computeHashAndMaskTop8Bits(vector.span()));
         dataLogLn("STH ", size, " -> ", MonotonicTime::now() - start);
     }
 
@@ -96,19 +96,19 @@ TEST(WTF, StringHasher_SuperFastHash_VS_RapidHash)
             return index & 0x7f;
         });
         sum += SuperFastHash::computeHashAndMaskTop8Bits(vector.span());
-        sum += RapidHash::computeHashAndMaskTop8Bits(vector.span());
-        sum += StringHasher::computeHashAndMaskTop8Bits(vector.span());
+        sum += std::get<0>(RapidHash::computeHashAndMaskTop8Bits(vector.span()));
+        sum += std::get<0>(StringHasher::computeHashAndMaskTop8Bits(vector.span()));
         auto start = MonotonicTime::now();
         for (unsigned i = 0; i < 1e5; ++i)
             sum += SuperFastHash::computeHashAndMaskTop8Bits(vector.span());
         dataLogLn("SFH ", size, " -> ", MonotonicTime::now() - start);
         start = MonotonicTime::now();
         for (unsigned i = 0; i < 1e5; ++i)
-            sum += RapidHash::computeHashAndMaskTop8Bits(vector.span());
+            sum += std::get<0>(RapidHash::computeHashAndMaskTop8Bits(vector.span()));
         dataLogLn("RPH ", size, " -> ", MonotonicTime::now() - start);
         start = MonotonicTime::now();
         for (unsigned i = 0; i < 1e5; ++i)
-            sum += StringHasher::computeHashAndMaskTop8Bits(vector.span());
+            sum += std::get<0>(StringHasher::computeHashAndMaskTop8Bits(vector.span()));
         dataLogLn("STH ", size, " -> ", MonotonicTime::now() - start);
     }
     dataLogLn(sum);

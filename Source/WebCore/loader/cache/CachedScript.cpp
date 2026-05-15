@@ -80,7 +80,7 @@ StringView CachedScript::script(ShouldDecodeAsUTF8Only shouldDecodeAsUTF8Only)
         setDecodedSize(0);
         stopDecodedDataDeletionTimer();
 
-        m_scriptHash = StringHasher::computeHashAndMaskTop8Bits(contiguousData->span());
+        m_scriptHash = std::get<0>(StringHasher::computeHashAndMaskTop8Bits(contiguousData->span()));
     }
 
     if (m_decodingState == DataAndDecodedStringHaveSameBytes)

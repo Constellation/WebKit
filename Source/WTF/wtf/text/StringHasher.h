@@ -47,8 +47,10 @@ public:
         }
     };
 
+    // Returns (hash, oneByteContent). See RapidHash::rapidhash for the
+    // meaning of oneByteContent.
     template<typename T, typename Converter = DefaultConverter>
-    static unsigned computeHashAndMaskTop8Bits(std::span<const T> data);
+    static std::tuple<unsigned, bool> computeHashAndMaskTop8Bits(std::span<const T> data);
 
     template<typename T, unsigned characterCount>
     static constexpr unsigned computeLiteralHashAndMaskTop8Bits(const T (&characters)[characterCount]);

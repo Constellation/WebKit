@@ -27,7 +27,7 @@
 namespace WTF {
 
 template<typename T, typename Converter>
-unsigned StringHasher::computeHashAndMaskTop8Bits(std::span<const T> data)
+std::tuple<unsigned, bool> StringHasher::computeHashAndMaskTop8Bits(std::span<const T> data)
 {
     return RapidHash::computeHashAndMaskTop8Bits<T, Converter>(data);
 }
@@ -36,12 +36,12 @@ template<typename T, unsigned characterCount>
 constexpr unsigned StringHasher::computeLiteralHashAndMaskTop8Bits(const T (&characters)[characterCount])
 {
     constexpr unsigned characterCountWithoutNull = characterCount - 1;
-    return RapidHash::computeHashAndMaskTop8Bits<T>(unsafeMakeSpan(characters, characterCountWithoutNull));
+    return std::get<0>(RapidHash::computeHashAndMaskTop8Bits<T>(unsafeMakeSpan(characters, characterCountWithoutNull)));
 }
 
 constexpr unsigned StringHasher::computeLiteralHashAndMaskTop8Bits(ASCIILiteral literal)
 {
-    return RapidHash::computeHashAndMaskTop8Bits<char>(literal.span());
+    return std::get<0>(RapidHash::computeHashAndMaskTop8Bits<char>(literal.span()));
 }
 
 } // namespace WTF

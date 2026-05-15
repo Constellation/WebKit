@@ -65,10 +65,16 @@ public:
 
     RapidHash() = default;
 
+    // Returns (hash, oneByteContent). `oneByteContent` reports whether the
+    // scanned content fits in one byte: always true for sizeof(T) == 1, and
+    // for sizeof(T) == 2 with DefaultConverter it's the outcome of the
+    // Latin-1 pre-scan. For a custom Converter on sizeof(T) == 2 it is not
+    // meaningful and is reported as true; callers should ignore it.
     template<typename T, typename Converter = DefaultConverter>
-    ALWAYS_INLINE static constexpr unsigned computeHashAndMaskTop8Bits(std::span<const T> data)
+    ALWAYS_INLINE static constexpr std::tuple<unsigned, bool> computeHashAndMaskTop8Bits(std::span<const T> data)
     {
-        return StringHasher::avoidZero(static_cast<unsigned>(rapidhash<T, Converter>(data)) & StringHasher::maskHash);
+        auto [rawHash, oneByteContent] = rapidhash<T, Converter>(data);
+        return { StringHasher::avoidZero(static_cast<unsigned>(rawHash) & StringHasher::maskHash), oneByteContent };
     }
 
 private:
@@ -137,24 +143,21 @@ private:
         return rapidMix(aLo ^ secret[0] ^ len, aHi ^ secret[1]);
     }
 
-    // Dispatch:
-    //   - sizeof(T) == 1: hash N bytes (each byte = foldByte(c)).
-    //   - sizeof(T) == 2 with DefaultConverter: if every character is Latin1,
-    //     hash N bytes (low byte of each char) so that hash("ABC" Latin1) ==
-    //     hash(u"ABC"). Otherwise hash the raw 2N little-endian bytes — this
-    //     preserves entropy for non-Latin1 content. Mirrors V8's rapidhash
-    //     integration.
-    //   - sizeof(T) == 2 with a custom Converter: always one byte per
-    //     character via (convert(c) & 0xFF) | (convert(c) >> 8); the converter
-    //     may legitimately produce non-Latin1 output and we don't scan it.
+    // For sizeof(T) == 2 with DefaultConverter: hash low bytes if every char
+    // is Latin1, otherwise hash raw 2N little-endian bytes. This preserves
+    // hash("ABC" Latin1) == hash(u"ABC") while keeping entropy for non-Latin1.
     template<typename T, typename Converter>
-    ALWAYS_INLINE static constexpr uint64_t rapidhash(std::span<const T> data)
+    ALWAYS_INLINE static constexpr std::tuple<uint64_t, bool> rapidhash(std::span<const T> data)
     {
-        if constexpr (sizeof(T) == 2 && std::is_same_v<Converter, DefaultConverter>) {
-            if (!charactersAreAllLatin1(data)) [[unlikely]]
-                return rapidhashRawBytes(data);
-        }
-        return rapidhashOneBytePerChar<T, Converter>(data);
+        if constexpr (sizeof(T) == 1)
+            return { rapidhashOneBytePerChar<T, Converter>(data), true };
+        else if constexpr (sizeof(T) == 2 && std::is_same_v<Converter, DefaultConverter>) {
+            const bool oneByteContent = charactersAreAllLatin1(data);
+            if (!oneByteContent) [[unlikely]]
+                return { rapidhashRawBytes(data), false };
+            return { rapidhashOneBytePerChar<T, Converter>(data), true };
+        } else
+            return { rapidhashOneBytePerChar<T, Converter>(data), true };
     }
 
     // Hash N bytes, one per character, where byte[i] = foldByte(data[i]).

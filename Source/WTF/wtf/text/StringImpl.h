@@ -78,6 +78,7 @@ struct Latin1BufferTranslator;
 struct StringViewHashTranslator;
 struct SubstringTranslator;
 struct UTF16BufferTranslator;
+struct OneByteContent16BufferTranslator;
 
 template<typename> class RetainPtr;
 
@@ -198,6 +199,7 @@ class StringImpl : private StringImplShape, public NoVirtualDestructorBase {
     friend struct WTF::StringViewHashTranslator;
     friend struct WTF::SubstringTranslator;
     friend struct WTF::UTF16BufferTranslator;
+    friend struct WTF::OneByteContent16BufferTranslator;
 
     template<typename> friend struct WTF::BufferFromStaticDataTranslator;
     template<typename> friend struct WTF::HashAndCharactersTranslator;
@@ -363,6 +365,10 @@ public:
 
     unsigned existingHash() const { ASSERT(hasHash()); return rawHash(); }
     unsigned hash() const { return hasHash() ? rawHash() : hashSlowCase(); }
+
+    // Returns (hash, oneByteContent). For 16-bit StringImpls, oneByteContent
+    // is true iff every character fits in Latin-1.
+    std::tuple<unsigned, bool> ensureHashAndOneByteContent() const;
 
     WTF_EXPORT_PRIVATE unsigned concurrentHash() const;
 
@@ -600,7 +606,7 @@ struct HashTranslatorCharBuffer {
 
     HashTranslatorCharBuffer(std::span<const CharacterType> characters)
         : characters(characters)
-        , hash(StringHasher::computeHashAndMaskTop8Bits(characters))
+        , hash(std::get<0>(StringHasher::computeHashAndMaskTop8Bits(characters)))
     {
     }
 
@@ -1161,7 +1167,7 @@ inline void StringImpl::setHash(unsigned hash) const
     ASSERT(!hasHash());
     ASSERT(!isStatic());
     // Multiple clients assume that StringHasher is the canonical string hash function.
-    ASSERT(hash == (is8Bit() ? StringHasher::computeHashAndMaskTop8Bits(span8()) : StringHasher::computeHashAndMaskTop8Bits(span16())));
+    ASSERT(hash == (is8Bit() ? std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span8())) : std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span16()))));
     ASSERT(!(hash & (s_flagMask << (8 * sizeof(hash) - s_flagCount)))); // Verify that enough high bits are empty.
 
     hash <<= s_flagCount;
@@ -1299,7 +1305,7 @@ inline StringImpl*& StringImpl::substringBuffer()
 
 inline void StringImpl::assertHashIsCorrect() const
 {
-    ASSERT(existingHash() == StringHasher::computeHashAndMaskTop8Bits(span8()));
+    ASSERT(existingHash() == std::get<0>(StringHasher::computeHashAndMaskTop8Bits(span8())));
 }
 
 constexpr StringImpl::StaticStringImpl::StaticStringImpl(ASCIILiteral literal, StringKind stringKind)
