@@ -4435,6 +4435,10 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case ArrayUnshift:
+        compileArrayUnshift(node);
+        break;
+
     case DFG::Jump: {
         jump(node->targetBlock());
         noResult(node);
@@ -8966,6 +8970,180 @@ void SpeculativeJIT::compileNewResolvedPromise(Node* node)
     GPRReg resultGPR = result.gpr();
     callOperation(operationNewResolvedPromise, resultGPR, LinkableConstant::globalObject(*this, node), argumentRegs);
     cellResult(resultGPR, node);
+}
+
+void SpeculativeJIT::compileArrayUnshift(Node* node)
+{
+    ASSERT(node->arrayMode().isJSArray());
+
+    Edge& storageEdge = m_graph.varArgChild(node, 0);
+    Edge& arrayEdge = m_graph.varArgChild(node, 1);
+    unsigned elementOffset = 2;
+    unsigned elementCount = node->numChildren() - elementOffset;
+    ASSERT(elementCount >= 1);
+
+    SpeculateCellOperand base(this, arrayEdge);
+    StorageOperand storage(this, storageEdge);
+    GPRTemporary storageLength(this);
+
+    GPRReg baseGPR = base.gpr();
+    GPRReg storageGPR = storage.gpr();
+    GPRReg storageLengthGPR = storageLength.gpr();
+    JSValueRegs resultRegs { storageLengthGPR };
+
+    switch (node->arrayMode().type()) {
+    case Array::Int32:
+    case Array::Contiguous: {
+        if (elementCount == 1) {
+            Edge& valueEdge = m_graph.varArgChild(node, elementOffset);
+            JSValueOperand value(this, valueEdge, ManualOperandSpeculation);
+            GPRReg valueGPR = value.gpr();
+            if (node->arrayMode().type() == Array::Int32) {
+                ASSERT(valueEdge.useKind() == Int32Use);
+                speculateInt32(valueEdge);
+            }
+
+            GPRTemporary tmp(this);
+            GPRReg tmpGPR = tmp.gpr();
+
+            JumpList slowCases;
+            load32(Address(storageGPR, Butterfly::offsetOfPublicLength()), storageLengthGPR);
+            slowCases.append(branch32(AboveOrEqual, storageLengthGPR, TrustedImm32(2)));
+
+            Jump emptyCase = branchTest32(Zero, storageLengthGPR);
+
+            // length == 1: load arr[0] (must be non-empty), store at arr[1]; need vectorLength >= 2.
+            slowCases.append(branch32(Below, Address(storageGPR, Butterfly::offsetOfVectorLength()), TrustedImm32(2)));
+            load64(Address(storageGPR), tmpGPR);
+            slowCases.append(branchIfEmpty(tmpGPR));
+            store64(tmpGPR, Address(storageGPR, sizeof(JSValue)));
+            Jump lengthOneDone = jump();
+
+            // length == 0: need vectorLength >= 1.
+            emptyCase.link(this);
+            slowCases.append(branch32(Below, Address(storageGPR, Butterfly::offsetOfVectorLength()), TrustedImm32(1)));
+
+            // Common: write new value at arr[0], bump publicLength, return new length.
+            lengthOneDone.link(this);
+            store64(valueGPR, Address(storageGPR));
+            add32(TrustedImm32(1), storageLengthGPR);
+            store32(storageLengthGPR, Address(storageGPR, Butterfly::offsetOfPublicLength()));
+            boxInt32(storageLengthGPR, resultRegs);
+
+            addSlowPathGenerator(slowPathCall(slowCases, this, operationArrayUnshift, resultRegs.gpr(), LinkableConstant::globalObject(*this, node), baseGPR, valueGPR));
+
+            jsValueResult(resultRegs.gpr(), node);
+            return;
+        }
+
+        if (node->arrayMode().type() == Array::Int32) {
+            for (unsigned i = 0; i < elementCount; ++i) {
+                Edge element = m_graph.varArgChild(node, i + elementOffset);
+                ASSERT(element.useKind() == Int32Use);
+                speculateInt32(element);
+            }
+        }
+
+        size_t scratchSize = sizeof(EncodedJSValue) * elementCount;
+        ScratchBuffer* scratchBuffer = vm().scratchBufferForSize(scratchSize);
+        GPRTemporary buffer(this);
+        GPRReg bufferGPR = buffer.gpr();
+        move(TrustedImmPtr(static_cast<EncodedJSValue*>(scratchBuffer->dataBuffer())), bufferGPR);
+
+        for (unsigned i = 0; i < elementCount; ++i) {
+            Edge& element = m_graph.varArgChild(node, i + elementOffset);
+            JSValueOperand value(this, element, ManualOperandSpeculation);
+            JSValueRegs valueRegs = value.jsValueRegs();
+            storeValue(valueRegs, Address(bufferGPR, sizeof(EncodedJSValue) * i));
+            value.use();
+        }
+
+        flushRegisters();
+        callOperation(operationArrayUnshiftMultiple, resultRegs.gpr(), LinkableConstant::globalObject(*this, node), baseGPR, bufferGPR, TrustedImm32(elementCount));
+        exceptionCheck();
+
+        base.use();
+        storage.use();
+
+        jsValueResult(resultRegs.gpr(), node, DataFormatJS, UseChildrenCalledExplicitly);
+        return;
+    }
+
+    case Array::Double: {
+        if (elementCount == 1) {
+            Edge& valueEdge = m_graph.varArgChild(node, elementOffset);
+            speculate(node, valueEdge);
+            SpeculateDoubleOperand value(this, valueEdge);
+            FPRReg valueFPR = value.fpr();
+
+            FPRTemporary existing(this);
+            FPRReg existingFPR = existing.fpr();
+
+            JumpList slowCases;
+            load32(Address(storageGPR, Butterfly::offsetOfPublicLength()), storageLengthGPR);
+            slowCases.append(branch32(AboveOrEqual, storageLengthGPR, TrustedImm32(2)));
+
+            Jump emptyCase = branchTest32(Zero, storageLengthGPR);
+
+            // length == 1: loadDouble arr[0] (must not be NaN), storeDouble at arr[1]; vectorLength >= 2.
+            slowCases.append(branch32(Below, Address(storageGPR, Butterfly::offsetOfVectorLength()), TrustedImm32(2)));
+            loadDouble(Address(storageGPR), existingFPR);
+            slowCases.append(branchIfNaN(existingFPR));
+            storeDouble(existingFPR, Address(storageGPR, sizeof(double)));
+            Jump lengthOneDone = jump();
+
+            // length == 0: vectorLength >= 1.
+            emptyCase.link(this);
+            slowCases.append(branch32(Below, Address(storageGPR, Butterfly::offsetOfVectorLength()), TrustedImm32(1)));
+
+            // Common: storeDouble at arr[0], bump publicLength, return new length.
+            lengthOneDone.link(this);
+            storeDouble(valueFPR, Address(storageGPR));
+            add32(TrustedImm32(1), storageLengthGPR);
+            store32(storageLengthGPR, Address(storageGPR, Butterfly::offsetOfPublicLength()));
+            boxInt32(storageLengthGPR, resultRegs);
+
+            addSlowPathGenerator(slowPathCall(slowCases, this, operationArrayUnshiftDouble, resultRegs.gpr(), LinkableConstant::globalObject(*this, node), baseGPR, valueFPR));
+
+            jsValueResult(resultRegs.gpr(), node);
+            return;
+        }
+
+        for (unsigned i = 0; i < elementCount; ++i) {
+            Edge element = m_graph.varArgChild(node, i + elementOffset);
+            ASSERT(element.useKind() == DoubleRepRealUse);
+            speculate(node, element);
+        }
+
+        size_t scratchSize = sizeof(double) * elementCount;
+        ScratchBuffer* scratchBuffer = vm().scratchBufferForSize(scratchSize);
+        GPRTemporary buffer(this);
+        GPRReg bufferGPR = buffer.gpr();
+        move(TrustedImmPtr(static_cast<EncodedJSValue*>(scratchBuffer->dataBuffer())), bufferGPR);
+
+        for (unsigned i = 0; i < elementCount; ++i) {
+            Edge& element = m_graph.varArgChild(node, i + elementOffset);
+            SpeculateDoubleOperand value(this, element);
+            FPRReg valueFPR = value.fpr();
+            storeDouble(valueFPR, Address(bufferGPR, sizeof(double) * i));
+            value.use();
+        }
+
+        flushRegisters();
+        callOperation(operationArrayUnshiftDoubleMultiple, resultRegs.gpr(), LinkableConstant::globalObject(*this, node), baseGPR, bufferGPR, TrustedImm32(elementCount));
+        exceptionCheck();
+
+        base.use();
+        storage.use();
+
+        jsValueResult(resultRegs.gpr(), node, DataFormatJS, UseChildrenCalledExplicitly);
+        return;
+    }
+
+    default:
+        DFG_CRASH(m_graph, node, "Bad array mode");
+        break;
+    }
 }
 
 #endif

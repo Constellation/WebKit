@@ -268,8 +268,9 @@ private:
                 }
                 break;
             }
-                
-            case ArrayPush: {
+
+            case ArrayPush:
+            case ArrayUnshift: {
                 switch (m_node->arrayMode().type()) {
                 case Array::Contiguous:
                 case Array::ArrayStorage:
@@ -289,6 +290,7 @@ private:
                 }
                 break;
             }
+
             case ArraySortCommit: {
                 considerBarrier(m_node->child1());
                 break;

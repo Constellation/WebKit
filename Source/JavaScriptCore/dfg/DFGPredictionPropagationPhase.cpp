@@ -1037,6 +1037,7 @@ private:
         case ArrayPop:
         case ArrayPush:
         case ArrayShift:
+        case ArrayUnshift:
         case ArraySplice:
         case RegExpExec:
         case RegExpExecNonGlobalOrSticky:

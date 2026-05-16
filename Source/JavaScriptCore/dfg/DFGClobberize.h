@@ -172,6 +172,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         case ArrayPush:
         case ArrayPop:
         case ArrayShift:
+        case ArrayUnshift:
         case ArrayIncludes:
         case ArrayIndexOf:
         case HasIndexedProperty:
@@ -796,6 +797,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case ArrayPush:
     case ArrayPop:
     case ArrayShift:
+    case ArrayUnshift:
     case ArraySplice:
     case Call:
     case DirectCall:

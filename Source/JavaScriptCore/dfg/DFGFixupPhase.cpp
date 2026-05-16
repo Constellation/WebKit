@@ -1705,7 +1705,8 @@ private:
             break;
         }
 
-        case ArrayPush: {
+        case ArrayPush:
+        case ArrayUnshift: {
             // May need to refine the array mode in case the value prediction contravenes
             // the array prediction. For example, we may have evidence showing that the
             // array is in Int32 mode, but the value we're storing is likely to be a double.
@@ -1767,7 +1768,7 @@ private:
             }
             break;
         }
-            
+
         case ArrayPop: {
             blessArrayOperation(node->child1(), Edge(), node->child2());
             fixEdge<KnownCellUse>(node->child1());

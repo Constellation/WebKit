@@ -1688,6 +1688,7 @@ public:
     void compileArraySplice(Node*);
     void compileArrayIndexOfOrArrayIncludes(Node*);
     void compileArrayPush(Node*);
+    void compileArrayUnshift(Node*);
     void compileNotifyWrite(Node*);
     void compileRegExpExec(Node*);
     void compileRegExpExecNonGlobalOrSticky(Node*);

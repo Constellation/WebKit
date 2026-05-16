@@ -55,6 +55,7 @@ namespace JSC {
     macro(ArrayPushIntrinsic) \
     macro(ArrayPopIntrinsic) \
     macro(ArrayShiftIntrinsic) \
+    macro(ArrayUnshiftIntrinsic) \
     macro(ArrayConcatIntrinsic) \
     macro(ArraySliceIntrinsic) \
     macro(ArraySpliceIntrinsic) \

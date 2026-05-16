@@ -456,6 +456,7 @@ inline CapabilityLevel canCompile(Node* node)
     case ArrayPop:
     case ArrayPush:
     case ArrayShift:
+    case ArrayUnshift:
     case ParseInt:
     case ToIntegerOrInfinity:
     case ToLength:

@@ -4562,6 +4562,7 @@ void SpeculativeJIT::compile(Node* node)
     case MultiPutByVal:
     case MapStorage:
     case ArrayShift:
+    case ArrayUnshift:
         DFG_CRASH(m_graph, node, "unexpected node in DFG backend");
         break;
     }

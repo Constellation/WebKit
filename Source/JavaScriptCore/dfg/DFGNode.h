@@ -2127,6 +2127,7 @@ public:
         case ArrayPop:
         case ArrayPush:
         case ArrayShift:
+        case ArrayUnshift:
         case ArraySplice:
         case RegExpExec:
         case RegExpExecNonGlobalOrSticky:
@@ -2320,6 +2321,7 @@ public:
         case ArrayPush:
         case ArrayPop:
         case ArrayShift:
+        case ArrayUnshift:
         case GetArrayLength:
         case GetUndetachedTypeArrayLength:
         case GetTypedArrayLengthAsInt52:
@@ -2359,6 +2361,7 @@ public:
         case AtomicsXor:
             return 2 + numExtraAtomicsArgs(op());
         case ArrayPush:
+        case ArrayUnshift:
             return 0;
 
         case ArrayPop:
@@ -2736,6 +2739,7 @@ public:
         case ArrayPush:
         case ArrayPop:
         case ArrayShift:
+        case ArrayUnshift:
         case ArrayIncludes:
         case ArrayIndexOf:
         case HasIndexedProperty:

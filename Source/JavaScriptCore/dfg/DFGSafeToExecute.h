@@ -432,6 +432,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node, bool igno
         return false;
 
     case ArrayPush:
+    case ArrayUnshift:
         return node->arrayMode().alreadyChecked(graph, node, state.forNode(graph.varArgChild(node, 1)));
 
     case DataViewGetByteLength:

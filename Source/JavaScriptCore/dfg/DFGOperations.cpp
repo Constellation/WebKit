@@ -1282,6 +1282,114 @@ JSC_DEFINE_JIT_OPERATION(operationArrayShift, EncodedJSValue, (JSGlobalObject* g
     OPERATION_RETURN(scope, JSValue::encode(front));
 }
 
+static ALWAYS_INLINE JSValue arrayUnshiftSingleImpl(JSGlobalObject* globalObject, VM& vm, JSArray* array, JSValue value)
+{
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    uint64_t length = toLength(globalObject, array);
+    RETURN_IF_EXCEPTION(scope, { });
+
+    if (length >= maxSafeIntegerAsUInt64()) [[unlikely]]
+        return throwTypeError(globalObject, scope, "unshift cannot produce an array of length larger than (2 ** 53) - 1"_s);
+
+    unshift(globalObject, array, 0, 0, 1, length);
+    RETURN_IF_EXCEPTION(scope, { });
+
+    array->putByIndexInline(globalObject, static_cast<unsigned>(0), value, true);
+    RETURN_IF_EXCEPTION(scope, { });
+
+    uint64_t newLength = length + 1;
+    scope.release();
+    setLength(globalObject, vm, array, newLength);
+    return jsNumber(newLength);
+}
+
+JSC_DEFINE_JIT_OPERATION(operationArrayUnshift, EncodedJSValue, (JSGlobalObject* globalObject, JSArray* array, EncodedJSValue encodedValue))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    OPERATION_RETURN(scope, JSValue::encode(arrayUnshiftSingleImpl(globalObject, vm, array, JSValue::decode(encodedValue))));
+}
+
+JSC_DEFINE_JIT_OPERATION(operationArrayUnshiftDouble, EncodedJSValue, (JSGlobalObject* globalObject, JSArray* array, double value))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    OPERATION_RETURN(scope, JSValue::encode(arrayUnshiftSingleImpl(globalObject, vm, array, jsNumber(value))));
+}
+
+JSC_DEFINE_JIT_OPERATION(operationArrayUnshiftMultiple, EncodedJSValue, (JSGlobalObject* globalObject, JSArray* array, void* buffer, int32_t elementCount))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    ActiveScratchBufferScope activeScratchBufferScope(ScratchBuffer::fromData(buffer), elementCount);
+
+    // Caller guarantees Int32/Contiguous indexing, so the inline `unshift` fast
+    // path won't take the slow `getProperty` route as long as we don't hit the
+    // sparse-arrays threshold.
+    RELEASE_ASSERT(!shouldUseSlowPut(array->indexingType()));
+
+    uint64_t length = toLength(globalObject, array);
+    OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
+    if (length + elementCount > maxSafeIntegerAsUInt64()) [[unlikely]]
+        OPERATION_RETURN(scope, throwVMTypeError(globalObject, scope, "unshift cannot produce an array of length larger than (2 ** 53) - 1"_s));
+
+    if (elementCount > 0) {
+        unshift(globalObject, array, 0, 0, static_cast<uint32_t>(elementCount), length);
+        OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
+        EncodedJSValue* values = static_cast<EncodedJSValue*>(buffer);
+        for (int32_t k = 0; k < elementCount; ++k) {
+            array->putByIndexInline(globalObject, static_cast<unsigned>(k), JSValue::decode(values[k]), true);
+            OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+        }
+    }
+
+    uint64_t newLength = length + static_cast<unsigned>(elementCount);
+    scope.release();
+    setLength(globalObject, vm, array, newLength);
+    OPERATION_RETURN(scope, JSValue::encode(jsNumber(newLength)));
+}
+
+JSC_DEFINE_JIT_OPERATION(operationArrayUnshiftDoubleMultiple, EncodedJSValue, (JSGlobalObject* globalObject, JSArray* array, void* buffer, int32_t elementCount))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    ASSERT(array->indexingMode() == ArrayWithDouble);
+
+    uint64_t length = toLength(globalObject, array);
+    OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
+    if (length + elementCount > maxSafeIntegerAsUInt64()) [[unlikely]]
+        OPERATION_RETURN(scope, throwVMTypeError(globalObject, scope, "unshift cannot produce an array of length larger than (2 ** 53) - 1"_s));
+
+    if (elementCount > 0) {
+        unshift(globalObject, array, 0, 0, static_cast<uint32_t>(elementCount), length);
+        OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
+        double* values = static_cast<double*>(buffer);
+        for (int32_t k = 0; k < elementCount; ++k) {
+            array->putByIndexInline(globalObject, static_cast<unsigned>(k), JSValue(JSValue::EncodeAsDouble, values[k]), true);
+            OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+        }
+    }
+
+    uint64_t newLength = length + static_cast<unsigned>(elementCount);
+    scope.release();
+    setLength(globalObject, vm, array, newLength);
+    OPERATION_RETURN(scope, JSValue::encode(jsNumber(newLength)));
+}
+
 template<bool ignoreResult>
 static ALWAYS_INLINE EncodedJSValue arraySpliceImpl(JSGlobalObject* globalObject, JSArray* base, int32_t start, int32_t deleteCount, EncodedJSValue* buffer, unsigned itemCount)
 {

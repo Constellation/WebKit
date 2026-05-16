@@ -290,6 +290,7 @@ bool doesGC(Graph& graph, Node* node)
     case ArrayPush:
     case ArrayPop:
     case ArrayShift:
+    case ArrayUnshift:
     case ArraySplice:
     case PushWithScope:
     case CreateActivation:
