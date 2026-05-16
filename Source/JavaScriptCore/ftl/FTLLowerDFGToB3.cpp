@@ -1184,6 +1184,9 @@ private:
         case ArrayPop:
             compileArrayPop();
             break;
+        case ArrayShift:
+            compileArrayShift();
+            break;
         case ArraySlice:
             compileArraySlice();
             break;
@@ -8938,6 +8941,95 @@ IGNORE_CLANG_WARNINGS_END
 
             m_out.appendTo(slowCase, continuation);
             results.append(m_out.anchor(vmCall(Int64, operationArrayPop, weakPointer(globalObject), base)));
+            m_out.jump(continuation);
+
+            m_out.appendTo(continuation, lastNext);
+            setJSValue(m_out.phi(Int64, results));
+            return;
+        }
+
+        default:
+            DFG_CRASH(m_graph, m_node, "Bad array type");
+            return;
+        }
+    }
+
+    void compileArrayShift()
+    {
+        // Inlined code handles length = 0 and length = 1 case. Otherwise, calling operation.
+        JSGlobalObject* globalObject = m_graph.globalObjectFor(m_origin.semantic);
+        LValue base = lowCell(m_node->child1());
+        LValue storage = lowStorage(m_node->child2());
+
+        switch (m_node->arrayMode().type()) {
+        case Array::Int32:
+        case Array::Contiguous: {
+            IndexedAbstractHeap& heap = m_heaps.forArrayType(m_node->arrayMode().type());
+
+            LBasicBlock checkLengthOne = m_out.newBlock();
+            LBasicBlock loadCase = m_out.newBlock();
+            LBasicBlock fastDone = m_out.newBlock();
+            LBasicBlock slowCase = m_out.newBlock();
+            LBasicBlock continuation = m_out.newBlock();
+
+            LValue prevLength = m_out.load32(storage, m_heaps.Butterfly_publicLength);
+
+            Vector<ValueFromBlock, 3> results;
+            results.append(m_out.anchor(m_out.constInt64(JSValue::encode(jsUndefined()))));
+            m_out.branch(m_out.isZero32(prevLength), rarely(continuation), usually(checkLengthOne));
+
+            LBasicBlock lastNext = m_out.appendTo(checkLengthOne, loadCase);
+            m_out.branch(m_out.equal(prevLength, m_out.int32One), usually(loadCase), rarely(slowCase));
+
+            m_out.appendTo(loadCase, fastDone);
+            TypedPointer pointer = m_out.baseIndex(heap, storage, m_out.intPtrZero);
+            LValue result = m_out.load64(pointer);
+            m_out.branch(m_out.notZero64(result), usually(fastDone), rarely(slowCase));
+
+            m_out.appendTo(fastDone, slowCase);
+            m_out.store64(m_out.constInt64(JSValue::encode(JSValue())), pointer);
+            m_out.store32(m_out.int32Zero, storage, m_heaps.Butterfly_publicLength);
+            results.append(m_out.anchor(result));
+            m_out.jump(continuation);
+
+            m_out.appendTo(slowCase, continuation);
+            results.append(m_out.anchor(vmCall(Int64, operationArrayShift, weakPointer(globalObject), base)));
+            m_out.jump(continuation);
+
+            m_out.appendTo(continuation, lastNext);
+            setJSValue(m_out.phi(Int64, results));
+            return;
+        }
+
+        case Array::Double: {
+            LBasicBlock checkLengthOne = m_out.newBlock();
+            LBasicBlock loadCase = m_out.newBlock();
+            LBasicBlock fastDone = m_out.newBlock();
+            LBasicBlock slowCase = m_out.newBlock();
+            LBasicBlock continuation = m_out.newBlock();
+
+            LValue prevLength = m_out.load32(storage, m_heaps.Butterfly_publicLength);
+
+            Vector<ValueFromBlock, 3> results;
+            results.append(m_out.anchor(m_out.constInt64(JSValue::encode(jsUndefined()))));
+            m_out.branch(m_out.isZero32(prevLength), rarely(continuation), usually(checkLengthOne));
+
+            LBasicBlock lastNext = m_out.appendTo(checkLengthOne, loadCase);
+            m_out.branch(m_out.equal(prevLength, m_out.int32One), usually(loadCase), rarely(slowCase));
+
+            m_out.appendTo(loadCase, fastDone);
+            TypedPointer pointer = m_out.baseIndex(m_heaps.indexedDoubleProperties, storage, m_out.intPtrZero);
+            LValue resultDouble = m_out.loadDouble(pointer);
+            m_out.branch(m_out.doubleEqual(resultDouble, resultDouble), usually(fastDone), rarely(slowCase));
+
+            m_out.appendTo(fastDone, slowCase);
+            m_out.store64(m_out.constInt64(std::bit_cast<int64_t>(PNaN)), pointer);
+            m_out.store32(m_out.int32Zero, storage, m_heaps.Butterfly_publicLength);
+            results.append(m_out.anchor(boxDouble(resultDouble)));
+            m_out.jump(continuation);
+
+            m_out.appendTo(slowCase, continuation);
+            results.append(m_out.anchor(vmCall(Int64, operationArrayShift, weakPointer(globalObject), base)));
             m_out.jump(continuation);
 
             m_out.appendTo(continuation, lastNext);

@@ -2967,7 +2967,29 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
                 setResult(arrayPop);
                 return CallOptimizationResult::Inlined;
             }
-                
+
+            default:
+                return CallOptimizationResult::DidNothing;
+            }
+        }
+
+        case ArrayShiftIntrinsic: {
+            if (!is64Bit())
+                return CallOptimizationResult::DidNothing;
+
+            ArrayMode arrayMode = getArrayMode(Array::Write);
+            if (!arrayMode.isJSArray())
+                return CallOptimizationResult::DidNothing;
+            switch (arrayMode.type()) {
+            case Array::Int32:
+            case Array::Double:
+            case Array::Contiguous: {
+                insertChecks();
+                Node* arrayShift = addToGraph(ArrayShift, OpInfo(arrayMode.asWord()), OpInfo(prediction), get(virtualRegisterForArgumentIncludingThis(0, registerOffset)));
+                setResult(arrayShift);
+                return CallOptimizationResult::Inlined;
+            }
+
             default:
                 return CallOptimizationResult::DidNothing;
             }

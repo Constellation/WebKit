@@ -1247,10 +1247,39 @@ JSC_DEFINE_JIT_OPERATION(operationArrayPopAndRecoverLength, EncodedJSValue, (JSG
     CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
     JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
     auto scope = DECLARE_THROW_SCOPE(vm);
-    
+
     array->butterfly()->setPublicLength(array->butterfly()->publicLength() + 1);
-    
+
     OPERATION_RETURN(scope, JSValue::encode(array->pop(globalObject)));
+}
+
+JSC_DEFINE_JIT_OPERATION(operationArrayShift, EncodedJSValue, (JSGlobalObject* globalObject, JSArray* array))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue result = array->fastShift(vm);
+    if (result)
+        OPERATION_RETURN(scope, JSValue::encode(result));
+
+    uint64_t length = toLength(globalObject, array);
+    OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
+    if (!length) {
+        scope.release();
+        setLength(globalObject, vm, array, length);
+        OPERATION_RETURN(scope, JSValue::encode(jsUndefined()));
+    }
+
+    JSValue front = array->getIndex(globalObject, 0);
+    OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+    shift<JSArray::ShiftCountForShift>(globalObject, array, 0, 1, 0, length);
+    OPERATION_RETURN_IF_EXCEPTION(scope, encodedJSValue());
+    scope.release();
+    setLength(globalObject, vm, array, length - 1);
+    OPERATION_RETURN(scope, JSValue::encode(front));
 }
 
 template<bool ignoreResult>

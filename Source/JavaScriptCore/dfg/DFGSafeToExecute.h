@@ -419,6 +419,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node, bool igno
     case GetTypedArrayLengthAsInt52:
     case GetVectorLength:
     case ArrayPop:
+    case ArrayShift:
     case StringAt:
     case StringCharAt:
     case StringCharCodeAt:

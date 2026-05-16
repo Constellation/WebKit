@@ -4287,13 +4287,13 @@ void SpeculativeJIT::compile(Node* node)
         GPRTemporary value(this);
         GPRTemporary storageLength(this);
         FPRTemporary temp(this); // This is kind of lame, since we don't always need it. I'm relying on the fact that we don't have FPR pressure, especially in code that uses pop().
-        
+
         GPRReg baseGPR = base.gpr();
         GPRReg storageGPR = storage.gpr();
         GPRReg valueGPR = value.gpr();
         GPRReg storageLengthGPR = storageLength.gpr();
         FPRReg tempFPR = temp.fpr();
-        
+
         switch (node->arrayMode().type()) {
         case Array::Int32:
         case Array::Double:
@@ -4334,12 +4334,12 @@ void SpeculativeJIT::compile(Node* node)
             addSlowPathGenerator(
                 slowPathCall(
                     slowCase, this, operationArrayPopAndRecoverLength, valueGPR, LinkableConstant::globalObject(*this, node), baseGPR));
-            
+
             // We can't know for sure that the result is an int because of the slow paths. :-/
             jsValueResult(valueGPR, node);
             break;
         }
-            
+
         case Array::ArrayStorage: {
             load32(Address(storageGPR, ArrayStorage::lengthOffset()), storageLengthGPR);
 
@@ -4363,9 +4363,73 @@ void SpeculativeJIT::compile(Node* node)
             jsValueResult(valueGPR, node);
             break;
         }
-            
+
         default:
             CRASH();
+            break;
+        }
+        break;
+    }
+
+    case ArrayShift: {
+        ASSERT(node->arrayMode().isJSArray());
+
+        SpeculateCellOperand base(this, node->child1());
+        StorageOperand storage(this, node->child2());
+        GPRTemporary value(this);
+        GPRTemporary storageLength(this);
+
+        GPRReg baseGPR = base.gpr();
+        GPRReg storageGPR = storage.gpr();
+        GPRReg valueGPR = value.gpr();
+        GPRReg storageLengthGPR = storageLength.gpr();
+
+        switch (node->arrayMode().type()) {
+        case Array::Int32:
+        case Array::Contiguous: {
+            JumpList slowCases;
+            load32(Address(storageGPR, Butterfly::offsetOfPublicLength()), storageLengthGPR);
+            Jump undefinedCase = branchTest32(Zero, storageLengthGPR);
+            slowCases.append(branch32(NotEqual, storageLengthGPR, TrustedImm32(1)));
+
+            load64(Address(storageGPR), valueGPR);
+            slowCases.append(branchIfEmpty(valueGPR));
+
+            storeTrustedValue(JSValue(), Address(storageGPR));
+            store32(TrustedImm32(0), Address(storageGPR, Butterfly::offsetOfPublicLength()));
+
+            addSlowPathGenerator(slowPathMove(undefinedCase, this, TrustedImm64(JSValue::encode(jsUndefined())), valueGPR));
+            addSlowPathGenerator(slowPathCall(slowCases, this, operationArrayShift, valueGPR, LinkableConstant::globalObject(*this, node), baseGPR));
+
+            jsValueResult(valueGPR, node);
+            break;
+        }
+
+        case Array::Double: {
+            FPRTemporary temp(this);
+            FPRReg tempFPR = temp.fpr();
+
+            JumpList slowCases;
+            load32(Address(storageGPR, Butterfly::offsetOfPublicLength()), storageLengthGPR);
+            Jump undefinedCase = branchTest32(Zero, storageLengthGPR);
+            slowCases.append(branch32(NotEqual, storageLengthGPR, TrustedImm32(1)));
+
+            loadDouble(Address(storageGPR), tempFPR);
+            slowCases.append(branchIfNaN(tempFPR));
+            boxDouble(tempFPR, valueGPR);
+
+            store64(TrustedImm64(std::bit_cast<int64_t>(PNaN)), Address(storageGPR));
+            store32(TrustedImm32(0), Address(storageGPR, Butterfly::offsetOfPublicLength()));
+
+            addSlowPathGenerator(slowPathMove(undefinedCase, this, TrustedImm64(JSValue::encode(jsUndefined())), valueGPR));
+            addSlowPathGenerator(slowPathCall(slowCases, this, operationArrayShift, valueGPR, LinkableConstant::globalObject(*this, node), baseGPR));
+
+            jsValueResult(valueGPR, node);
+            break;
+        }
+
+        default:
+            DFG_CRASH(m_graph, node, "Bad array mode");
             break;
         }
         break;

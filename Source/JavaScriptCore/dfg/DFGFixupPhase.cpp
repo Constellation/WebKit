@@ -1774,6 +1774,12 @@ private:
             break;
         }
 
+        case ArrayShift: {
+            blessArrayOperation(node->child1(), Edge(), node->child2());
+            fixEdge<KnownCellUse>(node->child1());
+            break;
+        }
+
         case ArraySlice: {
             fixEdge<KnownCellUse>(m_graph.varArgChild(node, 0));
             if (node->numChildren() >= 3) {
