@@ -29,6 +29,7 @@
 #include <JavaScriptCore/Opcode.h>
 #include <JavaScriptCore/UnlinkedMetadataTable.h>
 #include <JavaScriptCore/ValueProfile.h>
+#include <span>
 #include <wtf/RefCounted.h>
 #include <wtf/TZoneMalloc.h>
 
@@ -81,6 +82,12 @@ public:
     ValueProfile* valueProfilesEnd()
     {
         return reinterpret_cast_ptr<ValueProfile*>(&linkingData());
+    }
+
+    std::span<ValueProfile> valueProfiles()
+    {
+        unsigned count = unlinkedMetadata()->m_numValueProfiles;
+        return { valueProfilesEnd() - count, count };
     }
 
     ValueProfile& valueProfileForOffset(unsigned profileOffset)

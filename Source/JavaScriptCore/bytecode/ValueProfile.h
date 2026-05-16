@@ -240,6 +240,8 @@ public:
         m_prediction = newType;
     }
 
+    SpeculatedType prediction() const { return m_prediction; }
+
 private:
     SpeculatedType m_prediction { SpecNone };
 };

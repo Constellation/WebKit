@@ -85,6 +85,7 @@
 #include "TypeProfiler.h"
 #include "VMInlines.h"
 #include <wtf/Forward.h>
+#include <wtf/SIMDHelpers.h>
 #include <wtf/SimpleStats.h>
 #include <wtf/StringPrintStream.h>
 #include <wtf/text/UniquedStringImpl.h>
@@ -3017,33 +3018,102 @@ void CodeBlock::updateAllNonLazyValueProfilePredictionsAndCountLiveness(const Co
     numberOfLiveNonArgumentValueProfiles = 0;
     numberOfSamplesInProfiles = 0; // If this divided by ValueProfile::numberOfBuckets equals numberOfValueProfiles() then value profiles are full.
 
-    unsigned index = 0;
     UnlinkedCodeBlock* unlinkedCodeBlock = this->unlinkedCodeBlock();
     bool isBuiltinFunction = unlinkedCodeBlock->isBuiltinFunction();
     auto unlinkedValueProfiles = unlinkedCodeBlock->unlinkedValueProfiles().mutableSpan();
-    forEachValueProfile([&](auto& profile, bool isArgument) {
-        unsigned numSamples = profile.totalNumberOfSamples();
-        using Profile = std::remove_reference_t<decltype(profile)>;
-        static_assert(Profile::numberOfBuckets == 1);
-        if (numSamples > Profile::numberOfBuckets)
-            numSamples = Profile::numberOfBuckets; // We don't want profiles that are extremely hot to be given more weight.
-        numberOfSamplesInProfiles += numSamples;
-        if (isArgument) {
+
+    // Argument profiles. Stride is sizeof(ArgumentValueProfile) (24 bytes on 64-bit), so SIMD batching is awkward.
+    // Argument count is small (one per parameter), so a scalar loop with a fast-path is sufficient.
+    unsigned index = 0;
+    {
+        for (auto& profile : argumentValueProfiles()) {
+            EncodedJSValue bucket0 = profile.m_buckets[0];
+            EncodedJSValue bucket1 = profile.m_buckets[1]; // SpecFail bucket.
+            SpeculatedType prediction = profile.m_prediction;
+            using Profile = std::remove_reference_t<decltype(profile)>;
+            static_assert(Profile::numberOfBuckets == 1);
+            unsigned numSamples = (bucket0 ? 1u : 0u) + (bucket1 ? 1u : 0u) + (prediction != SpecNone ? 1u : 0u);
+            if (numSamples > Profile::numberOfBuckets)
+                numSamples = Profile::numberOfBuckets; // We don't want profiles that are extremely hot to be given more weight.
+            numberOfSamplesInProfiles += numSamples;
+
+            // Fast path: a profile is "dead" if it has no buckets, no prediction, and the unlinked profile
+            // has no prediction. computeUpdatedPrediction() and unlinked update would both be no-ops.
+            if (!bucket0 && !bucket1 && !prediction && (isBuiltinFunction || !unlinkedValueProfiles[index].prediction())) {
+                ++index;
+                continue;
+            }
+
             profile.computeUpdatedPrediction(locker);
             if (!isBuiltinFunction)
                 unlinkedValueProfiles[index].update(profile);
             ++index;
-            return;
         }
-        if (profile.numberOfSamples() || profile.isSampledBefore())
-            numberOfLiveNonArgumentValueProfiles++;
-        profile.computeUpdatedPrediction(locker);
-        if (!isBuiltinFunction)
-            unlinkedValueProfiles[index].update(profile);
-        ++index;
-    });
+    }
 
     if (m_metadata) {
+        auto profiles = m_metadata->valueProfiles();
+        unsigned numProfiles = profiles.size();
+        unsigned argCount = argumentValueProfiles().size();
+        ASSERT(index == argCount);
+
+        ValueProfile* base = profiles.data();
+        static_assert(sizeof(ValueProfile) == 16, "SIMD batch assumes 16-byte ValueProfile");
+        static_assert(sizeof(UnlinkedValueProfile) == sizeof(SpeculatedType), "SIMD batch assumes 8-byte UnlinkedValueProfile");
+
+        auto process = [&](ValueProfile& profile, unsigned unlinkedIndex) ALWAYS_INLINE_LAMBDA {
+            EncodedJSValue bucket = profile.m_buckets[0];
+            SpeculatedType prediction = profile.m_prediction;
+            SpeculatedType unlinkedPrediction = isBuiltinFunction ? SpecNone : unlinkedValueProfiles[unlinkedIndex].prediction();
+
+            if (!bucket && !prediction && !unlinkedPrediction)
+                return;
+
+            unsigned numSamples = (bucket ? 1u : 0u) + (prediction != SpecNone ? 1u : 0u);
+            using Profile = std::remove_reference_t<decltype(profile)>;
+            static_assert(Profile::numberOfBuckets == 1);
+            if (numSamples > Profile::numberOfBuckets)
+                numSamples = Profile::numberOfBuckets;
+            numberOfSamplesInProfiles += numSamples;
+
+            if (bucket || prediction)
+                ++numberOfLiveNonArgumentValueProfiles;
+
+            profile.computeUpdatedPrediction(locker);
+            if (!isBuiltinFunction)
+                unlinkedValueProfiles[unlinkedIndex].update(profile);
+        };
+
+        unsigned j = 0;
+        constexpr unsigned batchSize = 4;
+        for (; j + batchSize <= numProfiles; j += batchSize) {
+            const uint8_t* linkedPtr = std::bit_cast<const uint8_t*>(base + j);
+            auto v0 = SIMD::load(linkedPtr + 0 * sizeof(ValueProfile));
+            auto v1 = SIMD::load(linkedPtr + 1 * sizeof(ValueProfile));
+            auto v2 = SIMD::load(linkedPtr + 2 * sizeof(ValueProfile));
+            auto v3 = SIMD::load(linkedPtr + 3 * sizeof(ValueProfile));
+            auto linkedAcc = SIMD::bitOr(v0, v1, v2, v3);
+
+            auto allAcc = linkedAcc;
+            if (!isBuiltinFunction) {
+                // The 4 unlinked profiles for this batch live at consecutive (descending) indices, occupying
+                // 32 contiguous bytes. Read them as 2 unaligned 16-byte loads.
+                unsigned unlinkedFirst = argCount + numProfiles - 1 - (j + batchSize - 1);
+                const uint8_t* unlinkedPtr = std::bit_cast<const uint8_t*>(&unlinkedValueProfiles[unlinkedFirst]);
+                auto u0 = SIMD::load(unlinkedPtr + 0);
+                auto u1 = SIMD::load(unlinkedPtr + 16);
+                allAcc = SIMD::bitOr(allAcc, u0, u1);
+            }
+
+            if (!SIMD::isNonZero(allAcc))
+                continue;
+
+            for (unsigned k = 0; k < batchSize; ++k)
+                process(base[j + k], argCount + numProfiles - 1 - (j + k));
+        }
+        for (; j < numProfiles; ++j)
+            process(base[j], argCount + numProfiles - 1 - j);
+
         m_metadata->forEach<OpCatch>([&](auto& metadata) {
             if (metadata.m_buffer) {
                 metadata.m_buffer->forEach([&](ValueProfileAndVirtualRegister& profile) {
