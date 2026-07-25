@@ -3112,28 +3112,66 @@ class YarrGenerator final : public YarrJITInfo {
         // Unless have a 16 bit pattern character and an 8 bit string - short circuit
         if (!(!isLatin1(ch) && (m_charSize == CharSize::Char8))) {
             MacroAssembler::JumpList failures;
-            MacroAssembler::Label loop(&m_jit);
-            failures.append(atEndOfInput());
-            failures.append(jumpIfCharNotEquals(ch, op.m_checkedOffset - term->inputPosition, character, term->ignoreCase()));
+            if (!m_decodeSurrogatePairs || U_IS_BMP(ch)) {
+                // Each match consumes exactly one code unit, so the repetition count is
+                // derivable from the index delta. Instead of incrementing a count register
+                // every iteration, we precompute the limit index (min(length, index + maxCount))
+                // and materialize the count once the loop exits. This removes one instruction
+                // per iteration from the hot loop, and folds the end-of-input and max-count
+                // checks into a single compare.
+                const MacroAssembler::RegisterID beginIndexRegister = m_regs.regT2;
+                const MacroAssembler::RegisterID limitRegister = countRegister;
+                m_usesT2 = true;
 
-            m_jit.add32(MacroAssembler::TrustedImm32(1), m_regs.index);
+                m_jit.move(m_regs.index, beginIndexRegister);
+                if (term->quantityMaxCount == quantifyInfinite)
+                    m_jit.move(m_regs.length, limitRegister);
+                else {
+                    // limit = min(length, index + maxCount), computed overflow-free as
+                    // index + min(length - index, maxCount), which keeps index + limit <= length.
+                    m_jit.sub32(m_regs.length, m_regs.index, limitRegister);
+                    MacroAssembler::Jump remainingIsLarger = m_jit.branch32(MacroAssembler::Above, limitRegister, MacroAssembler::Imm32(term->quantityMaxCount));
+                    m_jit.move(m_regs.length, limitRegister);
+                    MacroAssembler::Jump limitReady = m_jit.jump();
+                    remainingIsLarger.link(&m_jit);
+                    m_jit.move(m_regs.index, limitRegister);
+                    m_jit.add32(MacroAssembler::Imm32(term->quantityMaxCount), limitRegister);
+                    limitReady.link(&m_jit);
+                }
+
+                MacroAssembler::Label loop(&m_jit);
+                failures.append(m_jit.branch32(MacroAssembler::Equal, m_regs.index, limitRegister));
+                failures.append(jumpIfCharNotEquals(ch, op.m_checkedOffset - term->inputPosition, character, term->ignoreCase()));
+
+                m_jit.add32(MacroAssembler::TrustedImm32(1), m_regs.index);
+                m_jit.jump(loop);
+
+                failures.link(&m_jit);
+                m_jit.sub32(m_regs.index, beginIndexRegister, countRegister);
+            } else {
 #if ENABLE(YARR_JIT_UNICODE_EXPRESSIONS)
-            if (m_decodeSurrogatePairs && !U_IS_BMP(ch)) {
+                MacroAssembler::Label loop(&m_jit);
+                failures.append(atEndOfInput());
+                failures.append(jumpIfCharNotEquals(ch, op.m_checkedOffset - term->inputPosition, character, term->ignoreCase()));
+
+                m_jit.add32(MacroAssembler::TrustedImm32(1), m_regs.index);
                 MacroAssembler::Jump surrogatePairOk = notAtEndOfInput();
                 m_jit.sub32(MacroAssembler::TrustedImm32(1), m_regs.index);
                 failures.append(m_jit.jump());
                 surrogatePairOk.link(&m_jit);
                 m_jit.add32(MacroAssembler::TrustedImm32(1), m_regs.index);
-            }
+                m_jit.add32(MacroAssembler::TrustedImm32(1), countRegister);
+
+                if (term->quantityMaxCount == quantifyInfinite)
+                    m_jit.jump(loop);
+                else
+                    m_jit.branch32(MacroAssembler::NotEqual, countRegister, MacroAssembler::Imm32(term->quantityMaxCount)).linkTo(loop, &m_jit);
+
+                failures.link(&m_jit);
+#else
+                RELEASE_ASSERT_NOT_REACHED();
 #endif
-            m_jit.add32(MacroAssembler::TrustedImm32(1), countRegister);
-
-            if (term->quantityMaxCount == quantifyInfinite)
-                m_jit.jump(loop);
-            else
-                m_jit.branch32(MacroAssembler::NotEqual, countRegister, MacroAssembler::Imm32(term->quantityMaxCount)).linkTo(loop, &m_jit);
-
-            failures.link(&m_jit);
+            }
         }
         defineReentryLabel(op);
 
@@ -3381,6 +3419,157 @@ class YarrGenerator final : public YarrJITInfo {
         backtrackTermDefault(opIndex);
     }
 
+#if CPU(ARM64)
+    // Emit a SIMD scan pre-loop for a greedy character-class term over 8-bit input,
+    // testing 16 characters per iteration. The scan advances m_regs.index past matched
+    // characters, jumps into |failures| when it finds a stopping character, and falls
+    // through to the scalar loop (which the caller emits next) for the tail.
+    //
+    // Only exact-membership class shapes that vectorize trivially are handled:
+    //   - non-inverted single range [lo-hi]: stop when c < lo || c > hi
+    //   - inverted single range [^lo-hi]:    stop when lo <= c <= hi
+    //   - inverted match set [^m0...mN] (N < 4): stop when c == m_i
+    //
+    // |limitRegister| holds the precomputed limit index (min(length, begin + maxCount)).
+    // |limitBoundRegister| is used as a GPR scratch holding limit - 16.
+    // Returns without emitting anything when the class shape or environment is unsuitable.
+    void generateGreedyCharacterClassSIMDScan(PatternTerm* term, YarrOp& op, MacroAssembler::RegisterID limitRegister, MacroAssembler::RegisterID limitBoundRegister, MacroAssembler::JumpList& failures)
+    {
+        ASSERT(!m_decodeSurrogatePairs);
+        ASSERT(term->type == PatternTerm::Type::CharacterClass);
+
+        if (m_charSize != CharSize::Char8)
+            return;
+
+        // Calls clobber the SIMD registers.
+        if (mayCall())
+            return;
+
+        // The inlined RegExp.test path (DFG/FTL) does not provide SIMD registers.
+        if (m_regs.vectorTemp0 == InvalidFPRReg || m_regs.vectorInput0 == InvalidFPRReg)
+            return;
+
+        CharacterClass* characterClass = term->characterClass;
+        if (characterClass->m_anyCharacter)
+            return;
+
+        // Members >= U+0100 (m_matches32 / m_ranges32) are unreachable on 8-bit input,
+        // so only the 8-bit member lists determine the scan, exactly like
+        // matchCharacterClass's handling of Char8 input.
+        enum class ScanKind : uint8_t { Range, RangeInverted, MatchesInverted };
+        ScanKind kind;
+        if (characterClass->m_matches8.isEmpty() && characterClass->m_ranges8.size() == 1)
+            kind = term->invert() ? ScanKind::RangeInverted : ScanKind::Range;
+        else if (term->invert() && characterClass->m_ranges8.isEmpty()
+            && !characterClass->m_matches8.isEmpty() && characterClass->m_matches8.size() <= 4)
+            kind = ScanKind::MatchesInverted;
+        else
+            return;
+
+        auto splat8 = [](uint8_t byte) {
+            v128_t vector;
+            for (unsigned i = 0; i < 16; ++i)
+                vector.u8x16[i] = byte;
+            return vector;
+        };
+
+        // Load the pattern constants into vectorTemp registers.
+        unsigned numMatchConstants = 0;
+        switch (kind) {
+        case ScanKind::Range:
+        case ScanKind::RangeInverted: {
+            auto& range = characterClass->m_ranges8.first();
+            ASSERT(range.begin <= 0xff && range.end <= 0xff);
+            m_jit.move128ToVector(splat8(static_cast<uint8_t>(range.begin)), m_regs.vectorTemp0);
+            m_jit.move128ToVector(splat8(static_cast<uint8_t>(range.end)), m_regs.vectorTemp1);
+            break;
+        }
+        case ScanKind::MatchesInverted:
+            numMatchConstants = characterClass->m_matches8.size();
+            ASSERT(numMatchConstants >= 1 && numMatchConstants <= 4);
+            for (unsigned i = 0; i < numMatchConstants; ++i) {
+                ASSERT(characterClass->m_matches8[i] <= 0xff);
+                FPRReg constantFPR = m_regs.vectorTemp0;
+                if (i == 1)
+                    constantFPR = m_regs.vectorTemp1;
+                else if (i == 2)
+                    constantFPR = m_regs.vectorTemp2;
+                else if (i == 3)
+                    constantFPR = m_regs.vectorTemp3;
+                m_jit.move128ToVector(splat8(static_cast<uint8_t>(characterClass->m_matches8[i])), constantFPR);
+            }
+            break;
+        }
+
+        // limitBound = limit - 16. A full 16-character block can be scanned while
+        // index <= limitBound; lanes of the block map 1:1 to scalar iterations
+        // index..index+15, which all stay below limit (and thus within the string).
+        MacroAssembler::JumpList scalarLoop;
+        m_jit.sub32(limitRegister, MacroAssembler::TrustedImm32(16), limitBoundRegister);
+        scalarLoop.append(m_jit.branch32(MacroAssembler::Below, limitRegister, MacroAssembler::TrustedImm32(16)));
+        scalarLoop.append(m_jit.branch32(MacroAssembler::Above, m_regs.index, limitBoundRegister));
+
+        // Load address: input + index - (checkedOffset - inputPosition), matching the
+        // scalar loop's read. regT3 holds the adjusted base for huge offsets; nothing
+        // in the SIMD loop clobbers it.
+        MacroAssembler::BaseIndex loadAddress = negativeOffsetIndexedAddress(op.m_checkedOffset - term->inputPosition, m_regs.regT3);
+
+        SIMDInfo simdI8x16 { SIMDLane::i8x16, SIMDSignMode::Unsigned };
+        SIMDInfo simdV128 { SIMDLane::v128, SIMDSignMode::None };
+
+        auto simdLoopHead = m_jit.label();
+        m_jit.loadVector(loadAddress, m_regs.vectorInput0);
+
+        // Build the stop mask: 0xFF in a byte lane means that character stops the scan.
+        switch (kind) {
+        case ScanKind::Range:
+            // stop when lo > c || c > hi
+            m_jit.compareIntegerVector(MacroAssembler::Above, simdI8x16, m_regs.vectorTemp0, m_regs.vectorInput0, m_regs.vectorScratch0);
+            m_jit.compareIntegerVector(MacroAssembler::Above, simdI8x16, m_regs.vectorInput0, m_regs.vectorTemp1, m_regs.vectorScratch1);
+            m_jit.vectorOr(simdV128, m_regs.vectorScratch0, m_regs.vectorScratch1, m_regs.vectorScratch0);
+            break;
+        case ScanKind::RangeInverted:
+            // stop when c >= lo && hi >= c
+            m_jit.compareIntegerVector(MacroAssembler::AboveOrEqual, simdI8x16, m_regs.vectorInput0, m_regs.vectorTemp0, m_regs.vectorScratch0);
+            m_jit.compareIntegerVector(MacroAssembler::AboveOrEqual, simdI8x16, m_regs.vectorTemp1, m_regs.vectorInput0, m_regs.vectorScratch1);
+            m_jit.vectorAnd(simdV128, m_regs.vectorScratch0, m_regs.vectorScratch1, m_regs.vectorScratch0);
+            break;
+        case ScanKind::MatchesInverted: {
+            // stop when c == m_i for any i
+            FPRReg constantFPRs[4] = { m_regs.vectorTemp0, m_regs.vectorTemp1, m_regs.vectorTemp2, m_regs.vectorTemp3 };
+            m_jit.compareIntegerVector(MacroAssembler::Equal, simdI8x16, m_regs.vectorInput0, constantFPRs[0], m_regs.vectorScratch0);
+            for (unsigned i = 1; i < numMatchConstants; ++i) {
+                m_jit.compareIntegerVector(MacroAssembler::Equal, simdI8x16, m_regs.vectorInput0, constantFPRs[i], m_regs.vectorScratch1);
+                m_jit.vectorOr(simdV128, m_regs.vectorScratch0, m_regs.vectorScratch1, m_regs.vectorScratch0);
+            }
+            break;
+        }
+        }
+
+        // Narrow the 128-bit stop mask to 64 bits (one nibble per lane), then test.
+        m_jit.vectorShrnInt8(m_regs.vectorScratch0, 4, m_regs.vectorScratch0);
+        m_jit.moveDoubleTo64(m_regs.vectorScratch0, m_regs.regT0);
+        auto noStop = m_jit.branchTest64(MacroAssembler::Zero, m_regs.regT0);
+
+        // Stop found: locate the first stop lane with RBIT + CLZ (each lane is 4 bits),
+        // advance the index to it, and exit like a failed scalar character test.
+        m_jit.reverseBits64(m_regs.regT0, m_regs.regT0);
+        m_jit.countLeadingZeros64(m_regs.regT0, m_regs.regT0);
+        m_jit.urshift64(MacroAssembler::TrustedImm32(2), m_regs.regT0);
+        m_jit.add32(m_regs.regT0, m_regs.index);
+        failures.append(m_jit.jump());
+
+        // No stop in this block: consume all 16 characters and continue.
+        noStop.link(&m_jit);
+        m_jit.add32(MacroAssembler::TrustedImm32(16), m_regs.index);
+        m_jit.branch32(MacroAssembler::BelowOrEqual, m_regs.index, limitBoundRegister).linkTo(simdLoopHead, &m_jit);
+
+        // Tail: fewer than 16 characters before the limit remain; use the scalar loop.
+        scalarLoop.link(&m_jit);
+        m_usesSIMD = true;
+    }
+#endif
+
     void generateCharacterClassGreedy(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
@@ -3390,6 +3579,58 @@ class YarrGenerator final : public YarrJITInfo {
         const MacroAssembler::RegisterID countRegister = m_regs.regT1;
         const MacroAssembler::RegisterID scratch = m_regs.regT2;
         m_usesT2 = true;
+
+        if (!m_decodeSurrogatePairs) {
+            // Each match consumes exactly one code unit, so the repetition count is
+            // derivable from the index delta. Instead of incrementing a count register
+            // every iteration, we precompute the limit index (min(length, index + maxCount))
+            // and materialize the count once the loop exits. This removes one instruction
+            // per iteration from the hot loop, and folds the end-of-input and max-count
+            // checks into a single compare.
+            //
+            // The begin index is kept in the term's beginIndex frame slot (only otherwise
+            // used in surrogate-decode mode) instead of a register: the inlined RegExp.test
+            // code path (DFG/FTL) does not provide a valid regT3.
+            const MacroAssembler::RegisterID limitRegister = countRegister;
+
+            storeToFrame(m_regs.index, term->frameLocation + BackTrackInfoCharacterClass::beginIndex());
+            if (term->quantityMaxCount == quantifyInfinite)
+                m_jit.move(m_regs.length, limitRegister);
+            else {
+                // limit = min(length, index + maxCount), computed overflow-free as
+                // index + min(length - index, maxCount), which keeps index + limit <= length.
+                m_jit.sub32(m_regs.length, m_regs.index, limitRegister);
+                MacroAssembler::Jump remainingIsLarger = m_jit.branch32(MacroAssembler::Above, limitRegister, MacroAssembler::Imm32(term->quantityMaxCount));
+                m_jit.move(m_regs.length, limitRegister);
+                MacroAssembler::Jump limitReady = m_jit.jump();
+                remainingIsLarger.link(&m_jit);
+                m_jit.move(m_regs.index, limitRegister);
+                m_jit.add32(MacroAssembler::Imm32(term->quantityMaxCount), limitRegister);
+                limitReady.link(&m_jit);
+            }
+
+            MacroAssembler::JumpList failures;
+#if CPU(ARM64)
+            generateGreedyCharacterClassSIMDScan(term, op, limitRegister, scratch, failures);
+#endif
+            MacroAssembler::Label loop(&m_jit);
+            failures.append(m_jit.branch32(MacroAssembler::Equal, m_regs.index, limitRegister));
+
+            readCharacter(op.m_checkedOffset - term->inputPosition, character);
+
+            matchCharacterClassTermInner(term, failures, character, scratch);
+
+            m_jit.add32(MacroAssembler::TrustedImm32(1), m_regs.index);
+            m_jit.jump(loop);
+
+            failures.link(&m_jit);
+            loadFromFrame(term->frameLocation + BackTrackInfoCharacterClass::beginIndex(), scratch);
+            m_jit.sub32(m_regs.index, scratch, countRegister);
+            defineReentryLabel(op);
+
+            storeToFrame(countRegister, term->frameLocation + BackTrackInfoCharacterClass::matchAmountIndex());
+            return;
+        }
 
         if (m_decodeSurrogatePairs && (!term->characterClass->hasOneCharacterSize() || term->invert()))
             storeToFrame(m_regs.index, term->frameLocation + BackTrackInfoCharacterClass::beginIndex());
