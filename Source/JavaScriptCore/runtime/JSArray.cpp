@@ -1418,7 +1418,7 @@ JSValue JSArray::fastShift(VM& vm)
     Butterfly* butterfly = this->butterfly();
     auto indexingType = this->indexingType();
 
-    constexpr unsigned shiftThreshold = 128;
+    constexpr unsigned shiftThreshold = fastShiftThreshold;
 
     switch (indexingType) {
     case ArrayClass:

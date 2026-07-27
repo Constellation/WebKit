@@ -41,6 +41,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include "DateInstance.h"
 #include "HasOwnPropertyCache.h"
 #include "IteratorOperations.h"
+#include "JSArray.h"
 #include "JSMap.h"
 #include "JSMapIterator.h"
 #include "JSPromise.h"
@@ -4523,13 +4524,29 @@ void SpeculativeJIT::compile(Node* node)
             JumpList slowCases;
             load32(Address(storageGPR, Butterfly::offsetOfPublicLength()), storageLengthGPR);
             Jump undefinedCase = branchTest32(Zero, storageLengthGPR);
-            slowCases.append(branch32(NotEqual, storageLengthGPR, TrustedImm32(1)));
+            Jump notOneCase = branch32(NotEqual, storageLengthGPR, TrustedImm32(1));
 
+            // length == 1 case, fully inlined.
             load64(Address(storageGPR), valueGPR);
             slowCases.append(branchIfEmpty(valueGPR));
 
             storeTrustedValue(JSValue(), Address(storageGPR));
             store32(TrustedImm32(0), Address(storageGPR, Butterfly::offsetOfPublicLength()));
+            Jump doneCase = jump();
+
+            // 2 <= length <= JSArray::fastShiftThreshold case. The parser only creates this node
+            // when the array has an original structure and the array prototype chain is
+            // watchpointed to be sane, so the elements can be moved without re-checking the
+            // prototype chain. The call goes through the slow-path mechanism so that all
+            // registers are spilled and restored correctly around it.
+            notOneCase.link(this);
+            slowCases.append(branch32(Above, storageLengthGPR, TrustedImm32(JSArray::fastShiftThreshold)));
+            addSlowPathGenerator(slowPathCall(jump(), this, operationArrayShiftElements, valueGPR, LinkableConstant::globalObject(*this, node), baseGPR));
+            // The operation returns the empty value without mutating the array when element 0 is
+            // a hole; fall back to the generic shift in that case.
+            slowCases.append(branchIfEmpty(valueGPR));
+
+            doneCase.link(this);
 
             addSlowPathGenerator(slowPathMove(undefinedCase, this, TrustedImm64(JSValue::encode(jsUndefined())), valueGPR));
             addSlowPathGenerator(slowPathCall(slowCases, this, operationArrayShift, valueGPR, LinkableConstant::globalObject(*this, node), baseGPR));

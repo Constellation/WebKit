@@ -48,6 +48,7 @@
 #include "FTLForOSREntryJITCode.h"
 #include "FTLOSREntry.h"
 #include "FrameTracers.h"
+#include "GCMemoryOperations.h"
 #include "HasOwnPropertyCache.h"
 #include "Interpreter.h"
 #include "InterpreterInlines.h"
@@ -1346,6 +1347,39 @@ JSC_DEFINE_JIT_OPERATION(operationArrayShift, EncodedJSValue, (JSGlobalObject* g
     scope.release();
     setLength(globalObject, vm, array, length - 1);
     OPERATION_RETURN(scope, JSValue::encode(front));
+}
+
+// Element-move core of fastShift for small non-CopyOnWrite Int32 / Contiguous arrays whose
+// prototype chain is known to be sane (guaranteed by the caller's structure speculation and the
+// arrayPrototypeChainIsSane watchpoint). Returns element 0 without mutating the array if it is a
+// hole, so the caller can fall back to the generic shift path. The caller guarantees
+// 2 <= length <= JSArray::fastShiftThreshold.
+JSC_DEFINE_JIT_OPERATION(operationArrayShiftElements, EncodedJSValue, (JSGlobalObject* globalObject, JSArray* array))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    Butterfly* butterfly = array->butterfly();
+    unsigned length = butterfly->publicLength();
+    ASSERT(length >= 2 && length <= JSArray::fastShiftThreshold);
+
+    JSValue result = butterfly->contiguous().at(array, 0).get();
+    if (!result) [[unlikely]]
+        OPERATION_RETURN(scope, JSValue::encode(JSValue()));
+
+    unsigned moveCount = length - 1;
+    if (array->indexingType() == ArrayWithInt32)
+        memmove(butterfly->contiguous().data(), butterfly->contiguous().data() + 1, sizeof(JSValue) * moveCount);
+    else {
+        ASSERT(array->indexingType() == ArrayWithContiguous);
+        gcSafeMemmove(butterfly->contiguous().data(), butterfly->contiguous().data() + 1, sizeof(JSValue) * moveCount);
+        vm.writeBarrier(array);
+    }
+    butterfly->contiguous().at(array, moveCount).clear();
+    butterfly->setPublicLength(moveCount);
+    OPERATION_RETURN(scope, JSValue::encode(result));
 }
 
 static ALWAYS_INLINE JSValue arrayUnshiftSingleImpl(JSGlobalObject* globalObject, VM& vm, JSArray* array, JSValue value)

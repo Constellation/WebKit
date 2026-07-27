@@ -3150,10 +3150,21 @@ auto ByteCodeParser::handleIntrinsicCall(Node* callee, Operand resultOperand, Ca
             ArrayMode arrayMode = getArrayMode(Array::Write);
             if (!arrayMode.isJSArray())
                 return CallOptimizationResult::DidNothing;
+            // The inline shift paths move elements without consulting the prototype. That is only
+            // valid when the structure speculation pins the array prototype and the array prototype
+            // chain is known to be sane, so require the same guarantees as ArrayJoin here.
+            if (!arrayMode.isJSArrayWithOriginalStructure())
+                return CallOptimizationResult::DidNothing;
+
+            JSGlobalObject* globalObject = m_graph.globalObjectFor(currentNodeOrigin().semantic);
+            if (globalObject->arrayPrototypeChainIsSaneWatchpointSet().state() != IsWatched)
+                return CallOptimizationResult::DidNothing;
+
             switch (arrayMode.type()) {
             case Array::Int32:
             case Array::Double:
             case Array::Contiguous: {
+                m_graph.watchpoints().addLazily(globalObject->arrayPrototypeChainIsSaneWatchpointSet());
                 insertChecks();
                 Node* arrayShift = addToGraph(ArrayShift, OpInfo(arrayMode.asWord()), OpInfo(prediction), get(virtualRegisterForArgumentIncludingThis(0, registerOffset)));
                 setResult(arrayShift);

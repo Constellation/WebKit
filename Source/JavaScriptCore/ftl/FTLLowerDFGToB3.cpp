@@ -42,6 +42,7 @@
 #include "CPUInlines.h"
 #include "CallFrameShuffler.h"
 #include "ClonedArguments.h"
+#include "JSArray.h"
 #include "DFGAbstractInterpreterInlines.h"
 #include "DFGCFAPhase.h"
 #include "DFGCapabilities.h"
@@ -9092,7 +9093,11 @@ IGNORE_CLANG_WARNINGS_END
 
     void compileArrayShift()
     {
-        // Inlined code handles length = 0 and length = 1 case. Otherwise, calling operation.
+        // Inlined code handles length = 0 and length = 1 case. For small arrays (length <=
+        // JSArray::fastShiftThreshold) it calls operationArrayShiftElements, which moves the
+        // elements down by one without re-checking the prototype chain: the parser only creates
+        // this node when the array has an original structure and the array prototype chain is
+        // watchpointed to be sane. Otherwise, calling operationArrayShift.
         JSGlobalObject* globalObject = m_graph.globalObjectFor(m_origin.semantic);
         LValue base = lowCell(m_node->child1());
         LValue storage = lowStorage(m_node->child2());
@@ -9103,6 +9108,9 @@ IGNORE_CLANG_WARNINGS_END
             IndexedAbstractHeap& heap = m_heaps.forArrayType(m_node->arrayMode().type());
 
             LBasicBlock checkLengthOne = m_out.newBlock();
+            LBasicBlock checkSmallShift = m_out.newBlock();
+            LBasicBlock shiftElementsCase = m_out.newBlock();
+            LBasicBlock shiftDone = m_out.newBlock();
             LBasicBlock loadCase = m_out.newBlock();
             LBasicBlock fastDone = m_out.newBlock();
             LBasicBlock slowCase = m_out.newBlock();
@@ -9110,12 +9118,23 @@ IGNORE_CLANG_WARNINGS_END
 
             LValue prevLength = m_out.load32(storage, m_heaps.Butterfly_publicLength);
 
-            Vector<ValueFromBlock, 3> results;
+            Vector<ValueFromBlock, 4> results;
             results.append(m_out.anchor(m_out.constInt64(JSValue::encode(jsUndefined()))));
             m_out.branch(m_out.isZero32(prevLength), rarely(continuation), usually(checkLengthOne));
 
-            LBasicBlock lastNext = m_out.appendTo(checkLengthOne, loadCase);
-            m_out.branch(m_out.equal(prevLength, m_out.int32One), usually(loadCase), rarely(slowCase));
+            LBasicBlock lastNext = m_out.appendTo(checkLengthOne, checkSmallShift);
+            m_out.branch(m_out.equal(prevLength, m_out.int32One), usually(loadCase), rarely(checkSmallShift));
+
+            m_out.appendTo(checkSmallShift, shiftElementsCase);
+            m_out.branch(m_out.above(prevLength, m_out.constInt32(JSArray::fastShiftThreshold)), rarely(slowCase), usually(shiftElementsCase));
+
+            m_out.appendTo(shiftElementsCase, shiftDone);
+            LValue shiftResult = vmCall(Int64, operationArrayShiftElements, weakPointer(globalObject), base);
+            m_out.branch(m_out.notZero64(shiftResult), usually(shiftDone), rarely(slowCase));
+
+            m_out.appendTo(shiftDone, loadCase);
+            results.append(m_out.anchor(shiftResult));
+            m_out.jump(continuation);
 
             m_out.appendTo(loadCase, fastDone);
             TypedPointer pointer = m_out.baseIndex(heap, storage, m_out.intPtrZero);

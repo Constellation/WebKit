@@ -52,7 +52,7 @@ noInline(drain);
     }
 })();
 
-// Multi-element Int32: drains via slow path (operationArrayShift).
+// Multi-element Int32: drains via the element-move path (operationArrayShiftElements).
 (function () {
     for (var i = 0; i < testLoopCount; ++i) {
         var results = drain([1, 2, 3, 4, 5]);
@@ -65,7 +65,7 @@ noInline(drain);
     }
 })();
 
-// Multi-element Double: drains via slow path.
+// Multi-element Double: drains via the operation path.
 (function () {
     for (var i = 0; i < testLoopCount; ++i) {
         var results = drain([1.5, 2.5, 3.5, 4.5]);
@@ -77,7 +77,7 @@ noInline(drain);
     }
 })();
 
-// Multi-element Contiguous: drains via slow path.
+// Multi-element Contiguous: drains via the element-move path.
 (function () {
     for (var i = 0; i < testLoopCount; ++i) {
         var results = drain(["a", "b", "c"]);
@@ -152,5 +152,101 @@ noInline(drain);
         shouldBe(array.length, 0);
     } finally {
         delete Array.prototype[0];
+    }
+})();
+
+// Length >= 2 with a hole at index 0: the element-move operation must bail to the
+// generic path (it returns the empty value without mutating the array).
+(function () {
+    for (var i = 0; i < testLoopCount; ++i) {
+        var array = [1, 2, 3];
+        delete array[0];
+        shouldBe(array.length, 3);
+        shouldBe(shiftOnce(array), undefined);
+        shouldBe(array.length, 2);
+        shouldBe(array[0], 2);
+        shouldBe(array[1], 3);
+    }
+})();
+
+// Length >= 2 with a hole in the middle: the hole moves down like any other value.
+(function () {
+    for (var i = 0; i < testLoopCount; ++i) {
+        var array = [1, 2, 3];
+        delete array[1];
+        shouldBe(shiftOnce(array), 1);
+        shouldBe(array.length, 2);
+        shouldBe(0 in array, false);
+        shouldBe(array[0], undefined);
+        shouldBe(array[1], 3);
+    }
+})();
+
+// Length == 128 (fastShiftThreshold) takes the element-move path; length == 129
+// takes the generic path. Both must produce the same result.
+(function () {
+    for (var i = 0; i < testLoopCount; ++i) {
+        var a128 = [];
+        for (var j = 0; j < 128; ++j)
+            a128.push(j);
+        shouldBe(shiftOnce(a128), 0);
+        shouldBe(a128.length, 127);
+        shouldBe(a128[0], 1);
+        shouldBe(a128[126], 127);
+
+        var a129 = [];
+        for (var j = 0; j < 129; ++j)
+            a129.push(j);
+        shouldBe(shiftOnce(a129), 0);
+        shouldBe(a129.length, 128);
+        shouldBe(a129[0], 1);
+        shouldBe(a129[127], 128);
+    }
+})();
+
+// Same boundary with Contiguous (string) elements.
+(function () {
+    for (var i = 0; i < testLoopCount; ++i) {
+        var a128 = [];
+        for (var j = 0; j < 128; ++j)
+            a128.push("v" + j);
+        shouldBe(shiftOnce(a128), "v0");
+        shouldBe(a128.length, 127);
+        shouldBe(a128[0], "v1");
+        shouldBe(a128[126], "v127");
+
+        var a129 = [];
+        for (var j = 0; j < 129; ++j)
+            a129.push("v" + j);
+        shouldBe(shiftOnce(a129), "v0");
+        shouldBe(a129.length, 128);
+        shouldBe(a129[0], "v1");
+        shouldBe(a129[127], "v128");
+    }
+})();
+
+// Polluting Array.prototype with an indexed property invalidates the
+// arrayPrototypeChainIsSane watchpoint. Compiled code must fall back to the
+// generic path, where a hole reads through the prototype chain.
+(function () {
+    function shiftIsolated(array) {
+        return array.shift();
+    }
+    noInline(shiftIsolated);
+
+    for (var i = 0; i < testLoopCount; ++i)
+        shiftIsolated([i, i + 1, i + 2]);
+
+    Array.prototype[1] = "proto-one";
+    try {
+        var array = [10, 20, 30];
+        delete array[1];
+        shouldBe(array.length, 3);
+        shouldBe(shiftIsolated(array), 10);
+        shouldBe(array.length, 2);
+        shouldBe(array[0], "proto-one");
+        shouldBe(array[1], 30);
+    } finally {
+        delete Array.prototype[1];
     }
 })();

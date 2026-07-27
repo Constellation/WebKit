@@ -108,6 +108,10 @@ public:
     JS_EXPORT_PRIVATE JSValue pop(JSGlobalObject*);
     JSValue fastShift(VM&);
 
+    // Arrays with length at or below this threshold take the memmove-based fastShift path
+    // instead of converting to ArrayStorage. DFG / FTL inline shift paths rely on the same bound.
+    static constexpr unsigned fastShiftThreshold = 128;
+
     static JSArray* fastSlice(JSGlobalObject*, JSObject* source, uint64_t startIndex, uint64_t count);
 
     bool holesMustForwardToPrototype() const;
