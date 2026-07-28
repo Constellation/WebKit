@@ -281,22 +281,16 @@ void objectAssignGeneric(JSGlobalObject* globalObject, VM& vm, JSObject* target,
     // [[GetOwnPropertyNames]], [[Get]] etc. could modify target object and invalidate this assumption.
     // For example, [[Get]] of source object could configure setter to target object. So disable the fast path.
 
-    PropertyNameArrayBuilder properties(vm, PropertyNameMode::StringsAndSymbols, PrivateSymbolMode::Exclude);
-    source->methodTable()->getOwnPropertyNames(source, globalObject, properties, DontEnumPropertiesMode::Include);
-    RETURN_IF_EXCEPTION(scope, void());
-
-    unsigned numProperties = properties.size();
-    for (unsigned j = 0; j < numProperties; j++) {
-        const auto& propertyName = properties[j];
+    auto performAssign = [&](const Identifier& propertyName) {
         ASSERT(!propertyName.isPrivateName());
 
         PropertySlot slot(source, PropertySlot::InternalMethodType::GetOwnProperty);
         bool hasProperty = source->methodTable()->getOwnPropertySlot(source, globalObject, propertyName, slot);
         RETURN_IF_EXCEPTION(scope, void());
         if (!hasProperty)
-            continue;
+            return;
         if (slot.attributes() & PropertyAttribute::DontEnum)
-            continue;
+            return;
 
         JSValue value;
         if (!slot.isTaintedByOpaqueObject()) [[likely]]
@@ -307,6 +301,109 @@ void objectAssignGeneric(JSGlobalObject* globalObject, VM& vm, JSObject* target,
 
         PutPropertySlot putPropertySlot(target, true);
         target->putInline(globalObject, propertyName, value, putPropertySlot);
+        RETURN_IF_EXCEPTION(scope, void());
+    };
+
+    // If the source's named properties can be enumerated directly from its Structure (no getters/setters,
+    // no indexed properties, no lazily reified static properties, and no overridden [[GetOwnPropertyNames]]),
+    // then snapshotting the names from the Structure is equivalent to building a PropertyNameArray via
+    // [[GetOwnPropertyNames]], but much cheaper. We still perform [[Get]] and [[Put]] per property name
+    // in the same order, so observable behavior is unchanged.
+    Structure* sourceStructure = source->structure();
+    if (!source->hasNonReifiedStaticProperties()
+        && sourceStructure->canPerformFastPropertyEnumerationCommon()
+        && !source->canHaveExistingOwnIndexedProperties()) {
+        EnsureStillAliveScope sourceStructureScope(sourceStructure);
+        Vector<Identifier, 8> propertyNames;
+        Vector<UniquedStringImpl*, 8> batchNames;
+        MarkedArgumentBuffer batchValues;
+        bool foundSymbol = false;
+        auto collectProperty = [&](const PropertyTableEntry& entry) -> bool {
+            PropertyName propertyName(entry.key());
+            if (propertyName.isPrivateName())
+                return true;
+            propertyNames.append(Identifier::fromUid(vm, entry.key()));
+            if (!(entry.attributes() & PropertyAttribute::DontEnum)) {
+                // The source does not have any getters, so reading the values now is not observable.
+                batchNames.append(entry.key()); // sourceStructure ensures the lifetimes of these strings.
+                batchValues.appendWithCrashOnOverflow(source->getDirect(entry.offset()));
+            }
+            return true;
+        };
+        sourceStructure->forEachProperty(vm, [&](const PropertyTableEntry& entry) -> bool {
+            if (entry.key()->isSymbol()) {
+                foundSymbol = true;
+                return true;
+            }
+            return collectProperty(entry);
+        });
+        if (foundSymbol) {
+            // To ensure the order defined in the spec, we append symbols at the last elements of keys.
+            // https://tc39.es/ecma262/#sec-ordinaryownpropertykeys
+            sourceStructure->forEachProperty(vm, [&](const PropertyTableEntry& entry) -> bool {
+                if (!entry.key()->isSymbol())
+                    return true;
+                return collectProperty(entry);
+            });
+        }
+
+        // If the target's own properties are all plain writable data properties and its prototype chain
+        // has no readonly, accessor, or custom properties whose names overlap with the source's enumerable
+        // properties, then putting own data properties directly is equivalent to performing OrdinarySet
+        // for each property, and we can use the batched put. This handles targets inheriting from
+        // prototypes that have unrelated such properties, e.g. Object.create(Iterator.prototype).
+        if (!batchNames.isEmpty()) {
+            auto* targetObject = dynamicDowncast<JSFinalObject>(target);
+            if (targetObject && targetObject->isStructureExtensible()
+                && !targetObject->hasNonReifiedStaticProperties()
+                && !targetObject->structure()->isUncacheableDictionary()
+                && !targetObject->structure()->hasReadOnlyOrGetterSetterPropertiesExcludingProto()) {
+                bool prototypeChainAllowsFastPut = true;
+                JSObject* object = targetObject;
+                while (true) {
+                    JSValue prototype = object->getPrototypeDirect();
+                    if (prototype.isNull())
+                        break;
+                    object = asObject(prototype);
+                    Structure* structure = object->structure();
+                    if (structure->typeInfo().overridesPut() || structure->typeInfo().overridesGetPrototype() || object->hasNonReifiedStaticProperties()) {
+                        prototypeChainAllowsFastPut = false;
+                        break;
+                    }
+                    if (structure->hasReadOnlyOrGetterSetterPropertiesExcludingProto()) {
+                        for (auto* name : batchNames) {
+                            unsigned attributes = 0;
+                            if (structure->get(vm, PropertyName(name), attributes) != invalidOffset
+                                && (attributes & PropertyAttribute::ReadOnlyOrAccessorOrCustomAccessorOrValue)) {
+                                prototypeChainAllowsFastPut = false;
+                                break;
+                            }
+                        }
+                        if (!prototypeChainAllowsFastPut)
+                            break;
+                    }
+                }
+                if (prototypeChainAllowsFastPut) {
+                    targetObject->putOwnDataPropertyBatching(vm, batchNames.mutableSpan().data(), batchValues.data(), batchNames.size());
+                    return;
+                }
+            }
+        }
+
+        for (auto& propertyName : propertyNames) {
+            performAssign(propertyName);
+            RETURN_IF_EXCEPTION(scope, void());
+        }
+        return;
+    }
+
+    PropertyNameArrayBuilder properties(vm, PropertyNameMode::StringsAndSymbols, PrivateSymbolMode::Exclude);
+    source->methodTable()->getOwnPropertyNames(source, globalObject, properties, DontEnumPropertiesMode::Include);
+    RETURN_IF_EXCEPTION(scope, void());
+
+    unsigned numProperties = properties.size();
+    for (unsigned j = 0; j < numProperties; j++) {
+        performAssign(properties[j]);
         RETURN_IF_EXCEPTION(scope, void());
     }
 }
