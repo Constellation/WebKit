@@ -771,6 +771,90 @@ std::span<JSBigInt::Digit, N * 2> JSBigInt::multiplyComba(std::span<const Digit,
     return result;
 }
 
+class PartialCombaAccumulator {
+    using Digit = JSBigInt::Digit;
+public:
+    ALWAYS_INLINE void mac(Digit a, Digit b)
+    {
+        TwoDigit prod = static_cast<TwoDigit>(a) * b;
+        TwoDigit sum0 = static_cast<TwoDigit>(t0) + static_cast<Digit>(prod);
+        t0 = static_cast<Digit>(sum0);
+        TwoDigit sum1 = static_cast<TwoDigit>(t1) + static_cast<Digit>(prod >> JSBigInt::digitBits) + static_cast<Digit>(sum0 >> JSBigInt::digitBits);
+        t1 = static_cast<Digit>(sum1);
+        t2 += static_cast<Digit>(sum1 >> JSBigInt::digitBits);
+    }
+
+    ALWAYS_INLINE Digit storeAndShift()
+    {
+        Digit result = t0;
+        t0 = t1;
+        t1 = t2;
+        t2 = 0;
+        return result;
+    }
+
+    ALWAYS_INLINE Digit residual() const { return t0; }
+
+    template<size_t K, size_t XN, size_t YN, size_t I = 0>
+    ALWAYS_INLINE void computeColumn(std::span<const Digit, XN> a, std::span<const Digit, YN> b)
+    {
+        if constexpr (I < XN) {
+            constexpr int J = static_cast<int>(K) - static_cast<int>(I);
+            if constexpr (J >= 0 && J < static_cast<int>(YN))
+                mac(a[I], b[J]);
+            computeColumn<K, XN, YN, I + 1>(a, b);
+        }
+    }
+
+    template<size_t KBegin, size_t KEnd, size_t XN, size_t YN, size_t K = KBegin>
+    ALWAYS_INLINE void computeColumns(Digit* r, std::span<const Digit, XN> a, std::span<const Digit, YN> b)
+    {
+        if constexpr (K < KEnd) {
+            computeColumn<K, XN, YN>(a, b);
+            r[K] = storeAndShift();
+            computeColumns<KBegin, KEnd, XN, YN, K + 1>(r, a, b);
+        }
+    }
+
+private:
+    Digit t0 { 0 };
+    Digit t1 { 0 };
+    Digit t2 { 0 };
+};
+
+template<size_t XN, size_t YN, size_t RN>
+static void multiplySpecialLowComba(std::span<const JSBigInt::Digit> x, std::span<const JSBigInt::Digit> y, std::span<JSBigInt::Digit> result)
+{
+    using Digit = JSBigInt::Digit;
+    std::array<Digit, XN> a;
+    std::array<Digit, YN> b;
+
+    for (size_t i = 0; i < XN; ++i)
+        a[i] = x[i];
+    for (size_t i = 0; i < YN; ++i)
+        b[i] = y[i];
+
+    PartialCombaAccumulator acc;
+    acc.template computeColumns<0, RN>(result.data(), std::span<const Digit, XN>(a), std::span<const Digit, YN>(b));
+}
+
+template<size_t XN, size_t YN, size_t Start>
+static void multiplySpecialHighComba(std::span<const JSBigInt::Digit> x, std::span<const JSBigInt::Digit> y, std::span<JSBigInt::Digit> result)
+{
+    using Digit = JSBigInt::Digit;
+    std::array<Digit, XN> a;
+    std::array<Digit, YN> b;
+
+    for (size_t i = 0; i < XN; ++i)
+        a[i] = x[i];
+    for (size_t i = 0; i < YN; ++i)
+        b[i] = y[i];
+
+    PartialCombaAccumulator acc;
+    acc.template computeColumns<Start, XN + YN - 1>(result.data(), std::span<const Digit, XN>(a), std::span<const Digit, YN>(b));
+    result[XN + YN - 1] = acc.residual();
+}
+
 std::span<JSBigInt::Digit> JSBigInt::multiplySingle(std::span<const Digit> multiplicand, Digit multiplier, std::span<Digit> result)
 {
     RELEASE_ASSERT(result.size() > multiplicand.size());
@@ -873,6 +957,33 @@ void JSBigInt::multiplySpecialLow(std::span<const Digit> xSpan, std::span<const 
     RELEASE_ASSERT(xSpan.size() >= ySpan.size() - 1);
     RELEASE_ASSERT(resultSpan.size());
 
+    if (xSpan.size() == 4 && resultSpan.size() == 5) {
+        switch (ySpan.size()) {
+        case 1: multiplySpecialLowComba<4, 1, 5>(xSpan, ySpan, resultSpan); return;
+        case 2: multiplySpecialLowComba<4, 2, 5>(xSpan, ySpan, resultSpan); return;
+        case 3: multiplySpecialLowComba<4, 3, 5>(xSpan, ySpan, resultSpan); return;
+        case 4: multiplySpecialLowComba<4, 4, 5>(xSpan, ySpan, resultSpan); return;
+        case 5: multiplySpecialLowComba<4, 5, 5>(xSpan, ySpan, resultSpan); return;
+        default: break;
+        }
+    } else if (ySpan.size() == xSpan.size() + 1 && resultSpan.size() == xSpan.size() + 1) {
+        switch (xSpan.size()) {
+#define JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(N) \
+        case (N): \
+            multiplySpecialLowComba<(N), (N) + 1, (N) + 1>(xSpan, ySpan, resultSpan); \
+            return;
+        JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(2)
+        JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(3)
+        JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(5)
+        JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(6)
+        JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(7)
+        JSC_BIGINT_SPECIAL_LOW_COMBA_CASE(8)
+#undef JSC_BIGINT_SPECIAL_LOW_COMBA_CASE
+        default:
+            break;
+        }
+    }
+
     const auto* x = xSpan.data();
     const auto* y = ySpan.data();
     auto* result = resultSpan.data();
@@ -928,6 +1039,45 @@ void JSBigInt::multiplySpecialHigh(std::span<const Digit> xSpan, std::span<const
     size_t fullSize = xSpan.size() + ySpan.size();
     RELEASE_ASSERT(startPosition < fullSize);
     RELEASE_ASSERT(resultSpan.size() >= fullSize);
+
+    switch (ySpan.size()) {
+    case 4:
+        if (xSpan.size() == 5 && startPosition == 6) {
+            multiplySpecialHighComba<5, 4, 6>(xSpan, ySpan, resultSpan);
+            return;
+        }
+        if (xSpan.size() == 6 && startPosition == 4) {
+            multiplySpecialHighComba<6, 4, 4>(xSpan, ySpan, resultSpan);
+            return;
+        }
+        break;
+    case 5:
+        if (startPosition == 6) {
+            switch (xSpan.size()) {
+            case 5: multiplySpecialHighComba<5, 5, 6>(xSpan, ySpan, resultSpan); return;
+            case 6: multiplySpecialHighComba<6, 5, 6>(xSpan, ySpan, resultSpan); return;
+            case 7: multiplySpecialHighComba<7, 5, 6>(xSpan, ySpan, resultSpan); return;
+            case 8: multiplySpecialHighComba<8, 5, 6>(xSpan, ySpan, resultSpan); return;
+            default: break;
+            }
+        }
+        break;
+#define JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE(N) \
+    case (N) + 1: \
+        if (xSpan.size() == 2 * (N) && startPosition == 2 * (N) - 2) { \
+            multiplySpecialHighComba<2 * (N), (N) + 1, 2 * (N) - 2>(xSpan, ySpan, resultSpan); \
+            return; \
+        } \
+        break;
+    JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE(2)
+    JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE(5)
+    JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE(6)
+    JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE(7)
+    JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE(8)
+#undef JSC_BIGINT_SPECIAL_HIGH_COMBA_CASE
+    default:
+        break;
+    }
 
     const auto* x = xSpan.data();
     const auto* y = ySpan.data();
