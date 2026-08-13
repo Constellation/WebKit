@@ -560,7 +560,10 @@ bool JSGenericTypedArrayView<Adaptor>::getOwnPropertySlot(
             value = Adaptor::toJSValue(globalObject, nativeValue);
             RETURN_IF_EXCEPTION(scope, false);
         }
-        slot.setValue(thisObject, static_cast<unsigned>(PropertyAttribute::None), value);
+        // https://tc39.es/proposal-immutable-arraybuffer/#sec-typedarray-getownproperty: indices of
+        // immutable-backed typed arrays are reported as non-writable and non-configurable.
+        unsigned attributes = thisObject->isImmutable() ? (PropertyAttribute::ReadOnly | PropertyAttribute::DontDelete) : static_cast<unsigned>(PropertyAttribute::None);
+        slot.setValue(thisObject, attributes, value);
         return true;
     }
 
@@ -572,10 +575,17 @@ bool JSGenericTypedArrayView<Adaptor>::put(
     JSCell* cell, JSGlobalObject* globalObject, PropertyName propertyName, JSValue value,
     PutPropertySlot& slot)
 {
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
     JSGenericTypedArrayView* thisObject = uncheckedDowncast<JSGenericTypedArrayView>(cell);
 
     // https://tc39.es/ecma262/#sec-typedarray-set
+    // https://tc39.es/proposal-immutable-arraybuffer/#sec-typedarray-set: assignment to any canonical
+    // numeric index string fails (reported in strict mode) when the backing buffer is immutable,
+    // regardless of the receiver or whether the index is in bounds.
     if (std::optional<uint32_t> index = parseIndex(propertyName)) {
+        if (thisObject->isImmutable()) [[unlikely]]
+            return typeError(globalObject, scope, slot.isStrictMode(), typedArrayBufferIsImmutableErrorMessage);
         if (isThisValueAltered(slot, thisObject)) [[unlikely]] {
             if (thisObject->isDetached() || !thisObject->inBounds(index.value()))
                 return true;
@@ -586,6 +596,8 @@ bool JSGenericTypedArrayView<Adaptor>::put(
 
     std::optional<uint64_t> integerIndex;
     if (isCanonicalNumericIndexString(propertyName.uid(), &integerIndex)) {
+        if (thisObject->isImmutable()) [[unlikely]]
+            return typeError(globalObject, scope, slot.isStrictMode(), typedArrayBufferIsImmutableErrorMessage);
         if (isThisValueAltered(slot, thisObject)) [[unlikely]] {
             if (!integerIndex || thisObject->isDetached() || !thisObject->inBounds(integerIndex.value()))
                 return true;
@@ -634,6 +646,39 @@ bool JSGenericTypedArrayView<Adaptor>::defineOwnProperty(
 
         if (!thisObject->inBounds(index.value()))
             return throwTypeErrorIfNeeded("Attempting to store out-of-bounds property on a typed array at index: "_s);
+
+        // https://tc39.es/proposal-immutable-arraybuffer/#sec-typedarray-defineownproperty: on an
+        // immutable-backed typed array, this behaves as ValidateAndApplyPropertyDescriptor against
+        // the current descriptor { [[Writable]]: false, [[Enumerable]]: true, [[Configurable]]: false }
+        // with a non-extensible target: only fully compatible (no-op) redefinitions succeed.
+        if (thisObject->isImmutable()) [[unlikely]] {
+            if (descriptor.configurablePresent() && descriptor.configurable())
+                return throwTypeErrorIfNeeded("Attempting to store configurable property on a typed array at index: "_s);
+
+            if (descriptor.enumerablePresent() && !descriptor.enumerable())
+                return throwTypeErrorIfNeeded("Attempting to store non-enumerable property on a typed array at index: "_s);
+
+            if (descriptor.isAccessorDescriptor())
+                return throwTypeErrorIfNeeded("Attempting to store accessor property on a typed array at index: "_s);
+
+            if (descriptor.writablePresent() && descriptor.writable())
+                return throwTypeErrorIfNeeded("Attempting to store writable property on a typed array at index: "_s);
+
+            if (descriptor.value()) {
+                JSValue currentValue;
+                if constexpr (Adaptor::canConvertToJSQuickly)
+                    currentValue = thisObject->getIndexQuickly(index.value());
+                else {
+                    auto nativeValue = thisObject->getIndexQuicklyAsNativeValue(index.value());
+                    currentValue = Adaptor::toJSValue(globalObject, nativeValue);
+                    RETURN_IF_EXCEPTION(scope, false);
+                }
+                if (!sameValue(globalObject, descriptor.value(), currentValue))
+                    return throwTypeErrorIfNeeded("Attempting to change value of a typed array backed by an immutable ArrayBuffer at index: "_s);
+            }
+
+            return true;
+        }
 
         if (descriptor.isAccessorDescriptor())
             return throwTypeErrorIfNeeded("Attempting to store accessor property on a typed array at index: "_s);
@@ -700,15 +745,24 @@ bool JSGenericTypedArrayView<Adaptor>::getOwnPropertySlotByIndex(
         value = Adaptor::toJSValue(globalObject, nativeValue);
         RETURN_IF_EXCEPTION(scope, false);
     }
-    slot.setValue(thisObject, static_cast<unsigned>(PropertyAttribute::None), value);
+    // https://tc39.es/proposal-immutable-arraybuffer/#sec-typedarray-getownproperty: indices of
+    // immutable-backed typed arrays are reported as non-writable and non-configurable.
+    unsigned attributes = thisObject->isImmutable() ? (PropertyAttribute::ReadOnly | PropertyAttribute::DontDelete) : static_cast<unsigned>(PropertyAttribute::None);
+    slot.setValue(thisObject, attributes, value);
     return true;
 }
 
 template<typename Adaptor>
 bool JSGenericTypedArrayView<Adaptor>::putByIndex(
-    JSCell* cell, JSGlobalObject* globalObject, unsigned propertyName, JSValue value, bool)
+    JSCell* cell, JSGlobalObject* globalObject, unsigned propertyName, JSValue value, bool shouldThrow)
 {
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
     JSGenericTypedArrayView* thisObject = uncheckedDowncast<JSGenericTypedArrayView>(cell);
+    // https://tc39.es/proposal-immutable-arraybuffer/#sec-typedarray-set: stores to an
+    // immutable-backed typed array fail regardless of whether the index is in bounds.
+    if (thisObject->isImmutable()) [[unlikely]]
+        return typeError(globalObject, scope, shouldThrow, typedArrayBufferIsImmutableErrorMessage);
     thisObject->setIndex(globalObject, propertyName, value);
     return true;
 }
@@ -783,6 +837,7 @@ void JSGenericTypedArrayView<Adaptor>::visitChildrenImpl(JSCell* cell, Visitor& 
     }
 
     case WastefulTypedArray:
+    case ImmutableWastefulTypedArray:
     case ResizableNonSharedWastefulTypedArray:
     case ResizableNonSharedAutoLengthWastefulTypedArray:
     case GrowableSharedWastefulTypedArray:
@@ -790,6 +845,7 @@ void JSGenericTypedArrayView<Adaptor>::visitChildrenImpl(JSCell* cell, Visitor& 
         break;
 
     case DataViewMode:
+    case ImmutableDataViewMode:
     case ResizableNonSharedDataViewMode:
     case ResizableNonSharedAutoLengthDataViewMode:
     case GrowableSharedDataViewMode:
@@ -851,7 +907,9 @@ template<typename Adaptor> inline bool JSGenericTypedArrayView<Adaptor>::canGetI
 
 template<typename Adaptor> inline bool JSGenericTypedArrayView<Adaptor>::canSetIndexQuickly(size_t i, JSValue value) const
 {
-    return inBounds(i) && value.isNumber() && Adaptor::canConvertToJSQuickly;
+    // Views on immutable ArrayBuffers never take the quick store path; they fall back to
+    // setIndex/putByIndex, which implement the spec's store-failure semantics.
+    return !isImmutable() && inBounds(i) && value.isNumber() && Adaptor::canConvertToJSQuickly;
 }
 
 template<typename Adaptor> inline typename Adaptor::Type JSGenericTypedArrayView<Adaptor>::getIndexQuicklyAsNativeValue(size_t i) const
@@ -881,6 +939,11 @@ template<typename Adaptor> inline bool JSGenericTypedArrayView<Adaptor>::setInde
 {
     VM& vm = getVM(globalObject);
     auto scope = DECLARE_THROW_SCOPE(vm);
+
+    // https://tc39.es/proposal-immutable-arraybuffer/#sec-typedarray-set: the immutable check
+    // happens before the value is coerced.
+    if (isImmutable()) [[unlikely]]
+        return false;
 
     typename Adaptor::Type value = toNativeFromValue<Adaptor>(globalObject, jsValue);
     RETURN_IF_EXCEPTION(scope, false);
@@ -1331,6 +1394,11 @@ inline bool JSGenericTypedArrayView<Adaptor>::radixSortWithCounters(std::span<El
 }
 
 template<typename PassedAdaptor> inline Structure* JSGenericResizableOrGrowableSharedTypedArrayView<PassedAdaptor>::createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
+{
+    return Structure::create(vm, globalObject, prototype, TypeInfo(typeForTypedArrayType(Base::Adaptor::typeValue), StructureFlags), info(), NonArray);
+}
+
+template<typename PassedAdaptor> inline Structure* JSGenericImmutableTypedArrayView<PassedAdaptor>::createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
 {
     return Structure::create(vm, globalObject, prototype, TypeInfo(typeForTypedArrayType(Base::Adaptor::typeValue), StructureFlags), info(), NonArray);
 }
