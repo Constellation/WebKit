@@ -585,6 +585,7 @@ protected:
         case VectorRelaxedLaneSelect:
         case MemoryFill:
         case MemoryCopy:
+        case MemoryCompare:
         case VectorRelaxedDotI8x16I7x16Add:
             return 3 * sizeof(Value*);
         case WasmArrayNew:
@@ -842,6 +843,7 @@ private:
         case VectorRelaxedDotI8x16I7x16Add:
         case MemoryCopy:
         case MemoryFill:
+        case MemoryCompare:
             if (numArgs != 3) [[unlikely]]
                 badKind(kind, numArgs);
             return Three;

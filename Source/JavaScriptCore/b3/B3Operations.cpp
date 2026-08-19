@@ -26,6 +26,7 @@
 #include "config.h"
 #include "B3Operations.h"
 
+#include <bit>
 #include <wtf/Int128.h>
 #include <wtf/UnalignedAccess.h>
 
@@ -91,6 +92,89 @@ JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMemoryFill, void, (void* dst, int32_t
         return;
     }
     memset(dst, target, count);
+}
+
+#if CPU(LITTLE_ENDIAN)
+// The index of the first mismatching byte within a unit of 2^shift XORed bytes, or the unit size
+// when the unit matches. The caller guarantees count >= sizeof(T).
+template<typename T>
+ALWAYS_INLINE uint64_t compareUnit(const uint8_t* a, const uint8_t* b)
+{
+    T difference = WTF::unalignedLoad<T>(a) ^ WTF::unalignedLoad<T>(b);
+    if (!difference)
+        return sizeof(T);
+    return std::countr_zero(difference) / 8;
+}
+#endif
+
+JSC_DEFINE_NOEXCEPT_JIT_OPERATION(operationMemoryCompare, uint64_t, (const void* a, const void* b, size_t count))
+{
+    // The number of leading bytes at which the two ranges agree. Short compares dominate, so
+    // counts up to four words are done with straight-line overlapping-ends loads: the head units
+    // are compared in order, then the tail units, and bytes checked by both agree by the time a
+    // tail unit is looked at, so its first mismatch is always in its not-yet-checked part. Keeping
+    // the hot sizes out of a loop also avoids mispredicting the loop-exit branch when the count
+    // varies from call to call.
+    auto* aBytes = static_cast<const uint8_t*>(a);
+    auto* bBytes = static_cast<const uint8_t*>(b);
+#if CPU(LITTLE_ENDIAN)
+    if (count >= sizeof(uint64_t)) {
+        uint64_t matched = compareUnit<uint64_t>(aBytes, bBytes);
+        if (matched < sizeof(uint64_t))
+            return matched;
+        if (count > 2 * sizeof(uint64_t)) {
+            if (count <= 4 * sizeof(uint64_t)) {
+                matched = compareUnit<uint64_t>(aBytes + sizeof(uint64_t), bBytes + sizeof(uint64_t));
+                if (matched < sizeof(uint64_t))
+                    return sizeof(uint64_t) + matched;
+                matched = compareUnit<uint64_t>(aBytes + count - 2 * sizeof(uint64_t), bBytes + count - 2 * sizeof(uint64_t));
+                if (matched < sizeof(uint64_t))
+                    return (count - 2 * sizeof(uint64_t)) + matched;
+                return (count - sizeof(uint64_t)) + compareUnit<uint64_t>(aBytes + count - sizeof(uint64_t), bBytes + count - sizeof(uint64_t));
+            }
+            // Branching out of the loop on a mismatch keeps the position arithmetic off the hot
+            // path; the overlapped final word runs once, so it can stay branchless.
+            uint64_t index = sizeof(uint64_t);
+            while (index + sizeof(uint64_t) <= count) {
+                uint64_t difference = WTF::unalignedLoad<uint64_t>(aBytes + index) ^ WTF::unalignedLoad<uint64_t>(bBytes + index);
+                if (difference)
+                    return index + std::countr_zero(difference) / 8;
+                index += sizeof(uint64_t);
+            }
+            if (index < count)
+                return (count - sizeof(uint64_t)) + compareUnit<uint64_t>(aBytes + count - sizeof(uint64_t), bBytes + count - sizeof(uint64_t));
+            return count;
+        }
+        if (count > sizeof(uint64_t))
+            return (count - sizeof(uint64_t)) + compareUnit<uint64_t>(aBytes + count - sizeof(uint64_t), bBytes + count - sizeof(uint64_t));
+        return count;
+    }
+    if (count >= sizeof(uint32_t)) {
+        uint64_t matched = compareUnit<uint32_t>(aBytes, bBytes);
+        if (matched < sizeof(uint32_t))
+            return matched;
+        if (count > sizeof(uint32_t))
+            return (count - sizeof(uint32_t)) + compareUnit<uint32_t>(aBytes + count - sizeof(uint32_t), bBytes + count - sizeof(uint32_t));
+        return count;
+    }
+    if (count >= sizeof(uint16_t)) {
+        uint64_t matched = compareUnit<uint16_t>(aBytes, bBytes);
+        if (matched < sizeof(uint16_t))
+            return matched;
+        if (count > sizeof(uint16_t))
+            return (count - sizeof(uint16_t)) + compareUnit<uint16_t>(aBytes + count - sizeof(uint16_t), bBytes + count - sizeof(uint16_t));
+        return count;
+    }
+    if (count)
+        return aBytes[0] == bBytes[0] ? 1 : 0;
+    return 0;
+#else
+    for (uint64_t index = 0; index < count; ++index) {
+        if (aBytes[index] != bBytes[index])
+            return index;
+    }
+    return count;
+#endif
 }
 
 } // namespace JSC::B3

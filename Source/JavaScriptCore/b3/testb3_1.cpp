@@ -1500,6 +1500,8 @@ void run(const TestConfig* config)
         RUN(testMemoryFill());
         RUN(testMemoryCopyConstant());
         RUN(testMemoryFillConstant());
+        RUN(testMemoryCompare());
+        RUN(testMemoryCompareConstant());
     }
 
     Lock lock;

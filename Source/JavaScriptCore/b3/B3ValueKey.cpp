@@ -283,6 +283,7 @@ Value* ValueKey::materialize(Procedure& proc, Origin origin) const
     case WasmArrayNew:
     case MemoryCopy:
     case MemoryFill:
+    case MemoryCompare:
     case Fence:
     case CCall:
     case Patchpoint:

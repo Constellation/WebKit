@@ -1804,6 +1804,67 @@ void testMemoryFillConstant()
     }
 }
 
+void testMemoryCompare()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    auto arguments = cCallArgumentValues<void*, void*, void*>(proc, root);
+    Value* result = root->appendNew<BulkMemoryValue>(proc, MemoryCompare, Origin(), arguments[0], arguments[1], arguments[2]);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    auto code = compileProc(proc);
+    Vector<uint8_t> a(4096 + 1024);
+    Vector<uint8_t> b(4096 + 1024);
+
+    for (unsigned base = 1; base < 4096; base <<= 1) {
+        unsigned offset = 0;
+        for (auto value : int32Operands()) {
+            unsigned count = base + offset;
+            a.fill(static_cast<uint8_t>(value.value));
+            b.fill(static_cast<uint8_t>(value.value));
+            // Identical ranges agree on all count bytes.
+            CHECK_EQ(invoke<uint64_t>(*code, a.span().data(), b.span().data(), static_cast<uintptr_t>(count)), static_cast<uint64_t>(count));
+            // A mismatch at either end or the middle is reported at its index.
+            for (unsigned at : { 0u, count / 2, count - 1 }) {
+                b[at] ^= 0x5a;
+                CHECK_EQ(invoke<uint64_t>(*code, a.span().data(), b.span().data(), static_cast<uintptr_t>(count)), static_cast<uint64_t>(at));
+                a[at] ^= 0x5a;
+                CHECK_EQ(invoke<uint64_t>(*code, a.span().data(), b.span().data(), static_cast<uintptr_t>(count)), static_cast<uint64_t>(count));
+                a[at] ^= 0x5a;
+                b[at] ^= 0x5a;
+            }
+            ++offset;
+        }
+    }
+}
+
+void testMemoryCompareConstant()
+{
+    Vector<uint8_t> a(4096 + 1024);
+    Vector<uint8_t> b(4096 + 1024);
+
+    // 129 and above do not hit the constant-count strength reduction and go through the operation.
+    for (unsigned width = 0; width <= 130; ++width) {
+        Procedure proc;
+        BasicBlock* root = proc.addBlock();
+        auto arguments = cCallArgumentValues<void*, void*>(proc, root);
+        Value* result = root->appendNew<BulkMemoryValue>(proc, MemoryCompare, Origin(), arguments[0], arguments[1], root->appendIntConstant(proc, Origin(), pointerType(), width));
+        root->appendNewControlValue(proc, Return, Origin(), result);
+        auto code = compileProc(proc);
+
+        a.fill(0x42);
+        b.fill(0x42);
+        CHECK_EQ(invoke<uint64_t>(*code, a.span().data(), b.span().data()), static_cast<uint64_t>(width));
+        if (width) {
+            for (unsigned at : { 0u, width / 2, width - 1 }) {
+                b[at] ^= 0x5a;
+                CHECK_EQ(invoke<uint64_t>(*code, a.span().data(), b.span().data()), static_cast<uint64_t>(at));
+                b[at] ^= 0x5a;
+            }
+        }
+    }
+}
+
 void testLoadImmutable()
 {
     Vector<uint64_t> memory(4);

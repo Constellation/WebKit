@@ -5011,7 +5011,8 @@ private:
         }
 
         case MemoryCopy:
-        case MemoryFill: {
+        case MemoryFill:
+        case MemoryCompare: {
             // They should be lowered already.
             RELEASE_ASSERT_NOT_REACHED();
             return;

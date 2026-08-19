@@ -36,6 +36,7 @@ namespace JSC::B3 {
 
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationMemoryCopy, void, (void* dst, const void* src, size_t count));
 JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationMemoryFill, void, (void* dst, int32_t target, size_t count));
+JSC_DECLARE_NOEXCEPT_JIT_OPERATION(operationMemoryCompare, uint64_t, (const void* a, const void* b, size_t count));
 
 } // namespace JSC::B3
 

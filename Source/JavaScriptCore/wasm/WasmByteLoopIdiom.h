@@ -49,6 +49,8 @@ public:
         CopyBackward,
         // for (; n; --n) mem[d++] = v;
         Fill,
+        // do { ca = mem[a]; cb = mem[b]; if (ca == cb) { ++a; ++b; } } while (ca == cb && --n);
+        Compare,
     };
 
     Kind kind;
@@ -56,9 +58,13 @@ public:
     // sourceLocal for a copy, the byte to store for a fill.
     uint32_t operandLocal { 0 };
     uint32_t countLocal { 0 };
+    // For a compare, the locals the loop tees the last pair of bytes read into.
+    uint32_t compareByteLocalA { 0 };
+    uint32_t compareByteLocalB { 0 };
 
     bool isFill() const { return kind == Kind::Fill; }
     bool isBackward() const { return kind == Kind::CopyBackward; }
+    bool isCompare() const { return kind == Kind::Compare; }
 
     static std::optional<ByteLoopIdiom> match(std::span<const uint8_t> source, size_t bodyOffset)
     {
@@ -68,7 +74,9 @@ public:
             return idiom;
         if (auto idiom = matchCopyBackward(source, bodyOffset))
             return idiom;
-        return matchFill(source, bodyOffset);
+        if (auto idiom = matchFill(source, bodyOffset))
+            return idiom;
+        return matchCompare(source, bodyOffset);
     }
 
 private:
@@ -125,6 +133,19 @@ private:
             return true;
         }
 
+        // if, with the empty block type.
+        bool voidIf()
+        {
+            uint8_t blockType;
+            return opcode(OpType::If) && parseUInt8(blockType) && blockType == 0x40;
+        }
+
+        bool branchTo(OpType expected, uint32_t expectedLabel)
+        {
+            uint32_t label;
+            return opcodeWithImmediate(expected, label) && label == expectedLabel;
+        }
+
         // The loop body must end right here, so that nothing else in it can have an effect.
         bool continueThenEndOfBody()
         {
@@ -136,6 +157,19 @@ private:
     bool localsAreDistinct() const
     {
         return destinationLocal != operandLocal && countLocal != destinationLocal && countLocal != operandLocal;
+    }
+
+    bool compareLocalsAreDistinct() const
+    {
+        if (!localsAreDistinct() || compareByteLocalA == compareByteLocalB)
+            return false;
+        // The teed bytes must not alias the pointers or the count: the loop writes them in the
+        // middle of an iteration, and the bulk path reproduces their final values exactly.
+        for (uint32_t byteLocal : { compareByteLocalA, compareByteLocalB }) {
+            if (byteLocal == destinationLocal || byteLocal == operandLocal || byteLocal == countLocal)
+                return false;
+        }
+        return true;
     }
 
     static std::optional<ByteLoopIdiom> matchCopyForward(std::span<const uint8_t> source, size_t bodyOffset)
@@ -189,6 +223,51 @@ private:
             || !cursor.continueThenEndOfBody()
             || advanced != idiom.destinationLocal
             || !idiom.localsAreDistinct())
+            return std::nullopt;
+        return idiom;
+    }
+
+    static std::optional<ByteLoopIdiom> matchCompare(std::span<const uint8_t> source, size_t bodyOffset)
+    {
+        // The loop a toolchain emits for memcmp when it cannot use a library call:
+        //
+        // loop
+        //   local.get a; i32.load8_u; local.tee ca
+        //   local.get b; i32.load8_u; local.tee cb
+        //   i32.eq
+        //   if
+        //     b += 1; a += 1; --n   (the two pointer bumps in either order)
+        //     br_if 1 (the loop); br 2 (past the loop, when the whole range matched)
+        //   end
+        // end
+        //
+        // It scans for the first byte at which the regions differ and exits with the pointers
+        // advanced past the matching prefix, the count reduced by the prefix length, and ca/cb
+        // holding the last pair of bytes read.
+        Cursor cursor(source, bodyOffset);
+        ByteLoopIdiom idiom { Kind::Compare };
+        uint32_t firstAdvanced;
+        uint32_t secondAdvanced;
+        if (!cursor.opcodeWithImmediate(OpType::GetLocal, idiom.destinationLocal)
+            || !cursor.byteAccess(OpType::I32Load8U)
+            || !cursor.opcodeWithImmediate(OpType::TeeLocal, idiom.compareByteLocalA)
+            || !cursor.opcodeWithImmediate(OpType::GetLocal, idiom.operandLocal)
+            || !cursor.byteAccess(OpType::I32Load8U)
+            || !cursor.opcodeWithImmediate(OpType::TeeLocal, idiom.compareByteLocalB)
+            || !cursor.opcode(OpType::I32Eq)
+            || !cursor.voidIf()
+            || !cursor.updateLocalByOne(OpType::I32Add, OpType::SetLocal, firstAdvanced)
+            || !cursor.updateLocalByOne(OpType::I32Add, OpType::SetLocal, secondAdvanced)
+            || !cursor.updateLocalByOne(OpType::I32Sub, OpType::TeeLocal, idiom.countLocal)
+            || !cursor.branchTo(OpType::BrIf, 1)
+            || !cursor.branchTo(OpType::Br, 2)
+            || !cursor.opcode(OpType::End)
+            || !cursor.opcode(OpType::End))
+            return std::nullopt;
+        // The two pointers may be advanced in either order.
+        if (std::minmax(firstAdvanced, secondAdvanced) != std::minmax(idiom.destinationLocal, idiom.operandLocal))
+            return std::nullopt;
+        if (!idiom.compareLocalsAreDistinct())
             return std::nullopt;
         return idiom;
     }

@@ -1465,6 +1465,8 @@ void testMemoryCopy();
 void testMemoryCopyConstant();
 void testMemoryFill();
 void testMemoryFillConstant();
+void testMemoryCompare();
+void testMemoryCompareConstant();
 
 void testLoadImmutable();
 

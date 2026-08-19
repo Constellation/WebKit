@@ -827,6 +827,7 @@ public:
     [[nodiscard]] PartialResult addLoop(BlockSignature&&, std::span<TypedExpression> args, ControlType& block, uint32_t loopIndex);
     std::optional<ByteLoopIdiom> matchByteLoopIdiom(const BlockSignature&);
     void emitByteLoopIdiom(const ByteLoopIdiom&, ControlType& loop, BasicBlock* body);
+    void emitByteCompareBulkPath(const ByteLoopIdiom&, ControlType& loop, Value* destination, Value* operand, Value* count, Value* wideDestination, Value* wideSource, Value* wideCount);
     [[nodiscard]] PartialResult addIf(ExpressionType condition, BlockSignature&&, std::span<TypedExpression> args, ControlType& result);
     [[nodiscard]] PartialResult addElse(ControlData&, std::span<const TypedExpression>);
     [[nodiscard]] PartialResult addElseToUnreachable(ControlData&);
@@ -4569,6 +4570,20 @@ std::optional<ByteLoopIdiom> OMGIRGenerator::matchByteLoopIdiom(const BlockSigna
         if (local >= m_locals.size() || !m_parser->typeOfLocal(local).isI32())
             return std::nullopt;
     }
+    if (idiom->isCompare()) {
+        for (uint32_t local : { idiom->compareByteLocalA, idiom->compareByteLocalB }) {
+            if (local >= m_locals.size() || !m_parser->typeOfLocal(local).isI32())
+                return std::nullopt;
+        }
+        // A matched compare loop exits a fully matching range with a br 2, branching past the
+        // block directly enclosing the loop. The bulk path replicates that edge, so that block
+        // must exist and be void; the loop itself is not on the control stack yet.
+        if (m_parser->controlStack().isEmpty())
+            return std::nullopt;
+        auto& enclosing = m_parser->controlStack().last().controlData;
+        if (enclosing.blockType() != BlockType::Block || enclosing.branchTargetArity())
+            return std::nullopt;
+    }
     return idiom;
 }
 
@@ -4585,6 +4600,7 @@ void OMGIRGenerator::emitByteLoopIdiom(const ByteLoopIdiom& idiom, ControlType& 
 {
     bool isFill = idiom.isFill();
     bool isBackward = idiom.isBackward();
+    bool isCompare = idiom.isCompare();
 
     Value* destination = get(m_locals[idiom.destinationLocal]);
     Value* operand = get(m_locals[idiom.operandLocal]);
@@ -4628,6 +4644,15 @@ void OMGIRGenerator::emitByteLoopIdiom(const ByteLoopIdiom& idiom, ControlType& 
         // count != 0 && (destination + count) <= memorySize
         guard = all(nonEmpty,
             binary(BelowEqual, binary(Add, wideDestination, wideCount), memorySize));
+    } else if (isCompare) {
+        // count != 0
+        // && (a + count) <= memorySize && (b + count) <= memorySize
+        //
+        // Reads cannot replicate bytes the way an overlapping copy does, so there is no
+        // overlap term.
+        guard = all(nonEmpty,
+            binary(BelowEqual, binary(Add, wideDestination, wideCount), memorySize),
+            binary(BelowEqual, binary(Add, wideSource, wideCount), memorySize));
     } else {
         // count != 0
         // && (destination + count) <= memorySize && (source + count) <= memorySize
@@ -4649,6 +4674,10 @@ void OMGIRGenerator::emitByteLoopIdiom(const ByteLoopIdiom& idiom, ControlType& 
     body->addPredecessor(m_currentBlock);
 
     m_currentBlock = bulkPath;
+    if (isCompare) {
+        emitByteCompareBulkPath(idiom, loop, destination, operand, count, wideDestination, wideSource, wideCount);
+        return;
+    }
     auto* startOfDestination = isBackward ? binary(Sub, destination, count) : destination;
     if (isFill)
         emitMemoryFill(pointerOfInt32(startOfDestination), operand, wideCount, 0);
@@ -4665,6 +4694,60 @@ void OMGIRGenerator::emitByteLoopIdiom(const ByteLoopIdiom& idiom, ControlType& 
     set(m_locals[idiom.countLocal], constant(Int32, 0));
     m_currentBlock->appendNewControlValue(m_proc, B3::Jump, origin(), loop.continuation);
     loop.continuation->addPredecessor(m_currentBlock);
+}
+
+// The bulk form of a compare loop: a word-at-a-time scan for the first mismatching byte. The byte
+// loop has two ways out, and both are reproduced exactly: on a mismatch it falls out of the loop
+// with the teed locals holding the mismatching pair, and when the whole range matches it branches
+// past its enclosing block, skipping the code right after the loop.
+void OMGIRGenerator::emitByteCompareBulkPath(const ByteLoopIdiom& idiom, ControlType& loop, Value* destination, Value* operand, Value* count, Value* wideDestination, Value* wideSource, Value* wideCount)
+{
+    // The guard in emitByteLoopIdiom has already proven count != 0 and count bytes at both
+    // pointers in bounds, so the scan needs no checks.
+    Value* addressA = m_currentBlock->appendNew<WasmAddressValue>(m_proc, origin(), wideDestination, GPRInfo::wasmBaseMemoryPointer);
+    Value* addressB = m_currentBlock->appendNew<WasmAddressValue>(m_proc, origin(), wideSource, GPRInfo::wasmBaseMemoryPointer);
+    Value* matched = m_currentBlock->appendNew<Value>(m_proc, Trunc, origin(),
+        m_currentBlock->appendNew<BulkMemoryValue>(m_proc, MemoryCompare, origin(), addressA, addressB, wideCount));
+    Value* allMatched = m_currentBlock->appendNew<Value>(m_proc, Equal, origin(), matched, count);
+
+    BasicBlock* mismatchPath = m_proc.addBlock();
+    BasicBlock* matchPath = m_proc.addBlock();
+    m_currentBlock->appendNewControlValue(m_proc, B3::Branch, origin(), allMatched, FrequentedBlock(matchPath), FrequentedBlock(mismatchPath));
+    matchPath->addPredecessor(m_currentBlock);
+    mismatchPath->addPredecessor(m_currentBlock);
+
+    auto byteAt = [&](BasicBlock* block, Value* pointer, Value* index) {
+        Value* offset = block->appendNew<Value>(m_proc, Add, origin(), pointer, index);
+        auto* address = block->appendNew<WasmAddressValue>(m_proc, origin(), pointerOfInt32(offset), GPRInfo::wasmBaseMemoryPointer);
+        auto* value = block->appendNew<MemoryValue>(m_proc, Load8Z, Int32, origin(), address);
+        m_heaps.decorateMemory(&m_heaps.WebAssemblyMemory, value);
+        return value;
+    };
+
+    // On a mismatch the loop ends with the pointers and count left at the mismatch and the teed
+    // locals holding the mismatching bytes.
+    m_currentBlock = mismatchPath;
+    set(m_locals[idiom.compareByteLocalA], byteAt(mismatchPath, destination, matched));
+    set(m_locals[idiom.compareByteLocalB], byteAt(mismatchPath, operand, matched));
+    set(m_locals[idiom.destinationLocal], mismatchPath->appendNew<Value>(m_proc, Add, origin(), destination, matched));
+    set(m_locals[idiom.operandLocal], mismatchPath->appendNew<Value>(m_proc, Add, origin(), operand, matched));
+    set(m_locals[idiom.countLocal], mismatchPath->appendNew<Value>(m_proc, Sub, origin(), count, matched));
+    m_currentBlock->appendNewControlValue(m_proc, B3::Jump, origin(), loop.continuation);
+    loop.continuation->addPredecessor(m_currentBlock);
+
+    // When the whole range matches the loop branches past its enclosing block, with the pointers
+    // advanced past the end, the count at zero, and the teed locals holding the last matching pair.
+    // matchByteLoopIdiom required that enclosing block to be a void block.
+    m_currentBlock = matchPath;
+    Value* lastIndex = matchPath->appendNew<Value>(m_proc, Sub, origin(), count, constant(Int32, 1));
+    set(m_locals[idiom.compareByteLocalA], byteAt(matchPath, destination, lastIndex));
+    set(m_locals[idiom.compareByteLocalB], byteAt(matchPath, operand, lastIndex));
+    set(m_locals[idiom.destinationLocal], matchPath->appendNew<Value>(m_proc, Add, origin(), destination, count));
+    set(m_locals[idiom.operandLocal], matchPath->appendNew<Value>(m_proc, Add, origin(), operand, count));
+    set(m_locals[idiom.countLocal], constant(Int32, 0));
+    BasicBlock* target = m_parser->controlStack().last().controlData.targetBlockForBranch();
+    m_currentBlock->appendNewControlValue(m_proc, B3::Jump, origin(), target);
+    target->addPredecessor(m_currentBlock);
 }
 
 auto OMGIRGenerator::addLoop(BlockSignature&& signature, std::span<TypedExpression> args, ControlType& block, uint32_t loopIndex) -> PartialResult

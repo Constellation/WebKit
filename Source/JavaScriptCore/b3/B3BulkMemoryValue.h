@@ -35,7 +35,7 @@ namespace JSC::B3 {
 
 class JS_EXPORT_PRIVATE BulkMemoryValue final : public Value {
 public:
-    static bool accepts(Kind kind) { return kind == MemoryCopy || kind == MemoryFill; }
+    static bool accepts(Kind kind) { return kind == MemoryCopy || kind == MemoryFill || kind == MemoryCompare; }
 
     ~BulkMemoryValue() final;
 

@@ -296,6 +296,11 @@ enum Opcode : uint8_t {
     // This is used for Wasm bulk memory operation `memory.fill`
     MemoryFill,
 
+    // Compares two memory ranges byte by byte, returning the number of leading bytes at which
+    // they agree as an Int64: the result is the count child exactly when the ranges are equal.
+    // The children are two pointers and the byte count, all pointerType.
+    MemoryCompare,
+
     // This is used to represent standalone fences - i.e. fences that are not part of other
     // instructions. It's expressive enough to expose mfence on x86 and dmb ish/ishst on ARM. On
     // x86, it also acts as a compiler store-store fence in those cases where it would have been a

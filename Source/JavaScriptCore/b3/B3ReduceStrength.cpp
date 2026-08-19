@@ -2840,6 +2840,81 @@ private:
             break;
         }
 
+        case MemoryCompare: {
+#if CPU(LITTLE_ENDIAN)
+            if (m_value->child(2)->hasInt()) {
+                auto* memoryCompare = m_value->as<BulkMemoryValue>();
+                uint64_t count = m_value->child(2)->asInt();
+                constexpr uint64_t threshold = 128;
+                if (count <= threshold) {
+                    // Branchless scan: XOR each unit of the two ranges and select the position
+                    // of the first mismatching byte. The units exactly cover [0, count), so
+                    // folding them from last to first into a select chain reports the earliest
+                    // mismatch, or count when the ranges agree. The position arithmetic below is
+                    // garbage when a unit matches (clz of zero), which the select discards.
+                    struct Unit {
+                        Opcode loadOp;
+                        int32_t offset;
+                        uint32_t size;
+                    };
+                    Vector<Unit, 16> units;
+                    int32_t offset = 0;
+                    auto emitUnits = [&](Opcode loadOp, uint32_t size) {
+                        while (count >= size) {
+                            units.append({ loadOp, offset, size });
+                            offset += size;
+                            count -= size;
+                        }
+                    };
+                    emitUnits(Load, sizeof(uint64_t));
+                    emitUnits(Load, sizeof(uint32_t));
+                    emitUnits(Load16Z, sizeof(uint16_t));
+                    emitUnits(Load8Z, sizeof(uint8_t));
+
+                    uint64_t total = offset;
+                    Value* result = m_insertionSet.insert<Const32Value>(m_index, m_value->origin(), total);
+                    for (unsigned unitIndex = units.size(); unitIndex--;) {
+                        auto& unit = units[unitIndex];
+                        MemoryValue* loadA = m_insertionSet.insert<MemoryValue>(m_index, unit.loadOp, unit.size == sizeof(uint64_t) ? Int64 : Int32, m_value->origin(), m_value->child(0), unit.offset);
+                        loadA->setRange(memoryCompare->readRange());
+                        MemoryValue* loadB = m_insertionSet.insert<MemoryValue>(m_index, unit.loadOp, unit.size == sizeof(uint64_t) ? Int64 : Int32, m_value->origin(), m_value->child(1), unit.offset);
+                        loadB->setRange(memoryCompare->readRange());
+                        Value* difference = m_insertionSet.insert<Value>(m_index, BitXor, m_value->origin(), loadA, loadB);
+
+                        Value* mismatchPosition;
+                        if (unit.size == sizeof(uint8_t))
+                            mismatchPosition = m_insertionSet.insert<Const32Value>(m_index, m_value->origin(), unit.offset);
+                        else {
+                            Type unitType = unit.size == sizeof(uint64_t) ? Int64 : Int32;
+                            // The lowest set bit of the XOR is the first mismatching bit. The
+                            // loads zero-extend, so the count is against the load type's width.
+                            uint64_t bits = unitType == Int64 ? 64 : 32;
+                            Value* lowestBit = m_insertionSet.insert<Value>(m_index, BitAnd, m_value->origin(), difference,
+                                m_insertionSet.insert<Value>(m_index, Neg, m_value->origin(), difference));
+                            Value* bitIndex = m_insertionSet.insert<Value>(m_index, Sub, m_value->origin(),
+                                m_insertionSet.insertIntConstant(m_index, m_value->origin(), unitType, bits - 1),
+                                m_insertionSet.insert<Value>(m_index, Clz, m_value->origin(), lowestBit));
+                            Value* byteIndex = m_insertionSet.insert<Value>(m_index, SShr, m_value->origin(), bitIndex,
+                                m_insertionSet.insertIntConstant(m_index, m_value->origin(), unitType, 3));
+                            if (unitType == Int64)
+                                byteIndex = m_insertionSet.insert<Value>(m_index, Trunc, m_value->origin(), byteIndex);
+                            mismatchPosition = m_insertionSet.insert<Value>(m_index, Add, m_value->origin(),
+                                m_insertionSet.insert<Const32Value>(m_index, m_value->origin(), unit.offset), byteIndex);
+                        }
+
+                        Value* unitMatches = m_insertionSet.insert<Value>(m_index, Equal, m_value->origin(), difference,
+                            m_insertionSet.insertIntConstant(m_index, m_value->origin(), unit.size == sizeof(uint64_t) ? Int64 : Int32, 0));
+                        result = m_insertionSet.insert<Value>(m_index, Select, m_value->origin(), unitMatches, result, mismatchPosition);
+                    }
+
+                    m_value->replaceWithIdentity(m_insertionSet.insert<Value>(m_index, ZExt32, m_value->origin(), result));
+                    m_changed = true;
+                }
+            }
+#endif
+            break;
+        }
+
         case CCall: {
             // Turn this: Call(fmod, constant1, constant2)
             // Into this: fcall-constant(constant1, constant2)

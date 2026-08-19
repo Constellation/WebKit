@@ -40,7 +40,7 @@ void BulkMemoryValue::dumpMeta(CommaPrinter& comma, PrintStream& out) const
 }
 
 BulkMemoryValue::BulkMemoryValue(Kind kind, Origin origin, Value* child0, Value* child1, Value* child2)
-    : Value(CheckedOpcode, kind, Void, Three, origin, child0, child1, child2)
+    : Value(CheckedOpcode, kind, kind == MemoryCompare ? Int64 : Void, Three, origin, child0, child1, child2)
 {
 }
 

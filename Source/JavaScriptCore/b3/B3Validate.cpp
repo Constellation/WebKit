@@ -430,6 +430,14 @@ public:
                 VALIDATE(value->child(2)->type() == pointerType(), ("At ", *value));
                 VALIDATE(value->type() == Void, ("At ", *value));
                 break;
+            case MemoryCompare:
+                VALIDATE(!value->kind().isChill(), ("At ", *value));
+                VALIDATE(value->numChildren() == 3, ("At ", *value));
+                VALIDATE(value->child(0)->type() == pointerType(), ("At ", *value));
+                VALIDATE(value->child(1)->type() == pointerType(), ("At ", *value));
+                VALIDATE(value->child(2)->type() == pointerType(), ("At ", *value));
+                VALIDATE(value->type() == Int64, ("At ", *value));
+                break;
             case AtomicWeakCAS:
                 VALIDATE(!value->kind().isChill(), ("At ", *value));
                 VALIDATE(value->numChildren() == 3, ("At ", *value));

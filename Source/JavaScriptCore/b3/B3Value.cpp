@@ -677,6 +677,7 @@ constexpr Effects constantEffectsForOpcode(Opcode opcode)
     case Store:
     case MemoryCopy:
     case MemoryFill:
+    case MemoryCompare:
     case AtomicWeakCAS:
     case AtomicStrongCAS:
     case AtomicXchgAdd:
@@ -809,6 +810,12 @@ Effects Value::effectsSlow() const
     case MemoryFill: {
         const auto* memory = as<BulkMemoryValue>();
         result.writes = memory->writeRange();
+        result.controlDependent = true;
+        break;
+    }
+    case MemoryCompare: {
+        const auto* memory = as<BulkMemoryValue>();
+        result.reads = memory->readRange();
         result.controlDependent = true;
         break;
     }
@@ -1134,6 +1141,7 @@ ValueKey Value::key() const
     case WasmArrayNew:
     case MemoryCopy:
     case MemoryFill:
+    case MemoryCompare:
     case Fence:
     case CCall:
     case Patchpoint:
