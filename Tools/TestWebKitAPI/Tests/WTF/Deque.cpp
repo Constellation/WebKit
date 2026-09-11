@@ -546,4 +546,67 @@ TEST(WTF_Deque, TakeLastWithPredicateWrappedBuffer)
     }
 }
 
+static Deque<MoveOnly, 4> makeWrappedInlineDeque(std::initializer_list<unsigned> values)
+{
+    // Rotating past the start leaves the elements occupying a circular range of the inline buffer
+    // rather than a leading run, which is where relocating only the first N of them goes wrong.
+    Deque<MoveOnly, 4> deque;
+    for (unsigned i = 0; i < 3; ++i)
+        deque.append(MoveOnly(1000 + i));
+    for (unsigned i = 0; i < 3; ++i)
+        deque.removeFirst();
+    for (unsigned value : values)
+        deque.append(MoveOnly(value));
+    return deque;
+}
+
+static void expectContents(const Deque<MoveOnly, 4>& deque, std::initializer_list<unsigned> expected)
+{
+    EXPECT_EQ(expected.size(), deque.size());
+    auto* value = expected.begin();
+    for (const auto& element : deque) {
+        EXPECT_EQ(*value, element.value());
+        ++value;
+    }
+}
+
+TEST(WTF_Deque, SwapWithInlineCapacity)
+{
+    auto a = makeWrappedInlineDeque({ 1, 2, 3 });
+    auto b = makeWrappedInlineDeque({ 7, 8 });
+    a.swap(b);
+    expectContents(a, { 7, 8 });
+    expectContents(b, { 1, 2, 3 });
+}
+
+TEST(WTF_Deque, MoveWithInlineCapacity)
+{
+    auto a = makeWrappedInlineDeque({ 1, 2, 3, 4 });
+    auto moved = WTF::move(a);
+    expectContents(moved, { 1, 2, 3, 4 });
+
+    auto b = makeWrappedInlineDeque({ 9 });
+    b = WTF::move(moved);
+    expectContents(b, { 1, 2, 3, 4 });
+}
+
+TEST(WTF_Deque, SwapInlineWithOutOfLineCapacity)
+{
+    auto small = makeWrappedInlineDeque({ 1, 2 });
+
+    Deque<MoveOnly, 4> big;
+    for (unsigned i = 0; i < 40; ++i)
+        big.append(MoveOnly(i));
+
+    small.swap(big);
+
+    EXPECT_EQ(40u, small.size());
+    unsigned expected = 0;
+    for (const auto& element : small) {
+        EXPECT_EQ(expected, element.value());
+        ++expected;
+    }
+    expectContents(big, { 1, 2 });
+}
+
 } // namespace TestWebKitAPI

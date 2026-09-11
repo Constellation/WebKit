@@ -379,6 +379,12 @@ public:
         std::swap(m_buffer, other.m_buffer);
         Base::swapCapacity(other);
     }
+
+    template<typename LeftIsLive, typename RightIsLive>
+    void swapOccupiedSlots(VectorBuffer<T, 0, Malloc>& other, NOESCAPE const LeftIsLive&, NOESCAPE const RightIsLive&)
+    {
+        swap(other, 0, 0);
+    }
     
     void restoreInlineBufferIfNeeded() { }
 
@@ -518,6 +524,34 @@ public:
         m_capacity = inlineCapacity;
     }
 
+    // swap() above assumes the live objects are the leading ones. A container that keeps them in
+    // some other arrangement -- Deque, whose elements occupy a circular range -- says which slots
+    // are live on each side instead of how many.
+    template<typename LeftIsLive, typename RightIsLive>
+    void swapOccupiedSlots(VectorBuffer& other, NOESCAPE const LeftIsLive& leftIsLive, NOESCAPE const RightIsLive& rightIsLive)
+    {
+        crashIfBorrowed();
+        other.crashIfBorrowed();
+        auto nothingIsLive = [](size_t) { return false; };
+        if (buffer() == inlineBuffer() && other.buffer() == other.inlineBuffer()) {
+            swapInlineBufferSlots(other, leftIsLive, rightIsLive);
+            Base::swapCapacity(other);
+        } else if (buffer() == inlineBuffer()) {
+            m_buffer = other.m_buffer;
+            other.m_buffer = other.inlineBuffer();
+            swapInlineBufferSlots(other, leftIsLive, nothingIsLive);
+            Base::swapCapacity(other);
+        } else if (other.buffer() == other.inlineBuffer()) {
+            other.m_buffer = m_buffer;
+            m_buffer = inlineBuffer();
+            swapInlineBufferSlots(other, nothingIsLive, rightIsLive);
+            Base::swapCapacity(other);
+        } else {
+            std::swap(m_buffer, other.m_buffer);
+            Base::swapCapacity(other);
+        }
+    }
+
 #if ASAN_ENABLED
     void* endOfBuffer() LIFETIME_BOUND
     {
@@ -597,15 +631,38 @@ private:
     {
         if (left == right)
             return;
-        
+
         ASSERT_WITH_SECURITY_IMPLICATION(leftSize <= inlineCapacity);
         ASSERT_WITH_SECURITY_IMPLICATION(rightSize <= inlineCapacity);
-        
+
         size_t swapBound = std::min(leftSize, rightSize);
         for (unsigned i = 0; i < swapBound; ++i)
             std::swap(left[i], right[i]);
         VectorTypeOperations<T>::move(left + swapBound, left + leftSize, right + swapBound);
         VectorTypeOperations<T>::move(right + swapBound, right + rightSize, left + swapBound);
+    }
+
+    template<typename LeftIsLive, typename RightIsLive>
+    void swapInlineBufferSlots(VectorBuffer& other, NOESCAPE const LeftIsLive& leftIsLive, NOESCAPE const RightIsLive& rightIsLive)
+    {
+        T* left = inlineBuffer();
+        T* right = other.inlineBuffer();
+        if (left == right)
+            return;
+
+        for (size_t i = 0; i < inlineCapacity; ++i) {
+            bool hasLeft = leftIsLive(i);
+            bool hasRight = rightIsLive(i);
+            if (hasLeft && hasRight)
+                std::swap(left[i], right[i]);
+            else if (hasLeft) {
+                new (NotNull, right + i) T(WTF::move(left[i]));
+                left[i].~T();
+            } else if (hasRight) {
+                new (NotNull, left + i) T(WTF::move(right[i]));
+                right[i].~T();
+            }
+        }
     }
 
     T* inlineBuffer() LIFETIME_BOUND { SUPPRESS_MEMORY_UNSAFE_CAST return reinterpret_cast_ptr<T*>(m_inlineBuffer); }

@@ -402,10 +402,18 @@ inline void Deque<T, inlineCapacity>::swap(Deque<T, inlineCapacity>& other)
     other.checkValidity();
     invalidateIterators();
     other.invalidateIterators();
+    // The elements occupy a circular range rather than a leading run, so the buffer swap has to be
+    // told which slots hold a live object; passing a count would relocate the wrong ones and lose
+    // everything an inline buffer holds past the start.
+    auto liveSlots = [](size_t start, size_t end) {
+        return [start, end](size_t index) {
+            return start <= end ? index >= start && index < end : index >= start || index < end;
+        };
+    };
+    m_buffer.swapOccupiedSlots(other.m_buffer, liveSlots(m_start, m_end), liveSlots(other.m_start, other.m_end));
     std::swap(m_start, other.m_start);
     std::swap(m_end, other.m_end);
     std::swap(m_capacityMask, other.m_capacityMask);
-    m_buffer.swap(other.m_buffer, 0, 0);
     checkValidity();
     other.checkValidity();
 }
