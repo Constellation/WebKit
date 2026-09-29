@@ -1064,12 +1064,17 @@ SourceProviderCache* VM::addSourceProviderCache(SourceProvider* sourceProvider)
     auto addResult = sourceProviderCacheMap.add(sourceProvider, nullptr);
     if (addResult.isNewEntry)
         addResult.iterator->value = SourceProviderCache::create(sourceProvider->source().length());
+    addResult.iterator->value->markUsed();
     return addResult.iterator->value.get();
 }
 
-void VM::clearSourceProviderCaches()
+void VM::pruneSourceProviderCaches()
 {
-    sourceProviderCacheMap.clear();
+    // A script that is still being parsed, typically by lazy compilation of its functions, keeps its
+    // cache: dropping it would make every later lazy parse syntax-check all nested functions again.
+    sourceProviderCacheMap.removeIf([](auto& entry) {
+        return !entry.value->takeUsedSinceLastPrune();
+    });
 }
 
 bool VM::hasExceptionsAfterHandlingTraps()

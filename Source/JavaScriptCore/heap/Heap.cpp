@@ -1838,7 +1838,7 @@ void Heap::snapshotUnswept()
 void Heap::deleteSourceProviderCaches()
 {
     if (m_lastCollectionScope && m_lastCollectionScope.value() == CollectionScope::Full)
-        vm().clearSourceProviderCaches();
+        vm().pruneSourceProviderCaches();
 }
 
 double Heap::projectedGCRateLimitingValue(MonotonicTime now)
