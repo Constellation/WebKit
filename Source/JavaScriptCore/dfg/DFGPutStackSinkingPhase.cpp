@@ -396,10 +396,17 @@ public:
         Operands<FlushFormat> deferred;
         for (BasicBlock* block : m_graph.blocksInNaturalOrder()) {
             mapping.fill(nullptr);
-            
+
+            const Operands<FlushFormat>& deferredAtHeadForBlock = deferredAtHead[block];
             for (size_t i = mapping.size(); i--;) {
+                // The mapping is only read while the operand's deferral is concrete, and a deferral
+                // only becomes concrete inside the block at a PutStack, which also sets the mapping.
+                // Resolving the other operands would walk the dominator tree for nothing.
+                if (!isConcrete(deferredAtHeadForBlock[i]))
+                    continue;
+
                 Operand operand(mapping.operandForIndex(i));
-                
+
                 SSACalculator::Variable* variable = operandToVariable.operand(operand);
                 SSACalculator::Def* def = ssaCalculator.reachingDefAtHead(block, variable);
                 if (!def)
