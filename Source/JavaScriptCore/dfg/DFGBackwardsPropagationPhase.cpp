@@ -32,6 +32,7 @@
 #include "DFGGraph.h"
 #include "DFGPhase.h"
 #include "JSCJSValueInlines.h"
+#include <wtf/BitVector.h>
 #include <wtf/MathExtras.h>
 
 namespace JSC { namespace DFG {
@@ -57,14 +58,27 @@ public:
             m_flagsAtHead[block].fill(0);
         }
 
+        // Predecessor lists are not available yet, so derive them from the successors. A block only
+        // needs to be revisited when the flags at the head of one of its successors changed.
+        IndexMap<BasicBlock*, Vector<BasicBlock*, 2>> predecessors(m_graph.numBlocks());
+        for (BasicBlock* block : m_graph.blocksInNaturalOrder()) {
+            for (BasicBlock* successor : block->successors())
+                predecessors[successor].append(block);
+        }
+
+        BitVector needsVisit;
+        needsVisit.ensureSize(m_graph.numBlocks());
+        for (BasicBlock* block : m_graph.blocksInNaturalOrder())
+            needsVisit.quickSet(block->index());
+
         bool changed;
         do {
             changed = false;
 
             for (BlockIndex blockIndex = m_graph.numBlocks(); blockIndex--;) {
-                BasicBlock* block = m_graph.block(blockIndex);
-                if (!block)
+                if (!needsVisit.quickClear(blockIndex))
                     continue;
+                BasicBlock* block = m_graph.block(blockIndex);
 
                 {
                     unsigned numSuccessors = block->numSuccessors();
@@ -91,7 +105,12 @@ public:
 
                 if (m_flagsAtHead[block] != m_currentFlags) {
                     m_flagsAtHead[block] = m_currentFlags;
-                    changed = true;
+                    for (BasicBlock* predecessor : predecessors[block]) {
+                        needsVisit.quickSet(predecessor->index());
+                        // Lower indices are still ahead of us in this sweep.
+                        if (predecessor->index() >= blockIndex)
+                            changed = true;
+                    }
                 }
             }
         } while (changed);
