@@ -2025,7 +2025,7 @@ llintOpWithMetadata(op_check_private_brand, OpCheckPrivateBrand, macro (size, ge
     dispatch()
 end)
 
-macro putByValOp(opcodeName, opcodeStruct, osrExitPoint)
+macro putByValOp(opcodeName, opcodeStruct, osrExitPoint, typedArrayPutByVal)
     llintOpWithMetadata(op_%opcodeName%, opcodeStruct, macro (size, get, dispatch, metadata, return)
         macro contiguousPutByVal(storeCallback)
             biaeq t3, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t0], .outOfBounds
@@ -2093,7 +2093,7 @@ macro putByValOp(opcodeName, opcodeStruct, osrExitPoint)
             end)
 
     .opPutByValNotContiguous:
-        bineq t2, ArrayStorageShape, .opPutByValSlow
+        bineq t2, ArrayStorageShape, .opPutByValNotArrayStorage
         biaeq t3, -sizeof IndexingHeader + IndexingHeader::u.lengths.vectorLength[t0], .opPutByValOutOfBounds
         btqz ArrayStorage::m_vector[t0, t3, 8], .opPutByValArrayStorageEmpty
     .opPutByValArrayStorageStoreResult:
@@ -2113,6 +2113,9 @@ macro putByValOp(opcodeName, opcodeStruct, osrExitPoint)
         storei t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t0]
         jmp .opPutByValArrayStorageStoreResult
 
+    .opPutByValNotArrayStorage:
+        typedArrayPutByVal(size, get, dispatch, .opPutByValSlow)
+
     .opPutByValOutOfBounds:
         loadi %opcodeStruct%::Metadata::m_arrayProfile.m_arrayProfileFlags[t5], t2
         ori constexpr ArrayProfileFlag::OutOfBounds , t2
@@ -2126,16 +2129,71 @@ macro putByValOp(opcodeName, opcodeStruct, osrExitPoint)
     end)
 end
 
+# Stores an int32 into an in-bounds element of an integer typed array. Expects the base cell in t1,
+# the sign-extended index in t3, and the metadata in t5.
+macro putByValIntegerTypedArray(size, get, dispatch, slowPath)
+    loadb JSCell::m_type[t1], t2
+    subi FirstTypedArrayType, t2
+    biaeq t2, Uint32ArrayType - FirstTypedArrayType + 1, slowPath
+    btbnz JSArrayBufferView::m_mode[t1], (constexpr isResizableOrGrowableSharedMode), slowPath
+    if LARGE_TYPED_ARRAYS
+        bqaeq t3, JSArrayBufferView::m_length[t1], slowPath
+        bqbeq t3, SmallTypedArrayMaxLength, .smallTypedArray
+        loadi OpPutByVal::Metadata::m_arrayProfile.m_arrayProfileFlags[t5], t0
+        ori constexpr ArrayProfileFlag::MayBeLargeTypedArray, t0
+        storei t0, OpPutByVal::Metadata::m_arrayProfile.m_arrayProfileFlags[t5]
+    .smallTypedArray:
+    else
+        biaeq t3, JSArrayBufferView::m_length[t1], slowPath
+    end
+
+    get(m_value, t0)
+    loadConstantOrVariableInt32(size, t0, t5, slowPath)
+
+    loadp JSArrayBufferView::m_vector[t1], t0
+    if ARM64E
+        const length = t6
+        const scratch = t7
+        loadq JSArrayBufferView::m_length[t1], length
+    end
+    cagedPrimitive(t0, length, t1, scratch)
+
+    # t2 is one of Int8ArrayType .. Uint32ArrayType relative to FirstTypedArrayType.
+    bia t2, Uint8ClampedArrayType - FirstTypedArrayType, .aboveUint8ClampedArray
+    bineq t2, Uint8ClampedArrayType - FirstTypedArrayType, .store8
+    bilt t5, 0, .clampToZero
+    bilteq t5, 255, .store8
+    move 255, t5
+    jmp .store8
+.clampToZero:
+    move 0, t5
+.store8:
+    storeb t5, [t0, t3]
+    dispatch()
+
+.aboveUint8ClampedArray:
+    bia t2, Uint16ArrayType - FirstTypedArrayType, .store32
+    storeh t5, [t0, t3, 2]
+    dispatch()
+
+.store32:
+    storei t5, [t0, t3, 4]
+    dispatch()
+end
+
 putByValOp(put_by_val, OpPutByVal, macro (size, dispatch)
 .osrReturnPoint:
     getterSetterOSRExitReturnPoint(op_put_by_val, size)
     dispatch()
-end)
+end, putByValIntegerTypedArray)
 
+# Defining an indexed property of a typed array has different semantics, so leave it to the slow path.
 putByValOp(put_by_val_direct, OpPutByValDirect, macro (size, dispatch)
 .osrReturnPoint:
     getterSetterOSRExitReturnPoint(op_put_by_val_direct, size)
     dispatch()
+end, macro (size, get, dispatch, slowPath)
+    jmp slowPath
 end)
 
 macro llintJumpTrueOrFalseOp(opcodeName, opcodeStruct, miscConditionOp, truthyCellConditionOp)
