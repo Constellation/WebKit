@@ -589,6 +589,12 @@ public:
         return type() == Array::AnyTypedArray || isTypedView(typedArrayType());
     }
 
+    bool isNarrowIntegerTypedArray() const
+    {
+        TypedArrayType arrayType = typedArrayType();
+        return isInt(arrayType) && elementSize(arrayType) <= 2;
+    }
+
     bool operator==(const ArrayMode& other) const
     {
         return type() == other.type()

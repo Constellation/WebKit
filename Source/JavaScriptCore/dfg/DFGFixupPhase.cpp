@@ -159,10 +159,15 @@ private:
     
     void fixupArithMul(Node* node, Edge& leftChild, Edge& rightChild)
     {
+        // Backwards propagation allows truncating a product only if it is exact as a double, which
+        // it may have proven from the speculated array mode of a typed array load. Refining that
+        // array mode can since have widened what the load produces.
+        bool productIsExact = isWithinPowerOfTwo<22>(leftChild) || isWithinPowerOfTwo<22>(rightChild);
+
         if (m_graph.binaryArithShouldSpeculateInt32(node, FixupPass)) {
             fixIntOrBooleanEdge(leftChild);
             fixIntOrBooleanEdge(rightChild);
-            if (bytecodeCanTruncateInteger(node->arithNodeFlags())) {
+            if (bytecodeCanTruncateInteger(node->arithNodeFlags()) && productIsExact) {
                 node->setArithMode(Arith::Unchecked);
                 node->clearFlags(NodeMustGenerate);
             } else if (bytecodeCanIgnoreNegativeZero(node->arithNodeFlags()) || leftChild.node() == rightChild.node())
