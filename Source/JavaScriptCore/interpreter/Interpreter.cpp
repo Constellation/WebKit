@@ -700,7 +700,7 @@ String Interpreter::stackTraceAsString(VM& vm, const Vector<StackFrame>& stackTr
     return builder.toString();
 }
 
-ALWAYS_INLINE static HandlerInfo* findExceptionHandler(StackVisitor& visitor, CodeBlock* codeBlock, RequiredHandler requiredHandler)
+ALWAYS_INLINE static unsigned exceptionHandlerIndex(StackVisitor& visitor, CodeBlock* codeBlock)
 {
     ASSERT(codeBlock);
 #if ENABLE(DFG_JIT)
@@ -708,13 +708,14 @@ ALWAYS_INLINE static HandlerInfo* findExceptionHandler(StackVisitor& visitor, Co
 #endif
 
     CallFrame* callFrame = visitor->callFrame();
-    unsigned exceptionHandlerIndex;
     if (JSC::JITCode::isOptimizingJIT(codeBlock->jitType()))
-        exceptionHandlerIndex = callFrame->callSiteIndex().bits();
-    else
-        exceptionHandlerIndex = callFrame->bytecodeIndex().offset();
+        return callFrame->callSiteIndex().bits();
+    return callFrame->bytecodeIndex().offset();
+}
 
-    return codeBlock->handlerForIndex(exceptionHandlerIndex, requiredHandler);
+ALWAYS_INLINE static HandlerInfo* findExceptionHandler(StackVisitor& visitor, CodeBlock* codeBlock, RequiredHandler requiredHandler)
+{
+    return codeBlock->handlerForIndex(exceptionHandlerIndex(visitor, codeBlock), requiredHandler);
 }
 
 class GetCatchHandlerFunctor {
@@ -744,6 +745,50 @@ public:
 private:
     mutable HandlerInfo* m_handler;
 };
+
+static std::optional<bool> isCatchingHandlerUserCatchClause(CodeBlock* codeBlock, unsigned index)
+{
+    // Handlers are ordered innermost first.
+    for (size_t i = 0; i < codeBlock->numberOfExceptionHandlers(); ++i) {
+        auto& handler = codeBlock->exceptionHandler(i);
+        if (index < handler.start || index >= handler.end)
+            continue;
+        switch (handler.type()) {
+        case HandlerType::Finally:
+        case HandlerType::SynthesizedFinally:
+            continue;
+        case HandlerType::Catch:
+            return !codeBlock->unlinkedCodeBlock()->isBuiltinFunction();
+        case HandlerType::SynthesizedCatch:
+            return false;
+        }
+    }
+    return std::nullopt;
+}
+
+bool Interpreter::isExceptionCaughtByUserCatchClause()
+{
+    AssertNoGC assertNoGC;
+    VM& vm = this->vm();
+    bool result = false;
+    StackVisitor::visit(vm.topCallFrame, vm, [&](StackVisitor& visitor) ALWAYS_INLINE_LAMBDA {
+        visitor.unwindToMachineCodeBlockFrame();
+        CallFrame* frame = visitor->callFrame();
+        if (frame->isNativeCalleeFrame())
+            return IterationStatus::Done;
+
+        if (CodeBlock* codeBlock = visitor->codeBlock()) {
+            if (auto isUserCatchClause = isCatchingHandlerUserCatchClause(codeBlock, exceptionHandlerIndex(visitor, codeBlock))) {
+                result = *isUserCatchClause;
+                return IterationStatus::Done;
+            }
+        } else if (JSC::isRemoteFunction(frame->jsCallee()))
+            return IterationStatus::Done;
+
+        return visitor->callerIsEntryFrame() ? IterationStatus::Done : IterationStatus::Continue;
+    });
+    return result;
+}
 
 CatchInfo::CatchInfo(const HandlerInfo* handler, CodeBlock* codeBlock)
 {
