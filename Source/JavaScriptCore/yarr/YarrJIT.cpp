@@ -4309,7 +4309,17 @@ class YarrGenerator final : public YarrJITInfo {
                 op.m_checkAdjust = Checked<unsigned>(alternative->m_minimumSize);
                 if ((term->quantityType == QuantifierType::FixedCount) && (term->quantityMaxCount == 1) && (term->type != PatternTerm::Type::ParentheticalAssertion))
                     op.m_checkAdjust -= disjunction->m_minimumSize;
-                if (op.m_checkAdjust)
+
+                if (isEOLStringListAlternative(op)) {
+                    ASSERT(m_stringListLengthMismatches.empty());
+                    if (op.m_checkAdjust)
+                        consumeIndex(MacroAssembler::Imm32(op.m_checkAdjust));
+                    m_stringListLengthMismatches.append(m_jit.branch32(MacroAssembler::NotEqual, m_regs.index, m_regs.length));
+                    if (alternative->m_isLastAlternative) {
+                        op.m_jumps.append(WTF::move(m_stringListLengthMismatches));
+                        m_stringListLengthMismatches.clear();
+                    }
+                } else if (op.m_checkAdjust)
                     op.m_jumps.append(jumpIfNoAvailableInput(op.m_checkAdjust));
                 break;
             }
@@ -4371,11 +4381,28 @@ class YarrGenerator final : public YarrJITInfo {
                     op.m_jumps.link(&m_jit);
                     op.m_jumps.clear();
                     auto lastCheckAdjust = prevOp->m_checkAdjust;
-                    if (lastCheckAdjust > op.m_checkAdjust)
-                        m_jit.sub32(MacroAssembler::Imm32(lastCheckAdjust - op.m_checkAdjust), m_regs.index);
-                    else if (op.m_checkAdjust > lastCheckAdjust)
-                        m_jit.add32(MacroAssembler::Imm32(op.m_checkAdjust - lastCheckAdjust), m_regs.index);
-                    op.m_jumps.append(jumpIfNoAvailableInput());
+                    if (isEOLStringListAlternative(op)) {
+                        // Alternatives of an EOL string list are sorted by length, so a length check passed by the previous
+                        // alternative also holds here. A failed length check skips to the next group of a different length.
+                        if (lastCheckAdjust != op.m_checkAdjust) {
+                            ASSERT(lastCheckAdjust > op.m_checkAdjust);
+                            m_stringListLengthMismatches.link(&m_jit);
+                            m_stringListLengthMismatches.clear();
+                            m_jit.sub32(MacroAssembler::Imm32(lastCheckAdjust - op.m_checkAdjust), m_regs.index);
+                            m_stringListLengthMismatches.append(m_jit.branch32(MacroAssembler::NotEqual, m_regs.index, m_regs.length));
+                        }
+                        if (alternative->m_isLastAlternative) {
+                            op.m_jumps.append(WTF::move(m_stringListLengthMismatches));
+                            m_stringListLengthMismatches.clear();
+                        }
+                    } else {
+                        if (lastCheckAdjust > op.m_checkAdjust)
+                            m_jit.sub32(MacroAssembler::Imm32(lastCheckAdjust - op.m_checkAdjust), m_regs.index);
+                        else if (op.m_checkAdjust > lastCheckAdjust)
+                            m_jit.add32(MacroAssembler::Imm32(op.m_checkAdjust - lastCheckAdjust), m_regs.index);
+
+                        op.m_jumps.append(jumpIfNoAvailableInput());
+                    }
                 } else if (op.m_checkAdjust)
                     op.m_jumps.append(jumpIfNoAvailableInput(op.m_checkAdjust));
                 break;
@@ -5595,6 +5622,16 @@ class YarrGenerator final : public YarrJITInfo {
             return true;
         }
         return false;
+    }
+
+    bool isEOLStringListAlternative(const YarrOp& op)
+    {
+        if (op.m_op != YarrOpCode::StringListAlternativeBegin && op.m_op != YarrOpCode::StringListAlternativeNext)
+            return false;
+        if (!op.m_term->parentheses.isEOLStringList)
+            return false;
+        ASSERT(m_direction == Forward);
+        return true;
     }
 
     // Compilation methods:
@@ -7660,6 +7697,7 @@ private:
     MacroAssembler::JumpList m_hitMatchLimit;
     MacroAssembler::JumpList m_inlinedMatched;
     MacroAssembler::JumpList m_inlinedFailedMatch;
+    MacroAssembler::JumpList m_stringListLengthMismatches;
 
     MatchDirection m_direction { Forward };
 
